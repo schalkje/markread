@@ -1,5 +1,17 @@
-﻿using System.Windows;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+
+using MarkRead.App.Rendering;
+using MarkRead.App.Services;
+using MarkRead.App.UI.Shell;
+using MarkRead.App.UI.Start;
+using MarkRead.Cli;
 
 using Microsoft.Web.WebView2.Core;
 
@@ -10,29 +22,315 @@ namespace MarkRead.App;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private readonly FolderService _folderService = new();
+    private readonly MarkdownService _markdownService = new();
+    private readonly HtmlSanitizerService _sanitizer = new();
+    private readonly SettingsService _settingsService = new();
+    private readonly HistoryService _historyService = new();
+    private readonly FileWatcherService _fileWatcherService = new();
+    private readonly Renderer _renderer;
+    private readonly WebViewHost _webViewHost;
+    private readonly LinkResolver _linkResolver;
+    private readonly OpenFolderCommand _openFolderCommand;
+
+    private FolderRoot? _currentRoot;
+    private DocumentInfo? _currentDocument;
+    private IDisposable? _documentWatcher;
+    private StartupArguments _startupArguments = StartupArguments.Empty;
+    private bool _isInitialized;
+
     public MainWindow()
     {
         InitializeComponent();
+
+        _renderer = new Renderer(_markdownService, _sanitizer);
+        _webViewHost = new WebViewHost(MarkdownView, Path.Combine("Rendering", "assets"));
+        _webViewHost.BridgeMessageReceived += OnBridgeMessageReceived;
+
+        _linkResolver = new LinkResolver(_folderService);
+        _openFolderCommand = new OpenFolderCommand(_folderService);
+
+        CommandBindings.Add(new CommandBinding(App.OpenFolderCommand, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
+        CommandBindings.Add(new CommandBinding(StartCommands.OpenFolder, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
+        CommandBindings.Add(new CommandBinding(StartCommands.OpenFile, async (_, _) => await ExecuteOpenFileAsync(), CanExecuteWhenInteractive));
+    }
+
+    internal void InitializeShell(StartupArguments startupArguments)
+    {
+        _startupArguments = startupArguments;
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        await InitializeWebViewAsync();
+        await EnsureWebViewAsync().ConfigureAwait(false);
+        await InitializeFromStartupAsync().ConfigureAwait(false);
     }
 
-    private async Task InitializeWebViewAsync()
+    private async Task EnsureWebViewAsync()
     {
-        if (MarkdownView.CoreWebView2 is null)
+        if (_isInitialized)
         {
-            await MarkdownView.EnsureCoreWebView2Async();
+            return;
         }
 
-        CoreWebView2 core = MarkdownView.CoreWebView2!;
-        core.Settings.AreDefaultContextMenusEnabled = false;
-        core.Settings.AreDevToolsEnabled = true;
-        core.Settings.IsZoomControlEnabled = false;
+        await _webViewHost.InitializeAsync().ConfigureAwait(false);
+        _isInitialized = true;
+    }
 
-        const string placeholderHtml = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>MarkRead</title></head><body style='font-family:Segoe UI, sans-serif;padding:2rem;color:#2d2d2d;'><h1>MarkRead</h1><p>Viewer initialized. Implement rendering pipeline.</p></body></html>";
-        core.NavigateToString(placeholderHtml);
+    private async Task InitializeFromStartupAsync()
+    {
+        if (_startupArguments.PathKind == StartupPathKind.Directory && _startupArguments.FullPath is not null)
+        {
+            await LoadRootFromPathAsync(_startupArguments.FullPath).ConfigureAwait(false);
+            return;
+        }
+
+        if (_startupArguments.PathKind == StartupPathKind.File && _startupArguments.FullPath is not null)
+        {
+            await LoadFileAndRootAsync(_startupArguments.FullPath).ConfigureAwait(false);
+            return;
+        }
+
+        ShowStartOverlay(true);
+    }
+
+    private void CanExecuteWhenInteractive(object sender, CanExecuteRoutedEventArgs e)
+    {
+        e.CanExecute = true;
+        e.Handled = true;
+    }
+
+    private async Task ExecuteOpenFolderAsync()
+    {
+        ShowStartOverlay(false);
+        var result = _openFolderCommand.Execute(this);
+        if (result is null)
+        {
+            if (_currentDocument is null)
+            {
+                ShowStartOverlay(true);
+            }
+            return;
+        }
+
+        await LoadRootAsync(result.Value).ConfigureAwait(false);
+    }
+
+    private async Task ExecuteOpenFileAsync()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "Markdown files (*.md;*.markdown;*.mdx)|*.md;*.markdown;*.mdx|All files (*.*)|*.*",
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            if (_currentDocument is null)
+            {
+                ShowStartOverlay(true);
+            }
+            return;
+        }
+
+        await LoadFileAndRootAsync(dialog.FileName).ConfigureAwait(false);
+    }
+
+    private async Task LoadRootFromPathAsync(string path)
+    {
+        try
+        {
+            var root = _folderService.CreateRoot(path);
+            var defaultDocument = _folderService.ResolveDefaultDocument(root);
+            await LoadRootAsync(new FolderOpenResult(root, defaultDocument)).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            System.Windows.MessageBox.Show(this, ex.Message, "MarkRead", MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowStartOverlay(true);
+        }
+    }
+
+    private async Task LoadFileAndRootAsync(string fullPath)
+    {
+        string directory = Path.GetDirectoryName(fullPath) ?? fullPath;
+        try
+        {
+            var root = _folderService.CreateRoot(directory);
+            var document = _folderService.TryResolveDocument(root, fullPath) ?? new DocumentInfo(fullPath, Path.GetFileName(fullPath), 0, DateTime.UtcNow);
+            await LoadRootAsync(new FolderOpenResult(root, document)).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            System.Windows.MessageBox.Show(this, ex.Message, "MarkRead", MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowStartOverlay(true);
+        }
+    }
+
+    private async Task LoadRootAsync(FolderOpenResult result)
+    {
+        _currentRoot = result.Root;
+    Title = $"MarkRead - {result.Root.DisplayName}";
+
+        if (result.DefaultDocument is DocumentInfo doc)
+        {
+            await LoadDocumentAsync(doc).ConfigureAwait(false);
+        }
+        else
+        {
+            ShowStartOverlay(true);
+            System.Windows.MessageBox.Show(this, "No Markdown files were found in the selected folder.", "MarkRead", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private async Task LoadDocumentAsync(DocumentInfo document, string? anchor = null)
+    {
+        if (_currentRoot is null)
+        {
+            return;
+        }
+
+        _currentDocument = document;
+        ShowStartOverlay(false);
+
+        string markdown;
+        try
+        {
+            markdown = await File.ReadAllTextAsync(document.FullPath).ConfigureAwait(false);
+        }
+        catch (IOException ex)
+        {
+            System.Windows.MessageBox.Show(this, $"Unable to read document: {ex.Message}", "MarkRead", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        var request = new RenderRequest(
+            markdown,
+            document.FullPath,
+            document.RelativePath,
+            anchor,
+            ThemeManager.Current.ToString().ToLowerInvariant());
+
+        var renderResult = await _renderer.RenderAsync(request).ConfigureAwait(false);
+
+        await Dispatcher.InvokeAsync(() =>
+        {
+            _webViewHost.NavigateToString(renderResult.Html);
+            Title = $"MarkRead - {renderResult.Title}";
+            SubscribeToDocumentChanges(document);
+        });
+
+        await _webViewHost.WaitForReadyAsync().ConfigureAwait(false);
+
+        if (!string.IsNullOrEmpty(anchor))
+        {
+            _webViewHost.PostMessage("scroll-to", new { anchor });
+        }
+    }
+
+    private void SubscribeToDocumentChanges(DocumentInfo document)
+    {
+        _documentWatcher?.Dispose();
+        _documentWatcher = _fileWatcherService.Watch(document.FullPath, _ =>
+        {
+            Dispatcher.InvokeAsync(async () => await ReloadCurrentDocumentAsync().ConfigureAwait(false));
+        });
+    }
+
+    private async Task ReloadCurrentDocumentAsync()
+    {
+        if (_currentDocument is DocumentInfo doc)
+        {
+            await LoadDocumentAsync(doc).ConfigureAwait(false);
+        }
+    }
+
+    private void OnBridgeMessageReceived(object? sender, WebViewBridgeEventArgs e)
+    {
+        if (e.Name.Equals("link-click", StringComparison.OrdinalIgnoreCase))
+        {
+            if (e.Payload is JsonElement element && element.TryGetProperty("href", out var hrefElement))
+            {
+                var href = hrefElement.GetString();
+                if (!string.IsNullOrWhiteSpace(href))
+                {
+                    _ = Dispatcher.InvokeAsync(async () => await HandleLinkNavigationAsync(href!).ConfigureAwait(false));
+                }
+            }
+        }
+        else if (e.Name.Equals("anchor-click", StringComparison.OrdinalIgnoreCase))
+        {
+            if (e.Payload is JsonElement element && element.TryGetProperty("anchor", out var anchorElement))
+            {
+                var anchor = anchorElement.GetString();
+                if (!string.IsNullOrEmpty(anchor))
+                {
+                    _webViewHost.PostMessage("scroll-to", new { anchor });
+                }
+            }
+        }
+    }
+
+    private async Task HandleLinkNavigationAsync(string href)
+    {
+        if (_currentRoot is null || _currentDocument is null)
+        {
+            return;
+        }
+
+        var result = _linkResolver.Resolve(href, _currentRoot, _currentDocument.Value.FullPath);
+
+        if (result.IsBlocked)
+        {
+            var message = result.Message ?? "This link cannot be opened.";
+            System.Windows.MessageBox.Show(this, message, "MarkRead", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (result.IsAnchor && !string.IsNullOrEmpty(result.Anchor))
+        {
+            _webViewHost.PostMessage("scroll-to", new { anchor = result.Anchor });
+            return;
+        }
+
+        if (result.IsExternal && result.ExternalUri is not null)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(result.ExternalUri.ToString()) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(this, $"Unable to open link: {ex.Message}", "MarkRead", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(result.LocalPath))
+        {
+            var document = _folderService.TryResolveDocument(_currentRoot, result.LocalPath);
+            if (document is DocumentInfo doc)
+            {
+                await LoadDocumentAsync(doc, result.Anchor).ConfigureAwait(false);
+            }
+            else
+            {
+                System.Windows.MessageBox.Show(this, "Target document could not be resolved within the current root.", "MarkRead", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+    }
+
+    private void ShowStartOverlay(bool visible)
+    {
+        StartOverlay.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+
+        _documentWatcher?.Dispose();
+        _fileWatcherService.Dispose();
+        _webViewHost.Dispose();
     }
 }

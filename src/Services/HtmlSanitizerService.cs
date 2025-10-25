@@ -45,12 +45,18 @@ public sealed class HtmlSanitizerService
         sanitizer.AllowedTags.Add("blockquote");
         sanitizer.AllowedTags.Add("figure");
         sanitizer.AllowedTags.Add("figcaption");
+    sanitizer.AllowedTags.Add("dl");
+    sanitizer.AllowedTags.Add("dt");
+    sanitizer.AllowedTags.Add("dd");
         sanitizer.AllowedTags.Add("ul");
         sanitizer.AllowedTags.Add("ol");
         sanitizer.AllowedTags.Add("li");
         sanitizer.AllowedTags.Add("hr");
         sanitizer.AllowedTags.Add("input");
         sanitizer.AllowedTags.Add("img");
+    sanitizer.AllowedTags.Add("sup");
+    sanitizer.AllowedTags.Add("sub");
+    sanitizer.AllowedTags.Add("kbd");
 
         sanitizer.AllowedAttributes.Add("class");
         sanitizer.AllowedAttributes.Add("id");
@@ -62,15 +68,22 @@ public sealed class HtmlSanitizerService
         sanitizer.AllowedAttributes.Add("value");
         sanitizer.AllowedAttributes.Add("checked");
         sanitizer.AllowedAttributes.Add("disabled");
-    sanitizer.AllowedAttributes.Add("target");
-    sanitizer.AllowedAttributes.Add("rel");
+        sanitizer.AllowedAttributes.Add("target");
+        sanitizer.AllowedAttributes.Add("rel");
+        sanitizer.AllowedAttributes.Add("loading");
+        sanitizer.AllowedAttributes.Add("width");
+        sanitizer.AllowedAttributes.Add("height");
+        sanitizer.AllowedAttributes.Add("colspan");
+        sanitizer.AllowedAttributes.Add("rowspan");
+        sanitizer.AllowedAttributes.Add("name");
 
         sanitizer.AllowedSchemes.Add("http");
         sanitizer.AllowedSchemes.Add("https");
         sanitizer.AllowedSchemes.Add("mailto");
         sanitizer.AllowedSchemes.Add("file");
+        sanitizer.AllowedSchemes.Add("data");
 
-    sanitizer.KeepChildNodes = true;
+        sanitizer.KeepChildNodes = true;
 
         return sanitizer;
     }

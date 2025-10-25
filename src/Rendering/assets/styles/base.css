@@ -1,0 +1,239 @@
+/*
+ * Global application styles for the MarkRead renderer surface.
+ * Keep rules minimal: the host window applies chrome-specific theming.
+ */
+:root {
+    color-scheme: light dark;
+    font-size: 16px;
+    --surface-light: #f8f9fb;
+    --surface-dark: #1b1d23;
+    --text-light: #1a1d23;
+    --text-dark: #f0f2f7;
+    --border-light: #d7d8dc;
+    --border-dark: #2a2d34;
+    --accent: #0066cc;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", "SegoeUI", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    background: var(--surface-light);
+    color: var(--text-light);
+    transition: background-color 0.2s ease, color 0.2s ease;
+    min-height: 100vh;
+}
+
+body[data-theme="dark"] {
+    background: var(--surface-dark);
+    color: var(--text-dark);
+}
+
+body[data-theme="dark"] a {
+    color: #4ea1ff;
+}
+
+#app {
+    display: flex;
+    justify-content: center;
+}
+
+main#content {
+    width: min(960px, 100%);
+    padding: 2.5rem 3rem 4rem;
+}
+
+@media (max-width: 768px) {
+    main#content {
+        padding: 1.5rem;
+    }
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 1.8rem 0 0.9rem;
+    scroll-margin-top: 5rem;
+}
+
+h1 { font-size: 2.2rem; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.3rem; }
+h5 { font-size: 1.1rem; }
+h6 { font-size: 1rem; letter-spacing: 0.05em; text-transform: uppercase; }
+
+p {
+    margin: 1rem 0;
+}
+
+ul, ol {
+    margin: 1.1rem 0 1.1rem 2.125rem;
+    padding: 0;
+}
+
+li + li {
+    margin-top: 0.35rem;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+}
+
+a:hover,
+a:focus {
+    text-decoration: none;
+    border-bottom-color: currentColor;
+}
+
+strong {
+    font-weight: 600;
+}
+
+em {
+    font-style: italic;
+}
+
+code {
+    font-family: "Cascadia Code", "Fira Code", "Consolas", "Courier New", monospace;
+    font-size: 0.95rem;
+    background: rgba(27, 29, 35, 0.08);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+}
+
+body[data-theme="dark"] code {
+    background: rgba(240, 242, 247, 0.08);
+}
+
+pre {
+    position: relative;
+    overflow: auto;
+    margin: 1.5rem 0;
+    padding: 1.25rem;
+    border-radius: 6px;
+    background: rgba(27, 29, 35, 0.95);
+    color: #f6f7fb;
+}
+
+body[data-theme="dark"] pre {
+    background: rgba(36, 39, 48, 0.95);
+}
+
+pre code {
+    display: block;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 0.95rem;
+}
+
+blockquote {
+    margin: 1.5rem 0;
+    padding: 0.75rem 1.2rem;
+    border-left: 4px solid var(--accent);
+    background: rgba(0, 102, 204, 0.05);
+}
+
+body[data-theme="dark"] blockquote {
+    background: rgba(0, 102, 204, 0.1);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+    font-size: 0.95rem;
+}
+
+thead {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+body[data-theme="dark"] thead {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+td, th {
+    border: 1px solid var(--border-light);
+    padding: 0.65rem 0.85rem;
+    text-align: left;
+}
+
+body[data-theme="dark"] td,
+body[data-theme="dark"] th {
+    border-color: var(--border-dark);
+}
+
+hr {
+    border: none;
+    border-bottom: 1px solid var(--border-light);
+    margin: 2.5rem 0;
+}
+
+body[data-theme="dark"] hr {
+    border-bottom-color: var(--border-dark);
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1.5rem auto;
+}
+
+figure {
+    margin: 2rem 0;
+}
+
+figcaption {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: rgba(26, 29, 35, 0.7);
+}
+
+body[data-theme="dark"] figcaption {
+    color: rgba(240, 242, 247, 0.7);
+}
+
+input[type="checkbox"] {
+    pointer-events: none;
+    accent-color: var(--accent);
+}
+
+pre[data-filename]::before {
+    content: attr(data-filename);
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(246, 247, 251, 0.65);
+}
+
+.mermaid {
+    margin: 2rem 0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(27, 29, 35, 0.06);
+    padding: 1rem;
+}
+
+body[data-theme="dark"] .mermaid {
+    background: rgba(240, 242, 247, 0.06);
+}
+
+.anchor-highlight {
+    animation: anchor-focus 2s ease;
+}
+
+@keyframes anchor-focus {
+    0% { background-color: rgba(0, 102, 204, 0.35); }
+    100% { background-color: transparent; }
+}

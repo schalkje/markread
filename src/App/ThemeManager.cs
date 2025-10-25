@@ -1,6 +1,3 @@
-using System.Windows;
-using System.Windows.Media;
-
 namespace MarkRead.App;
 
 /// <summary>
@@ -24,32 +21,32 @@ public static class ThemeManager
     {
         _current = theme;
 
-        if (Application.Current is null)
+        if (System.Windows.Application.Current is null)
         {
             return;
         }
 
-        Application.Current.Resources["ApplicationTheme"] = theme;
+        System.Windows.Application.Current.Resources["ApplicationTheme"] = theme;
         UpdateWindowBackground(theme);
     }
 
     private static void UpdateWindowBackground(AppTheme theme)
     {
-        if (Application.Current?.MainWindow is not Window window)
+        if (System.Windows.Application.Current?.MainWindow is not System.Windows.Window window)
         {
             return;
         }
 
         window.Background = theme switch
         {
-            AppTheme.Dark => new SolidColorBrush(Color.FromRgb(0x20, 0x20, 0x20)),
-            AppTheme.Light => Brushes.White,
-            _ => SystemColors.WindowBrush
+            AppTheme.Dark => new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x20, 0x20, 0x20)),
+            AppTheme.Light => System.Windows.Media.Brushes.White,
+            _ => System.Windows.SystemColors.WindowBrush
         };
         window.Foreground = theme switch
         {
-            AppTheme.Dark => Brushes.WhiteSmoke,
-            _ => SystemColors.WindowTextBrush
+            AppTheme.Dark => System.Windows.Media.Brushes.WhiteSmoke,
+            _ => System.Windows.SystemColors.WindowTextBrush
         };
     }
 }

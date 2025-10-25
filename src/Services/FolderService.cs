@@ -71,6 +71,59 @@ public sealed class FolderService
         return new FolderRoot(validation.NormalizedPath, validation.DisplayName ?? Path.GetFileName(validation.NormalizedPath), DateTimeOffset.UtcNow);
     }
 
+    public DocumentInfo? ResolveDefaultDocument(FolderRoot root)
+    {
+        var candidates = new[]
+        {
+            "README.md",
+            "Readme.md",
+            "readme.md",
+            "README.markdown",
+            "README.mdx"
+        };
+
+        foreach (var candidate in candidates)
+        {
+            var path = Path.Combine(root.Path, candidate);
+            if (File.Exists(path))
+            {
+                return CreateDocument(root, path);
+            }
+        }
+
+        foreach (var file in Directory.EnumerateFiles(root.Path, "*.md", SearchOption.TopDirectoryOnly))
+        {
+            return CreateDocument(root, file);
+        }
+
+        return null;
+    }
+
+    public DocumentInfo? TryResolveDocument(FolderRoot root, string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        string fullPath;
+        try
+        {
+            fullPath = Path.GetFullPath(path);
+        }
+        catch
+        {
+            return null;
+        }
+
+        if (!IsWithinRoot(root.Path, fullPath) || !File.Exists(fullPath))
+        {
+            return null;
+        }
+
+        return CreateDocument(root, fullPath);
+    }
+
     private static bool HasReadAccess(string path)
     {
         try
@@ -102,6 +155,16 @@ public sealed class FolderService
 
         return path + Path.DirectorySeparatorChar;
     }
+
+    private static DocumentInfo CreateDocument(FolderRoot root, string fullPath)
+    {
+        var relative = Path.GetRelativePath(root.Path, fullPath);
+        var fileInfo = new FileInfo(fullPath);
+        return new DocumentInfo(fullPath,
+            relative,
+            fileInfo.Length,
+            fileInfo.LastWriteTimeUtc);
+    }
 }
 
 public sealed record FolderRoot(string Path, string DisplayName, DateTimeOffset LastOpenedAt);
@@ -128,3 +191,9 @@ public readonly struct FolderValidationResult
 
     public static FolderValidationResult Invalid(string error) => new(false, null, null, error);
 }
+
+public readonly record struct DocumentInfo(
+    string FullPath,
+    string RelativePath,
+    long SizeBytes,
+    DateTime LastModifiedUtc);

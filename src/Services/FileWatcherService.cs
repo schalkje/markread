@@ -89,7 +89,7 @@ public sealed class FileWatcherService : IDisposable
     {
         private readonly FileSystemWatcher _watcher;
         private readonly ConcurrentDictionary<Guid, Action<string>> _subscribers = new();
-        private readonly Timer _timer;
+    private readonly System.Threading.Timer _timer;
         private readonly TimeSpan _debounce;
         private string? _pendingPath;
 
@@ -97,7 +97,7 @@ public sealed class FileWatcherService : IDisposable
         {
             _debounce = debounce;
             _watcher = CreateWatcher(path);
-            _timer = new Timer(Flush, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            _timer = new System.Threading.Timer(Flush, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         public Guid AddSubscriber(Action<string> callback)

@@ -30,14 +30,14 @@
 
 Story goal: Open a folder and render README.md with images, checklists, code highlighting, and mermaid. Independent test criteria in spec → “User Story 1”.
 
-- [ ] T021 [US1] Implement Open Folder command (Ctrl+O) in src/UI/Shell/OpenFolderCommand.cs
-- [ ] T022 [P] [US1] Resolve README.md at root and load in active tab in src/Services/FolderService.cs
-- [ ] T023 [P] [US1] Apply syntax highlighting (Python, SQL, YAML) via assets in src/Rendering/assets
-- [ ] T024 [P] [US1] Integrate Mermaid rendering offline in src/Rendering/assets/mermaid
-- [ ] T025 [US1] Ensure image and relative link resolution works in src/Services/LinkResolver.cs
-- [ ] T026 [US1] Ensure external links open in system browser in src/Rendering/WebViewHost.cs
-- [ ] T027 [US1] Enforce HTML sanitization in render pipeline in src/Services/HtmlSanitizerService.cs
-- [ ] T028 [US1] Update window title from current document in src/App/MainWindow.xaml.cs
+- [x] T021 [US1] Implement Open Folder command (Ctrl+O) in src/UI/Shell/OpenFolderCommand.cs
+- [x] T022 [P] [US1] Resolve README.md at root and load in active tab in src/Services/FolderService.cs
+- [x] T023 [P] [US1] Apply syntax highlighting (Python, SQL, YAML) via assets in src/Rendering/assets
+- [x] T024 [P] [US1] Integrate Mermaid rendering offline in src/Rendering/assets/mermaid
+- [x] T025 [US1] Ensure image and relative link resolution works in src/Services/LinkResolver.cs
+- [x] T026 [US1] Ensure external links open in system browser in src/Rendering/WebViewHost.cs
+- [x] T027 [US1] Enforce HTML sanitization in render pipeline in src/Services/HtmlSanitizerService.cs
+- [x] T028 [US1] Update window title from current document in src/App/MainWindow.xaml.cs
 - [ ] T029 [US1] Integration smoke: open folder and render README in tests/integration/StartupSmokeTests.cs
 
 ## Phase 4 – User Story 2 (P2): Navigate internal links with history
