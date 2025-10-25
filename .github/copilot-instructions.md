@@ -4,7 +4,6 @@ Auto-generated from all feature plans. Last updated: 2025-10-25
 
 ## Active Technologies
 - Local filesystem only (no DB) (001-markdown-viewer)
-
 - .NET 8 (C#) + WPF + WebView2; Markdig (optional if server‑side rendering), Prism/Highlight.js + Mermaid (front-end assets) (001-markdown-viewer)
 
 ## Project Structure
@@ -32,9 +31,7 @@ tests/
 
 ## Recent Changes
 - 001-markdown-viewer: Added .NET 8 (C#) + WPF + WebView2; Markdig (optional if server‑side rendering), Prism/Highlight.js + Mermaid (front-end assets)
-- 001-markdown-viewer: Added .NET 8 (C#) + WPF + WebView2; Markdig (optional if server‑side rendering), Prism/Highlight.js + Mermaid (front-end assets)
 
-- 001-markdown-viewer: Added .NET 8 (C#) + WPF + WebView2; Markdig (optional if server‑side rendering), Prism/Highlight.js + Mermaid (front-end assets)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
