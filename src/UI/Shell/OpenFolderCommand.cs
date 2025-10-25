@@ -21,7 +21,7 @@ public sealed class OpenFolderCommand
 
     public FolderOpenResult? Execute(Window owner)
     {
-        var hwnd = new WindowInteropHelper(owner).Handle;
+        var hwnd = owner is null ? nint.Zero : new WindowInteropHelper(owner).Handle;
 
         using var dialog = new FormsDialog
         {
@@ -30,7 +30,15 @@ public sealed class OpenFolderCommand
             ShowNewFolderButton = false
         };
 
-        var result = dialog.ShowDialog(new Win32Window(hwnd));
+        FormsDialogResult result;
+        if (hwnd == nint.Zero)
+        {
+            result = dialog.ShowDialog();
+        }
+        else
+        {
+            result = dialog.ShowDialog(new Win32Window(hwnd));
+        }
         if (result != FormsDialogResult.OK || string.IsNullOrWhiteSpace(dialog.SelectedPath))
         {
             return null;

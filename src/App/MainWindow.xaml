@@ -13,11 +13,12 @@
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
                       Margin="0"
-                      DefaultBackgroundColor="Transparent" />
+                      DefaultBackgroundColor="Transparent"
+                      Visibility="Collapsed" />
 
         <Border x:Name="StartOverlay"
                 Background="#F0F3F8"
-                Visibility="Collapsed">
+                Visibility="Visible">
             <start:StartView />
         </Border>
     </Grid>

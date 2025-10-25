@@ -62,8 +62,8 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        await EnsureWebViewAsync().ConfigureAwait(false);
-        await InitializeFromStartupAsync().ConfigureAwait(false);
+    await EnsureWebViewAsync();
+    await InitializeFromStartupAsync();
     }
 
     private async Task EnsureWebViewAsync()
@@ -73,7 +73,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        await _webViewHost.InitializeAsync().ConfigureAwait(false);
+    await _webViewHost.InitializeAsync();
         _isInitialized = true;
     }
 
@@ -81,13 +81,13 @@ public partial class MainWindow : Window
     {
         if (_startupArguments.PathKind == StartupPathKind.Directory && _startupArguments.FullPath is not null)
         {
-            await LoadRootFromPathAsync(_startupArguments.FullPath).ConfigureAwait(false);
+            await LoadRootFromPathAsync(_startupArguments.FullPath);
             return;
         }
 
         if (_startupArguments.PathKind == StartupPathKind.File && _startupArguments.FullPath is not null)
         {
-            await LoadFileAndRootAsync(_startupArguments.FullPath).ConfigureAwait(false);
+            await LoadFileAndRootAsync(_startupArguments.FullPath);
             return;
         }
 
@@ -98,6 +98,18 @@ public partial class MainWindow : Window
     {
         e.CanExecute = true;
         e.Handled = true;
+    }
+
+    public void ExecuteOpenFolder()
+    {
+        System.Diagnostics.Debug.WriteLine("ExecuteOpenFolder called!");
+        _ = ExecuteOpenFolderAsync();
+    }
+
+    public void ExecuteOpenFile()
+    {
+        System.Diagnostics.Debug.WriteLine("ExecuteOpenFile called!");
+        _ = ExecuteOpenFileAsync();
     }
 
     private async Task ExecuteOpenFolderAsync()
@@ -113,7 +125,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        await LoadRootAsync(result.Value).ConfigureAwait(false);
+    await LoadRootAsync(result.Value);
     }
 
     private async Task ExecuteOpenFileAsync()
@@ -133,7 +145,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        await LoadFileAndRootAsync(dialog.FileName).ConfigureAwait(false);
+    await LoadFileAndRootAsync(dialog.FileName);
     }
 
     private async Task LoadRootFromPathAsync(string path)
@@ -142,7 +154,7 @@ public partial class MainWindow : Window
         {
             var root = _folderService.CreateRoot(path);
             var defaultDocument = _folderService.ResolveDefaultDocument(root);
-            await LoadRootAsync(new FolderOpenResult(root, defaultDocument)).ConfigureAwait(false);
+            await LoadRootAsync(new FolderOpenResult(root, defaultDocument));
         }
         catch (InvalidOperationException ex)
         {
@@ -158,7 +170,7 @@ public partial class MainWindow : Window
         {
             var root = _folderService.CreateRoot(directory);
             var document = _folderService.TryResolveDocument(root, fullPath) ?? new DocumentInfo(fullPath, Path.GetFileName(fullPath), 0, DateTime.UtcNow);
-            await LoadRootAsync(new FolderOpenResult(root, document)).ConfigureAwait(false);
+            await LoadRootAsync(new FolderOpenResult(root, document));
         }
         catch (InvalidOperationException ex)
         {
@@ -174,7 +186,7 @@ public partial class MainWindow : Window
 
         if (result.DefaultDocument is DocumentInfo doc)
         {
-            await LoadDocumentAsync(doc).ConfigureAwait(false);
+            await LoadDocumentAsync(doc);
         }
         else
         {
@@ -196,7 +208,7 @@ public partial class MainWindow : Window
         string markdown;
         try
         {
-            markdown = await File.ReadAllTextAsync(document.FullPath).ConfigureAwait(false);
+            markdown = await File.ReadAllTextAsync(document.FullPath);
         }
         catch (IOException ex)
         {
@@ -211,7 +223,7 @@ public partial class MainWindow : Window
             anchor,
             ThemeManager.Current.ToString().ToLowerInvariant());
 
-        var renderResult = await _renderer.RenderAsync(request).ConfigureAwait(false);
+    var renderResult = await _renderer.RenderAsync(request);
 
         await Dispatcher.InvokeAsync(() =>
         {
@@ -220,7 +232,7 @@ public partial class MainWindow : Window
             SubscribeToDocumentChanges(document);
         });
 
-        await _webViewHost.WaitForReadyAsync().ConfigureAwait(false);
+    await _webViewHost.WaitForReadyAsync();
 
         if (!string.IsNullOrEmpty(anchor))
         {
@@ -233,7 +245,7 @@ public partial class MainWindow : Window
         _documentWatcher?.Dispose();
         _documentWatcher = _fileWatcherService.Watch(document.FullPath, _ =>
         {
-            Dispatcher.InvokeAsync(async () => await ReloadCurrentDocumentAsync().ConfigureAwait(false));
+            Dispatcher.InvokeAsync(async () => await ReloadCurrentDocumentAsync());
         });
     }
 
@@ -241,7 +253,7 @@ public partial class MainWindow : Window
     {
         if (_currentDocument is DocumentInfo doc)
         {
-            await LoadDocumentAsync(doc).ConfigureAwait(false);
+            await LoadDocumentAsync(doc);
         }
     }
 
@@ -254,7 +266,7 @@ public partial class MainWindow : Window
                 var href = hrefElement.GetString();
                 if (!string.IsNullOrWhiteSpace(href))
                 {
-                    _ = Dispatcher.InvokeAsync(async () => await HandleLinkNavigationAsync(href!).ConfigureAwait(false));
+                    _ = Dispatcher.InvokeAsync(async () => await HandleLinkNavigationAsync(href!));
                 }
             }
         }
@@ -311,7 +323,7 @@ public partial class MainWindow : Window
             var document = _folderService.TryResolveDocument(_currentRoot, result.LocalPath);
             if (document is DocumentInfo doc)
             {
-                await LoadDocumentAsync(doc, result.Anchor).ConfigureAwait(false);
+                await LoadDocumentAsync(doc, result.Anchor);
             }
             else
             {
@@ -322,7 +334,14 @@ public partial class MainWindow : Window
 
     private void ShowStartOverlay(bool visible)
     {
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.InvokeAsync(() => ShowStartOverlay(visible));
+            return;
+        }
+
         StartOverlay.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        MarkdownView.Visibility = visible ? Visibility.Collapsed : Visibility.Visible;
     }
 
     protected override void OnClosed(EventArgs e)
