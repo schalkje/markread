@@ -15,6 +15,8 @@ using MarkRead.Cli;
 
 using Microsoft.Web.WebView2.Core;
 
+using AppNavigationCommands = MarkRead.App.UI.Shell.NavigationCommands;
+
 namespace MarkRead.App;
 
 /// <summary>
@@ -38,6 +40,8 @@ public partial class MainWindow : Window
     private IDisposable? _documentWatcher;
     private StartupArguments _startupArguments = StartupArguments.Empty;
     private bool _isInitialized;
+    private Guid _currentTabId = Guid.NewGuid(); // Single tab for now, will be expanded in US3
+    private NavigationHistory? _currentHistory;
 
     public MainWindow()
     {
@@ -46,13 +50,25 @@ public partial class MainWindow : Window
         _renderer = new Renderer(_markdownService, _sanitizer);
         _webViewHost = new WebViewHost(MarkdownView, Path.Combine("Rendering", "assets"));
         _webViewHost.BridgeMessageReceived += OnBridgeMessageReceived;
+        _webViewHost.LinkClicked += OnLinkClicked;
+        _webViewHost.AnchorClicked += OnAnchorClicked;
 
         _linkResolver = new LinkResolver(_folderService);
         _openFolderCommand = new OpenFolderCommand(_folderService);
+        _currentHistory = _historyService.GetOrCreate(_currentTabId);
+
+        // Wire up FindBar events
+        FindBar.SearchRequested += OnSearchRequested;
+        FindBar.NextRequested += OnFindNextRequested;
+        FindBar.PreviousRequested += OnFindPreviousRequested;
+        FindBar.CloseRequested += OnFindCloseRequested;
 
         CommandBindings.Add(new CommandBinding(App.OpenFolderCommand, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
         CommandBindings.Add(new CommandBinding(StartCommands.OpenFolder, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
         CommandBindings.Add(new CommandBinding(StartCommands.OpenFile, async (_, _) => await ExecuteOpenFileAsync(), CanExecuteWhenInteractive));
+        CommandBindings.Add(new CommandBinding(AppNavigationCommands.GoBack, async (_, _) => await ExecuteGoBackAsync(), CanExecuteGoBack));
+        CommandBindings.Add(new CommandBinding(AppNavigationCommands.GoForward, async (_, _) => await ExecuteGoForwardAsync(), CanExecuteGoForward));
+        CommandBindings.Add(new CommandBinding(App.FindInDocumentCommand, (_, _) => ExecuteFind(), CanExecuteWhenInteractive));
     }
 
     internal void InitializeShell(StartupArguments startupArguments)
@@ -100,6 +116,18 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void CanExecuteGoBack(object sender, CanExecuteRoutedEventArgs e)
+    {
+        e.CanExecute = _currentHistory?.CanGoBack ?? false;
+        e.Handled = true;
+    }
+
+    private void CanExecuteGoForward(object sender, CanExecuteRoutedEventArgs e)
+    {
+        e.CanExecute = _currentHistory?.CanGoForward ?? false;
+        e.Handled = true;
+    }
+
     public void ExecuteOpenFolder()
     {
         System.Diagnostics.Debug.WriteLine("ExecuteOpenFolder called!");
@@ -110,6 +138,46 @@ public partial class MainWindow : Window
     {
         System.Diagnostics.Debug.WriteLine("ExecuteOpenFile called!");
         _ = ExecuteOpenFileAsync();
+    }
+
+    private async Task ExecuteGoBackAsync()
+    {
+        if (_currentHistory is null || !_currentHistory.CanGoBack)
+        {
+            return;
+        }
+
+        var entry = _currentHistory.GoBack();
+        if (entry is null || _currentRoot is null)
+        {
+            return;
+        }
+
+        var document = _folderService.TryResolveDocument(_currentRoot, entry.Value.DocumentPath);
+        if (document is DocumentInfo doc)
+        {
+            await LoadDocumentAsync(doc, entry.Value.Anchor, pushHistory: false);
+        }
+    }
+
+    private async Task ExecuteGoForwardAsync()
+    {
+        if (_currentHistory is null || !_currentHistory.CanGoForward)
+        {
+            return;
+        }
+
+        var entry = _currentHistory.GoForward();
+        if (entry is null || _currentRoot is null)
+        {
+            return;
+        }
+
+        var document = _folderService.TryResolveDocument(_currentRoot, entry.Value.DocumentPath);
+        if (document is DocumentInfo doc)
+        {
+            await LoadDocumentAsync(doc, entry.Value.Anchor, pushHistory: false);
+        }
     }
 
     private async Task ExecuteOpenFolderAsync()
@@ -195,7 +263,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task LoadDocumentAsync(DocumentInfo document, string? anchor = null)
+    private async Task LoadDocumentAsync(DocumentInfo document, string? anchor = null, bool pushHistory = true)
     {
         if (_currentRoot is null)
         {
@@ -204,6 +272,13 @@ public partial class MainWindow : Window
 
         _currentDocument = document;
         ShowStartOverlay(false);
+
+        // Push to history before loading
+        if (pushHistory && _currentHistory is not null)
+        {
+            var entry = new NavigationEntry(document.FullPath, anchor);
+            _currentHistory.Push(entry);
+        }
 
         string markdown;
         try
@@ -281,6 +356,39 @@ public partial class MainWindow : Window
                 }
             }
         }
+        else if (e.Name.Equals("find-result", StringComparison.OrdinalIgnoreCase))
+        {
+            if (e.Payload is JsonElement element)
+            {
+                var matchCount = element.TryGetProperty("matchCount", out var matchCountProp) ? matchCountProp.GetInt32() : 0;
+                var currentIndex = element.TryGetProperty("currentIndex", out var currentIndexProp) ? currentIndexProp.GetInt32() : -1;
+
+                _ = Dispatcher.InvokeAsync(() =>
+                {
+                    FindBar.UpdateMatchCount(currentIndex, matchCount);
+                    if (_currentHistory is not null)
+                    {
+                        _currentHistory.SearchMatchCount = matchCount;
+                        _currentHistory.SearchCurrentIndex = currentIndex;
+                    }
+                });
+            }
+        }
+    }
+
+    private void OnLinkClicked(object? sender, LinkClickEventArgs e)
+    {
+        _ = Dispatcher.InvokeAsync(async () => await HandleLinkNavigationAsync(e.Href));
+    }
+
+    private void OnAnchorClicked(object? sender, AnchorClickEventArgs e)
+    {
+        // Push anchor navigation to history
+        if (_currentDocument is not null && _currentHistory is not null)
+        {
+            var entry = new NavigationEntry(_currentDocument.Value.FullPath, e.Anchor);
+            _currentHistory.Push(entry);
+        }
     }
 
     private async Task HandleLinkNavigationAsync(string href)
@@ -330,6 +438,47 @@ public partial class MainWindow : Window
                 System.Windows.MessageBox.Show(this, "Target document could not be resolved within the current root.", "MarkRead", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
+    }
+
+    private void ExecuteFind()
+    {
+        if (_currentDocument is null)
+        {
+            return;
+        }
+
+        FindBar.Show();
+    }
+
+    private void OnSearchRequested(object? sender, UI.Find.FindEventArgs e)
+    {
+        if (_currentHistory is not null)
+        {
+            _currentHistory.SearchQuery = e.Query;
+        }
+
+        if (string.IsNullOrWhiteSpace(e.Query))
+        {
+            _webViewHost.PostMessage("find-clear", null);
+            return;
+        }
+
+        _webViewHost.PostMessage("find-start", new { query = e.Query });
+    }
+
+    private void OnFindNextRequested(object? sender, EventArgs e)
+    {
+        _webViewHost.PostMessage("find-next", null);
+    }
+
+    private void OnFindPreviousRequested(object? sender, EventArgs e)
+    {
+        _webViewHost.PostMessage("find-previous", null);
+    }
+
+    private void OnFindCloseRequested(object? sender, EventArgs e)
+    {
+        _webViewHost.PostMessage("find-clear", null);
     }
 
     private void ShowStartOverlay(bool visible)

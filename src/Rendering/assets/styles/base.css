@@ -237,3 +237,25 @@ body[data-theme="dark"] .mermaid {
     0% { background-color: rgba(0, 102, 204, 0.35); }
     100% { background-color: transparent; }
 }
+
+/* Search highlighting */
+mark.search-highlight {
+    background-color: rgba(255, 235, 59, 0.6);
+    color: inherit;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+mark.search-highlight-active {
+    background-color: rgba(255, 152, 0, 0.8);
+    font-weight: 500;
+    box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.3);
+}
+
+body[data-theme="dark"] mark.search-highlight {
+    background-color: rgba(255, 235, 59, 0.4);
+}
+
+body[data-theme="dark"] mark.search-highlight-active {
+    background-color: rgba(255, 152, 0, 0.6);
+}

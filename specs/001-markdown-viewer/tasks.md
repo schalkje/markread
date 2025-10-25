@@ -38,28 +38,28 @@ Story goal: Open a folder and render README.md with images, checklists, code hig
 - [x] T026 [US1] Ensure external links open in system browser in src/Rendering/WebViewHost.cs
 - [x] T027 [US1] Enforce HTML sanitization in render pipeline in src/Services/HtmlSanitizerService.cs
 - [x] T028 [US1] Update window title from current document in src/App/MainWindow.xaml.cs
-- [ ] T029 [US1] Integration smoke: open folder and render README in tests/integration/StartupSmokeTests.cs
+- [x] T029 [US1] Integration smoke: open folder and render README in tests/integration/StartupSmokeTests.cs
 
 ## Phase 4 – User Story 2 (P2): Navigate internal links with history
 
-Story goal: Navigate relative links and anchors; use Back/Forward per tab. Independent test criteria in spec → “User Story 2”.
+Story goal: Navigate relative links and anchors; use Back/Forward per tab. Independent test criteria in spec → "User Story 2".
 
-- [ ] T030 [US2] Intercept link clicks in WebView and route internal links in src/Rendering/WebViewHost.cs
-- [ ] T031 [P] [US2] Block links outside root with friendly message in src/Services/LinkResolver.cs
-- [ ] T032 [US2] Push history entries on navigation in src/Services/HistoryService.cs
-- [ ] T033 [US2] Implement Alt+Left/Alt+Right handlers per tab in src/UI/Shell/NavigationCommands.cs
-- [ ] T034 [US2] Support in-document anchor navigation and history in src/Services/HistoryService.cs
-- [ ] T035 [US2] Integration test: link traversal + back/forward in tests/integration/HistoryNavigationTests.cs
+- [x] T030 [US2] Intercept link clicks in WebView and route internal links in src/Rendering/WebViewHost.cs
+- [x] T031 [P] [US2] Block links outside root with friendly message in src/Services/LinkResolver.cs
+- [x] T032 [US2] Push history entries on navigation in src/Services/HistoryService.cs
+- [x] T033 [US2] Implement Alt+Left/Alt+Right handlers per tab in src/UI/Shell/NavigationCommands.cs
+- [x] T034 [US2] Support in-document anchor navigation and history in src/Services/HistoryService.cs
+- [x] T035 [US2] Integration test: link traversal + back/forward in tests/integration/HistoryNavigationTests.cs
 
 ## Phase 5 – User Story 3 (P3): Tabs and in-document search
 
-Story goal: Multiple tabs and Ctrl+F search with highlights and next/prev. Independent test criteria in spec → “User Story 3”.
+Story goal: Multiple tabs and Ctrl+F search with highlights and next/prev. Independent test criteria in spec → "User Story 3".
 
-- [ ] T036 [US3] Implement tab model and UI (new/close) in src/UI/Tabs/TabsView.xaml
-- [ ] T037 [P] [US3] Ctrl+Click opens link in new tab in src/Rendering/WebViewHost.cs
-- [ ] T038 [US3] Implement find UI and bridge to content in src/UI/Find/FindBar.xaml
-- [ ] T039 [P] [US3] Highlight all matches and next/prev navigation in src/Rendering/content/find.js
-- [ ] T040 [US3] Persist per-tab search state in src/Services/HistoryService.cs
+- [x] T036 [US3] Implement tab model and UI (new/close) in src/UI/Tabs/TabsView.xaml
+- [x] T037 [P] [US3] Ctrl+Click opens link in new tab in src/Rendering/WebViewHost.cs
+- [x] T038 [US3] Implement find UI and bridge to content in src/UI/Find/FindBar.xaml
+- [x] T039 [P] [US3] Highlight all matches and next/prev navigation in src/Rendering/assets/scripts/find.js
+- [x] T040 [US3] Persist per-tab search state in src/Services/HistoryService.cs
 - [ ] T041 [US3] Integration test: tabs open/close + Ctrl+F in tests/integration/TabsAndSearchTests.cs
 
 ## Phase 6 – Polish & Cross-Cutting Concerns

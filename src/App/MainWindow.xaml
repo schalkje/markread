@@ -5,21 +5,41 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         xmlns:start="clr-namespace:MarkRead.App.UI.Start"
+        xmlns:tabs="clr-namespace:MarkRead.App.UI.Tabs"
+        xmlns:find="clr-namespace:MarkRead.App.UI.Find"
         mc:Ignorable="d"
         Title="MarkRead" Height="720" Width="1080"
         Loaded="Window_Loaded">
     <Grid>
-        <wv2:WebView2 x:Name="MarkdownView"
-                      HorizontalAlignment="Stretch"
-                      VerticalAlignment="Stretch"
-                      Margin="0"
-                      DefaultBackgroundColor="Transparent"
-                      Visibility="Collapsed" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-        <Border x:Name="StartOverlay"
-                Background="#F0F3F8"
-                Visibility="Visible">
-            <start:StartView />
-        </Border>
+        <!-- Tab Bar -->
+        <tabs:TabsView x:Name="TabsBar"
+                       Grid.Row="0"
+                       Visibility="Collapsed"/>
+
+        <!-- Content Area -->
+        <Grid Grid.Row="1">
+            <wv2:WebView2 x:Name="MarkdownView"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Margin="0"
+                          DefaultBackgroundColor="Transparent"
+                          Visibility="Collapsed" />
+
+            <Border x:Name="StartOverlay"
+                    Background="#F0F3F8"
+                    Visibility="Visible">
+                <start:StartView />
+            </Border>
+        </Grid>
+
+        <!-- Find Bar -->
+        <find:FindBar x:Name="FindBar"
+                      Grid.Row="2"/>
     </Grid>
 </Window>

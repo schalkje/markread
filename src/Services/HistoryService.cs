@@ -28,6 +28,9 @@ public sealed class NavigationHistory
 {
     private readonly List<NavigationEntry> _entries = new();
     private int _currentIndex = -1;
+    private string? _searchQuery;
+    private int _searchMatchCount;
+    private int _searchCurrentIndex;
 
     public NavigationEntry? Current => _currentIndex >= 0 && _currentIndex < _entries.Count ? _entries[_currentIndex] : null;
 
@@ -36,6 +39,24 @@ public sealed class NavigationHistory
     public bool CanGoBack => _currentIndex > 0;
 
     public bool CanGoForward => _currentIndex >= 0 && _currentIndex < _entries.Count - 1;
+
+    public string? SearchQuery
+    {
+        get => _searchQuery;
+        set => _searchQuery = value;
+    }
+
+    public int SearchMatchCount
+    {
+        get => _searchMatchCount;
+        set => _searchMatchCount = value;
+    }
+
+    public int SearchCurrentIndex
+    {
+        get => _searchCurrentIndex;
+        set => _searchCurrentIndex = value;
+    }
 
     public NavigationEntry? Push(NavigationEntry entry, bool collapseDuplicates = true)
     {

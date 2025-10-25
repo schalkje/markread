@@ -157,8 +157,11 @@
                 return;
             }
 
-            const isModifier = event.ctrlKey || event.metaKey || event.shiftKey || event.altKey;
-            if (isModifier) {
+            const isCtrl = event.ctrlKey || event.metaKey;
+            const isOtherModifier = event.shiftKey || event.altKey;
+
+            // Don't handle shift/alt modifiers, let browser handle them
+            if (isOtherModifier) {
                 return;
             }
 
@@ -171,7 +174,12 @@
                 return;
             }
 
-            postMessage("link-click", { href });
+            // Send different message for Ctrl+Click
+            if (isCtrl) {
+                postMessage("link-ctrl-click", { href });
+            } else {
+                postMessage("link-click", { href });
+            }
         }, true);
     }
 

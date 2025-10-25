@@ -32,6 +32,8 @@ public sealed class WebViewHost : IDisposable
     }
 
     public event EventHandler<WebViewBridgeEventArgs>? BridgeMessageReceived;
+    public event EventHandler<LinkClickEventArgs>? LinkClicked;
+    public event EventHandler<AnchorClickEventArgs>? AnchorClicked;
 
     public CoreWebView2? Core => _core;
 
@@ -158,6 +160,36 @@ public sealed class WebViewHost : IDisposable
             return;
         }
 
+        if (message.Name.Equals("link-click", StringComparison.OrdinalIgnoreCase))
+        {
+            var href = ExtractPayloadString(message.Payload, "href");
+            if (!string.IsNullOrWhiteSpace(href))
+            {
+                LinkClicked?.Invoke(this, new LinkClickEventArgs(href, isCtrlClick: false));
+            }
+            return;
+        }
+
+        if (message.Name.Equals("link-ctrl-click", StringComparison.OrdinalIgnoreCase))
+        {
+            var href = ExtractPayloadString(message.Payload, "href");
+            if (!string.IsNullOrWhiteSpace(href))
+            {
+                LinkClicked?.Invoke(this, new LinkClickEventArgs(href, isCtrlClick: true));
+            }
+            return;
+        }
+
+        if (message.Name.Equals("anchor-click", StringComparison.OrdinalIgnoreCase))
+        {
+            var anchor = ExtractPayloadString(message.Payload, "anchor");
+            if (!string.IsNullOrWhiteSpace(anchor))
+            {
+                AnchorClicked?.Invoke(this, new AnchorClickEventArgs(anchor));
+            }
+            return;
+        }
+
         BridgeMessageReceived?.Invoke(this, new WebViewBridgeEventArgs(message.Name, message.Payload));
     }
 
@@ -170,6 +202,30 @@ public sealed class WebViewHost : IDisposable
 
         var baseDirectory = AppContext.BaseDirectory;
         return Path.GetFullPath(Path.Combine(baseDirectory, assetRootRelativePath));
+    }
+
+    private static string? ExtractPayloadString(object? payload, string key)
+    {
+        if (payload is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var json = JsonSerializer.Serialize(payload);
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty(key, out var property))
+            {
+                return property.GetString();
+            }
+        }
+        catch
+        {
+            // Ignore extraction errors
+        }
+
+        return null;
     }
 
     private void ThrowIfDisposed()
@@ -194,4 +250,27 @@ public sealed class WebViewBridgeEventArgs : EventArgs
     public string Name { get; }
 
     public object? Payload { get; }
+}
+
+public sealed class LinkClickEventArgs : EventArgs
+{
+    public LinkClickEventArgs(string href, bool isCtrlClick)
+    {
+        Href = href;
+        IsCtrlClick = isCtrlClick;
+    }
+
+    public string Href { get; }
+
+    public bool IsCtrlClick { get; }
+}
+
+public sealed class AnchorClickEventArgs : EventArgs
+{
+    public AnchorClickEventArgs(string anchor)
+    {
+        Anchor = anchor;
+    }
+
+    public string Anchor { get; }
 }
