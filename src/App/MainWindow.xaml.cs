@@ -11,6 +11,7 @@ using MarkRead.App.Rendering;
 using MarkRead.App.Services;
 using MarkRead.App.UI.Shell;
 using MarkRead.App.UI.Start;
+using MarkRead.App.UI.Tabs;
 using MarkRead.Cli;
 
 using Microsoft.Web.WebView2.Core;
@@ -64,6 +65,7 @@ public partial class MainWindow : Window
         FindBar.CloseRequested += OnFindCloseRequested;
 
         CommandBindings.Add(new CommandBinding(App.OpenFolderCommand, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
+        CommandBindings.Add(new CommandBinding(App.OpenFileCommand, async (_, _) => await ExecuteOpenFileAsync(), CanExecuteWhenInteractive));
         CommandBindings.Add(new CommandBinding(StartCommands.OpenFolder, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
         CommandBindings.Add(new CommandBinding(StartCommands.OpenFile, async (_, _) => await ExecuteOpenFileAsync(), CanExecuteWhenInteractive));
         CommandBindings.Add(new CommandBinding(AppNavigationCommands.GoBack, async (_, _) => await ExecuteGoBackAsync(), CanExecuteGoBack));
@@ -250,7 +252,17 @@ public partial class MainWindow : Window
     private async Task LoadRootAsync(FolderOpenResult result)
     {
         _currentRoot = result.Root;
-    Title = $"MarkRead - {result.Root.DisplayName}";
+        Title = $"MarkRead - {result.Root.DisplayName}";
+
+        // Show tabs bar and create initial tab
+        TabsBar.Visibility = Visibility.Visible;
+        if (TabsBar.Tabs.Count == 0)
+        {
+            var initialTab = new TabItem(Guid.NewGuid(), result.Root.DisplayName);
+            TabsBar.Tabs.Add(initialTab);
+            _currentTabId = initialTab.Id;
+            _currentHistory = _historyService.GetOrCreate(_currentTabId);
+        }
 
         if (result.DefaultDocument is DocumentInfo doc)
         {
@@ -500,5 +512,10 @@ public partial class MainWindow : Window
         _documentWatcher?.Dispose();
         _fileWatcherService.Dispose();
         _webViewHost.Dispose();
+    }
+
+    private void Exit_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
     }
 }

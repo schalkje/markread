@@ -15,6 +15,12 @@ public partial class App : System.Windows.Application
         typeof(App),
         new InputGestureCollection { new KeyGesture(Key.O, ModifierKeys.Control) });
 
+    public static readonly RoutedUICommand OpenFileCommand = new(
+        "Open File",
+        nameof(OpenFileCommand),
+        typeof(App),
+        new InputGestureCollection { new KeyGesture(Key.O, ModifierKeys.Control | ModifierKeys.Shift) });
+
     public static readonly RoutedUICommand NewTabCommand = new(
         "New Tab",
         nameof(NewTabCommand),
@@ -55,6 +61,7 @@ public partial class App : System.Windows.Application
         }
 
         AddInputBinding(window, OpenFolderCommand);
+        AddInputBinding(window, OpenFileCommand);
         AddInputBinding(window, NewTabCommand);
         AddInputBinding(window, CloseTabCommand);
         AddInputBinding(window, FindInDocumentCommand);
