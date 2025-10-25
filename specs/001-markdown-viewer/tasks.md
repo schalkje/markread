@@ -2,15 +2,15 @@
 
 ## Phase 1 – Setup (project initialization)
 
-- [ ] T001 Create WPF app scaffold in src/App (App.xaml, MainWindow.xaml, .csproj)
-- [ ] T002 Add WebView2 package and initialize control in src/App/MainWindow.xaml.cs
-- [ ] T003 Create project folders per plan in src/Rendering, src/Services, src/UI, src/Cli
-- [ ] T004 Add front-end assets folders in src/Rendering/assets (highlight.js, mermaid, styles)
-- [ ] T005 Create HTML template for rendering at src/Rendering/template/index.html
-- [ ] T006 Create solution/test folders tests/unit and tests/integration
-- [ ] T007 Wire keyboard shortcuts (Ctrl+O/Ctrl+T/Ctrl+W/Ctrl+F, Alt+Left/Right) in src/App/App.xaml.cs
-- [ ] T008 Implement basic theming bootstrap (system/dark/light toggles) in src/App/ThemeManager.cs
-- [ ] T009 Create settings persistence stub in src/Services/SettingsService.cs
+- [x] T001 Create WPF app scaffold in src/App (App.xaml, MainWindow.xaml, .csproj)
+- [x] T002 Add WebView2 package and initialize control in src/App/MainWindow.xaml.cs
+- [x] T003 Create project folders per plan in src/Rendering, src/Services, src/UI, src/Cli
+- [x] T004 Add front-end assets folders in src/Rendering/assets (highlight.js, mermaid, styles)
+- [x] T005 Create HTML template for rendering at src/Rendering/template/index.html
+- [x] T006 Create solution/test folders tests/unit and tests/integration
+- [x] T007 Wire keyboard shortcuts (Ctrl+O/Ctrl+T/Ctrl+W/Ctrl+F, Alt+Left/Right) in src/App/App.xaml.cs
+- [x] T008 Implement basic theming bootstrap (system/dark/light toggles) in src/App/ThemeManager.cs
+- [x] T009 Create settings persistence stub in src/Services/SettingsService.cs
 
 ## Phase 2 – Foundational (blocking prerequisites)
 
