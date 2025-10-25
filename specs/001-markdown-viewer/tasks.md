@@ -14,17 +14,17 @@
 
 ## Phase 2 – Foundational (blocking prerequisites)
 
-- [ ] T010 Implement CLI argument parsing (folder or file) in src/Cli/StartupArguments.cs
-- [ ] T011 Implement FolderRoot selection and validation in src/Services/FolderService.cs
-- [ ] T012 Implement Markdown pipeline (Markdig optional) in src/Services/MarkdownService.cs
-- [ ] T013 Implement HTML sanitization utility in src/Services/HtmlSanitizer.cs
-- [ ] T014 Implement link resolution and external link routing in src/Services/LinkResolver.cs
-- [ ] T015 Implement per-tab navigation history service in src/Services/HistoryService.cs
-- [ ] T016 Implement file watcher with debounce (250–500ms) in src/Services/FileWatcherService.cs
-- [ ] T017 Create WebView host component and injection bridge in src/Rendering/WebViewHost.cs
-- [ ] T018 Load template and inject rendered content plus assets in src/Rendering/Renderer.cs
-- [ ] T019 Implement start page (README or folder view) in src/UI/Start/StartView.xaml
-- [ ] T020 Integrate SettingsService persistence to disk in src/Services/SettingsService.cs
+- [x] T010 Implement CLI argument parsing (folder or file) in src/Cli/StartupArguments.cs
+- [x] T011 Implement FolderRoot selection and validation in src/Services/FolderService.cs
+- [x] T012 Implement Markdown pipeline (Markdig optional) in src/Services/MarkdownService.cs
+- [x] T013 Implement HTML sanitization utility in src/Services/HtmlSanitizerService.cs
+- [x] T014 Implement link resolution and external link routing in src/Services/LinkResolver.cs
+- [x] T015 Implement per-tab navigation history service in src/Services/HistoryService.cs
+- [x] T016 Implement file watcher with debounce (250–500ms) in src/Services/FileWatcherService.cs
+- [x] T017 Create WebView host component and injection bridge in src/Rendering/WebViewHost.cs
+- [x] T018 Load template and inject rendered content plus assets in src/Rendering/Renderer.cs
+- [x] T019 Implement start page (README or folder view) in src/UI/Start/StartView.xaml
+- [x] T020 Integrate SettingsService persistence to disk in src/Services/SettingsService.cs
 
 ## Phase 3 – User Story 1 (P1): Open folder and view README
 
@@ -36,7 +36,7 @@ Story goal: Open a folder and render README.md with images, checklists, code hig
 - [ ] T024 [P] [US1] Integrate Mermaid rendering offline in src/Rendering/assets/mermaid
 - [ ] T025 [US1] Ensure image and relative link resolution works in src/Services/LinkResolver.cs
 - [ ] T026 [US1] Ensure external links open in system browser in src/Rendering/WebViewHost.cs
-- [ ] T027 [US1] Enforce HTML sanitization in render pipeline in src/Services/HtmlSanitizer.cs
+- [ ] T027 [US1] Enforce HTML sanitization in render pipeline in src/Services/HtmlSanitizerService.cs
 - [ ] T028 [US1] Update window title from current document in src/App/MainWindow.xaml.cs
 - [ ] T029 [US1] Integration smoke: open folder and render README in tests/integration/StartupSmokeTests.cs
 

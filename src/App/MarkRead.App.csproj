@@ -9,7 +9,25 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2420.47" />
+  <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2420.47" />
+  <PackageReference Include="Markdig" Version="0.34.0" />
+  <PackageReference Include="HtmlSanitizer" Version="8.0.640" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Cli\**\*.cs" Link="Cli\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Services\**\*.cs" Link="Services\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Rendering\**\*.cs" Link="Rendering\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\UI\**\*.cs" Link="UI\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Include="..\UI\**\*.xaml" Link="UI\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\Rendering\assets\**\*" Link="Rendering\assets\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\Rendering\template\**\*" Link="Rendering\template\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

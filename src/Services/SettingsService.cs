@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace MarkRead.App.Services;
 
@@ -19,6 +20,9 @@ public class SettingsService
     };
 
     private readonly string _settingsFile;
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    private ViewerSettings _currentSettings = ViewerSettings.Default();
+    private bool _isLoaded;
 
     public SettingsService()
     {
@@ -29,19 +33,110 @@ public class SettingsService
 
     public async Task<ViewerSettings> LoadAsync()
     {
-        if (!File.Exists(_settingsFile))
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
         {
-            return ViewerSettings.Default();
-        }
+            if (_isLoaded)
+            {
+                return _currentSettings;
+            }
 
-        await using FileStream stream = File.OpenRead(_settingsFile);
-        return await JsonSerializer.DeserializeAsync<ViewerSettings>(stream) ?? ViewerSettings.Default();
+            if (!File.Exists(_settingsFile))
+            {
+                _currentSettings = ViewerSettings.Default();
+                _isLoaded = true;
+                return _currentSettings;
+            }
+
+            await using FileStream stream = File.OpenRead(_settingsFile);
+            var loaded = await JsonSerializer.DeserializeAsync<ViewerSettings>(stream).ConfigureAwait(false);
+            _currentSettings = loaded ?? ViewerSettings.Default();
+            _isLoaded = true;
+            return _currentSettings;
+        }
+        catch (JsonException)
+        {
+            _currentSettings = ViewerSettings.Default();
+            _isLoaded = true;
+            return _currentSettings;
+        }
+        catch (IOException)
+        {
+            return _currentSettings;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task SaveAsync(ViewerSettings settings)
     {
-        await using FileStream stream = File.Create(_settingsFile);
-        await JsonSerializer.SerializeAsync(stream, settings, SerializerOptions);
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await PersistAsync(settings).ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task<ViewerSettings> UpdateAsync(Func<ViewerSettings, ViewerSettings> updater)
+    {
+        if (updater is null)
+        {
+            throw new ArgumentNullException(nameof(updater));
+        }
+
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (!_isLoaded)
+            {
+                await LoadAsync().ConfigureAwait(false);
+            }
+
+            var updated = updater(_currentSettings);
+            await PersistAsync(updated).ConfigureAwait(false);
+            return _currentSettings;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private async Task PersistAsync(ViewerSettings settings)
+    {
+        var tempFile = _settingsFile + ".tmp";
+
+        try
+        {
+            await using (FileStream stream = File.Create(tempFile))
+            {
+                await JsonSerializer.SerializeAsync(stream, settings, SerializerOptions).ConfigureAwait(false);
+            }
+
+            File.Copy(tempFile, _settingsFile, overwrite: true);
+            _currentSettings = settings;
+            _isLoaded = true;
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                try
+                {
+                    File.Delete(tempFile);
+                }
+                catch
+                {
+                    // Ignored: temp file cleanup best effort.
+                }
+            }
+        }
     }
 }
 
