@@ -10,8 +10,10 @@
 ### Session 2025-10-25
 
 - Q: When launching with a file path, what is the root directory? → A: Use the file’s parent directory as root for the session.
+- Q: On first launch with no CLI argument and no previously set root, what should happen? → A: Prompt the user to pick a folder (folder picker).
 
 - FR-017: Command-line start supports an optional first argument specifying a folder or a file to open. If a folder is provided (e.g., `markview .`), the app opens that folder as root; if a file is provided (e.g., `markview design.md`), the app sets the root to the file’s parent directory and opens that file in the active tab.
+- FR-018: If the app starts without a CLI argument and no previously set root, prompt the user with a folder picker to choose the root; if the user cancels, show a start screen with an “Open Folder” action.
 
 - If a file argument is outside any previously set root, the app sets the root to the file’s parent directory for the session; if the path is inaccessible, show a friendly error and load the start view.
 
@@ -73,6 +75,7 @@ Acceptance Scenarios:
 - If the file changes on disk while open, and auto-reload is enabled, the view updates after a short debounce without losing the user’s scroll position.
 - Invalid CLI path argument (non-existent or inaccessible) shows a friendly error and loads the start view without crashing.
 - If a file argument is outside any previously set root, the app sets the root to the file’s parent directory for the session; if the path is inaccessible, show a friendly error and load the start view.
+- On first launch with no CLI argument and no previously set root, the app prompts for a folder; if the user cancels the picker, show a start screen with an “Open Folder” action.
 
 ## Requirements (mandatory)
 
