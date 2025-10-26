@@ -27,6 +27,11 @@ public sealed class TabItem : INotifyPropertyChanged
     
     public int SearchMatchCount { get; set; }
 
+    /// <summary>
+    /// The content control containing the WebView2 for this tab.
+    /// </summary>
+    public TabContentControl? Content { get; set; }
+
     public bool IsActive
     {
         get => _isActive;

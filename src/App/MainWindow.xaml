@@ -37,26 +37,48 @@
             </MenuItem>
         </Menu>
 
-        <!-- Tab Bar -->
-        <tabs:TabsView x:Name="TabsBar"
-                       Grid.Row="1"
-                       Visibility="Collapsed"/>
+        <!-- Tab Control -->
+        <TabControl x:Name="TabControl"
+                    Grid.Row="1"
+                    Grid.RowSpan="2"
+                    Visibility="Collapsed"
+                    SelectionChanged="TabControl_SelectionChanged">
+            <TabControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type tabs:TabItem}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Title}" 
+                                   Margin="0,0,8,0"
+                                   VerticalAlignment="Center"/>
+                        <Button Content="×"
+                                FontSize="14"
+                                FontWeight="Bold"
+                                Width="16"
+                                Height="16"
+                                Padding="0"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                ToolTip="Close tab"
+                                Click="CloseTab_Click"
+                                Tag="{Binding Id}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate DataType="{x:Type tabs:TabItem}">
+                    <ContentPresenter Content="{Binding Content}"/>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
 
-        <!-- Content Area -->
-        <Grid Grid.Row="2">
-            <wv2:WebView2 x:Name="MarkdownView"
-                          HorizontalAlignment="Stretch"
-                          VerticalAlignment="Stretch"
-                          Margin="0"
-                          DefaultBackgroundColor="Transparent"
-                          Visibility="Collapsed" />
-
-            <Border x:Name="StartOverlay"
-                    Background="#F0F3F8"
-                    Visibility="Visible">
-                <start:StartView />
-            </Border>
-        </Grid>
+        <!-- Start Overlay -->
+        <Border x:Name="StartOverlay"
+                Grid.Row="1"
+                Grid.RowSpan="2"
+                Background="#F0F3F8"
+                Visibility="Visible">
+            <start:StartView />
+        </Border>
 
         <!-- Find Bar -->
         <find:FindBar x:Name="FindBar"

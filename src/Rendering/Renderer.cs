@@ -45,13 +45,7 @@ public sealed class Renderer
         // Replace root-relative links in markdown: ](/ -> ](file:///rootPath/
         if (!string.IsNullOrEmpty(_currentRootPath))
         {
-            var before = markdown;
             markdown = ConvertRootRelativeLinksInMarkdown(markdown, _currentRootPath);
-            if (before != markdown)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Renderer] Replaced root-relative links");
-                System.Diagnostics.Debug.WriteLine($"[Renderer] Example: {markdown.Substring(0, Math.Min(200, markdown.Length))}");
-            }
         }
         
         string sanitized;
@@ -60,7 +54,6 @@ public sealed class Renderer
         try
         {
             var html = _markdownService.RenderToHtml(markdown);
-            System.Diagnostics.Debug.WriteLine($"[Renderer] HTML after Markdig: {html.Substring(0, Math.Min(500, html.Length))}");
 
             Uri? baseUri = null;
             try
@@ -73,7 +66,6 @@ public sealed class Renderer
             }
 
             sanitized = _sanitizer.Sanitize(html, baseUri);
-            System.Diagnostics.Debug.WriteLine($"[Renderer] HTML after sanitizer: {sanitized.Substring(0, Math.Min(500, sanitized.Length))}");
         }
         catch (Exception ex)
         {
