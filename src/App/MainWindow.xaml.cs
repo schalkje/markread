@@ -64,6 +64,11 @@ public partial class MainWindow : Window
         FindBar.PreviousRequested += OnFindPreviousRequested;
         FindBar.CloseRequested += OnFindCloseRequested;
 
+        // Wire up TabsBar events
+        TabsBar.TabActivated += OnTabActivated;
+        TabsBar.TabClosed += OnTabClosed;
+        TabsBar.TabCreated += OnTabCreated;
+
         CommandBindings.Add(new CommandBinding(App.OpenFolderCommand, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
         CommandBindings.Add(new CommandBinding(App.OpenFileCommand, async (_, _) => await ExecuteOpenFileAsync(), CanExecuteWhenInteractive));
         CommandBindings.Add(new CommandBinding(StartCommands.OpenFolder, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
@@ -260,6 +265,7 @@ public partial class MainWindow : Window
         {
             var initialTab = new TabItem(Guid.NewGuid(), result.Root.DisplayName);
             TabsBar.Tabs.Add(initialTab);
+            TabsBar.ActiveTab = initialTab;
             _currentTabId = initialTab.Id;
             _currentHistory = _historyService.GetOrCreate(_currentTabId);
         }
@@ -390,7 +396,14 @@ public partial class MainWindow : Window
 
     private void OnLinkClicked(object? sender, LinkClickEventArgs e)
     {
-        _ = Dispatcher.InvokeAsync(async () => await HandleLinkNavigationAsync(e.Href));
+        if (e.IsCtrlClick)
+        {
+            _ = Dispatcher.InvokeAsync(async () => await HandleLinkInNewTabAsync(e.Href));
+        }
+        else
+        {
+            _ = Dispatcher.InvokeAsync(async () => await HandleLinkNavigationAsync(e.Href));
+        }
     }
 
     private void OnAnchorClicked(object? sender, AnchorClickEventArgs e)
@@ -452,6 +465,45 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task HandleLinkInNewTabAsync(string href)
+    {
+        if (_currentRoot is null || _currentDocument is null)
+        {
+            return;
+        }
+
+        var result = _linkResolver.Resolve(href, _currentRoot, _currentDocument.Value.FullPath);
+
+        // Only open internal documents in new tabs
+        if (result.IsBlocked || result.IsExternal || result.IsAnchor)
+        {
+            // For blocked, external, or anchor links, handle normally
+            await HandleLinkNavigationAsync(href);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(result.LocalPath))
+        {
+            var document = _folderService.TryResolveDocument(_currentRoot, result.LocalPath);
+            if (document is DocumentInfo doc)
+            {
+                // Create new tab
+                var newTabId = Guid.NewGuid();
+                var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
+                var newTab = new TabItem(newTabId, tabTitle, doc.FullPath);
+                TabsBar.Tabs.Add(newTab);
+                TabsBar.ActiveTab = newTab; // Set as active tab
+                
+                // Switch to new tab
+                _currentTabId = newTabId;
+                _currentHistory = _historyService.GetOrCreate(_currentTabId);
+                
+                // Load document in new tab
+                await LoadDocumentAsync(doc, result.Anchor);
+            }
+        }
+    }
+
     private void ExecuteFind()
     {
         if (_currentDocument is null)
@@ -491,6 +543,68 @@ public partial class MainWindow : Window
     private void OnFindCloseRequested(object? sender, EventArgs e)
     {
         _webViewHost.PostMessage("find-clear", null);
+    }
+
+    private void OnTabActivated(object? sender, UI.Tabs.TabEventArgs e)
+    {
+        _ = Dispatcher.InvokeAsync(async () => await SwitchToTabAsync(e.Tab));
+    }
+
+    private void OnTabClosed(object? sender, UI.Tabs.TabEventArgs e)
+    {
+        // Tab was already removed from the collection by TabsView
+        // If this was the active tab, TabsView already activated another tab
+        // We just need to handle the case where all tabs are closed
+        if (TabsBar.Tabs.Count == 0)
+        {
+            _currentDocument = null;
+            _currentHistory = null;
+            ShowStartOverlay(true);
+            TabsBar.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void OnTabCreated(object? sender, UI.Tabs.TabEventArgs e)
+    {
+        // New tab created from the "+" button
+        // For now, just show empty state - user can open a file
+        _currentTabId = e.Tab.Id;
+        _currentHistory = _historyService.GetOrCreate(_currentTabId);
+    }
+
+    private async Task SwitchToTabAsync(TabItem tab)
+    {
+        // Switch to the selected tab
+        _currentTabId = tab.Id;
+        _currentHistory = _historyService.GetOrCreate(_currentTabId);
+
+        // Load the document if the tab has one
+        if (!string.IsNullOrEmpty(tab.DocumentPath) && _currentRoot is not null)
+        {
+            var document = _folderService.TryResolveDocument(_currentRoot, tab.DocumentPath);
+            if (document is DocumentInfo doc)
+            {
+                await LoadDocumentAsync(doc, pushHistory: false);
+            }
+        }
+        else if (_currentHistory.Current is not null)
+        {
+            // Load from history
+            var entry = _currentHistory.Current.Value;
+            if (_currentRoot is not null)
+            {
+                var document = _folderService.TryResolveDocument(_currentRoot, entry.DocumentPath);
+                if (document is DocumentInfo doc)
+                {
+                    await LoadDocumentAsync(doc, entry.Anchor, pushHistory: false);
+                }
+            }
+        }
+        else
+        {
+            // Empty tab
+            ShowStartOverlay(true);
+        }
     }
 
     private void ShowStartOverlay(bool visible)

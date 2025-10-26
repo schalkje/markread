@@ -37,7 +37,21 @@ public partial class TabsView : WpfUserControl
     public TabItem? ActiveTab
     {
         get => (TabItem?)GetValue(ActiveTabProperty);
-        set => SetValue(ActiveTabProperty, value);
+        set
+        {
+            var oldTab = ActiveTab;
+            SetValue(ActiveTabProperty, value);
+            
+            // Update IsActive flags
+            if (oldTab != null)
+            {
+                oldTab.IsActive = false;
+            }
+            if (value != null)
+            {
+                value.IsActive = true;
+            }
+        }
     }
 
     public event EventHandler<TabEventArgs>? TabClosed;
@@ -50,6 +64,16 @@ public partial class TabsView : WpfUserControl
         Tabs.Add(newTab);
         ActiveTab = newTab;
         TabCreated?.Invoke(this, new TabEventArgs(newTab));
+    }
+
+    private void OnTabClicked(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement element && element.DataContext is TabItem tab)
+        {
+            ActiveTab = tab;
+            TabActivated?.Invoke(this, new TabEventArgs(tab));
+            e.Handled = true; // Prevent event from bubbling
+        }
     }
 
     private void OnCloseTabClicked(object sender, RoutedEventArgs e)

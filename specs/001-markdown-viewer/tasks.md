@@ -60,7 +60,7 @@ Story goal: Multiple tabs and Ctrl+F search with highlights and next/prev. Indep
 - [x] T038 [US3] Implement find UI and bridge to content in src/UI/Find/FindBar.xaml
 - [x] T039 [P] [US3] Highlight all matches and next/prev navigation in src/Rendering/assets/scripts/find.js
 - [x] T040 [US3] Persist per-tab search state in src/Services/HistoryService.cs
-- [ ] T041 [US3] Integration test: tabs open/close + Ctrl+F in tests/integration/TabsAndSearchTests.cs
+- [x] T041 [US3] Integration test: tabs open/close + Ctrl+F in tests/integration/TabsAndSearchTests.cs
 
 ## Phase 6 – Polish & Cross-Cutting Concerns
 
