@@ -42,6 +42,9 @@ public sealed class Renderer
 
         var markdown = request.Markdown ?? string.Empty;
         
+        // Convert :::mermaid blocks to ```mermaid format
+        markdown = ConvertColonFencedBlocks(markdown);
+        
         // Replace root-relative links in markdown: ](/ -> ](file:///rootPath/
         if (!string.IsNullOrEmpty(_currentRootPath))
         {
@@ -197,6 +200,28 @@ public sealed class Renderer
         var pattern = @"\]\(/";
         var replacement = $"]({fileUri}/";
         return System.Text.RegularExpressions.Regex.Replace(markdown, pattern, replacement);
+    }
+
+    private static string ConvertColonFencedBlocks(string markdown)
+    {
+        // Convert :::languageName blocks to ```languageName format
+        // Supports :::mermaid, :::warning, :::info, etc.
+        
+        // Pattern: :::language at start of line, captures content until closing :::
+        // The (?m) flag makes ^ and $ match line starts/ends
+        var pattern = @"(?m)^:::(\w+)\s*$\r?\n([\s\S]*?)^:::\s*$";
+        var replacement = "```$1\n$2```";
+        
+        Console.WriteLine("Original markdown:");
+        Console.WriteLine(markdown);
+        Console.WriteLine("\nPattern: " + pattern);
+        Console.WriteLine("\nConverted markdown:");
+        var result = System.Text.RegularExpressions.Regex.Replace(
+            markdown, 
+            pattern, 
+            replacement);
+        
+        return result;
     }
 }
 
