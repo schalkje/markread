@@ -42,6 +42,8 @@ public partial class MainWindow : Window
     private StartupArguments _startupArguments = StartupArguments.Empty;
     private ViewerSettings _currentSettings = ViewerSettings.Default();
     private ObservableCollection<TabItemModel> _tabs = new();
+    private WebViewHost? _webViewHost;
+    private bool _isInitialized;
 
     public MainWindow()
     {
@@ -50,6 +52,7 @@ public partial class MainWindow : Window
         _renderer = new Renderer(_markdownService, _sanitizer);
         _linkResolver = new LinkResolver(_folderService);
         _openFolderCommand = new OpenFolderCommand(_folderService);
+        _webViewHost = new WebViewHost(MarkdownView, Path.Combine("Rendering", "assets"));
 
         this.TabControl.ItemsSource = _tabs;
 
@@ -92,7 +95,22 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        await EnsureWebViewAsync();
         await InitializeFromStartupAsync();
+    }
+
+    private async Task EnsureWebViewAsync()
+    {
+        if (_isInitialized || _webViewHost is null)
+        {
+            return;
+        }
+
+        await _webViewHost.InitializeAsync();
+        _webViewHost.BridgeMessageReceived += OnBridgeMessageReceived;
+        _webViewHost.LinkClicked += OnLinkClicked;
+        _webViewHost.AnchorClicked += OnAnchorClicked;
+        _isInitialized = true;
     }
 
     private async Task InitializeFromStartupAsync()
@@ -200,10 +218,13 @@ public partial class MainWindow : Window
 
     private async Task ExecuteOpenFolderAsync()
     {
+        System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: Starting");
         ShowStartOverlay(false);
         var result = _openFolderCommand.Execute(this);
+        System.Diagnostics.Debug.WriteLine($"ExecuteOpenFolderAsync: result = {result}");
         if (result is null)
         {
+            System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: result is null, showing overlay");
             if (_tabs.Count == 0)
             {
                 ShowStartOverlay(true);
@@ -211,7 +232,9 @@ public partial class MainWindow : Window
             return;
         }
 
+        System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: Calling LoadRootAsync");
         await LoadRootAsync(result.Value);
+        System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: LoadRootAsync completed");
     }
 
     private async Task ExecuteOpenFileAsync()
@@ -267,24 +290,33 @@ public partial class MainWindow : Window
 
     private async Task LoadRootAsync(FolderOpenResult result)
     {
+        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: Starting with root={result.Root.DisplayName}");
         _currentRoot = result.Root;
         _renderer.SetRootPath(result.Root.Path);
         Title = $"MarkRead - {result.Root.DisplayName}";
 
         // Create initial tab if no tabs exist
+        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: _tabs.Count = {_tabs.Count}");
         if (_tabs.Count == 0)
         {
+            System.Diagnostics.Debug.WriteLine("LoadRootAsync: Creating initial tab");
             var initialTab = new TabItemModel(Guid.NewGuid(), result.Root.DisplayName);
             await AddTabAsync(initialTab);
+            System.Diagnostics.Debug.WriteLine($"LoadRootAsync: Tab created, _tabs.Count = {_tabs.Count}");
         }
 
         // Show tabs and load document
+        System.Diagnostics.Debug.WriteLine("LoadRootAsync: Hiding overlay and showing TabControl");
         ShowStartOverlay(false);
         this.TabControl.Visibility = Visibility.Visible;
+        MarkdownView.Visibility = Visibility.Visible;
+        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: TabControl.Visibility = {this.TabControl.Visibility}");
 
         if (result.DefaultDocument is DocumentInfo doc)
         {
+            System.Diagnostics.Debug.WriteLine($"LoadRootAsync: Loading document {doc.FullPath}");
             var currentTab = GetCurrentTab();
+            System.Diagnostics.Debug.WriteLine($"LoadRootAsync: currentTab = {currentTab?.Title}");
             if (currentTab is not null)
             {
                 await LoadDocumentInTabAsync(currentTab, doc);
@@ -292,45 +324,37 @@ public partial class MainWindow : Window
         }
         else
         {
+            System.Diagnostics.Debug.WriteLine("LoadRootAsync: No default document found");
             ShowStartOverlay(true);
             System.Windows.MessageBox.Show(this, "No Markdown files were found in the selected folder.", "MarkRead", MessageBoxButton.OK, MessageBoxImage.Information);
         }
+        System.Diagnostics.Debug.WriteLine("LoadRootAsync: Completed");
     }
 
-    private async Task AddTabAsync(TabItemModel tab)
+    private Task AddTabAsync(TabItemModel tab)
     {
-        // Create and initialize the content control
-        var content = new UI.Tabs.TabContentControl();
-        await content.InitializeAsync();
-        
-        // Wire up events for this tab's WebViewHost
-        if (content.Host is not null)
-        {
-            content.Host.BridgeMessageReceived += (s, e) => OnBridgeMessageReceived(tab, s, e);
-            content.Host.LinkClicked += (s, e) => OnLinkClicked(tab, s, e);
-            content.Host.AnchorClicked += (s, e) => OnAnchorClicked(tab, s, e);
-        }
-
-        tab.Content = content;
+        System.Diagnostics.Debug.WriteLine($"AddTabAsync: Creating tab '{tab.Title}'");
         _tabs.Add(tab);
+        System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab added to collection, _tabs.Count={_tabs.Count}");
         this.TabControl.SelectedItem = tab;
+        System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab selected, TabControl.SelectedItem={this.TabControl.SelectedItem}");
+        System.Diagnostics.Debug.WriteLine("AddTabAsync: Completed");
+        return Task.CompletedTask;
     }
 
     private async Task LoadDocumentInTabAsync(TabItemModel tab, DocumentInfo document, string? anchor = null, bool pushHistory = true)
     {
-        if (_currentRoot is null || tab.Content?.Host is null)
+        if (_currentRoot is null || _webViewHost is null)
         {
             return;
         }
-
-        var webViewHost = tab.Content.Host;
 
         // Save scroll position before loading new document (if same document being reloaded)
         int scrollPosition = 0;
         bool isReload = tab.DocumentPath == document.FullPath;
         if (isReload)
         {
-            scrollPosition = await webViewHost.GetScrollPositionAsync();
+            scrollPosition = await _webViewHost.GetScrollPositionAsync();
         }
 
         tab.DocumentPath = document.FullPath;
@@ -352,14 +376,14 @@ public partial class MainWindow : Window
 
             if (isLargeFile)
             {
-                webViewHost.ShowLoadingIndicator();
+                _webViewHost.ShowLoadingIndicator();
             }
 
             markdown = await File.ReadAllTextAsync(document.FullPath);
 
             if (isLargeFile)
             {
-                webViewHost.HideLoadingIndicator();
+                _webViewHost.HideLoadingIndicator();
             }
         }
         catch (IOException ex)
@@ -379,21 +403,21 @@ public partial class MainWindow : Window
 
         await Dispatcher.InvokeAsync(() =>
         {
-            webViewHost.NavigateToString(renderResult.Html);
+            _webViewHost.NavigateToString(renderResult.Html);
             Title = $"MarkRead - {renderResult.Title}";
             SubscribeToDocumentChanges(tab, document);
         });
 
-        await webViewHost.WaitForReadyAsync();
+        await _webViewHost.WaitForReadyAsync();
 
         // Restore scroll position for reloads, or navigate to anchor
         if (isReload && scrollPosition > 0 && string.IsNullOrEmpty(anchor))
         {
-            webViewHost.RestoreScrollPosition(scrollPosition);
+            _webViewHost.RestoreScrollPosition(scrollPosition);
         }
         else if (!string.IsNullOrEmpty(anchor))
         {
-            webViewHost.PostMessage("scroll-to", new { anchor });
+            _webViewHost.PostMessage("scroll-to", new { anchor });
         }
     }
 
@@ -420,8 +444,11 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnBridgeMessageReceived(TabItemModel tab, object? sender, WebViewBridgeEventArgs e)
+    private void OnBridgeMessageReceived(object? sender, WebViewBridgeEventArgs e)
     {
+        var tab = GetCurrentTab();
+        if (tab is null) return;
+
         if (e.Name.Equals("link-click", StringComparison.OrdinalIgnoreCase))
         {
             if (e.Payload is JsonElement element && element.TryGetProperty("href", out var hrefElement))
@@ -438,9 +465,9 @@ public partial class MainWindow : Window
             if (e.Payload is JsonElement element && element.TryGetProperty("anchor", out var anchorElement))
             {
                 var anchor = anchorElement.GetString();
-                if (!string.IsNullOrEmpty(anchor) && tab.Content?.Host is not null)
+                if (!string.IsNullOrEmpty(anchor) && _webViewHost is not null)
                 {
-                    tab.Content.Host.PostMessage("scroll-to", new { anchor });
+                    _webViewHost.PostMessage("scroll-to", new { anchor });
                 }
             }
         }
@@ -462,8 +489,11 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnLinkClicked(TabItemModel tab, object? sender, LinkClickEventArgs e)
+    private void OnLinkClicked(object? sender, LinkClickEventArgs e)
     {
+        var tab = GetCurrentTab();
+        if (tab is null) return;
+
         if (e.IsCtrlClick)
         {
             _ = Dispatcher.InvokeAsync(async () => await HandleLinkInNewTabAsync(e.Href));
@@ -474,8 +504,11 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnAnchorClicked(TabItemModel tab, object? sender, AnchorClickEventArgs e)
+    private void OnAnchorClicked(object? sender, AnchorClickEventArgs e)
     {
+        var tab = GetCurrentTab();
+        if (tab is null) return;
+
         // Push anchor navigation to history
         if (!string.IsNullOrEmpty(tab.DocumentPath))
         {
@@ -501,9 +534,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (result.IsAnchor && !string.IsNullOrEmpty(result.Anchor) && tab.Content?.Host is not null)
+        if (result.IsAnchor && !string.IsNullOrEmpty(result.Anchor) && _webViewHost is not null)
         {
-            tab.Content.Host.PostMessage("scroll-to", new { anchor = result.Anchor });
+            _webViewHost.PostMessage("scroll-to", new { anchor = result.Anchor });
             return;
         }
 
@@ -582,7 +615,7 @@ public partial class MainWindow : Window
     private void OnSearchRequested(object? sender, UI.Find.FindEventArgs e)
     {
         var currentTab = GetCurrentTab();
-        if (currentTab is null || currentTab.Content?.Host is null)
+        if (currentTab is null || _webViewHost is null)
         {
             return;
         }
@@ -592,44 +625,46 @@ public partial class MainWindow : Window
 
         if (string.IsNullOrWhiteSpace(e.Query))
         {
-            currentTab.Content.Host.PostMessage("find-clear", null);
+            _webViewHost.PostMessage("find-clear", null);
             return;
         }
 
-        currentTab.Content.Host.PostMessage("find-start", new { query = e.Query });
+        _webViewHost.PostMessage("find-start", new { query = e.Query });
     }
 
     private void OnFindNextRequested(object? sender, EventArgs e)
     {
-        var currentTab = GetCurrentTab();
-        if (currentTab?.Content?.Host is not null)
+        if (_webViewHost is not null)
         {
-            currentTab.Content.Host.PostMessage("find-next", null);
+            _webViewHost.PostMessage("find-next", null);
         }
     }
 
     private void OnFindPreviousRequested(object? sender, EventArgs e)
     {
-        var currentTab = GetCurrentTab();
-        if (currentTab?.Content?.Host is not null)
+        if (_webViewHost is not null)
         {
-            currentTab.Content.Host.PostMessage("find-previous", null);
+            _webViewHost.PostMessage("find-previous", null);
         }
     }
 
     private void OnFindCloseRequested(object? sender, EventArgs e)
     {
-        var currentTab = GetCurrentTab();
-        if (currentTab?.Content?.Host is not null)
+        if (_webViewHost is not null)
         {
-            currentTab.Content.Host.PostMessage("find-clear", null);
+            _webViewHost.PostMessage("find-clear", null);
         }
     }
 
     private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // Tab switching is now just visibility changes - no re-rendering needed!
-        // Each tab maintains its own WebView2 instance and state
+        // When tab changes, reload the document for the selected tab
+        var tab = GetCurrentTab();
+        if (tab is not null && !string.IsNullOrEmpty(tab.DocumentPath))
+        {
+            var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
+            _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+        }
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -640,9 +675,6 @@ public partial class MainWindow : Window
             var tab = _tabs.FirstOrDefault(t => t.Id == tabId);
             if (tab is not null)
             {
-                // Dispose the content control
-                tab.Content?.Dispose();
-                
                 // Remove from collection
                 var index = _tabs.IndexOf(tab);
                 _tabs.Remove(tab);
@@ -652,6 +684,7 @@ public partial class MainWindow : Window
                 {
                     ShowStartOverlay(true);
                     this.TabControl.Visibility = Visibility.Collapsed;
+                    MarkdownView.Visibility = Visibility.Collapsed;
                 }
                 else if (index >= 0)
                 {
@@ -689,12 +722,7 @@ public partial class MainWindow : Window
 
         _documentWatcher?.Dispose();
         _fileWatcherService.Dispose();
-        
-        // Dispose all tab content controls
-        foreach (var tab in _tabs)
-        {
-            tab.Content?.Dispose();
-        }
+        _webViewHost?.Dispose();
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e)

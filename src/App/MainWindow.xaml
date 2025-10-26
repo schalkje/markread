@@ -37,12 +37,36 @@
             </MenuItem>
         </Menu>
 
-        <!-- Tab Control -->
+        <!-- Tab Control (just for tab headers, not content) -->
         <TabControl x:Name="TabControl"
                     Grid.Row="1"
-                    Grid.RowSpan="2"
                     Visibility="Collapsed"
-                    SelectionChanged="TabControl_SelectionChanged">
+                    SelectionChanged="TabControl_SelectionChanged"
+                    BorderThickness="0"
+                    Background="Transparent"
+                    Padding="0">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border Name="Border" BorderThickness="1,1,1,0" BorderBrush="#CCCCCC" Background="White" Padding="12,6" Margin="0,0,2,0">
+                                    <ContentPresenter ContentSource="Header"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="White"/>
+                                        <Setter TargetName="Border" Property="BorderBrush" Value="#999999"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="False">
+                                        <Setter TargetName="Border" Property="Background" Value="#F0F0F0"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.Resources>
             <TabControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type tabs:TabItem}">
                     <StackPanel Orientation="Horizontal">
@@ -65,20 +89,29 @@
                 </DataTemplate>
             </TabControl.ItemTemplate>
             <TabControl.ContentTemplate>
-                <DataTemplate DataType="{x:Type tabs:TabItem}">
-                    <ContentPresenter Content="{Binding Content}"/>
+                <DataTemplate>
+                    <!-- Empty - content is shown in MarkdownView below -->
                 </DataTemplate>
             </TabControl.ContentTemplate>
         </TabControl>
 
-        <!-- Start Overlay -->
-        <Border x:Name="StartOverlay"
-                Grid.Row="1"
-                Grid.RowSpan="2"
-                Background="#F0F3F8"
-                Visibility="Visible">
-            <start:StartView />
-        </Border>
+        <!-- Content Area -->
+        <Grid Grid.Row="2">
+            <!-- Single WebView2 for all tabs -->
+            <wv2:WebView2 x:Name="MarkdownView"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Margin="0"
+                          DefaultBackgroundColor="Transparent"
+                          Visibility="Collapsed" />
+
+            <!-- Start Overlay -->
+            <Border x:Name="StartOverlay"
+                    Background="#F0F3F8"
+                    Visibility="Visible">
+                <start:StartView />
+            </Border>
+        </Grid>
 
         <!-- Find Bar -->
         <find:FindBar x:Name="FindBar"
