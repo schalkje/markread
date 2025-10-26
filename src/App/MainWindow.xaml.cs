@@ -1,27 +1,29 @@
-﻿using System;
+using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 using MarkRead.App.Rendering;
 using MarkRead.App.Services;
 using MarkRead.App.UI.Shell;
 using MarkRead.App.UI.Start;
-using MarkRead.App.UI.Tabs;
 using MarkRead.Cli;
 
-using Microsoft.Web.WebView2.Core;
-
 using AppNavigationCommands = MarkRead.App.UI.Shell.NavigationCommands;
+using TabItemModel = MarkRead.App.UI.Tabs.TabItem;
+using WpfMessageBox = System.Windows.MessageBox;
+using WpfButton = System.Windows.Controls.Button;
 
 namespace MarkRead.App;
 
 /// <summary>
-/// Interaction logic for the shell window hosting the WebView renderer.
+/// Interaction logic for the shell window hosting tabbed WebView renderers.
 /// </summary>
 public partial class MainWindow : Window
 {
@@ -39,6 +41,7 @@ public partial class MainWindow : Window
     private IDisposable? _documentWatcher;
     private StartupArguments _startupArguments = StartupArguments.Empty;
     private ViewerSettings _currentSettings = ViewerSettings.Default();
+    private ObservableCollection<TabItemModel> _tabs = new();
 
     public MainWindow()
     {
@@ -47,6 +50,8 @@ public partial class MainWindow : Window
         _renderer = new Renderer(_markdownService, _sanitizer);
         _linkResolver = new LinkResolver(_folderService);
         _openFolderCommand = new OpenFolderCommand(_folderService);
+
+        this.TabControl.ItemsSource = _tabs;
 
         // Wire up FindBar events
         FindBar.SearchRequested += OnSearchRequested;
@@ -87,19 +92,7 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-    await EnsureWebViewAsync();
-    await InitializeFromStartupAsync();
-    }
-
-    private async Task EnsureWebViewAsync()
-    {
-        if (_isInitialized)
-        {
-            return;
-        }
-
-    await _webViewHost.InitializeAsync();
-        _isInitialized = true;
+        await InitializeFromStartupAsync();
     }
 
     private async Task InitializeFromStartupAsync()
@@ -127,37 +120,46 @@ public partial class MainWindow : Window
 
     private void CanExecuteGoBack(object sender, CanExecuteRoutedEventArgs e)
     {
-        e.CanExecute = _currentHistory?.CanGoBack ?? false;
+        var currentTab = GetCurrentTab();
+        var history = currentTab is not null ? _historyService.GetOrCreate(currentTab.Id) : null;
+        e.CanExecute = history?.CanGoBack ?? false;
         e.Handled = true;
     }
 
     private void CanExecuteGoForward(object sender, CanExecuteRoutedEventArgs e)
     {
-        e.CanExecute = _currentHistory?.CanGoForward ?? false;
+        var currentTab = GetCurrentTab();
+        var history = currentTab is not null ? _historyService.GetOrCreate(currentTab.Id) : null;
+        e.CanExecute = history?.CanGoForward ?? false;
         e.Handled = true;
     }
 
     public void ExecuteOpenFolder()
     {
-        System.Diagnostics.Debug.WriteLine("ExecuteOpenFolder called!");
         _ = ExecuteOpenFolderAsync();
     }
 
     public void ExecuteOpenFile()
     {
-        System.Diagnostics.Debug.WriteLine("ExecuteOpenFile called!");
         _ = ExecuteOpenFileAsync();
     }
 
     private async Task ExecuteGoBackAsync()
     {
-        if (_currentHistory is null || !_currentHistory.CanGoBack)
+        var currentTab = GetCurrentTab();
+        if (currentTab is null || _currentRoot is null)
         {
             return;
         }
 
-        var entry = _currentHistory.GoBack();
-        if (entry is null || _currentRoot is null)
+        var history = _historyService.GetOrCreate(currentTab.Id);
+        if (!history.CanGoBack)
+        {
+            return;
+        }
+
+        var entry = history.GoBack();
+        if (entry is null)
         {
             return;
         }
@@ -165,19 +167,26 @@ public partial class MainWindow : Window
         var document = _folderService.TryResolveDocument(_currentRoot, entry.Value.DocumentPath);
         if (document is DocumentInfo doc)
         {
-            await LoadDocumentAsync(doc, entry.Value.Anchor, pushHistory: false);
+            await LoadDocumentInTabAsync(currentTab, doc, entry.Value.Anchor, pushHistory: false);
         }
     }
 
     private async Task ExecuteGoForwardAsync()
     {
-        if (_currentHistory is null || !_currentHistory.CanGoForward)
+        var currentTab = GetCurrentTab();
+        if (currentTab is null || _currentRoot is null)
         {
             return;
         }
 
-        var entry = _currentHistory.GoForward();
-        if (entry is null || _currentRoot is null)
+        var history = _historyService.GetOrCreate(currentTab.Id);
+        if (!history.CanGoForward)
+        {
+            return;
+        }
+
+        var entry = history.GoForward();
+        if (entry is null)
         {
             return;
         }
@@ -185,7 +194,7 @@ public partial class MainWindow : Window
         var document = _folderService.TryResolveDocument(_currentRoot, entry.Value.DocumentPath);
         if (document is DocumentInfo doc)
         {
-            await LoadDocumentAsync(doc, entry.Value.Anchor, pushHistory: false);
+            await LoadDocumentInTabAsync(currentTab, doc, entry.Value.Anchor, pushHistory: false);
         }
     }
 
@@ -195,14 +204,14 @@ public partial class MainWindow : Window
         var result = _openFolderCommand.Execute(this);
         if (result is null)
         {
-            if (_currentDocument is null)
+            if (_tabs.Count == 0)
             {
                 ShowStartOverlay(true);
             }
             return;
         }
 
-    await LoadRootAsync(result.Value);
+        await LoadRootAsync(result.Value);
     }
 
     private async Task ExecuteOpenFileAsync()
@@ -215,14 +224,14 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog(this) != true)
         {
-            if (_currentDocument is null)
+            if (_tabs.Count == 0)
             {
                 ShowStartOverlay(true);
             }
             return;
         }
 
-    await LoadFileAndRootAsync(dialog.FileName);
+        await LoadFileAndRootAsync(dialog.FileName);
     }
 
     private async Task LoadRootFromPathAsync(string path)
@@ -262,20 +271,24 @@ public partial class MainWindow : Window
         _renderer.SetRootPath(result.Root.Path);
         Title = $"MarkRead - {result.Root.DisplayName}";
 
-        // Show tabs bar and create initial tab
-        TabsBar.Visibility = Visibility.Visible;
-        if (TabsBar.Tabs.Count == 0)
+        // Create initial tab if no tabs exist
+        if (_tabs.Count == 0)
         {
-            var initialTab = new TabItem(Guid.NewGuid(), result.Root.DisplayName);
-            TabsBar.Tabs.Add(initialTab);
-            TabsBar.ActiveTab = initialTab;
-            _currentTabId = initialTab.Id;
-            _currentHistory = _historyService.GetOrCreate(_currentTabId);
+            var initialTab = new TabItemModel(Guid.NewGuid(), result.Root.DisplayName);
+            await AddTabAsync(initialTab);
         }
+
+        // Show tabs and load document
+        this.TabControl.Visibility = Visibility.Visible;
+        ShowStartOverlay(false);
 
         if (result.DefaultDocument is DocumentInfo doc)
         {
-            await LoadDocumentAsync(doc);
+            var currentTab = GetCurrentTab();
+            if (currentTab is not null)
+            {
+                await LoadDocumentInTabAsync(currentTab, doc);
+            }
         }
         else
         {
@@ -284,29 +297,51 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task LoadDocumentAsync(DocumentInfo document, string? anchor = null, bool pushHistory = true)
+    private async Task AddTabAsync(TabItemModel tab)
     {
-        if (_currentRoot is null)
+        // Create and initialize the content control
+        var content = new UI.Tabs.TabContentControl();
+        await content.InitializeAsync();
+        
+        // Wire up events for this tab's WebViewHost
+        if (content.Host is not null)
+        {
+            content.Host.BridgeMessageReceived += (s, e) => OnBridgeMessageReceived(tab, s, e);
+            content.Host.LinkClicked += (s, e) => OnLinkClicked(tab, s, e);
+            content.Host.AnchorClicked += (s, e) => OnAnchorClicked(tab, s, e);
+        }
+
+        tab.Content = content;
+        _tabs.Add(tab);
+        this.TabControl.SelectedItem = tab;
+    }
+
+    private async Task LoadDocumentInTabAsync(TabItemModel tab, DocumentInfo document, string? anchor = null, bool pushHistory = true)
+    {
+        if (_currentRoot is null || tab.Content?.Host is null)
         {
             return;
         }
 
+        var webViewHost = tab.Content.Host;
+
         // Save scroll position before loading new document (if same document being reloaded)
         int scrollPosition = 0;
-        bool isReload = _currentDocument.HasValue && _currentDocument.Value.FullPath == document.FullPath;
+        bool isReload = tab.DocumentPath == document.FullPath;
         if (isReload)
         {
-            scrollPosition = await _webViewHost.GetScrollPositionAsync();
+            scrollPosition = await webViewHost.GetScrollPositionAsync();
         }
 
-        _currentDocument = document;
-        ShowStartOverlay(false);
+        tab.DocumentPath = document.FullPath;
+        tab.Title = Path.GetFileNameWithoutExtension(document.FullPath);
 
         // Push to history before loading
-        if (pushHistory && _currentHistory is not null)
+        if (pushHistory)
         {
+            var history = _historyService.GetOrCreate(tab.Id);
             var entry = new NavigationEntry(document.FullPath, anchor);
-            _currentHistory.Push(entry);
+            history.Push(entry);
         }
 
         string markdown;
@@ -317,14 +352,14 @@ public partial class MainWindow : Window
 
             if (isLargeFile)
             {
-                _webViewHost.ShowLoadingIndicator();
+                webViewHost.ShowLoadingIndicator();
             }
 
             markdown = await File.ReadAllTextAsync(document.FullPath);
 
             if (isLargeFile)
             {
-                _webViewHost.HideLoadingIndicator();
+                webViewHost.HideLoadingIndicator();
             }
         }
         catch (IOException ex)
@@ -344,42 +379,48 @@ public partial class MainWindow : Window
 
         await Dispatcher.InvokeAsync(() =>
         {
-            _webViewHost.NavigateToString(renderResult.Html);
+            webViewHost.NavigateToString(renderResult.Html);
             Title = $"MarkRead - {renderResult.Title}";
-            SubscribeToDocumentChanges(document);
+            SubscribeToDocumentChanges(tab, document);
         });
 
-        await _webViewHost.WaitForReadyAsync();
+        await webViewHost.WaitForReadyAsync();
 
         // Restore scroll position for reloads, or navigate to anchor
         if (isReload && scrollPosition > 0 && string.IsNullOrEmpty(anchor))
         {
-            _webViewHost.RestoreScrollPosition(scrollPosition);
+            webViewHost.RestoreScrollPosition(scrollPosition);
         }
         else if (!string.IsNullOrEmpty(anchor))
         {
-            _webViewHost.PostMessage("scroll-to", new { anchor });
+            webViewHost.PostMessage("scroll-to", new { anchor });
         }
     }
 
-    private void SubscribeToDocumentChanges(DocumentInfo document)
+    private void SubscribeToDocumentChanges(TabItemModel tab, DocumentInfo document)
     {
         _documentWatcher?.Dispose();
         _documentWatcher = _fileWatcherService.Watch(document.FullPath, _ =>
         {
-            Dispatcher.InvokeAsync(async () => await ReloadCurrentDocumentAsync());
+            Dispatcher.InvokeAsync(async () => await ReloadCurrentDocumentAsync(tab));
         });
     }
 
-    private async Task ReloadCurrentDocumentAsync()
+    private async Task ReloadCurrentDocumentAsync(TabItemModel tab)
     {
-        if (_currentDocument is DocumentInfo doc)
+        if (_currentRoot is null || string.IsNullOrEmpty(tab.DocumentPath))
         {
-            await LoadDocumentAsync(doc);
+            return;
+        }
+
+        var document = _folderService.TryResolveDocument(_currentRoot, tab.DocumentPath);
+        if (document is DocumentInfo doc)
+        {
+            await LoadDocumentInTabAsync(tab, doc, pushHistory: false);
         }
     }
 
-    private void OnBridgeMessageReceived(object? sender, WebViewBridgeEventArgs e)
+    private void OnBridgeMessageReceived(TabItemModel tab, object? sender, WebViewBridgeEventArgs e)
     {
         if (e.Name.Equals("link-click", StringComparison.OrdinalIgnoreCase))
         {
@@ -388,7 +429,7 @@ public partial class MainWindow : Window
                 var href = hrefElement.GetString();
                 if (!string.IsNullOrWhiteSpace(href))
                 {
-                    _ = Dispatcher.InvokeAsync(async () => await HandleLinkNavigationAsync(href!));
+                    _ = Dispatcher.InvokeAsync(async () => await HandleLinkNavigationAsync(tab, href!));
                 }
             }
         }
@@ -397,9 +438,9 @@ public partial class MainWindow : Window
             if (e.Payload is JsonElement element && element.TryGetProperty("anchor", out var anchorElement))
             {
                 var anchor = anchorElement.GetString();
-                if (!string.IsNullOrEmpty(anchor))
+                if (!string.IsNullOrEmpty(anchor) && tab.Content?.Host is not null)
                 {
-                    _webViewHost.PostMessage("scroll-to", new { anchor });
+                    tab.Content.Host.PostMessage("scroll-to", new { anchor });
                 }
             }
         }
@@ -413,17 +454,15 @@ public partial class MainWindow : Window
                 _ = Dispatcher.InvokeAsync(() =>
                 {
                     FindBar.UpdateMatchCount(currentIndex, matchCount);
-                    if (_currentHistory is not null)
-                    {
-                        _currentHistory.SearchMatchCount = matchCount;
-                        _currentHistory.SearchCurrentIndex = currentIndex;
-                    }
+                    var history = _historyService.GetOrCreate(tab.Id);
+                    history.SearchMatchCount = matchCount;
+                    history.SearchCurrentIndex = currentIndex;
                 });
             }
         }
     }
 
-    private void OnLinkClicked(object? sender, LinkClickEventArgs e)
+    private void OnLinkClicked(TabItemModel tab, object? sender, LinkClickEventArgs e)
     {
         if (e.IsCtrlClick)
         {
@@ -431,28 +470,29 @@ public partial class MainWindow : Window
         }
         else
         {
-            _ = Dispatcher.InvokeAsync(async () => await HandleLinkNavigationAsync(e.Href));
+            _ = Dispatcher.InvokeAsync(async () => await HandleLinkNavigationAsync(tab, e.Href));
         }
     }
 
-    private void OnAnchorClicked(object? sender, AnchorClickEventArgs e)
+    private void OnAnchorClicked(TabItemModel tab, object? sender, AnchorClickEventArgs e)
     {
         // Push anchor navigation to history
-        if (_currentDocument is not null && _currentHistory is not null)
+        if (!string.IsNullOrEmpty(tab.DocumentPath))
         {
-            var entry = new NavigationEntry(_currentDocument.Value.FullPath, e.Anchor);
-            _currentHistory.Push(entry);
+            var history = _historyService.GetOrCreate(tab.Id);
+            var entry = new NavigationEntry(tab.DocumentPath, e.Anchor);
+            history.Push(entry);
         }
     }
 
-    private async Task HandleLinkNavigationAsync(string href)
+    private async Task HandleLinkNavigationAsync(TabItemModel tab, string href)
     {
-        if (_currentRoot is null || _currentDocument is null)
+        if (_currentRoot is null || string.IsNullOrEmpty(tab.DocumentPath))
         {
             return;
         }
 
-        var result = _linkResolver.Resolve(href, _currentRoot, _currentDocument.Value.FullPath);
+        var result = _linkResolver.Resolve(href, _currentRoot, tab.DocumentPath);
 
         if (result.IsBlocked)
         {
@@ -461,9 +501,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (result.IsAnchor && !string.IsNullOrEmpty(result.Anchor))
+        if (result.IsAnchor && !string.IsNullOrEmpty(result.Anchor) && tab.Content?.Host is not null)
         {
-            _webViewHost.PostMessage("scroll-to", new { anchor = result.Anchor });
+            tab.Content.Host.PostMessage("scroll-to", new { anchor = result.Anchor });
             return;
         }
 
@@ -485,7 +525,7 @@ public partial class MainWindow : Window
             var document = _folderService.TryResolveDocument(_currentRoot, result.LocalPath);
             if (document is DocumentInfo doc)
             {
-                await LoadDocumentAsync(doc, result.Anchor);
+                await LoadDocumentInTabAsync(tab, doc, result.Anchor);
             }
             else
             {
@@ -496,18 +536,19 @@ public partial class MainWindow : Window
 
     private async Task HandleLinkInNewTabAsync(string href)
     {
-        if (_currentRoot is null || _currentDocument is null)
+        var currentTab = GetCurrentTab();
+        if (_currentRoot is null || currentTab is null || string.IsNullOrEmpty(currentTab.DocumentPath))
         {
             return;
         }
 
-        var result = _linkResolver.Resolve(href, _currentRoot, _currentDocument.Value.FullPath);
+        var result = _linkResolver.Resolve(href, _currentRoot, currentTab.DocumentPath);
 
         // Only open internal documents in new tabs
         if (result.IsBlocked || result.IsExternal || result.IsAnchor)
         {
-            // For blocked, external, or anchor links, handle normally
-            await HandleLinkNavigationAsync(href);
+            // For blocked, external, or anchor links, handle normally in current tab
+            await HandleLinkNavigationAsync(currentTab, href);
             return;
         }
 
@@ -517,25 +558,20 @@ public partial class MainWindow : Window
             if (document is DocumentInfo doc)
             {
                 // Create new tab
-                var newTabId = Guid.NewGuid();
                 var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
-                var newTab = new TabItem(newTabId, tabTitle, doc.FullPath);
-                TabsBar.Tabs.Add(newTab);
-                TabsBar.ActiveTab = newTab; // Set as active tab
-                
-                // Switch to new tab
-                _currentTabId = newTabId;
-                _currentHistory = _historyService.GetOrCreate(_currentTabId);
+                var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+                await AddTabAsync(newTab);
                 
                 // Load document in new tab
-                await LoadDocumentAsync(doc, result.Anchor);
+                await LoadDocumentInTabAsync(newTab, doc, result.Anchor);
             }
         }
     }
 
     private void ExecuteFind()
     {
-        if (_currentDocument is null)
+        var currentTab = GetCurrentTab();
+        if (currentTab is null || string.IsNullOrEmpty(currentTab.DocumentPath))
         {
             return;
         }
@@ -545,95 +581,91 @@ public partial class MainWindow : Window
 
     private void OnSearchRequested(object? sender, UI.Find.FindEventArgs e)
     {
-        if (_currentHistory is not null)
+        var currentTab = GetCurrentTab();
+        if (currentTab is null || currentTab.Content?.Host is null)
         {
-            _currentHistory.SearchQuery = e.Query;
-        }
-
-        if (string.IsNullOrWhiteSpace(e.Query))
-        {
-            _webViewHost.PostMessage("find-clear", null);
             return;
         }
 
-        _webViewHost.PostMessage("find-start", new { query = e.Query });
+        var history = _historyService.GetOrCreate(currentTab.Id);
+        history.SearchQuery = e.Query;
+
+        if (string.IsNullOrWhiteSpace(e.Query))
+        {
+            currentTab.Content.Host.PostMessage("find-clear", null);
+            return;
+        }
+
+        currentTab.Content.Host.PostMessage("find-start", new { query = e.Query });
     }
 
     private void OnFindNextRequested(object? sender, EventArgs e)
     {
-        _webViewHost.PostMessage("find-next", null);
+        var currentTab = GetCurrentTab();
+        if (currentTab?.Content?.Host is not null)
+        {
+            currentTab.Content.Host.PostMessage("find-next", null);
+        }
     }
 
     private void OnFindPreviousRequested(object? sender, EventArgs e)
     {
-        _webViewHost.PostMessage("find-previous", null);
+        var currentTab = GetCurrentTab();
+        if (currentTab?.Content?.Host is not null)
+        {
+            currentTab.Content.Host.PostMessage("find-previous", null);
+        }
     }
 
     private void OnFindCloseRequested(object? sender, EventArgs e)
     {
-        _webViewHost.PostMessage("find-clear", null);
-    }
-
-    private void OnTabActivated(object? sender, UI.Tabs.TabEventArgs e)
-    {
-        _ = Dispatcher.InvokeAsync(async () => await SwitchToTabAsync(e.Tab));
-    }
-
-    private void OnTabClosed(object? sender, UI.Tabs.TabEventArgs e)
-    {
-        // Tab was already removed from the collection by TabsView
-        // If this was the active tab, TabsView already activated another tab
-        // We just need to handle the case where all tabs are closed
-        if (TabsBar.Tabs.Count == 0)
+        var currentTab = GetCurrentTab();
+        if (currentTab?.Content?.Host is not null)
         {
-            _currentDocument = null;
-            _currentHistory = null;
-            ShowStartOverlay(true);
-            TabsBar.Visibility = Visibility.Collapsed;
+            currentTab.Content.Host.PostMessage("find-clear", null);
         }
     }
 
-    private void OnTabCreated(object? sender, UI.Tabs.TabEventArgs e)
+    private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // New tab created from the "+" button
-        // For now, just show empty state - user can open a file
-        _currentTabId = e.Tab.Id;
-        _currentHistory = _historyService.GetOrCreate(_currentTabId);
+        // Tab switching is now just visibility changes - no re-rendering needed!
+        // Each tab maintains its own WebView2 instance and state
+        CommandManager.InvalidateRequerySuggested();
     }
 
-    private async Task SwitchToTabAsync(TabItem tab)
+    private void CloseTab_Click(object sender, RoutedEventArgs e)
     {
-        // Switch to the selected tab
-        _currentTabId = tab.Id;
-        _currentHistory = _historyService.GetOrCreate(_currentTabId);
+        if (sender is System.Windows.Controls.Button button && button.Tag is Guid tabId)
+        {
+            var tab = _tabs.FirstOrDefault(t => t.Id == tabId);
+            if (tab is not null)
+            {
+                // Dispose the content control
+                tab.Content?.Dispose();
+                
+                // Remove from collection
+                var index = _tabs.IndexOf(tab);
+                _tabs.Remove(tab);
 
-        // Load the document if the tab has one
-        if (!string.IsNullOrEmpty(tab.DocumentPath) && _currentRoot is not null)
-        {
-            var document = _folderService.TryResolveDocument(_currentRoot, tab.DocumentPath);
-            if (document is DocumentInfo doc)
-            {
-                await LoadDocumentAsync(doc, pushHistory: false);
-            }
-        }
-        else if (_currentHistory.Current is not null)
-        {
-            // Load from history
-            var entry = _currentHistory.Current.Value;
-            if (_currentRoot is not null)
-            {
-                var document = _folderService.TryResolveDocument(_currentRoot, entry.DocumentPath);
-                if (document is DocumentInfo doc)
+                // If this was the last tab, show start overlay
+                if (_tabs.Count == 0)
                 {
-                    await LoadDocumentAsync(doc, entry.Anchor, pushHistory: false);
+                    ShowStartOverlay(true);
+                    this.TabControl.Visibility = Visibility.Collapsed;
+                }
+                else if (index >= 0)
+                {
+                    // Select adjacent tab
+                    var newIndex = Math.Min(index, _tabs.Count - 1);
+                    this.TabControl.SelectedItem = _tabs[newIndex];
                 }
             }
         }
-        else
-        {
-            // Empty tab
-            ShowStartOverlay(true);
-        }
+    }
+
+    private TabItemModel? GetCurrentTab()
+    {
+        return this.TabControl.SelectedItem as TabItemModel;
     }
 
     private void ShowStartOverlay(bool visible)
@@ -645,7 +677,10 @@ public partial class MainWindow : Window
         }
 
         StartOverlay.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-        MarkdownView.Visibility = visible ? Visibility.Collapsed : Visibility.Visible;
+        if (visible)
+        {
+            this.TabControl.Visibility = Visibility.Collapsed;
+        }
     }
 
     protected override void OnClosed(EventArgs e)
@@ -654,7 +689,12 @@ public partial class MainWindow : Window
 
         _documentWatcher?.Dispose();
         _fileWatcherService.Dispose();
-        _webViewHost.Dispose();
+        
+        // Dispose all tab content controls
+        foreach (var tab in _tabs)
+        {
+            tab.Content?.Dispose();
+        }
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e)

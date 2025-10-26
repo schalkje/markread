@@ -1,0 +1,67 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+
+using MarkRead.App.Rendering;
+using MarkRead.App.Services;
+using MarkRead.App.UI.Shell;
+using MarkRead.App.UI.Start;
+using MarkRead.App.UI.Tabs;
+using MarkRead.Cli;
+
+using AppNavigationCommands = MarkRead.App.UI.Shell.NavigationCommands;
+
+namespace MarkRead.App;
+
+/// <summary>
+/// Interaction logic for the shell window hosting tabbed WebView renderers.
+/// </summary>
+public partial class MainWindow : Window
+{
+    private readonly FolderService _folderService = new();
+    private readonly MarkdownService _markdownService = new();
+    private readonly HtmlSanitizerService _sanitizer = new();
+    private readonly SettingsService _settingsService = new();
+    private readonly HistoryService _historyService = new();
+    private readonly FileWatcherService _fileWatcherService = new();
+    private readonly Renderer _renderer;
+    private readonly LinkResolver _linkResolver;
+    private readonly OpenFolderCommand _openFolderCommand;
+
+    private FolderRoot? _currentRoot;
+    private IDisposable? _documentWatcher;
+    private StartupArguments _startupArguments = StartupArguments.Empty;
+    private ViewerSettings _currentSettings = ViewerSettings.Default();
+    private ObservableCollection<TabItem> _tabs = new();
+
+    public MainWindow()
+    {
+        InitializeComponent();
+
+        _renderer = new Renderer(_markdownService, _sanitizer);
+        _linkResolver = new LinkResolver(_folderService);
+        _openFolderCommand = new OpenFolderCommand(_folderService);
+
+        TabControl.ItemsSource = _tabs;
+
+        // Wire up FindBar events
+        FindBar.SearchRequested += OnSearchRequested;
+        FindBar.NextRequested += OnFindNextRequested;
+        FindBar.PreviousRequested += OnFindPreviousRequested;
+        FindBar.CloseRequested += OnFindCloseRequested;
+
+        CommandBindings.Add(new CommandBinding(App.OpenFolderCommand, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
+        CommandBindings.Add(new CommandBinding(App.OpenFileCommand, async (_, _) => await ExecuteOpenFileAsync(), CanExecuteWhenInteractive));
+        CommandBindings.Add(new CommandBinding(StartCommands.OpenFolder, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
+        CommandBindings.Add(new CommandBinding(StartCommands.OpenFile, async (_, _) => await ExecuteOpenFileAsync(), CanExecuteWhenInteractive));
+        CommandBindings.Add(new CommandBinding(AppNavigationCommands.GoBack, async (_, _) => await ExecuteGoBackAsync(), CanExecuteGoBack));
+        CommandBindings.Add(new CommandBinding(AppNavigationCommands.GoForward, async (_, _) => await ExecuteGoForwardAsync(), CanExecuteGoForward));
+        CommandBindings.Add(new CommandBinding(App.FindInDocumentCommand, (_, _) => ExecuteFind(), CanExecuteWhenInteractive));
+    }
