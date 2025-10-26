@@ -19,12 +19,18 @@ public sealed class Renderer
     private readonly string _templatePath;
     private readonly SemaphoreSlim _templateLock = new(1, 1);
     private string? _templateCache;
+    private string? _currentRootPath;
 
     public Renderer(MarkdownService markdownService, HtmlSanitizerService sanitizer)
     {
         _markdownService = markdownService ?? throw new ArgumentNullException(nameof(markdownService));
         _sanitizer = sanitizer ?? throw new ArgumentNullException(nameof(sanitizer));
         _templatePath = ResolveTemplatePath();
+    }
+
+    public void SetRootPath(string rootPath)
+    {
+        _currentRootPath = rootPath;
     }
 
     public async Task<RenderResult> RenderAsync(RenderRequest request, CancellationToken cancellationToken = default)
@@ -35,12 +41,26 @@ public sealed class Renderer
         }
 
         var markdown = request.Markdown ?? string.Empty;
+        
+        // Replace root-relative links in markdown: ](/ -> ](file:///rootPath/
+        if (!string.IsNullOrEmpty(_currentRootPath))
+        {
+            var before = markdown;
+            markdown = ConvertRootRelativeLinksInMarkdown(markdown, _currentRootPath);
+            if (before != markdown)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Renderer] Replaced root-relative links");
+                System.Diagnostics.Debug.WriteLine($"[Renderer] Example: {markdown.Substring(0, Math.Min(200, markdown.Length))}");
+            }
+        }
+        
         string sanitized;
         bool isFallback = false;
 
         try
         {
             var html = _markdownService.RenderToHtml(markdown);
+            System.Diagnostics.Debug.WriteLine($"[Renderer] HTML after Markdig: {html.Substring(0, Math.Min(500, html.Length))}");
 
             Uri? baseUri = null;
             try
@@ -53,6 +73,7 @@ public sealed class Renderer
             }
 
             sanitized = _sanitizer.Sanitize(html, baseUri);
+            System.Diagnostics.Debug.WriteLine($"[Renderer] HTML after sanitizer: {sanitized.Substring(0, Math.Min(500, sanitized.Length))}");
         }
         catch (Exception ex)
         {
@@ -170,6 +191,20 @@ public sealed class Renderer
         }
 
         return candidate;
+    }
+
+    private static string ConvertRootRelativeLinksInMarkdown(string markdown, string rootPath)
+    {
+        // Replace ](/ with ](file:///normalizedRoot/
+        // This handles both links [text](/path) and images ![alt](/path)
+        
+        // Build a proper file:// URI from the root path
+        var normalizedRoot = Path.GetFullPath(rootPath);
+        var fileUri = new Uri(normalizedRoot).AbsoluteUri.TrimEnd('/');
+        
+        var pattern = @"\]\(/";
+        var replacement = $"]({fileUri}/";
+        return System.Text.RegularExpressions.Regex.Replace(markdown, pattern, replacement);
     }
 }
 

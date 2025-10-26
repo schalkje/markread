@@ -275,6 +275,7 @@ public partial class MainWindow : Window
     private async Task LoadRootAsync(FolderOpenResult result)
     {
         _currentRoot = result.Root;
+        _renderer.SetRootPath(result.Root.Path);
         Title = $"MarkRead - {result.Root.DisplayName}";
 
         // Show tabs bar and create initial tab

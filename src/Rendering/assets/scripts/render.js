@@ -152,7 +152,7 @@
                 return;
             }
 
-            const href = anchor.getAttribute("href");
+            let href = anchor.getAttribute("href");
             if (!href) {
                 return;
             }
