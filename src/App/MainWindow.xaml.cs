@@ -403,7 +403,17 @@ public partial class MainWindow : Window
 
         await Dispatcher.InvokeAsync(() =>
         {
-            _webViewHost.NavigateToString(renderResult.Html);
+            // Prefer navigating to temp file for proper file:// origin (allows local images to load)
+            // Fall back to NavigateToString if temp file creation failed
+            if (!string.IsNullOrEmpty(renderResult.TempFilePath) && File.Exists(renderResult.TempFilePath))
+            {
+                _webViewHost.NavigateToFile(renderResult.TempFilePath);
+            }
+            else
+            {
+                _webViewHost.NavigateToString(renderResult.Html);
+            }
+            
             Title = $"MarkRead - {renderResult.Title}";
             SubscribeToDocumentChanges(tab, document);
         });

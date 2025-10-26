@@ -127,6 +127,23 @@ public sealed class WebViewHost : IDisposable
         _core.NavigateToString(html);
     }
 
+    public void NavigateToFile(string htmlFilePath)
+    {
+        ThrowIfDisposed();
+        if (_core is null)
+        {
+            throw new InvalidOperationException("WebView2 has not been initialized.");
+        }
+
+        if (!File.Exists(htmlFilePath))
+        {
+            throw new FileNotFoundException("HTML file not found.", htmlFilePath);
+        }
+
+        var uri = new Uri(htmlFilePath).AbsoluteUri;
+        _core.Navigate(uri);
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -157,6 +174,9 @@ public sealed class WebViewHost : IDisposable
         _core.Settings.AreDevToolsEnabled = true;
         _core.Settings.IsZoomControlEnabled = false;
         _core.Settings.AreBrowserAcceleratorKeysEnabled = true;
+
+        // Allow local file access when HTML is loaded via NavigateToString
+        _core.Settings.IsScriptEnabled = true;
 
         _core.SetVirtualHostNameToFolderMapping(_virtualHostName, _assetRoot, CoreWebView2HostResourceAccessKind.Allow);
 

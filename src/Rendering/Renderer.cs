@@ -13,13 +13,14 @@ public sealed class Renderer
 {
     private const string ContentToken = "<!--CONTENT-->";
     private const string StateToken = "__STATE_JSON__";
+    private const string BaseUrlToken = "<!--BASE_URL-->";
 
     private readonly MarkdownService _markdownService;
     private readonly HtmlSanitizerService _sanitizer;
     private readonly string _templatePath;
     private readonly SemaphoreSlim _templateLock = new(1, 1);
-    private string? _templateCache;
-    private string? _currentRootPath;
+        private string? _templateCache;
+        private string? _currentRootPath;
 
     public Renderer(MarkdownService markdownService, HtmlSanitizerService sanitizer)
     {
@@ -80,9 +81,13 @@ public sealed class Renderer
         var template = await LoadTemplateAsync(cancellationToken).ConfigureAwait(false);
         var stateJson = BuildStateJson(request);
 
+        // Set base URL for resolving relative paths in images/links
+        var baseUrl = GetBaseUrlFromPath(request.DocumentPath);
+
         var output = template
             .Replace(ContentToken, sanitized, StringComparison.Ordinal)
-            .Replace(StateToken, stateJson, StringComparison.Ordinal);
+            .Replace(StateToken, stateJson, StringComparison.Ordinal)
+            .Replace(BaseUrlToken, baseUrl, StringComparison.Ordinal);
 
         var title = DetermineTitle(markdown, request.DocumentPath);
         if (isFallback)
@@ -90,7 +95,21 @@ public sealed class Renderer
             title += " (Raw Text - Render Error)";
         }
 
-        return new RenderResult(output, title);
+        // Write to temp file so WebView2 can load it with proper file:// origin
+        // This allows images and other local resources to load correctly
+        string? tempFilePath = null;
+        try
+        {
+            tempFilePath = Path.Combine(Path.GetTempPath(), $"markread_{Guid.NewGuid():N}.html");
+            await File.WriteAllTextAsync(tempFilePath, output, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            // If temp file creation fails, fall back to NavigateToString
+            tempFilePath = null;
+        }
+
+        return new RenderResult(output, title, tempFilePath);
     }
 
     private static string GenerateRawTextFallback(string markdown, string errorMessage)
@@ -188,6 +207,28 @@ public sealed class Renderer
         return candidate;
     }
 
+    private static string GetBaseUrlFromPath(string documentPath)
+    {
+        try
+        {
+            // Get the directory containing the document
+            var directory = Path.GetDirectoryName(documentPath);
+            if (string.IsNullOrEmpty(directory))
+            {
+                return "file:///";
+            }
+
+            // Convert to absolute path and create file:// URI
+            var absolutePath = Path.GetFullPath(directory);
+            var uri = new Uri(absolutePath + Path.DirectorySeparatorChar);
+            return uri.AbsoluteUri;
+        }
+        catch
+        {
+            return "file:///";
+        }
+    }
+
     private static string ConvertRootRelativeLinksInMarkdown(string markdown, string rootPath)
     {
         // Replace ](/ with ](file:///normalizedRoot/
@@ -212,10 +253,6 @@ public sealed class Renderer
         var pattern = @"(?m)^:::(\w+)\s*$\r?\n([\s\S]*?)^:::\s*$";
         var replacement = "```$1\n$2```";
         
-        Console.WriteLine("Original markdown:");
-        Console.WriteLine(markdown);
-        Console.WriteLine("\nPattern: " + pattern);
-        Console.WriteLine("\nConverted markdown:");
         var result = System.Text.RegularExpressions.Regex.Replace(
             markdown, 
             pattern, 
@@ -232,4 +269,4 @@ public readonly record struct RenderRequest(
     string? Anchor,
     string PreferredTheme);
 
-public readonly record struct RenderResult(string Html, string Title);
+public readonly record struct RenderResult(string Html, string Title, string? TempFilePath = null);
