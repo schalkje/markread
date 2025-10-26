@@ -64,13 +64,13 @@ Story goal: Multiple tabs and Ctrl+F search with highlights and next/prev. Indep
 
 ## Phase 6 – Polish & Cross-Cutting Concerns
 
-- [ ] T042 Implement theme settings UI and apply system/dark/light in src/UI/Settings/ThemeSettingsView.xaml
-- [ ] T043 Persist settings across sessions (start file, auto-reload, show file tree) in src/Services/SettingsService.cs
-- [ ] T044 Implement file tree sidebar toggle and persistence in src/UI/Sidebar/SidebarView.xaml
-- [ ] T045 Implement CLI start behavior (file/folder, FR-017/018) integration in src/Cli/Program.cs
-- [ ] T046 Handle render errors with raw text fallback in src/Rendering/Renderer.cs
-- [ ] T047 Large file loading indicator and scroll preservation in src/Rendering/WebViewHost.cs
-- [ ] T048 Run quickstart.md validation in tests/integration/QuickstartValidation.md
+- [X] T042 Implement theme settings UI and apply system/dark/light in src/UI/Settings/ThemeSettingsView.xaml
+- [X] T043 Persist settings across sessions (start file, auto-reload, show file tree) in src/Services/SettingsService.cs
+- [X] T044 Implement file tree sidebar toggle and persistence in src/UI/Sidebar/SidebarView.xaml
+- [X] T045 Implement CLI start behavior (file/folder, FR-017/018) integration in src/Cli/Program.cs
+- [X] T046 Handle render errors with raw text fallback in src/Rendering/Renderer.cs
+- [X] T047 Large file loading indicator and scroll preservation in src/Rendering/WebViewHost.cs
+- [X] T048 Run quickstart.md validation in tests/integration/QuickstartValidation.md
 
 ## Dependencies (user story order)
 

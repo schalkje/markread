@@ -144,7 +144,13 @@ public record ViewerSettings(
     string Theme,
     string StartFile,
     bool AutoReload,
-    bool ShowFileTree)
+    bool ShowFileTree,
+    LastSessionData? LastSession = null)
 {
     public static ViewerSettings Default() => new("system", "readme", true, true);
 }
+
+public record LastSessionData(
+    string[] OpenDocuments,
+    int ActiveTabIndex,
+    string? LastFolderRoot = null);

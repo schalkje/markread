@@ -35,19 +35,32 @@ public sealed class Renderer
         }
 
         var markdown = request.Markdown ?? string.Empty;
-        var html = _markdownService.RenderToHtml(markdown);
+        string sanitized;
+        bool isFallback = false;
 
-        Uri? baseUri = null;
         try
         {
-            baseUri = new Uri(request.DocumentPath);
+            var html = _markdownService.RenderToHtml(markdown);
+
+            Uri? baseUri = null;
+            try
+            {
+                baseUri = new Uri(request.DocumentPath);
+            }
+            catch
+            {
+                // Ignore invalid URIs; sanitizer will operate without base.
+            }
+
+            sanitized = _sanitizer.Sanitize(html, baseUri);
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore invalid URIs; sanitizer will operate without base.
+            // Fallback to raw text rendering
+            sanitized = GenerateRawTextFallback(markdown, ex.Message);
+            isFallback = true;
         }
 
-        var sanitized = _sanitizer.Sanitize(html, baseUri);
         var template = await LoadTemplateAsync(cancellationToken).ConfigureAwait(false);
         var stateJson = BuildStateJson(request);
 
@@ -56,7 +69,27 @@ public sealed class Renderer
             .Replace(StateToken, stateJson, StringComparison.Ordinal);
 
         var title = DetermineTitle(markdown, request.DocumentPath);
+        if (isFallback)
+        {
+            title += " (Raw Text - Render Error)";
+        }
+
         return new RenderResult(output, title);
+    }
+
+    private static string GenerateRawTextFallback(string markdown, string errorMessage)
+    {
+        var escaped = System.Net.WebUtility.HtmlEncode(markdown);
+        return $@"
+            <div style='padding: 20px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; margin-bottom: 20px;'>
+                <h3 style='color: #856404; margin-top: 0;'>⚠️ Rendering Error</h3>
+                <p style='color: #856404;'>Unable to render this document as HTML. Showing raw text instead.</p>
+                <details style='color: #856404;'>
+                    <summary style='cursor: pointer;'>Error details</summary>
+                    <pre style='background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto;'>{System.Net.WebUtility.HtmlEncode(errorMessage)}</pre>
+                </details>
+            </div>
+            <pre style='white-space: pre-wrap; word-wrap: break-word; font-family: monospace; padding: 15px; background: #f8f9fa; border-radius: 4px;'>{escaped}</pre>";
     }
 
     private static string DetermineTitle(string markdown, string documentPath)

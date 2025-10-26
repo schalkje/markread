@@ -3,7 +3,7 @@ using System.IO;
 
 namespace MarkRead.Cli;
 
-internal enum StartupPathKind
+public enum StartupPathKind
 {
 	None,
 	Directory,
@@ -11,7 +11,7 @@ internal enum StartupPathKind
 	Unknown
 }
 
-internal sealed class StartupArguments
+public sealed class StartupArguments
 {
 	private StartupArguments(string? rawInput,
 		string? fullPath,

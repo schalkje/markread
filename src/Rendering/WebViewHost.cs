@@ -71,6 +71,51 @@ public sealed class WebViewHost : IDisposable
         _core.PostWebMessageAsJson(json);
     }
 
+    public async Task<int> GetScrollPositionAsync()
+    {
+        ThrowIfDisposed();
+        if (_core is null)
+        {
+            return 0;
+        }
+
+        try
+        {
+            var result = await _core.ExecuteScriptAsync("window.scrollY || document.documentElement.scrollTop || 0");
+            if (int.TryParse(result, out var position))
+            {
+                return position;
+            }
+        }
+        catch
+        {
+            // Ignore errors getting scroll position
+        }
+
+        return 0;
+    }
+
+    public void RestoreScrollPosition(int position)
+    {
+        ThrowIfDisposed();
+        if (_core is null || position <= 0)
+        {
+            return;
+        }
+
+        PostMessage("restore-scroll", new { position });
+    }
+
+    public void ShowLoadingIndicator()
+    {
+        PostMessage("show-loading", null);
+    }
+
+    public void HideLoadingIndicator()
+    {
+        PostMessage("hide-loading", null);
+    }
+
     public void NavigateToString(string html)
     {
         ThrowIfDisposed();

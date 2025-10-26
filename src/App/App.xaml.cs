@@ -51,7 +51,7 @@ public partial class App : System.Windows.Application
         typeof(App),
         new InputGestureCollection { new KeyGesture(Key.Right, ModifierKeys.Alt) });
 
-    protected override void OnStartup(System.Windows.StartupEventArgs e)
+    protected override async void OnStartup(System.Windows.StartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -68,9 +68,8 @@ public partial class App : System.Windows.Application
         AddInputBinding(window, NavigateBackCommand);
         AddInputBinding(window, NavigateForwardCommand);
 
-        window.InitializeShell(StartupArguments.Parse(e.Args));
-
-        ThemeManager.ApplyTheme(ThemeManager.AppTheme.System);
+        var startupArgs = StartupArguments.Parse(e.Args);
+        await window.InitializeShellAsync(startupArgs);
     }
 
     private static void AddInputBinding(System.Windows.Window window, RoutedUICommand command)

@@ -43,6 +43,7 @@ public partial class MainWindow : Window
     private bool _isInitialized;
     private Guid _currentTabId = Guid.NewGuid(); // Single tab for now, will be expanded in US3
     private NavigationHistory? _currentHistory;
+    private ViewerSettings _currentSettings = ViewerSettings.Default();
 
     public MainWindow()
     {
@@ -81,6 +82,23 @@ public partial class MainWindow : Window
     internal void InitializeShell(StartupArguments startupArguments)
     {
         _startupArguments = startupArguments;
+    }
+
+    internal async Task InitializeShellAsync(StartupArguments startupArguments)
+    {
+        _startupArguments = startupArguments;
+        
+        // Load settings from disk
+        _currentSettings = await _settingsService.LoadAsync();
+        
+        // Apply saved theme
+        var theme = _currentSettings.Theme.ToLowerInvariant() switch
+        {
+            "dark" => ThemeManager.AppTheme.Dark,
+            "light" => ThemeManager.AppTheme.Light,
+            _ => ThemeManager.AppTheme.System
+        };
+        ThemeManager.ApplyTheme(theme);
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -288,6 +306,14 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Save scroll position before loading new document (if same document being reloaded)
+        int scrollPosition = 0;
+        bool isReload = _currentDocument.HasValue && _currentDocument.Value.FullPath == document.FullPath;
+        if (isReload)
+        {
+            scrollPosition = await _webViewHost.GetScrollPositionAsync();
+        }
+
         _currentDocument = document;
         ShowStartOverlay(false);
 
@@ -301,7 +327,20 @@ public partial class MainWindow : Window
         string markdown;
         try
         {
+            var fileInfo = new FileInfo(document.FullPath);
+            bool isLargeFile = fileInfo.Length > 1024 * 1024; // > 1MB
+
+            if (isLargeFile)
+            {
+                _webViewHost.ShowLoadingIndicator();
+            }
+
             markdown = await File.ReadAllTextAsync(document.FullPath);
+
+            if (isLargeFile)
+            {
+                _webViewHost.HideLoadingIndicator();
+            }
         }
         catch (IOException ex)
         {
@@ -316,7 +355,7 @@ public partial class MainWindow : Window
             anchor,
             ThemeManager.Current.ToString().ToLowerInvariant());
 
-    var renderResult = await _renderer.RenderAsync(request);
+        var renderResult = await _renderer.RenderAsync(request);
 
         await Dispatcher.InvokeAsync(() =>
         {
@@ -325,9 +364,14 @@ public partial class MainWindow : Window
             SubscribeToDocumentChanges(document);
         });
 
-    await _webViewHost.WaitForReadyAsync();
+        await _webViewHost.WaitForReadyAsync();
 
-        if (!string.IsNullOrEmpty(anchor))
+        // Restore scroll position for reloads, or navigate to anchor
+        if (isReload && scrollPosition > 0 && string.IsNullOrEmpty(anchor))
+        {
+            _webViewHost.RestoreScrollPosition(scrollPosition);
+        }
+        else if (!string.IsNullOrEmpty(anchor))
         {
             _webViewHost.PostMessage("scroll-to", new { anchor });
         }
