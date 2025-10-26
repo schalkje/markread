@@ -279,8 +279,8 @@ public partial class MainWindow : Window
         }
 
         // Show tabs and load document
-        this.TabControl.Visibility = Visibility.Visible;
         ShowStartOverlay(false);
+        this.TabControl.Visibility = Visibility.Visible;
 
         if (result.DefaultDocument is DocumentInfo doc)
         {
