@@ -70,3 +70,27 @@ public class ZeroToVisibilityConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
+
+/// <summary>
+/// T049: Converts boolean to GridLength (0 when false, 250 when true).
+/// </summary>
+public class BoolToGridLengthConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool boolValue)
+        {
+            return boolValue ? new GridLength(250, GridUnitType.Pixel) : new GridLength(0);
+        }
+        return new GridLength(0);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is GridLength gridLength)
+        {
+            return gridLength.Value > 0;
+        }
+        return false;
+    }
+}

@@ -38,6 +38,7 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
         _treeViewService = treeViewService;
         _fileWatcherService = fileWatcherService;
         SelectTreeNodeCommand = new RelayCommand<Services.TreeNode>(ExecuteSelectTreeNode, CanSelectTreeNode);
+        ToggleTreeViewVisibilityCommand = new RelayCommand(ExecuteToggleTreeViewVisibility);
     }
 
     /// <summary>
@@ -49,6 +50,11 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
     /// Command for selecting a tree node.
     /// </summary>
     public ICommand SelectTreeNodeCommand { get; }
+
+    /// <summary>
+    /// T042: Command for toggling treeview visibility.
+    /// </summary>
+    public ICommand ToggleTreeViewVisibilityCommand { get; }
 
     private Services.TreeNode? _treeRoot;
     /// <summary>
@@ -118,6 +124,23 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    private bool _isTreeViewVisible = true;
+    /// <summary>
+    /// T041: Indicates whether the treeview is visible.
+    /// </summary>
+    public bool IsTreeViewVisible
+    {
+        get => _isTreeViewVisible;
+        set
+        {
+            if (_isTreeViewVisible != value)
+            {
+                _isTreeViewVisible = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     /// <summary>
     /// Loads the tree structure asynchronously for a given folder path.
     /// </summary>
@@ -133,6 +156,10 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
         _fileWatcherSubscription = null;
 
         CurrentFolderPath = folderPath;
+        
+        // T047: Restore visibility preference for this folder
+        IsTreeViewVisible = _treeViewService.LoadVisibilityPreference(folderPath);
+        
         IsLoading = true;
         FileCount = 0;
 
@@ -238,6 +265,19 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
         else if (node.Type == Services.NodeType.Folder)
         {
             node.IsExpanded = !node.IsExpanded;
+        }
+    }
+
+    /// <summary>
+    /// T043: Toggles treeview visibility and saves preference.
+    /// </summary>
+    private void ExecuteToggleTreeViewVisibility()
+    {
+        IsTreeViewVisible = !IsTreeViewVisible;
+
+        if (!string.IsNullOrEmpty(CurrentFolderPath))
+        {
+            _treeViewService.SaveVisibilityPreference(CurrentFolderPath, IsTreeViewVisible);
         }
     }
 

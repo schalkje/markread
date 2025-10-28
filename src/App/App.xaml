@@ -8,5 +8,6 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:NodeTypeToIconConverter x:Key="NodeTypeToIconConverter"/>
         <converters:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
+        <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter"/>
     </Application.Resources>
 </Application>

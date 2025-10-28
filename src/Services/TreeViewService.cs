@@ -201,8 +201,20 @@ public class TreeViewService
     /// <param name="isVisible">Visibility state.</param>
     public void SaveVisibilityPreference(string folderPath, bool isVisible)
     {
-        // TODO: Implement in T044
-        throw new NotImplementedException("SaveVisibilityPreference will be implemented in T044");
+        // T044: Update settings asynchronously (fire and forget for UI responsiveness)
+        _ = Task.Run(async () =>
+        {
+            await _settingsService.UpdateTreeViewSettingsAsync(settings =>
+            {
+                if (!settings.PerFolderSettings.ContainsKey(folderPath))
+                {
+                    settings.PerFolderSettings[folderPath] = new FolderTreeSettings();
+                }
+
+                settings.PerFolderSettings[folderPath].IsVisible = isVisible;
+                return settings;
+            });
+        });
     }
 
     /// <summary>
@@ -213,8 +225,16 @@ public class TreeViewService
     /// <returns>Visibility state (true if visible).</returns>
     public bool LoadVisibilityPreference(string folderPath)
     {
-        // TODO: Implement in T045
-        throw new NotImplementedException("LoadVisibilityPreference will be implemented in T045");
+        // T045: Load synchronously from cached settings
+        // Note: This assumes settings are loaded during app startup
+        var settings = _settingsService.LoadTreeViewSettingsAsync().GetAwaiter().GetResult();
+
+        if (settings.PerFolderSettings.TryGetValue(folderPath, out var folderSettings))
+        {
+            return folderSettings.IsVisible;
+        }
+
+        return settings.DefaultVisible;
     }
 
     /// <summary>

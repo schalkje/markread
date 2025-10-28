@@ -84,12 +84,12 @@ description: "Task list for Folder Structure Treeview implementation"
 - [ ] T028 [US2] Wire up TreeView.SelectedItemChanged event in TreeViewView.xaml.cs to call SelectTreeNodeCommand
 - [x] T029 [US2] Update HistoryService in SelectTreeNodeCommand to save last viewed file per folder (FR-018)
 - [x] T030 [US2] Implement expand/collapse toggle for folder nodes in SelectTreeNodeCommand (toggle IsExpanded when folder selected)
-- [x] T031 [US2] Enhance existing FileWatcherService.cs to support markdown-specific file watching (filter \*.md, \*.markdown extensions)
-- [x] T032 [US2] Configure FileWatcherService NotifyFilters to watch Created, Deleted, Renamed events only (exclude Changed per research.md)
-- [x] T033 [US2] Implement 500ms debouncing in FileWatcherService using DispatcherTimer to batch rapid file system changes
-- [x] T034 [US2] Add HandleFileSystemChange method in TreeViewService.cs to update tree structure (Created: add node, Deleted: remove node, Renamed: update name)
-- [x] T035 [US2] Wire up FileWatcherService events to TreeViewViewModel to trigger tree updates
-- [x] T036 [US2] Implement folder pruning logic in HandleFileSystemChange to remove parent folders when they become empty after file deletion (FR-012)
+- [X] T031 [US2] Enhance existing FileWatcherService.cs to support markdown-specific file watching (filter \*.md, \*.markdown extensions)
+- [X] T032 [US2] Configure FileWatcherService NotifyFilters to watch Created, Deleted, Renamed events only (exclude Changed per research.md)
+- [X] T033 [US2] Implement 500ms debouncing in FileWatcherService using DispatcherTimer to batch rapid file system changes
+- [X] T034 [US2] Add HandleFileSystemChange method in TreeViewService.cs to update tree structure (Created: add node, Deleted: remove node, Renamed: update name)
+- [X] T035 [US2] Wire up FileWatcherService events to TreeViewViewModel to trigger tree updates
+- [X] T036 [US2] Implement folder pruning logic in HandleFileSystemChange to remove parent folders when they become empty after file deletion (FR-012)
 - [ ] T037 [P] [US2] Add unit tests in tests/unit/TreeViewServiceTests.cs for SelectTreeNode logic (selection state, event raising) [SKIPPED - Optional]
 - [ ] T038 [P] [US2] Add unit tests in tests/unit/TreeViewServiceTests.cs for HandleFileSystemChange (add node, remove node, rename node, prune empty folders) [SKIPPED - Optional]
 - [ ] T039 [P] [US2] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify navigation < 500ms (SC-003) [SKIPPED - Optional]
@@ -107,19 +107,19 @@ description: "Task list for Folder Structure Treeview implementation"
 
 ### Implementation for User Story 3
 
-- [ ] T041 [US3] Add IsTreeViewVisible property to TreeViewViewModel with INotifyPropertyChanged
-- [ ] T042 [US3] Create ToggleTreeViewVisibilityCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs
-- [ ] T043 [US3] Implement ToggleTreeViewVisibilityCommand.Execute logic: invert IsTreeViewVisible, call SaveVisibilityPreference
-- [ ] T044 [US3] Implement SaveVisibilityPreference method in TreeViewService.cs to update TreeViewSettings.PerFolderSettings[folderPath]
-- [ ] T045 [US3] Implement LoadVisibilityPreference method in TreeViewService.cs to retrieve per-folder visibility state (with global default fallback per FR-008, FR-009)
-- [ ] T046 [US3] Integrate SettingsService.cs to persist TreeViewSettings to JSON file in AppData folder
-- [ ] T047 [US3] Call LoadVisibilityPreference in TreeViewViewModel.LoadTreeAsync to restore visibility state when opening folder
-- [ ] T048 [US3] Add toggle button to TreeViewView.xaml header with Command binding to ToggleTreeViewVisibilityCommand
-- [ ] T049 [US3] Add Grid.ColumnDefinitions binding in MainWindow.xaml to collapse/expand treeview column based on IsTreeViewVisible
-- [ ] T050 [US3] Add GridSplitter to MainWindow.xaml between treeview and content area for resizable panels
-- [ ] T051 [P] [US3] Add unit tests in tests/unit/TreeViewServiceTests.cs for SaveVisibilityPreference and LoadVisibilityPreference (per-folder override, global default)
-- [ ] T052 [P] [US3] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify toggle responds < 100ms (SC-004)
-- [ ] T053 [P] [US3] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify visibility state persists across restarts (SC-005)
+- [X] T041 [US3] Add IsTreeViewVisible property to TreeViewViewModel with INotifyPropertyChanged
+- [X] T042 [US3] Create ToggleTreeViewVisibilityCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs
+- [X] T043 [US3] Implement ToggleTreeViewVisibilityCommand.Execute logic: invert IsTreeViewVisible, call SaveVisibilityPreference
+- [X] T044 [US3] Implement SaveVisibilityPreference method in TreeViewService.cs to update TreeViewSettings.PerFolderSettings[folderPath]
+- [X] T045 [US3] Implement LoadVisibilityPreference method in TreeViewService.cs to retrieve per-folder visibility state (with global default fallback per FR-008, FR-009)
+- [X] T046 [US3] Integrate SettingsService.cs to persist TreeViewSettings to JSON file in AppData folder
+- [X] T047 [US3] Call LoadVisibilityPreference in TreeViewViewModel.LoadTreeAsync to restore visibility state when opening folder
+- [X] T048 [US3] Add toggle button to TreeViewView.xaml header with Command binding to ToggleTreeViewVisibilityCommand
+- [X] T049 [US3] Add Grid.ColumnDefinitions binding in MainWindow.xaml to collapse/expand treeview column based on IsTreeViewVisible
+- [X] T050 [US3] Add GridSplitter to MainWindow.xaml between treeview and content area for resizable panels (ALREADY EXISTS)
+- [ ] T051 [P] [US3] Add unit tests in tests/unit/TreeViewServiceTests.cs for SaveVisibilityPreference and LoadVisibilityPreference (per-folder override, global default) [SKIPPED - Optional]
+- [ ] T052 [P] [US3] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify toggle responds < 100ms (SC-004) [SKIPPED - Optional]
+- [ ] T053 [P] [US3] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify visibility state persists across restarts (SC-005) [SKIPPED - Optional]
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently - treeview can be toggled and state persists
 

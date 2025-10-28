@@ -19,6 +19,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <TextBlock Grid.Column="0" 
@@ -43,6 +44,18 @@
                     <Run Text=" files"/>
                 </TextBlock>
             </StackPanel>
+
+            <!-- T048: Toggle button -->
+            <Button Grid.Column="2"
+                    Command="{Binding ToggleTreeViewVisibilityCommand}"
+                    Content="⏴"
+                    ToolTip="Hide file tree"
+                    Width="24"
+                    Height="24"
+                    Margin="4,0,0,0"
+                    FontSize="12"
+                    Padding="2"
+                    BorderThickness="1"/>
         </Grid>
 
         <!-- TreeView -->

@@ -99,7 +99,10 @@
         <!-- Content Area -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="SidebarColumn" Width="250" MinWidth="150"/>
+                <!-- T049: Bind column width to IsTreeViewVisible -->
+                <ColumnDefinition x:Name="SidebarColumn" 
+                                  Width="{Binding ElementName=TreeViewControl, Path=DataContext.IsTreeViewVisible, Converter={StaticResource BoolToGridLengthConverter}}" 
+                                  MinWidth="0"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
@@ -109,7 +112,8 @@
                     x:Name="SidebarBorder"
                     BorderBrush="#CCCCCC"
                     BorderThickness="0,0,1,0"
-                    Background="White">
+                    Background="White"
+                    Visibility="{Binding ElementName=TreeViewControl, Path=DataContext.IsTreeViewVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                 <treeview:TreeViewView x:Name="TreeViewControl"/>
             </Border>
 
@@ -120,7 +124,8 @@
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
                           Background="Transparent"
-                          ShowsPreview="False"/>
+                          ShowsPreview="False"
+                          Visibility="{Binding ElementName=TreeViewControl, Path=DataContext.IsTreeViewVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
             <!-- Main content area -->
             <Grid Grid.Column="2">
