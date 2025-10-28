@@ -28,9 +28,103 @@ public class TreeViewService
         IProgress<int>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Implement in T010
-        await Task.CompletedTask;
-        throw new NotImplementedException("BuildTreeAsync will be implemented in T010");
+        return await Task.Run(() =>
+        {
+            var rootDir = new DirectoryInfo(rootPath);
+            if (!rootDir.Exists)
+            {
+                throw new DirectoryNotFoundException($"Root path does not exist: {rootPath}");
+            }
+
+            var root = new TreeNode
+            {
+                Name = rootDir.Name,
+                FullPath = rootDir.FullName,
+                Type = NodeType.Folder,
+                Parent = null,
+                IsExpanded = false
+            };
+
+            BuildTreeRecursive(root, rootDir, progress, cancellationToken);
+            return root;
+        }, cancellationToken);
+    }
+
+    /// <summary>
+    /// Recursively builds the tree structure for a directory.
+    /// </summary>
+    private void BuildTreeRecursive(TreeNode parentNode, DirectoryInfo dir, IProgress<int>? progress, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            // Get subdirectories that contain markdown files
+            var subdirs = dir.GetDirectories()
+                .Where(d => !IsHiddenOrSystem(d) && HasMarkdownFiles(d))
+                .OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // Get markdown files in current directory
+            var markdownFiles = dir.GetFiles("*.md")
+                .Concat(dir.GetFiles("*.markdown"))
+                .Where(f => !IsHiddenOrSystem(f))
+                .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // Add folders first (sorted alphabetically)
+            foreach (var subdir in subdirs)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var folderNode = new TreeNode
+                {
+                    Name = subdir.Name,
+                    FullPath = subdir.FullName,
+                    Type = NodeType.Folder,
+                    Parent = parentNode,
+                    IsExpanded = false
+                };
+
+                parentNode.Children.Add(folderNode);
+                BuildTreeRecursive(folderNode, subdir, progress, cancellationToken);
+            }
+
+            // Add files (sorted alphabetically)
+            foreach (var file in markdownFiles)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var fileNode = new TreeNode
+                {
+                    Name = file.Name,
+                    FullPath = file.FullName,
+                    Type = NodeType.File,
+                    Parent = parentNode,
+                    IsExpanded = false
+                };
+
+                parentNode.Children.Add(fileNode);
+                progress?.Report(1);
+            }
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Skip directories we don't have permission to access
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Skip directories that were deleted during scan
+        }
+    }
+
+    /// <summary>
+    /// Checks if a file or directory is hidden or system.
+    /// </summary>
+    private static bool IsHiddenOrSystem(FileSystemInfo info)
+    {
+        return (info.Attributes & FileAttributes.Hidden) != 0 ||
+               (info.Attributes & FileAttributes.System) != 0;
     }
 
     /// <summary>
@@ -41,9 +135,63 @@ public class TreeViewService
     /// <returns>Path to initial file, or null if no markdown files found.</returns>
     public async Task<string?> DetermineInitialFileAsync(string folderPath)
     {
-        // TODO: Implement in T014
-        await Task.CompletedTask;
-        throw new NotImplementedException("DetermineInitialFileAsync will be implemented in T014");
+        return await Task.Run(() =>
+        {
+            // TODO: Check HistoryService for last viewed file once we integrate with it
+            // For now, skip to README.md check
+
+            // Check for README.md in root folder
+            var readmePath = Path.Combine(folderPath, "README.md");
+            if (File.Exists(readmePath))
+            {
+                return readmePath;
+            }
+
+            // Get all markdown files recursively and return first alphabetically
+            var dir = new DirectoryInfo(folderPath);
+            if (!dir.Exists)
+            {
+                return null;
+            }
+
+            var markdownFiles = GetAllMarkdownFiles(dir)
+                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
+
+            return markdownFiles;
+        });
+    }
+
+    /// <summary>
+    /// Gets all markdown files recursively from a directory.
+    /// </summary>
+    private IEnumerable<string> GetAllMarkdownFiles(DirectoryInfo dir)
+    {
+        if (!dir.Exists)
+        {
+            yield break;
+        }
+
+        // Get markdown files in current directory
+        foreach (var file in dir.GetFiles("*.md").Concat(dir.GetFiles("*.markdown")))
+        {
+            if (!IsHiddenOrSystem(file))
+            {
+                yield return file.FullName;
+            }
+        }
+
+        // Recursively get files from subdirectories
+        foreach (var subdir in dir.GetDirectories())
+        {
+            if (!IsHiddenOrSystem(subdir))
+            {
+                foreach (var file in GetAllMarkdownFiles(subdir))
+                {
+                    yield return file;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -76,7 +224,35 @@ public class TreeViewService
     /// <returns>True if markdown files found.</returns>
     private bool HasMarkdownFiles(DirectoryInfo dirInfo)
     {
-        // TODO: Implement in T011
-        throw new NotImplementedException("HasMarkdownFiles will be implemented in T011");
+        try
+        {
+            // Check for markdown files directly in this directory
+            if (dirInfo.GetFiles("*.md").Any(f => !IsHiddenOrSystem(f)) ||
+                dirInfo.GetFiles("*.markdown").Any(f => !IsHiddenOrSystem(f)))
+            {
+                return true;
+            }
+
+            // Recursively check subdirectories
+            foreach (var subdir in dirInfo.GetDirectories().Where(d => !IsHiddenOrSystem(d)))
+            {
+                if (HasMarkdownFiles(subdir))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Can't access directory, assume no markdown files
+            return false;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Directory was deleted during scan
+            return false;
+        }
     }
 }

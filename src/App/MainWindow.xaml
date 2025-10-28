@@ -9,6 +9,7 @@
         xmlns:start="clr-namespace:MarkRead.App.UI.Start"
         xmlns:tabs="clr-namespace:MarkRead.App.UI.Tabs"
         xmlns:find="clr-namespace:MarkRead.App.UI.Find"
+        xmlns:treeview="clr-namespace:MarkRead.App.UI.Sidebar.TreeView"
         mc:Ignorable="d"
         Title="MarkRead" Height="720" Width="1080"
         Loaded="Window_Loaded">
@@ -97,20 +98,47 @@
 
         <!-- Content Area -->
         <Grid Grid.Row="2">
-            <!-- Single WebView2 for all tabs -->
-            <wv2:WebView2 x:Name="MarkdownView"
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="SidebarColumn" Width="250" MinWidth="150"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar with TreeView -->
+            <Border Grid.Column="0"
+                    x:Name="SidebarBorder"
+                    BorderBrush="#CCCCCC"
+                    BorderThickness="0,0,1,0"
+                    Background="White">
+                <treeview:TreeViewView x:Name="TreeViewControl"/>
+            </Border>
+
+            <!-- GridSplitter for resizing -->
+            <GridSplitter Grid.Column="1"
+                          x:Name="SidebarSplitter"
+                          Width="5"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
-                          Margin="0"
-                          DefaultBackgroundColor="Transparent"
-                          Visibility="Collapsed" />
+                          Background="Transparent"
+                          ShowsPreview="False"/>
 
-            <!-- Start Overlay -->
-            <Border x:Name="StartOverlay"
-                    Background="#F0F3F8"
-                    Visibility="Visible">
-                <start:StartView />
-            </Border>
+            <!-- Main content area -->
+            <Grid Grid.Column="2">
+                <!-- Single WebView2 for all tabs -->
+                <wv2:WebView2 x:Name="MarkdownView"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Margin="0"
+                              DefaultBackgroundColor="Transparent"
+                              Visibility="Collapsed" />
+
+                <!-- Start Overlay -->
+                <Border x:Name="StartOverlay"
+                        Background="#F0F3F8"
+                        Visibility="Visible">
+                    <start:StartView />
+                </Border>
+            </Grid>
         </Grid>
 
         <!-- Find Bar -->

@@ -50,17 +50,17 @@ description: "Task list for Folder Structure Treeview implementation"
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement BuildTreeAsync method in src/Services/TreeViewService.cs with recursive directory scanning for markdown files (\*.md, \*.markdown)
-- [ ] T011 [US1] Implement HasMarkdownFiles recursive helper method in src/Services/TreeViewService.cs to detect folders containing markdown (directly or in descendants)
-- [ ] T012 [US1] Implement empty folder filtering logic in BuildTreeAsync using bottom-up traversal (exclude folders without markdown files per FR-012)
-- [ ] T013 [US1] Implement sorting logic in BuildTreeAsync: folders before files, alphabetical case-insensitive (per FR-017)
-- [ ] T014 [US1] Implement DetermineInitialFileAsync method in src/Services/TreeViewService.cs to select initial file (cascade: HistoryService last viewed → README.md → first alphabetical per FR-018, FR-019)
-- [ ] T015 [US1] Create TreeViewViewModel class in src/UI/Sidebar/TreeView/TreeViewViewModel.cs with TreeRoot property, LoadTreeAsync method, and INotifyPropertyChanged
-- [ ] T016 [US1] Create TreeViewView.xaml in src/UI/Sidebar/TreeView/ with HierarchicalDataTemplate binding to TreeRoot.Children
-- [ ] T017 [US1] Create TreeViewView.xaml.cs in src/UI/Sidebar/TreeView/ with code-behind for event handlers
-- [ ] T018 [US1] Implement async LoadTreeAsync in TreeViewViewModel with progress indicator support
-- [ ] T019 [US1] Add TreeViewView to MainWindow.xaml sidebar area with proper Grid layout (collapsible panel)
-- [ ] T020 [US1] Wire up initial file selection in MainWindow.xaml.cs to call DetermineInitialFileAsync and display markdown content immediately
+- [X] T010 [US1] Implement BuildTreeAsync method in src/Services/TreeViewService.cs with recursive directory scanning for markdown files (\*.md, \*.markdown)
+- [X] T011 [US1] Implement HasMarkdownFiles recursive helper method in src/Services/TreeViewService.cs to detect folders containing markdown (directly or in descendants)
+- [X] T012 [US1] Implement empty folder filtering logic in BuildTreeAsync using bottom-up traversal (exclude folders without markdown files per FR-012)
+- [X] T013 [US1] Implement sorting logic in BuildTreeAsync: folders before files, alphabetical case-insensitive (per FR-017)
+- [X] T014 [US1] Implement DetermineInitialFileAsync method in src/Services/TreeViewService.cs to select initial file (cascade: HistoryService last viewed → README.md → first alphabetical per FR-018, FR-019)
+- [X] T015 [US1] Create TreeViewViewModel class in src/UI/Sidebar/TreeView/TreeViewViewModel.cs with TreeRoot property, LoadTreeAsync method, and INotifyPropertyChanged
+- [X] T016 [US1] Create TreeViewView.xaml in src/UI/Sidebar/TreeView/ with HierarchicalDataTemplate binding to TreeRoot.Children
+- [X] T017 [US1] Create TreeViewView.xaml.cs in src/UI/Sidebar/TreeView/ with code-behind for event handlers
+- [X] T018 [US1] Implement async LoadTreeAsync in TreeViewViewModel with progress indicator support
+- [X] T019 [US1] Add TreeViewView to MainWindow.xaml sidebar area with proper Grid layout (collapsible panel)
+- [X] T020 [US1] Wire up initial file selection in MainWindow.xaml.cs to call DetermineInitialFileAsync and display markdown content immediately
 - [ ] T021 [US1] Add unit tests in tests/unit/TreeViewServiceTests.cs for BuildTreeAsync (empty folder filtering, sorting, tree structure)
 - [ ] T022 [P] [US1] Add unit tests in tests/unit/TreeViewServiceTests.cs for DetermineInitialFileAsync (last viewed, README.md, first alphabetical)
 - [ ] T023 [P] [US1] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify initial markdown display < 1s (SC-001)

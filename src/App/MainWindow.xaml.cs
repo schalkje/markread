@@ -56,6 +56,11 @@ public partial class MainWindow : Window
         _openFolderCommand = new OpenFolderCommand(_folderService);
         _webViewHost = new WebViewHost(MarkdownView, Path.Combine("Rendering", "assets"));
 
+        // Initialize TreeView ViewModel
+        var treeViewViewModel = new UI.Sidebar.TreeView.TreeViewViewModel(_treeViewService);
+        treeViewViewModel.NavigateToFileRequested += OnTreeViewFileNavigationRequested;
+        TreeViewControl.DataContext = treeViewViewModel;
+
         this.TabControl.ItemsSource = _tabs;
 
         // Wire up FindBar events
@@ -297,6 +302,12 @@ public partial class MainWindow : Window
         _renderer.SetRootPath(result.Root.Path);
         Title = $"MarkRead - {result.Root.DisplayName}";
 
+        // Load TreeView in background
+        if (TreeViewControl.DataContext is UI.Sidebar.TreeView.TreeViewViewModel treeViewModel)
+        {
+            _ = treeViewModel.LoadTreeAsync(result.Root.Path);
+        }
+
         // Create initial tab if no tabs exist
         System.Diagnostics.Debug.WriteLine($"LoadRootAsync: _tabs.Count = {_tabs.Count}");
         if (_tabs.Count == 0)
@@ -342,6 +353,20 @@ public partial class MainWindow : Window
         System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab selected, TabControl.SelectedItem={this.TabControl.SelectedItem}");
         System.Diagnostics.Debug.WriteLine("AddTabAsync: Completed");
         return Task.CompletedTask;
+    }
+
+    private async void OnTreeViewFileNavigationRequested(object? sender, UI.Sidebar.TreeView.FileNavigationEventArgs e)
+    {
+        if (_currentRoot == null) return;
+
+        var document = _folderService.TryResolveDocument(_currentRoot, e.FilePath) 
+            ?? new DocumentInfo(e.FilePath, Path.GetFileName(e.FilePath), 0, DateTime.UtcNow);
+
+        var currentTab = GetCurrentTab();
+        if (currentTab != null)
+        {
+            await LoadDocumentInTabAsync(currentTab, document);
+        }
     }
 
     private async Task LoadDocumentInTabAsync(TabItemModel tab, DocumentInfo document, string? anchor = null, bool pushHistory = true)
