@@ -48,15 +48,15 @@ public partial class ThemeSettingsView : Window
         // Apply theme immediately for preview
         if (!IsLoaded) return;
 
-        ThemeManager.AppTheme theme;
+        LegacyThemeManager.AppTheme theme;
         if (DarkThemeRadio.IsChecked == true)
-            theme = ThemeManager.AppTheme.Dark;
+            theme = LegacyThemeManager.AppTheme.Dark;
         else if (LightThemeRadio.IsChecked == true)
-            theme = ThemeManager.AppTheme.Light;
+            theme = LegacyThemeManager.AppTheme.Light;
         else
-            theme = ThemeManager.AppTheme.System;
+            theme = LegacyThemeManager.AppTheme.System;
 
-        ThemeManager.ApplyTheme(theme);
+        LegacyThemeManager.ApplyTheme(theme);
     }
 
     private async void OkButton_Click(object sender, RoutedEventArgs e)
@@ -99,11 +99,11 @@ public partial class ThemeSettingsView : Window
         // Restore original theme
         var originalTheme = _currentSettings.Theme.ToLowerInvariant() switch
         {
-            "dark" => ThemeManager.AppTheme.Dark,
-            "light" => ThemeManager.AppTheme.Light,
-            _ => ThemeManager.AppTheme.System
+            "dark" => LegacyThemeManager.AppTheme.Dark,
+            "light" => LegacyThemeManager.AppTheme.Light,
+            _ => LegacyThemeManager.AppTheme.System
         };
-        ThemeManager.ApplyTheme(originalTheme);
+        LegacyThemeManager.ApplyTheme(originalTheme);
 
         DialogResult = false;
         Close();

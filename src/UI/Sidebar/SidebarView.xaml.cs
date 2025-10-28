@@ -6,7 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace MarkRead.UI.Sidebar;
+namespace MarkRead.App.UI.Sidebar;
 
 /// <summary>
 /// File tree sidebar showing folder structure with Markdown files and directories.

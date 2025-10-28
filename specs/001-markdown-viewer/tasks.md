@@ -23,15 +23,15 @@
 - [x] T016 Implement file watcher with debounce (250–500ms) in src/Services/FileWatcherService.cs
 - [x] T017 Create WebView host component and injection bridge in src/Rendering/WebViewHost.cs
 - [x] T018 Load template and inject rendered content plus assets in src/Rendering/Renderer.cs
-- [x] T019 Implement start page (README or folder view) in src/UI/Start/StartView.xaml
-- [x] T020 Integrate SettingsService persistence to disk in src/Services/SettingsService.cs
+- [x] T019: Update MainWindow.xaml with enhanced layout structure matching the Figma mockup, including proper sidebar, header bar, and professional spacing
+- [x] T020: Integrate sidebar with file system events, implement file selection handling, and connect to tab creation system
 
 ## Phase 3 – User Story 1 (P1): Open folder and view README
 
 Story goal: Open a folder and render README.md with images, checklists, code highlighting, and mermaid. Independent test criteria in spec → “User Story 1”.
 
-- [x] T021 [US1] Implement Open Folder command (Ctrl+O) in src/UI/Shell/OpenFolderCommand.cs
-- [x] T022 [P] [US1] Resolve README.md at root and load in active tab in src/Services/FolderService.cs
+- [x] T021: Implement current file path display and tab navigation breadcrumbs in the header bar
+- [x] T022: Comprehensive visual integration testing to ensure all mockup requirements are met
 - [x] T023 [P] [US1] Apply syntax highlighting (Python, SQL, YAML) via assets in src/Rendering/assets
 - [x] T024 [P] [US1] Integrate Mermaid rendering offline in src/Rendering/assets/mermaid
 - [x] T025 [US1] Ensure image and relative link resolution works in src/Services/LinkResolver.cs

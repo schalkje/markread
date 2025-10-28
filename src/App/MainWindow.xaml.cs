@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 
 using MarkRead.App.Rendering;
@@ -14,6 +15,7 @@ using MarkRead.App.Services;
 using MarkRead.App.UI.Shell;
 using MarkRead.App.UI.Start;
 using MarkRead.Cli;
+using MarkRead.Services;
 
 using AppNavigationCommands = MarkRead.App.UI.Shell.NavigationCommands;
 using TabItemModel = MarkRead.App.UI.Tabs.TabItem;
@@ -36,6 +38,7 @@ public partial class MainWindow : Window
     private readonly Renderer _renderer;
     private readonly LinkResolver _linkResolver;
     private readonly OpenFolderCommand _openFolderCommand;
+    private readonly ThemeManager _themeManager;
 
     private FolderRoot? _currentRoot;
     private IDisposable? _documentWatcher;
@@ -52,6 +55,7 @@ public partial class MainWindow : Window
         _renderer = new Renderer(_markdownService, _sanitizer);
         _linkResolver = new LinkResolver(_folderService);
         _openFolderCommand = new OpenFolderCommand(_folderService);
+        _themeManager = new ThemeManager(_settingsService);
         _webViewHost = new WebViewHost(MarkdownView, Path.Combine("Rendering", "assets"));
 
         this.TabControl.ItemsSource = _tabs;
@@ -61,6 +65,9 @@ public partial class MainWindow : Window
         FindBar.NextRequested += OnFindNextRequested;
         FindBar.PreviousRequested += OnFindPreviousRequested;
         FindBar.CloseRequested += OnFindCloseRequested;
+
+        // Wire up Sidebar events
+        SidebarContent.FileSelected += OnSidebarFileSelected;
 
         CommandBindings.Add(new CommandBinding(App.OpenFolderCommand, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
         CommandBindings.Add(new CommandBinding(App.OpenFileCommand, async (_, _) => await ExecuteOpenFileAsync(), CanExecuteWhenInteractive));
@@ -86,11 +93,11 @@ public partial class MainWindow : Window
         // Apply saved theme
         var theme = _currentSettings.Theme.ToLowerInvariant() switch
         {
-            "dark" => ThemeManager.AppTheme.Dark,
-            "light" => ThemeManager.AppTheme.Light,
-            _ => ThemeManager.AppTheme.System
+            "dark" => LegacyThemeManager.AppTheme.Dark,
+            "light" => LegacyThemeManager.AppTheme.Light,
+            _ => LegacyThemeManager.AppTheme.System
         };
-        ThemeManager.ApplyTheme(theme);
+        LegacyThemeManager.ApplyTheme(theme);
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -295,6 +302,9 @@ public partial class MainWindow : Window
         _renderer.SetRootPath(result.Root.Path);
         Title = $"MarkRead - {result.Root.DisplayName}";
 
+        // Initialize sidebar with folder root
+        SidebarContent.SetRootFolder(result.Root.Path);
+
         // Create initial tab if no tabs exist
         System.Diagnostics.Debug.WriteLine($"LoadRootAsync: _tabs.Count = {_tabs.Count}");
         if (_tabs.Count == 0)
@@ -308,9 +318,9 @@ public partial class MainWindow : Window
         // Show tabs and load document
         System.Diagnostics.Debug.WriteLine("LoadRootAsync: Hiding overlay and showing TabControl");
         ShowStartOverlay(false);
-        this.TabControl.Visibility = Visibility.Visible;
+        TabBarContainer.Visibility = Visibility.Visible;
         MarkdownView.Visibility = Visibility.Visible;
-        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: TabControl.Visibility = {this.TabControl.Visibility}");
+        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: TabControl.Visibility = {TabBarContainer.Visibility}");
 
         if (result.DefaultDocument is DocumentInfo doc)
         {
@@ -360,6 +370,9 @@ public partial class MainWindow : Window
         tab.DocumentPath = document.FullPath;
         tab.Title = Path.GetFileNameWithoutExtension(document.FullPath);
 
+        // Update current file path display
+        UpdateFilePathDisplay(document.FullPath);
+
         // Push to history before loading
         if (pushHistory)
         {
@@ -397,7 +410,7 @@ public partial class MainWindow : Window
             document.FullPath,
             document.RelativePath,
             anchor,
-            ThemeManager.Current.ToString().ToLowerInvariant());
+            LegacyThemeManager.Current.ToString().ToLowerInvariant());
 
         var renderResult = await _renderer.RenderAsync(request);
 
@@ -674,6 +687,13 @@ public partial class MainWindow : Window
         {
             var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
             _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+            
+            // Update file path display
+            UpdateFilePathDisplay(tab.DocumentPath);
+        }
+        else
+        {
+            UpdateFilePathDisplay(null);
         }
         CommandManager.InvalidateRequerySuggested();
     }
@@ -738,5 +758,129 @@ public partial class MainWindow : Window
     private void Exit_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    // New UI event handlers
+    private void SidebarToggle_Click(object sender, RoutedEventArgs e)
+    {
+        var toggle = sender as ToggleButton;
+        if (toggle is not null && SidebarPanel is not null && SidebarColumn is not null)
+        {
+            if (toggle.IsChecked == true)
+            {
+                SidebarPanel.Visibility = Visibility.Visible;
+                SidebarColumn.Width = new GridLength(300);
+            }
+            else
+            {
+                SidebarPanel.Visibility = Visibility.Collapsed;
+                SidebarColumn.Width = new GridLength(0);
+            }
+        }
+    }
+
+    private void ThemeToggle_Click(object sender, RoutedEventArgs e)
+    {
+        // Toggle between light and dark themes
+        var currentTheme = LegacyThemeManager.Current;
+        
+        var newTheme = currentTheme == LegacyThemeManager.AppTheme.Light 
+            ? LegacyThemeManager.AppTheme.Dark 
+            : LegacyThemeManager.AppTheme.Light;
+            
+        LegacyThemeManager.ApplyTheme(newTheme);
+        
+        // Update the theme toggle icon
+        var button = sender as System.Windows.Controls.Button;
+        if (button is not null)
+        {
+            button.Content = newTheme == LegacyThemeManager.AppTheme.Dark ? "☀" : "🌙";
+        }
+    }
+
+    private void ExportButton_Click(object sender, RoutedEventArgs e)
+    {
+        var button = sender as System.Windows.Controls.Button;
+        if (button?.ContextMenu is not null)
+        {
+            button.ContextMenu.PlacementTarget = button;
+            button.ContextMenu.Placement = PlacementMode.Bottom;
+            button.ContextMenu.IsOpen = true;
+        }
+    }
+
+    private void Minimize_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void Maximize_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized 
+            ? WindowState.Normal 
+            : WindowState.Maximized;
+    }
+
+    private void Close_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
+    // UI Helper methods
+    private void UpdateFilePathDisplay(string? filePath)
+    {
+        if (CurrentFilePathText is not null)
+        {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                CurrentFilePathText.Text = "No file selected";
+            }
+            else if (_currentRoot is not null)
+            {
+                // Show relative path from root
+                var relativePath = Path.GetRelativePath(_currentRoot.Path, filePath);
+                CurrentFilePathText.Text = relativePath;
+            }
+            else
+            {
+                CurrentFilePathText.Text = Path.GetFileName(filePath);
+            }
+        }
+    }
+
+    // Sidebar integration
+    private void OnSidebarFileSelected(object? sender, string filePath)
+    {
+        if (_currentRoot is null || string.IsNullOrEmpty(filePath))
+        {
+            return;
+        }
+
+        // Resolve the document from the file path
+        var document = _folderService.TryResolveDocument(_currentRoot, filePath);
+        if (document is DocumentInfo doc)
+        {
+            // Check if the file is already open in a tab
+            var existingTab = _tabs.FirstOrDefault(t => t.DocumentPath == filePath);
+            if (existingTab is not null)
+            {
+                // Just switch to the existing tab
+                this.TabControl.SelectedItem = existingTab;
+                return;
+            }
+
+            // Create a new tab for the file
+            var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
+            var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+            
+            _ = Task.Run(async () =>
+            {
+                await Dispatcher.InvokeAsync(async () =>
+                {
+                    await AddTabAsync(newTab);
+                    await LoadDocumentInTabAsync(newTab, doc);
+                });
+            });
+        }
     }
 }

@@ -26,11 +26,11 @@ Based on WPF desktop application structure from plan.md:
 
 **Purpose**: Project structure and theme system foundation
 
-- [ ] T001 Create theme resource directories in src/Rendering/assets/styles/ and src/Rendering/assets/scripts/
-- [ ] T002 [P] Create theme enum and basic data models in src/Services/ThemeConfiguration.cs
-- [ ] T003 [P] Create UI state data models in src/Services/UIState.cs
-- [ ] T004 [P] Create animation settings model in src/Services/AnimationSettings.cs
-- [ ] T005 Setup JSON settings persistence infrastructure in src/Services/SettingsService.cs
+- [x] T001 Create theme resource directories in src/Rendering/assets/styles/ and src/Rendering/assets/scripts/
+- [x] T002 [P] Create theme enum and basic data models in src/Services/ThemeConfiguration.cs
+- [x] T003 [P] Create UI state data models in src/Services/UIState.cs
+- [x] T004 [P] Create animation settings model in src/Services/AnimationSettings.cs
+- [x] T005 Setup JSON settings persistence infrastructure in src/Services/SettingsService.cs
 
 ---
 
@@ -40,14 +40,14 @@ Based on WPF desktop application structure from plan.md:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Implement IThemeService interface and base ThemeManager class in src/App/ThemeManager.cs
-- [ ] T007 [P] Implement IUIStateService interface in src/Services/UIStateService.cs  
-- [ ] T008 [P] Implement IAnimationService interface in src/Services/AnimationService.cs
-- [ ] T009 Create base CSS custom properties system in src/Rendering/assets/styles/theme-variables.css
-- [ ] T010 Implement JavaScript theme bridge for WebView2 in src/Rendering/assets/scripts/theme-bridge.js
-- [ ] T011 Create WPF ResourceDictionary theme templates in src/App/Themes/LightTheme.xaml and DarkTheme.xaml
-- [ ] T012 Update main App.xaml with theme resource dictionary integration
-- [ ] T013 Add theme change event handling infrastructure in src/App/ThemeManager.cs
+- [x] T006 Implement IThemeService interface and base ThemeManager class in src/App/ThemeManager.cs
+- [x] T007 [P] Implement IUIStateService interface in src/Services/UIStateService.cs  
+- [x] T008 [P] Implement IAnimationService interface in src/Services/AnimationService.cs
+- [x] T009 Create base CSS custom properties system in src/Rendering/assets/styles/theme-variables.css
+- [x] T010 Implement JavaScript theme bridge for WebView2 in src/Rendering/assets/scripts/theme-bridge.js
+- [x] T011 Create WPF ResourceDictionary theme templates in src/App/Themes/LightTheme.xaml and DarkTheme.xaml
+- [x] T012 Update main App.xaml with theme resource dictionary integration
+- [x] T013 Add theme change event handling infrastructure in src/App/ThemeManager.cs
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -61,19 +61,19 @@ Based on WPF desktop application structure from plan.md:
 
 ### Tests for User Story 1
 
-- [ ] T014 [P] [US1] Create visual mockup comparison test in tests/integration/VisualDesignTests.cs
-- [ ] T015 [P] [US1] Create responsive layout test in tests/integration/ResponsiveLayoutTests.cs
+- [x] T014 [P] [US1] Create visual mockup comparison test in tests/integration/VisualDesignTests.cs
+- [x] T015 [P] [US1] Create responsive layout test in tests/integration/ResponsiveLayoutTests.cs
 
 ### Implementation for User Story 1
 
-- [ ] T016 [P] [US1] Create light theme color scheme definition in src/App/Themes/LightTheme.xaml
-- [ ] T017 [P] [US1] Create dark theme color scheme definition in src/App/Themes/DarkTheme.xaml
-- [ ] T018 [P] [US1] Implement base CSS styling for markdown content in src/Rendering/assets/styles/markdown-base.css
+- [x] T016 [P] [US1] Create light theme color scheme definition in src/App/Themes/LightTheme.xaml
+- [x] T017 [P] [US1] Create dark theme color scheme definition in src/App/Themes/DarkTheme.xaml
+- [x] T018 [P] [US1] Implement base CSS styling for markdown content in src/Rendering/assets/styles/markdown-base.css
 - [ ] T019 [US1] Update MainWindow.xaml with enhanced layout structure and mockup-accurate spacing
 - [ ] T020 [US1] Apply typography and color styling to all WPF controls in MainWindow.xaml.cs
 - [ ] T021 [US1] Implement WebView2 content styling integration in src/Rendering/WebViewHost.cs
 - [ ] T022 [US1] Add window chrome and border styling to match mockup design
-- [ ] T023 [US1] Implement responsive design basics with CSS media queries in src/Rendering/assets/styles/responsive.css
+- [x] T023 [US1] Implement responsive design basics with CSS media queries in src/Rendering/assets/styles/responsive.css
 
 **Checkpoint**: At this point, the application should visually match the mockup design and be independently testable
 

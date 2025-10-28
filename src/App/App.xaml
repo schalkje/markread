@@ -4,6 +4,38 @@
              xmlns:local="clr-namespace:MarkRead.App"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Theme Resource Dictionaries -->
+                <ResourceDictionary Source="Themes/LightTheme.xaml"/>
+                <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Global Application Resources -->
+            <Style x:Key="DefaultWindow" TargetType="{x:Type Window}" BasedOn="{StaticResource LightThemeWindow}"/>
+            <Style x:Key="DefaultButton" TargetType="{x:Type Button}" BasedOn="{StaticResource LightThemeButton}"/>
+            <Style x:Key="DefaultTextBox" TargetType="{x:Type TextBox}" BasedOn="{StaticResource LightThemeTextBox}"/>
+            <Style x:Key="DefaultListBox" TargetType="{x:Type ListBox}" BasedOn="{StaticResource LightThemeListBox}"/>
+            <Style x:Key="DefaultListBoxItem" TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource LightThemeListBoxItem}"/>
+            <Style x:Key="DefaultTreeView" TargetType="{x:Type TreeView}" BasedOn="{StaticResource LightThemeTreeView}"/>
+            <Style x:Key="DefaultTreeViewItem" TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource LightThemeTreeViewItem}"/>
+            <Style x:Key="DefaultTabControl" TargetType="{x:Type TabControl}" BasedOn="{StaticResource LightThemeTabControl}"/>
+            <Style x:Key="DefaultTabItem" TargetType="{x:Type TabItem}" BasedOn="{StaticResource LightThemeTabItem}"/>
+            <Style x:Key="DefaultMenu" TargetType="{x:Type Menu}" BasedOn="{StaticResource LightThemeMenu}"/>
+            <Style x:Key="DefaultMenuItem" TargetType="{x:Type MenuItem}" BasedOn="{StaticResource LightThemeMenuItem}"/>
+            
+            <!-- Application-wide default styles -->
+            <Style TargetType="{x:Type Window}" BasedOn="{StaticResource DefaultWindow}"/>
+            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource DefaultButton}"/>
+            <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource DefaultTextBox}"/>
+            <Style TargetType="{x:Type ListBox}" BasedOn="{StaticResource DefaultListBox}"/>
+            <Style TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource DefaultListBoxItem}"/>
+            <Style TargetType="{x:Type TreeView}" BasedOn="{StaticResource DefaultTreeView}"/>
+            <Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource DefaultTreeViewItem}"/>
+            <Style TargetType="{x:Type TabControl}" BasedOn="{StaticResource DefaultTabControl}"/>
+            <Style TargetType="{x:Type TabItem}" BasedOn="{StaticResource DefaultTabItem}"/>
+            <Style TargetType="{x:Type Menu}" BasedOn="{StaticResource DefaultMenu}"/>
+            <Style TargetType="{x:Type MenuItem}" BasedOn="{StaticResource DefaultMenuItem}"/>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
