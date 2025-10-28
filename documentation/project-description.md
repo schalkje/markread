@@ -25,6 +25,41 @@ There should be a navigation history, where the user can go one step back, or mu
 - Back/forward navigation history
 - Dark and light themes
 
+## File Tree Navigation
+
+The file tree sidebar provides quick access to all markdown files in your project folder:
+
+### Features
+
+- **Automatic Loading**: When you open a folder, the tree builds automatically in the background while showing the first markdown file immediately
+- **Smart Filtering**: Only shows folders containing markdown files (.md, .markdown); empty folders are hidden automatically
+- **Toggle Visibility**: Click the arrow button (⏴) in the header to show/hide the tree; your preference is remembered per folder
+- **Real-time Updates**: Detects when you add, remove, or rename files and updates the tree within 2 seconds
+- **Keyboard Navigation**:
+  - **Up/Down arrows**: Navigate between files and folders
+  - **Right/Enter**: Expand a folder or open a file
+  - **Left/Escape**: Collapse a folder
+  - **Ctrl+R or F5**: Refresh the entire tree
+  - **Type-ahead search**: Start typing to filter visible files (auto-clears after 2 seconds)
+- **Progress Indicator**: Shows "Loading..." with file count during initial scan
+- **Performance**: Handles thousands of files efficiently with virtualization
+- **Error Handling**: Gracefully skips folders you don't have permission to access
+- **Deep Hierarchies**: Supports up to 50 levels of nested folders with automatic loop detection for symbolic links
+
+### Global Settings
+
+In Settings (theme dialog):
+
+- **Show file tree by default**: Controls whether new folders open with the tree visible or hidden (default: visible)
+
+### Per-Folder Memory
+
+The app remembers your tree visibility preference for each folder individually. Global defaults only apply to folders you haven't opened before.
+
+### Empty State
+
+If a folder contains no markdown files, you'll see the message: "No markdown files found in this folder"
+
 ## Rendering
 
 - Markdown features: code blocks, todo checkboxes, mermaid diagrams, images

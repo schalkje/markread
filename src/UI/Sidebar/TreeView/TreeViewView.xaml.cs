@@ -34,7 +34,7 @@ public partial class TreeViewView : System.Windows.Controls.UserControl
     /// Right/Enter: Expand or Select
     /// Left/Escape: Collapse
     /// </summary>
-    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (DataContext is not TreeViewViewModel viewModel) return;
 
@@ -67,7 +67,7 @@ public partial class TreeViewView : System.Windows.Controls.UserControl
     /// <summary>
     /// T070: Capture alphanumeric input for type-ahead search.
     /// </summary>
-    private void OnPreviewTextInput(object sender, TextCompositionEventArgs e)
+    private void OnPreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
     {
         if (DataContext is not TreeViewViewModel viewModel) return;
         if (string.IsNullOrEmpty(e.Text)) return;

@@ -23,6 +23,9 @@ public class TreeViewService
     /// <param name="progress">Optional progress reporter.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Root TreeNode.</returns>
+    /// <exception cref="DirectoryNotFoundException">The folder does not exist.</exception>
+    /// <exception cref="UnauthorizedAccessException">Permission denied to access the folder.</exception>
+    /// <exception cref="IOException">An I/O error occurred while scanning.</exception>
     public async Task<TreeNode> BuildTreeAsync(
         string rootPath,
         IProgress<int>? progress = null,
@@ -30,38 +33,76 @@ public class TreeViewService
     {
         return await Task.Run(() =>
         {
-            var rootDir = new DirectoryInfo(rootPath);
-            if (!rootDir.Exists)
+            try
             {
-                throw new DirectoryNotFoundException($"Root path does not exist: {rootPath}");
+                var rootDir = new DirectoryInfo(rootPath);
+                if (!rootDir.Exists)
+                {
+                    throw new DirectoryNotFoundException($"The folder '{rootPath}' does not exist or cannot be found.");
+                }
+
+                // T083: Check if we have permission to access the root directory
+                try
+                {
+                    _ = rootDir.GetFileSystemInfos();
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    throw new UnauthorizedAccessException($"Permission denied: You do not have access to the folder '{rootPath}'. Please check your permissions and try again.");
+                }
+
+                var root = new TreeNode
+                {
+                    Name = rootDir.Name,
+                    FullPath = rootDir.FullName,
+                    Type = NodeType.Folder,
+                    Parent = null,
+                    IsExpanded = false
+                };
+
+                // T084: Track visited paths for symbolic link loop detection
+                var visitedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                BuildTreeRecursive(root, rootDir, progress, cancellationToken, visitedPaths, depth: 0);
+                return root;
             }
-
-            var root = new TreeNode
+            catch (PathTooLongException ex)
             {
-                Name = rootDir.Name,
-                FullPath = rootDir.FullName,
-                Type = NodeType.Folder,
-                Parent = null,
-                IsExpanded = false
-            };
-
-            BuildTreeRecursive(root, rootDir, progress, cancellationToken);
-            return root;
+                throw new IOException($"The folder path is too long: '{rootPath}'. Windows has a limit on path lengths.", ex);
+            }
+            catch (IOException ex)
+            {
+                throw new IOException($"An error occurred while scanning the folder '{rootPath}': {ex.Message}", ex);
+            }
         }, cancellationToken);
     }
 
     /// <summary>
     /// Recursively builds the tree structure for a directory.
+    /// T084: Detects symbolic link loops and enforces max depth limit of 50 levels.
     /// </summary>
-    private void BuildTreeRecursive(TreeNode parentNode, DirectoryInfo dir, IProgress<int>? progress, CancellationToken cancellationToken)
+    private void BuildTreeRecursive(TreeNode parentNode, DirectoryInfo dir, IProgress<int>? progress, CancellationToken cancellationToken, HashSet<string> visitedPaths, int depth)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        // T084: Enforce maximum depth limit to prevent infinite loops
+        const int MaxDepth = 50;
+        if (depth >= MaxDepth)
+        {
+            return; // Stop recursion at max depth
+        }
+
+        // T084: Detect symbolic link loops by tracking visited paths
+        var normalizedPath = Path.GetFullPath(dir.FullName).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (!visitedPaths.Add(normalizedPath))
+        {
+            return; // Already visited this path, skip to prevent loop
+        }
 
         try
         {
             // Get subdirectories that contain markdown files
             var subdirs = dir.GetDirectories()
-                .Where(d => !IsHiddenOrSystem(d) && HasMarkdownFiles(d))
+                .Where(d => !IsHiddenOrSystem(d) && HasMarkdownFiles(d, visitedPaths, depth + 1))
                 .OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
@@ -87,7 +128,7 @@ public class TreeViewService
                 };
 
                 parentNode.Children.Add(folderNode);
-                BuildTreeRecursive(folderNode, subdir, progress, cancellationToken);
+                BuildTreeRecursive(folderNode, subdir, progress, cancellationToken, visitedPaths, depth + 1);
             }
 
             // Add files (sorted alphabetically)
@@ -110,11 +151,23 @@ public class TreeViewService
         }
         catch (UnauthorizedAccessException)
         {
-            // Skip directories we don't have permission to access
+            // T083: Silently skip directories we don't have permission to access
+            // This is expected behavior for system folders, user profile areas, etc.
         }
         catch (DirectoryNotFoundException)
         {
-            // Skip directories that were deleted during scan
+            // T083: Skip directories that were deleted during scan
+            // This can happen if folders are being deleted while we're scanning
+        }
+        catch (PathTooLongException)
+        {
+            // T083: Skip paths that exceed Windows path length limits
+            // This can happen in very deep folder hierarchies
+        }
+        catch (IOException)
+        {
+            // T083: Skip directories with I/O errors (network issues, disk errors, etc.)
+            // Continue scanning other folders
         }
     }
 
@@ -239,11 +292,29 @@ public class TreeViewService
 
     /// <summary>
     /// Recursively checks if a directory contains markdown files (directly or in descendants).
+    /// T083: Gracefully handles permission and I/O errors.
+    /// T084: Includes loop detection and depth limiting.
     /// </summary>
     /// <param name="dirInfo">Directory to check.</param>
+    /// <param name="visitedPaths">Set of already visited paths (for loop detection).</param>
+    /// <param name="depth">Current recursion depth.</param>
     /// <returns>True if markdown files found.</returns>
-    private bool HasMarkdownFiles(DirectoryInfo dirInfo)
+    private bool HasMarkdownFiles(DirectoryInfo dirInfo, HashSet<string> visitedPaths, int depth)
     {
+        // T084: Enforce maximum depth limit
+        const int MaxDepth = 50;
+        if (depth >= MaxDepth)
+        {
+            return false;
+        }
+
+        // T084: Check for loops
+        var normalizedPath = Path.GetFullPath(dirInfo.FullName).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (visitedPaths.Contains(normalizedPath))
+        {
+            return false; // Loop detected
+        }
+
         try
         {
             // Check for markdown files directly in this directory
@@ -256,7 +327,7 @@ public class TreeViewService
             // Recursively check subdirectories
             foreach (var subdir in dirInfo.GetDirectories().Where(d => !IsHiddenOrSystem(d)))
             {
-                if (HasMarkdownFiles(subdir))
+                if (HasMarkdownFiles(subdir, visitedPaths, depth + 1))
                 {
                     return true;
                 }
@@ -266,12 +337,22 @@ public class TreeViewService
         }
         catch (UnauthorizedAccessException)
         {
-            // Can't access directory, assume no markdown files
+            // T083: Can't access directory, assume no markdown files
             return false;
         }
         catch (DirectoryNotFoundException)
         {
-            // Directory was deleted during scan
+            // T083: Directory was deleted during scan
+            return false;
+        }
+        catch (PathTooLongException)
+        {
+            // T083: Path too long, assume no markdown files
+            return false;
+        }
+        catch (IOException)
+        {
+            // T083: I/O error, assume no markdown files
             return false;
         }
     }
