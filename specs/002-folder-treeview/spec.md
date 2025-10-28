@@ -10,6 +10,11 @@
 ### Session 2025-10-28
 
 - Q: When there are no markdown files in a folder, should the folder be shown in the treeview? → A: Do not show the folder
+- Q: When markdown files are added, removed, or renamed while a folder is open, how should the treeview respond? → A: Detect changes in real-time and automatically update the treeview, plus provide a manual refresh button. Must have minimal performance impact on application and PC
+- Q: Should the treeview remember which folders were expanded or collapsed when a user returns to a previously opened folder? → A: Always start collapsed
+- Q: How should files and folders be sorted within the treeview? → A: Alphabetical by name (case-insensitive), folders before files
+- Q: When a user opens a folder that contains markdown files, which file should be initially displayed? → A: Last viewed file from previous session (if folder was opened before), otherwise README.md if it exists, otherwise first file alphabetically
+- Q: Should the treeview support keyboard navigation for accessibility and power users? → A: Full navigation including arrow keys, Enter, type-ahead search, and keyboard shortcuts
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -80,11 +85,30 @@ Users want to set a global default preference for whether the treeview should be
 
 ---
 
+### User Story 5 - Keyboard Navigation (Priority: P3)
+
+Users want to navigate the treeview efficiently using keyboard controls for accessibility and productivity, including arrow keys, Enter to select files, type-ahead search to quickly find files, and keyboard shortcuts for common actions.
+
+**Why this priority**: Keyboard navigation is essential for accessibility and power users, but the application can function with mouse-only interaction. This makes it P3 alongside other UX enhancements.
+
+**Independent Test**: Can be fully tested by using only keyboard controls to navigate the tree, expand/collapse folders, select files, use type-ahead search, and trigger refresh.
+
+**Acceptance Scenarios**:
+
+1. **Given** the treeview has focus, **When** a user presses up/down arrow keys, **Then** the selection moves between tree items accordingly
+2. **Given** a folder item is selected, **When** a user presses right arrow or Enter, **Then** the folder expands to show its contents
+3. **Given** an expanded folder is selected, **When** a user presses left arrow or Escape, **Then** the folder collapses
+4. **Given** a file item is selected, **When** a user presses Enter, **Then** that file's content is displayed in the main viewing area
+5. **Given** the treeview has focus, **When** a user types characters, **Then** the tree filters or highlights items matching the typed text
+6. **Given** the treeview is visible, **When** a user presses Ctrl+R or F5, **Then** the treeview refreshes to reflect current file system state
+
+---
+
 ### Edge Cases
 
-- What happens when a folder contains no markdown files? (Treeview should show an empty state or message indicating no markdown files found)
+- What happens when a folder contains no markdown files? (Folder should be completely hidden from the treeview; do not show empty folders)
 - How does the system handle very deep folder hierarchies (10+ levels)? (Should load efficiently without performance degradation)
-- What happens when markdown files are added, removed, or renamed while the folder is open? (Treeview should detect changes and update accordingly, or at minimum update on next folder open)
+- What happens when markdown files are added, removed, or renamed while the folder is open? (Treeview must automatically detect and update in real-time with minimal performance impact; also provide manual refresh button)
 - How does the system handle folders with thousands of markdown files? (Background loading should remain responsive; treeview may use virtualization or pagination)
 - What happens when a user opens a folder without proper read permissions on some subfolders? (Should display accessible files and gracefully handle permission errors)
 - How does the system handle symbolic links or junction points in the folder structure? (Should either follow them once or ignore them to prevent infinite loops)
@@ -104,12 +128,22 @@ Users want to set a global default preference for whether the treeview should be
 - **FR-009**: Folder-specific treeview visibility settings MUST override the global default preference
 - **FR-010**: System MUST persist both global preferences and per-folder settings across application restarts
 - **FR-011**: Treeview MUST filter and display only markdown file types, excluding non-markdown files
-- **FR-012**: System MUST handle folders without markdown files gracefully (show appropriate message or empty state)
-- **FR-013**: Background folder scanning MUST not block or degrade the performance of markdown rendering and reading
+- **FR-012**: Treeview MUST hide folders that contain no markdown files (directly or in subfolders)
+- **FR-013**: System MUST handle the root opened folder gracefully when it contains no markdown files (show appropriate message or empty state)
+- **FR-014**: System MUST automatically detect file system changes (added, removed, renamed markdown files) and update the treeview in real-time with minimal performance impact
+- **FR-015**: Users MUST be able to manually refresh the treeview via a refresh button or command
+- **FR-016**: Treeview MUST display all folders in collapsed state by default when opening a folder
+- **FR-017**: Treeview MUST sort items alphabetically by name (case-insensitive) with folders displayed before files
+- **FR-018**: System MUST remember the last viewed file per folder and display it when reopening that folder
+- **FR-019**: When opening a folder for the first time (no last viewed file), system MUST display README.md if it exists in the root folder, otherwise the first markdown file alphabetically
+- **FR-020**: Treeview MUST support full keyboard navigation including arrow keys (up/down/left/right) for movement, Enter to select files or expand/collapse folders, and Escape to collapse folders
+- **FR-021**: Treeview MUST support type-ahead search (typing characters filters or highlights matching files)
+- **FR-022**: Treeview MUST support keyboard shortcuts for common actions (e.g., Ctrl+R or F5 for refresh)
+- **FR-023**: Background folder scanning MUST not block or degrade the performance of markdown rendering and reading
 
 ### Key Entities
 
-- **Folder Settings**: Represents per-folder configuration including treeview visibility state, associated with a unique folder path identifier
+- **Folder Settings**: Represents per-folder configuration including treeview visibility state and last viewed file, associated with a unique folder path identifier
 - **User Preferences**: Represents global user settings including default treeview visibility for new folders
 - **Tree Node**: Represents an item in the folder hierarchy, contains name, path, type (folder or file), and parent-child relationships
 - **Markdown File**: Represents a discoverable markdown document with file path, name, and parent folder
@@ -125,3 +159,7 @@ Users want to set a global default preference for whether the treeview should be
 - **SC-005**: Treeview visibility state persists correctly across application restarts for 100% of folders
 - **SC-006**: Users can set and modify their default treeview preference successfully on first attempt
 - **SC-007**: Folder-specific settings correctly override global preferences in 100% of cases
+- **SC-008**: File system change detection has negligible CPU impact (under 2% CPU usage) during idle periods
+- **SC-009**: Treeview updates appear within 2 seconds of file system changes occurring
+- **SC-010**: Type-ahead search filters results within 100 milliseconds of keystroke
+- **SC-011**: All treeview navigation and actions can be performed using keyboard only (100% keyboard accessible)
