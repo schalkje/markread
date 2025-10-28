@@ -19,9 +19,9 @@ description: "Task list for Folder Structure Treeview implementation"
 
 **Purpose**: Project initialization and basic structure for treeview feature
 
-- [ ] T001 Review existing WPF application structure in src/App/ and src/UI/ to understand integration points
-- [ ] T002 Verify .NET 8 SDK and WPF dependencies are properly configured in src/App/MarkRead.App.csproj
-- [ ] T003 [P] Create UI/Sidebar/TreeView/ directory structure for new treeview components
+- [X] T001 Review existing WPF application structure in src/App/ and src/UI/ to understand integration points
+- [X] T002 Verify .NET 8 SDK and WPF dependencies are properly configured in src/App/MarkRead.App.csproj
+- [X] T003 [P] Create UI/Sidebar/TreeView/ directory structure for new treeview components
 
 ---
 
@@ -31,12 +31,12 @@ description: "Task list for Folder Structure Treeview implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create TreeNode model class in src/Services/TreeNode.cs with properties (Name, FullPath, Type, Parent, Children, IsExpanded, IsSelected, IsVisible) and INotifyPropertyChanged implementation
-- [ ] T005 Create NodeType enum in src/Services/TreeNode.cs with values Folder and File
-- [ ] T006 [P] Create TreeViewSettings model in src/Services/TreeViewSettings.cs with DefaultVisible and PerFolderSettings dictionary
-- [ ] T007 [P] Create FolderTreeSettings model in src/Services/TreeViewSettings.cs with IsVisible and LastViewedFile properties
-- [ ] T008 Create TreeViewService class in src/Services/TreeViewService.cs with skeleton methods (BuildTreeAsync, DetermineInitialFileAsync, SaveVisibilityPreference)
-- [ ] T009 Add TreeViewService registration to dependency injection container in src/App/App.xaml.cs
+- [X] T004 Create TreeNode model class in src/Services/TreeNode.cs with properties (Name, FullPath, Type, Parent, Children, IsExpanded, IsSelected, IsVisible) and INotifyPropertyChanged implementation
+- [X] T005 Create NodeType enum in src/Services/TreeNode.cs with values Folder and File
+- [X] T006 [P] Create TreeViewSettings model in src/Services/TreeViewSettings.cs with DefaultVisible and PerFolderSettings dictionary
+- [X] T007 [P] Create FolderTreeSettings model in src/Services/TreeViewSettings.cs with IsVisible and LastViewedFile properties
+- [X] T008 Create TreeViewService class in src/Services/TreeViewService.cs with skeleton methods (BuildTreeAsync, DetermineInitialFileAsync, SaveVisibilityPreference)
+- [X] T009 Add TreeViewService registration to dependency injection container in src/App/App.xaml.cs
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

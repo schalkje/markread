@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     private readonly SettingsService _settingsService = new();
     private readonly HistoryService _historyService = new();
     private readonly FileWatcherService _fileWatcherService = new();
+    private readonly TreeViewService _treeViewService;
     private readonly Renderer _renderer;
     private readonly LinkResolver _linkResolver;
     private readonly OpenFolderCommand _openFolderCommand;
@@ -49,6 +50,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        _treeViewService = new TreeViewService(_historyService, _settingsService);
         _renderer = new Renderer(_markdownService, _sanitizer);
         _linkResolver = new LinkResolver(_folderService);
         _openFolderCommand = new OpenFolderCommand(_folderService);
