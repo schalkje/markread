@@ -69,10 +69,10 @@ Based on WPF desktop application structure from plan.md:
 - [x] T016 [P] [US1] Create light theme color scheme definition in src/App/Themes/LightTheme.xaml
 - [x] T017 [P] [US1] Create dark theme color scheme definition in src/App/Themes/DarkTheme.xaml
 - [x] T018 [P] [US1] Implement base CSS styling for markdown content in src/Rendering/assets/styles/markdown-base.css
-- [ ] T019 [US1] Update MainWindow.xaml with enhanced layout structure and mockup-accurate spacing
-- [ ] T020 [US1] Apply typography and color styling to all WPF controls in MainWindow.xaml.cs
-- [ ] T021 [US1] Implement WebView2 content styling integration in src/Rendering/WebViewHost.cs
-- [ ] T022 [US1] Add window chrome and border styling to match mockup design
+- [x] T019 [US1] Update MainWindow.xaml with enhanced layout structure and mockup-accurate spacing
+- [x] T020 [US1] Apply typography and color styling to all WPF controls in MainWindow.xaml.cs
+- [x] T021 [US1] Implement WebView2 content styling integration in src/Rendering/WebViewHost.cs
+- [x] T022 [US1] Add window chrome and border styling to match mockup design
 - [x] T023 [US1] Implement responsive design basics with CSS media queries in src/Rendering/assets/styles/responsive.css
 
 **Checkpoint**: At this point, the application should visually match the mockup design and be independently testable
