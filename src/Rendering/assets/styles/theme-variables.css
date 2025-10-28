@@ -1,53 +1,66 @@
 /* 
  * CSS Custom Properties (Variables) for Theme System
- * This file defines the base theme variables that enable dynamic theme switching
- * in the WebView2 markdown content without page reload.
+ * This file defines theme variables that match the WPF application theme system
+ * enabling seamless theme switching in WebView2 content.
  */
 
 :root {
-  /* Light Theme Colors (Default) */
+  /* Light Theme Colors (matching WPF LightTheme.xaml) */
   --theme-background: #ffffff;
-  --theme-foreground: #212529;
+  --theme-secondary-background: #f8f9fa;
+  --theme-foreground: #171717;
   --theme-accent: #0066cc;
-  --theme-border: #dee2e6;
+  --theme-border: #e5e5e5;
   --theme-button-background: #f8f9fa;
-  --theme-button-hover: #e9ecef;
-  --theme-sidebar-background: #f8f9fa;
+  --theme-button-hover: #e5e5e5;
+  --theme-sidebar-background: #ffffff;
   --theme-tab-active: #ffffff;
   --theme-tab-inactive: #f8f9fa;
 
   /* Text and Typography */
-  --theme-text-primary: var(--theme-foreground);
-  --theme-text-secondary: #6c757d;
-  --theme-text-muted: #9ca3af;
-  --theme-text-link: var(--theme-accent);
-  --theme-text-link-hover: #0056b3;
+  --theme-text-primary: #171717;
+  --theme-text-secondary: #737373;
+  --theme-text-muted: #a3a3a3;
+  --theme-text-link: #0066cc;
+  --theme-text-link-hover: #0052a3;
 
   /* UI Component Colors */
   --theme-input-background: #ffffff;
-  --theme-input-border: var(--theme-border);
-  --theme-input-focus: var(--theme-accent);
+  --theme-input-border: #e5e5e5;
+  --theme-input-focus: #0066cc;
   --theme-dropdown-background: #ffffff;
   --theme-dropdown-shadow: rgba(0, 0, 0, 0.1);
   --theme-tooltip-background: #000000;
   --theme-tooltip-text: #ffffff;
 
-  /* Status Colors (remain consistent across themes) */
-  --theme-success: #28a745;
-  --theme-warning: #ffc107;
-  --theme-error: #dc3545;
-  --theme-info: #17a2b8;
+  /* Status Colors (consistent across themes) */
+  --theme-success: #16a34a;
+  --theme-warning: #eab308;
+  --theme-error: #dc2626;
+  --theme-info: #0ea5e9;
 
   /* Layout and Spacing */
-  --theme-radius: 4px;
+  --theme-radius: 6px;
   --theme-radius-large: 8px;
-  --theme-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --theme-shadow-large: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --theme-shadow-large: 0 4px 6px rgba(0, 0, 0, 0.15);
 
   /* Animation Properties */
   --theme-transition-fast: 150ms ease-in-out;
   --theme-transition-normal: 200ms ease-in-out;
   --theme-transition-slow: 250ms ease-in-out;
+
+  /* Typography System (matching WPF themes) */
+  --theme-font-family: "Segoe UI", system-ui, sans-serif;
+  --theme-font-mono: "Consolas", "Courier New", monospace;
+  --theme-font-size-xs: 0.6875rem;   /* 11px */
+  --theme-font-size-sm: 0.75rem;     /* 12px */
+  --theme-font-size-base: 0.875rem;  /* 14px */
+  --theme-font-size-lg: 1rem;        /* 16px */
+  --theme-font-size-xl: 1.125rem;    /* 18px */
+  --theme-font-size-2xl: 1.25rem;    /* 20px */
+  --theme-font-size-3xl: 1.5rem;     /* 24px */
+  --theme-font-size-4xl: 2rem;       /* 32px */
 
   /* Z-Index Layers */
   --z-dropdown: 1000;
@@ -57,37 +70,38 @@
   --z-tooltip: 1040;
 }
 
-/* Dark Theme Override */
+/* Dark Theme Override (matching WPF DarkTheme.xaml) */
 [data-theme="dark"] {
-  --theme-background: #1a1a1a;
-  --theme-foreground: #ffffff;
-  --theme-accent: #66b3ff;
-  --theme-border: #444444;
-  --theme-button-background: #333333;
-  --theme-button-hover: #444444;
-  --theme-sidebar-background: #222222;
-  --theme-tab-active: #333333;
-  --theme-tab-inactive: #222222;
+  --theme-background: #0a0a0a;
+  --theme-secondary-background: #171717;
+  --theme-foreground: #fafafa;
+  --theme-accent: #3b82f6;
+  --theme-border: #262626;
+  --theme-button-background: #171717;
+  --theme-button-hover: #262626;
+  --theme-sidebar-background: #0a0a0a;
+  --theme-tab-active: #171717;
+  --theme-tab-inactive: #0a0a0a;
 
   /* Dark Theme Text */
-  --theme-text-primary: var(--theme-foreground);
-  --theme-text-secondary: #b8b8b8;
-  --theme-text-muted: #888888;
-  --theme-text-link: var(--theme-accent);
-  --theme-text-link-hover: #87ceeb;
+  --theme-text-primary: #fafafa;
+  --theme-text-secondary: #a3a3a3;
+  --theme-text-muted: #737373;
+  --theme-text-link: #60a5fa;
+  --theme-text-link-hover: #93c5fd;
 
   /* Dark Theme UI Components */
-  --theme-input-background: #333333;
-  --theme-input-border: var(--theme-border);
-  --theme-input-focus: var(--theme-accent);
-  --theme-dropdown-background: #2a2a2a;
+  --theme-input-background: #171717;
+  --theme-input-border: #262626;
+  --theme-input-focus: #3b82f6;
+  --theme-dropdown-background: #171717;
   --theme-dropdown-shadow: rgba(0, 0, 0, 0.3);
   --theme-tooltip-background: #f8f9fa;
-  --theme-tooltip-text: #212529;
+  --theme-tooltip-text: #171717;
 
   /* Dark Theme Shadows */
-  --theme-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  --theme-shadow-large: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --theme-shadow-large: 0 4px 6px rgba(0, 0, 0, 0.4);
 }
 
 /* High Contrast Theme Support (for accessibility) */
@@ -115,36 +129,38 @@
 /* System Theme Detection */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --theme-background: #1a1a1a;
-    --theme-foreground: #ffffff;
-    --theme-accent: #66b3ff;
-    --theme-border: #444444;
-    --theme-button-background: #333333;
-    --theme-button-hover: #444444;
-    --theme-sidebar-background: #222222;
-    --theme-tab-active: #333333;
-    --theme-tab-inactive: #222222;
+    --theme-background: #0a0a0a;
+    --theme-secondary-background: #171717;
+    --theme-foreground: #fafafa;
+    --theme-accent: #3b82f6;
+    --theme-border: #262626;
+    --theme-button-background: #171717;
+    --theme-button-hover: #262626;
+    --theme-sidebar-background: #0a0a0a;
+    --theme-tab-active: #171717;
+    --theme-tab-inactive: #0a0a0a;
 
-    --theme-text-primary: var(--theme-foreground);
-    --theme-text-secondary: #b8b8b8;
-    --theme-text-muted: #888888;
-    --theme-text-link: var(--theme-accent);
-    --theme-text-link-hover: #87ceeb;
+    --theme-text-primary: #fafafa;
+    --theme-text-secondary: #a3a3a3;
+    --theme-text-muted: #737373;
+    --theme-text-link: #60a5fa;
+    --theme-text-link-hover: #93c5fd;
 
-    --theme-input-background: #333333;
-    --theme-input-border: var(--theme-border);
-    --theme-dropdown-background: #2a2a2a;
+    --theme-input-background: #171717;
+    --theme-input-border: #262626;
+    --theme-dropdown-background: #171717;
     --theme-dropdown-shadow: rgba(0, 0, 0, 0.3);
     --theme-tooltip-background: #f8f9fa;
-    --theme-tooltip-text: #212529;
+    --theme-tooltip-text: #171717;
 
-    --theme-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    --theme-shadow-large: 0 4px 8px rgba(0, 0, 0, 0.4);
+    --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --theme-shadow-large: 0 4px 6px rgba(0, 0, 0, 0.4);
   }
 }
 
 /* Base Element Styling Using Theme Variables */
 body {
+  font-family: var(--theme-font-family);
   background-color: var(--theme-background);
   color: var(--theme-text-primary);
   transition: background-color var(--theme-transition-normal),
@@ -153,7 +169,7 @@ body {
 
 /* Utility Classes for Theme-Aware Components */
 .theme-bg-primary { background-color: var(--theme-background); }
-.theme-bg-secondary { background-color: var(--theme-sidebar-background); }
+.theme-bg-secondary { background-color: var(--theme-secondary-background); }
 .theme-bg-button { background-color: var(--theme-button-background); }
 .theme-bg-accent { background-color: var(--theme-accent); }
 
@@ -194,4 +210,62 @@ body {
 .theme-interactive:focus {
   outline: 2px solid var(--theme-accent);
   outline-offset: 2px;
+}
+
+/* Modern content styling for markdown */
+.content-container {
+  font-family: var(--theme-font-family);
+  font-size: var(--theme-font-size-base);
+  line-height: 1.6;
+  color: var(--theme-text-primary);
+}
+
+.content-container h1 {
+  font-size: var(--theme-font-size-4xl);
+  font-weight: 700;
+  margin: 2rem 0 1rem;
+}
+
+.content-container h2 {
+  font-size: var(--theme-font-size-3xl);
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.content-container h3 {
+  font-size: var(--theme-font-size-2xl);
+  font-weight: 600;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.content-container h4 {
+  font-size: var(--theme-font-size-xl);
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.content-container p {
+  margin: 1rem 0;
+  color: var(--theme-text-primary);
+}
+
+.content-container a {
+  color: var(--theme-text-link);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: var(--theme-transition-fast);
+}
+
+.content-container a:hover {
+  color: var(--theme-text-link-hover);
+  border-bottom-color: currentColor;
+}
+
+.content-container code {
+  font-family: var(--theme-font-mono);
+  font-size: var(--theme-font-size-sm);
+  background-color: var(--theme-secondary-background);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--theme-radius);
+  padding: 0.125rem 0.375rem;
 }

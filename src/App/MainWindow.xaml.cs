@@ -51,6 +51,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        
+        // Window chrome setup
+        this.StateChanged += (s, e) => UpdateMaximizeButtonIcon();
 
         _renderer = new Renderer(_markdownService, _sanitizer);
         _linkResolver = new LinkResolver(_folderService);
@@ -102,6 +105,9 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        // Initialize window chrome UI
+        UpdateMaximizeButtonIcon();
+        
         await EnsureWebViewAsync();
         await InitializeFromStartupAsync();
     }
@@ -739,7 +745,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        StartOverlay.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        WelcomeOverlay.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
         if (visible)
         {
             this.TabControl.Visibility = Visibility.Collapsed;
@@ -819,11 +825,27 @@ public partial class MainWindow : Window
         WindowState = WindowState == WindowState.Maximized 
             ? WindowState.Normal 
             : WindowState.Maximized;
+        UpdateMaximizeButtonIcon();
+    }
+    
+    private void UpdateMaximizeButtonIcon()
+    {
+        if (MaximizeButton is not null)
+        {
+            MaximizeButton.Content = WindowState == WindowState.Maximized ? "⧉" : "□";
+            MaximizeButton.ToolTip = WindowState == WindowState.Maximized ? "Restore Down" : "Maximize";
+        }
     }
 
     private void Close_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private void HistoryButton_Click(object sender, RoutedEventArgs e)
+    {
+        // TODO: Implement history dropdown functionality
+        // This will show a dropdown with navigation history similar to the mockup
     }
 
     // UI Helper methods
