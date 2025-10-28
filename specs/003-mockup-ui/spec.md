@@ -5,6 +5,14 @@
 **Status**: Draft  
 **Input**: User description: "Implement the mockup UI design with modern styling, theme support, and enhanced user experience"
 
+## Clarifications
+
+### Session 2025-10-28
+
+- Q: Theme preference persistence storage location → A: Local application settings file (JSON/XML in app directory)
+- Q: Sidebar responsive behavior in narrow windows → A: Auto-collapse sidebar below 768px window width threshold
+- Q: Animation performance strategy during resource-intensive operations → A: Reduce animation complexity during operations (shorter durations, simpler effects)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Modern Visual Interface (Priority: P1)
@@ -116,14 +124,14 @@ Users access enhanced search functionality with improved visual design for both 
 
 - **FR-001**: System MUST implement the exact visual design from the Figma mockup including layout, spacing, colors, typography, and component styling
 - **FR-002**: System MUST provide a unified header/navigation bar containing menu toggle, application title, navigation controls, current file path, search, export, theme toggle, and window controls  
-- **FR-003**: System MUST support seamless light/dark theme switching with persistent user preference storage and proper color scheme application across all interface elements
+- **FR-003**: System MUST support seamless light/dark theme switching with persistent user preference storage in local application settings file and proper color scheme application across all interface elements
 - **FR-004**: System MUST display tabbed interface for open files with scrollable tab container, hover-based close buttons, active tab indicators, and smooth transitions
 - **FR-005**: System MUST render collapsible file tree sidebar with proper folder/file icons, visual hierarchy through indentation, and selected file highlighting
 - **FR-006**: System MUST apply consistent modern styling to all components including buttons, inputs, scrollbars, borders, shadows, and interactive states
-- **FR-007**: System MUST maintain responsive design principles ensuring interface remains functional and visually appealing across different window sizes
+- **FR-007**: System MUST maintain responsive design principles ensuring interface remains functional and visually appealing across different window sizes with sidebar auto-collapsing below 768px width threshold
 - **FR-008**: System MUST implement window control buttons (minimize, maximize/restore, close) with proper hover states and native platform integration
 - **FR-009**: System MUST preserve existing functionality while upgrading visual appearance including markdown rendering, search capabilities, and file navigation
-- **FR-010**: System MUST provide smooth animations and transitions for user interactions including theme switching, tab management, and sidebar operations
+- **FR-010**: System MUST provide smooth animations and transitions for user interactions including theme switching, tab management, and sidebar operations with reduced complexity during resource-intensive operations
 
 ### Key Entities *(include if feature involves data)*
 
