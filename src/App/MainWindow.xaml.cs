@@ -57,7 +57,7 @@ public partial class MainWindow : Window
         _webViewHost = new WebViewHost(MarkdownView, Path.Combine("Rendering", "assets"));
 
         // Initialize TreeView ViewModel
-        var treeViewViewModel = new UI.Sidebar.TreeView.TreeViewViewModel(_treeViewService);
+        var treeViewViewModel = new UI.Sidebar.TreeView.TreeViewViewModel(_treeViewService, _fileWatcherService);
         treeViewViewModel.NavigateToFileRequested += OnTreeViewFileNavigationRequested;
         TreeViewControl.DataContext = treeViewViewModel;
 

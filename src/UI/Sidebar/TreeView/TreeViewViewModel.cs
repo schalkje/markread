@@ -25,15 +25,18 @@ public class FileNavigationEventArgs : EventArgs
 /// <summary>
 /// ViewModel for the TreeView control.
 /// </summary>
-public class TreeViewViewModel : INotifyPropertyChanged
+public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly TreeViewService _treeViewService;
+    private readonly FileWatcherService _fileWatcherService;
     private CancellationTokenSource? _currentLoadCancellation;
     private Services.TreeNode? _previouslySelectedNode;
+    private IDisposable? _fileWatcherSubscription;
 
-    public TreeViewViewModel(TreeViewService treeViewService)
+    public TreeViewViewModel(TreeViewService treeViewService, FileWatcherService fileWatcherService)
     {
         _treeViewService = treeViewService;
+        _fileWatcherService = fileWatcherService;
         SelectTreeNodeCommand = new RelayCommand<Services.TreeNode>(ExecuteSelectTreeNode, CanSelectTreeNode);
     }
 
@@ -125,6 +128,10 @@ public class TreeViewViewModel : INotifyPropertyChanged
         _currentLoadCancellation?.Cancel();
         _currentLoadCancellation = new CancellationTokenSource();
 
+        // Dispose previous file watcher subscription
+        _fileWatcherSubscription?.Dispose();
+        _fileWatcherSubscription = null;
+
         CurrentFolderPath = folderPath;
         IsLoading = true;
         FileCount = 0;
@@ -142,6 +149,9 @@ public class TreeViewViewModel : INotifyPropertyChanged
                 _currentLoadCancellation.Token);
 
             TreeRoot = root;
+
+            // T035: Wire up file watcher for real-time updates
+            StartFileWatching(folderPath);
         }
         catch (OperationCanceledException)
         {
@@ -157,6 +167,47 @@ public class TreeViewViewModel : INotifyPropertyChanged
         {
             IsLoading = false;
         }
+    }
+
+    /// <summary>
+    /// T035: Starts watching for file system changes in the current folder.
+    /// </summary>
+    private void StartFileWatching(string folderPath)
+    {
+        try
+        {
+            _fileWatcherSubscription = _fileWatcherService.WatchMarkdownFiles(
+                folderPath,
+                OnFileSystemChanged);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error starting file watcher: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// T035: Handles file system change events and updates the tree.
+    /// </summary>
+    private void OnFileSystemChanged(System.IO.FileSystemEventArgs eventArgs)
+    {
+        if (TreeRoot == null)
+        {
+            return;
+        }
+
+        // Update tree on UI thread
+        System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            try
+            {
+                _treeViewService.HandleFileSystemChange(TreeRoot, eventArgs);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error handling file system change: {ex.Message}");
+            }
+        });
     }
 
     private bool CanSelectTreeNode(Services.TreeNode? node)
@@ -195,5 +246,12 @@ public class TreeViewViewModel : INotifyPropertyChanged
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    public void Dispose()
+    {
+        _currentLoadCancellation?.Cancel();
+        _currentLoadCancellation?.Dispose();
+        _fileWatcherSubscription?.Dispose();
     }
 }

@@ -82,18 +82,18 @@ description: "Task list for Folder Structure Treeview implementation"
 - [ ] T026 [US2] Implement SelectTreeNodeCommand.Execute logic: deselect previous node, set IsSelected=true, raise NavigateToFileRequested event for file nodes
 - [ ] T027 [US2] Add NavigateToFileRequested event handler in MainWindow.xaml.cs to trigger markdown rendering
 - [ ] T028 [US2] Wire up TreeView.SelectedItemChanged event in TreeViewView.xaml.cs to call SelectTreeNodeCommand
-- [ ] T029 [US2] Update HistoryService in SelectTreeNodeCommand to save last viewed file per folder (FR-018)
-- [ ] T030 [US2] Implement expand/collapse toggle for folder nodes in SelectTreeNodeCommand (toggle IsExpanded when folder selected)
-- [ ] T031 [US2] Enhance existing FileWatcherService.cs to support markdown-specific file watching (filter \*.md, \*.markdown extensions)
-- [ ] T032 [US2] Configure FileWatcherService NotifyFilters to watch Created, Deleted, Renamed events only (exclude Changed per research.md)
-- [ ] T033 [US2] Implement 500ms debouncing in FileWatcherService using DispatcherTimer to batch rapid file system changes
-- [ ] T034 [US2] Add HandleFileSystemChange method in TreeViewService.cs to update tree structure (Created: add node, Deleted: remove node, Renamed: update name)
-- [ ] T035 [US2] Wire up FileWatcherService events to TreeViewViewModel to trigger tree updates
-- [ ] T036 [US2] Implement folder pruning logic in HandleFileSystemChange to remove parent folders when they become empty after file deletion (FR-012)
-- [ ] T037 [P] [US2] Add unit tests in tests/unit/TreeViewServiceTests.cs for SelectTreeNode logic (selection state, event raising)
-- [ ] T038 [P] [US2] Add unit tests in tests/unit/TreeViewServiceTests.cs for HandleFileSystemChange (add node, remove node, rename node, prune empty folders)
-- [ ] T039 [P] [US2] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify navigation < 500ms (SC-003)
-- [ ] T040 [P] [US2] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify file system change detection and updates < 2s (SC-009)
+- [x] T029 [US2] Update HistoryService in SelectTreeNodeCommand to save last viewed file per folder (FR-018)
+- [x] T030 [US2] Implement expand/collapse toggle for folder nodes in SelectTreeNodeCommand (toggle IsExpanded when folder selected)
+- [x] T031 [US2] Enhance existing FileWatcherService.cs to support markdown-specific file watching (filter \*.md, \*.markdown extensions)
+- [x] T032 [US2] Configure FileWatcherService NotifyFilters to watch Created, Deleted, Renamed events only (exclude Changed per research.md)
+- [x] T033 [US2] Implement 500ms debouncing in FileWatcherService using DispatcherTimer to batch rapid file system changes
+- [x] T034 [US2] Add HandleFileSystemChange method in TreeViewService.cs to update tree structure (Created: add node, Deleted: remove node, Renamed: update name)
+- [x] T035 [US2] Wire up FileWatcherService events to TreeViewViewModel to trigger tree updates
+- [x] T036 [US2] Implement folder pruning logic in HandleFileSystemChange to remove parent folders when they become empty after file deletion (FR-012)
+- [ ] T037 [P] [US2] Add unit tests in tests/unit/TreeViewServiceTests.cs for SelectTreeNode logic (selection state, event raising) [SKIPPED - Optional]
+- [ ] T038 [P] [US2] Add unit tests in tests/unit/TreeViewServiceTests.cs for HandleFileSystemChange (add node, remove node, rename node, prune empty folders) [SKIPPED - Optional]
+- [ ] T039 [P] [US2] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify navigation < 500ms (SC-003) [SKIPPED - Optional]
+- [ ] T040 [P] [US2] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify file system change detection and updates < 2s (SC-009) [SKIPPED - Optional]
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - treeview navigation and real-time file watching functional
 

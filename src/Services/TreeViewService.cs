@@ -255,4 +255,292 @@ public class TreeViewService
             return false;
         }
     }
+
+    /// <summary>
+    /// Handles file system changes and updates the tree structure accordingly.
+    /// T034: Update tree structure (Created: add node, Deleted: remove node, Renamed: update name)
+    /// T036: Prune empty folders after file deletion
+    /// </summary>
+    /// <param name="root">Root tree node.</param>
+    /// <param name="eventArgs">File system event arguments.</param>
+    public void HandleFileSystemChange(TreeNode root, FileSystemEventArgs eventArgs)
+    {
+        if (root == null || eventArgs == null)
+        {
+            return;
+        }
+
+        switch (eventArgs.ChangeType)
+        {
+            case WatcherChangeTypes.Created:
+                HandleFileCreated(root, eventArgs.FullPath);
+                break;
+
+            case WatcherChangeTypes.Deleted:
+                HandleFileDeleted(root, eventArgs.FullPath);
+                break;
+
+            case WatcherChangeTypes.Renamed:
+                if (eventArgs is RenamedEventArgs renamedArgs)
+                {
+                    HandleFileRenamed(root, renamedArgs.OldFullPath, renamedArgs.FullPath);
+                }
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Handles file creation by adding a new node to the tree.
+    /// </summary>
+    private void HandleFileCreated(TreeNode root, string filePath)
+    {
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            if (!fileInfo.Exists || IsHiddenOrSystem(fileInfo))
+            {
+                return;
+            }
+
+            // Find or create parent folder nodes
+            var parentPath = fileInfo.DirectoryName;
+            if (string.IsNullOrEmpty(parentPath))
+            {
+                return;
+            }
+
+            var parentNode = FindOrCreateFolderNode(root, parentPath);
+            if (parentNode == null)
+            {
+                return;
+            }
+
+            // Check if file already exists in tree (avoid duplicates)
+            if (parentNode.Children.Any(c => c.FullPath.Equals(filePath, StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+
+            // Create and add the new file node
+            var newNode = new TreeNode
+            {
+                Name = fileInfo.Name,
+                FullPath = fileInfo.FullName,
+                Type = NodeType.File,
+                Parent = parentNode,
+                IsExpanded = false
+            };
+
+            // Insert in alphabetical order (files come after folders)
+            InsertNodeSorted(parentNode, newNode);
+        }
+        catch (Exception)
+        {
+            // Ignore errors (file might be deleted during processing)
+        }
+    }
+
+    /// <summary>
+    /// Handles file deletion by removing the node from the tree.
+    /// T036: Prune parent folders if they become empty.
+    /// </summary>
+    private void HandleFileDeleted(TreeNode root, string filePath)
+    {
+        var node = FindNode(root, filePath);
+        if (node == null || node.Parent == null)
+        {
+            return;
+        }
+
+        var parent = node.Parent;
+        parent.Children.Remove(node);
+
+        // T036: Prune empty parent folders recursively
+        PruneEmptyFolders(parent);
+    }
+
+    /// <summary>
+    /// Handles file rename by updating the node's name and path.
+    /// </summary>
+    private void HandleFileRenamed(TreeNode root, string oldPath, string newPath)
+    {
+        var node = FindNode(root, oldPath);
+        if (node == null)
+        {
+            // Node not found, treat as creation
+            HandleFileCreated(root, newPath);
+            return;
+        }
+
+        // Update node properties
+        node.FullPath = newPath;
+        node.Name = Path.GetFileName(newPath);
+
+        // If moved to different folder, update parent
+        var newParentPath = Path.GetDirectoryName(newPath);
+        var oldParentPath = Path.GetDirectoryName(oldPath);
+
+        if (!string.Equals(newParentPath, oldParentPath, StringComparison.OrdinalIgnoreCase))
+        {
+            // Remove from old parent
+            var oldParent = node.Parent;
+            if (oldParent != null)
+            {
+                oldParent.Children.Remove(node);
+                PruneEmptyFolders(oldParent);
+            }
+
+            // Add to new parent
+            if (!string.IsNullOrEmpty(newParentPath))
+            {
+                var newParent = FindOrCreateFolderNode(root, newParentPath);
+                if (newParent != null)
+                {
+                    node.Parent = newParent;
+                    InsertNodeSorted(newParent, node);
+                }
+            }
+        }
+        else if (node.Parent != null)
+        {
+            // Same parent, just reorder
+            var parent = node.Parent;
+            parent.Children.Remove(node);
+            InsertNodeSorted(parent, node);
+        }
+    }
+
+    /// <summary>
+    /// Finds a node in the tree by path.
+    /// </summary>
+    private TreeNode? FindNode(TreeNode root, string path)
+    {
+        if (root.FullPath.Equals(path, StringComparison.OrdinalIgnoreCase))
+        {
+            return root;
+        }
+
+        foreach (var child in root.Children)
+        {
+            var found = FindNode(child, path);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Finds or creates folder nodes along the path.
+    /// </summary>
+    private TreeNode? FindOrCreateFolderNode(TreeNode root, string folderPath)
+    {
+        if (root.FullPath.Equals(folderPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return root;
+        }
+
+        // Get relative path from root
+        var rootPath = root.FullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (!folderPath.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return null; // Path not under root
+        }
+
+        var relativePath = folderPath.Substring(rootPath.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var segments = relativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        var currentNode = root;
+        var currentPath = rootPath;
+
+        foreach (var segment in segments)
+        {
+            if (string.IsNullOrEmpty(segment))
+            {
+                continue;
+            }
+
+            currentPath = Path.Combine(currentPath, segment);
+
+            // Find existing child folder
+            var childNode = currentNode.Children.FirstOrDefault(c =>
+                c.Type == NodeType.Folder &&
+                c.FullPath.Equals(currentPath, StringComparison.OrdinalIgnoreCase));
+
+            if (childNode == null)
+            {
+                // Create new folder node
+                childNode = new TreeNode
+                {
+                    Name = segment,
+                    FullPath = currentPath,
+                    Type = NodeType.Folder,
+                    Parent = currentNode,
+                    IsExpanded = false
+                };
+
+                InsertNodeSorted(currentNode, childNode);
+            }
+
+            currentNode = childNode;
+        }
+
+        return currentNode;
+    }
+
+    /// <summary>
+    /// Inserts a node in alphabetical order (folders before files).
+    /// </summary>
+    private void InsertNodeSorted(TreeNode parent, TreeNode newNode)
+    {
+        var insertIndex = 0;
+
+        foreach (var child in parent.Children)
+        {
+            // Folders come before files
+            if (newNode.Type == NodeType.Folder && child.Type == NodeType.File)
+            {
+                break;
+            }
+
+            if (newNode.Type == NodeType.File && child.Type == NodeType.Folder)
+            {
+                insertIndex++;
+                continue;
+            }
+
+            // Within same type, sort alphabetically (case-insensitive)
+            if (string.Compare(newNode.Name, child.Name, StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                break;
+            }
+
+            insertIndex++;
+        }
+
+        parent.Children.Insert(insertIndex, newNode);
+    }
+
+    /// <summary>
+    /// T036: Recursively removes empty parent folders that no longer contain markdown files.
+    /// </summary>
+    private void PruneEmptyFolders(TreeNode? node)
+    {
+        if (node == null || node.Parent == null)
+        {
+            return; // Don't remove root
+        }
+
+        // If folder has no children and no markdown files, remove it
+        if (node.Type == NodeType.Folder && node.Children.Count == 0)
+        {
+            var parent = node.Parent;
+            parent.Children.Remove(node);
+
+            // Recursively prune parent if it's now empty
+            PruneEmptyFolders(parent);
+        }
+    }
 }
