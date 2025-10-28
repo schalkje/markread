@@ -13,6 +13,12 @@
         mc:Ignorable="d"
         Title="MarkRead" Height="720" Width="1080"
         Loaded="Window_Loaded">
+    <!-- T068: Keyboard shortcuts for refresh -->
+    <Window.InputBindings>
+        <KeyBinding Key="R" Modifiers="Control" Command="{Binding ElementName=TreeViewControl, Path=DataContext.RefreshTreeViewCommand}"/>
+        <KeyBinding Key="F5" Command="{Binding ElementName=TreeViewControl, Path=DataContext.RefreshTreeViewCommand}"/>
+    </Window.InputBindings>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

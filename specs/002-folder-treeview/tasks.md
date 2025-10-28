@@ -133,12 +133,12 @@ description: "Task list for Folder Structure Treeview implementation"
 
 ### Implementation for User Story 4
 
-- [ ] T054 [US4] Add TreeViewDefaultVisible checkbox to Settings dialog in src/UI/Settings/SettingsView.xaml
-- [ ] T055 [US4] Bind checkbox to TreeViewSettings.DefaultVisible property in src/UI/Settings/SettingsViewModel.cs
-- [ ] T056 [US4] Update LoadVisibilityPreference logic in TreeViewService.cs to use DefaultVisible when folder not in PerFolderSettings (FR-008)
-- [ ] T057 [US4] Ensure global preference changes do NOT affect folders with stored individual settings (FR-009 - individual overrides global)
-- [ ] T058 [P] [US4] Add unit tests in tests/unit/TreeViewServiceTests.cs for global default preference logic (new folder uses default, existing folder ignores default)
-- [ ] T059 [P] [US4] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify global preference applies to new folders and individual settings override
+- [X] T054 [US4] Add TreeViewDefaultVisible checkbox to Settings dialog in src/UI/Settings/SettingsView.xaml
+- [X] T055 [US4] Bind checkbox to TreeViewSettings.DefaultVisible property in src/UI/Settings/SettingsViewModel.cs
+- [X] T056 [US4] Update LoadVisibilityPreference logic in TreeViewService.cs to use DefaultVisible when folder not in PerFolderSettings (FR-008) [ALREADY CORRECT]
+- [X] T057 [US4] Ensure global preference changes do NOT affect folders with stored individual settings (FR-009 - individual overrides global) [ALREADY CORRECT]
+- [ ] T058 [P] [US4] Add unit tests in tests/unit/TreeViewServiceTests.cs for global default preference logic (new folder uses default, existing folder ignores default) [SKIPPED - Optional]
+- [ ] T059 [P] [US4] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify global preference applies to new folders and individual settings override [SKIPPED - Optional]
 
 **Checkpoint**: All user stories 1-4 should now be independently functional
 
@@ -152,27 +152,27 @@ description: "Task list for Folder Structure Treeview implementation"
 
 ### Implementation for User Story 5
 
-- [ ] T060 [P] [US5] Create NavigateTreeUpCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs for up arrow navigation
-- [ ] T061 [P] [US5] Create NavigateTreeDownCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs for down arrow navigation
-- [ ] T062 [US5] Implement depth-first traversal helper in TreeViewViewModel to find previous/next visible nodes
-- [ ] T063 [US5] Create ExpandTreeNodeCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs (set IsExpanded=true)
-- [ ] T064 [US5] Create CollapseTreeNodeCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs (set IsExpanded=false)
-- [ ] T065 [US5] Add keyboard input bindings in TreeViewView.xaml.cs: Up/Down arrows call Navigate commands, Right/Enter call Expand/Select, Left/Escape call Collapse
-- [ ] T066 [US5] Create RefreshTreeViewCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs for manual refresh
-- [ ] T067 [US5] Implement RefreshTreeViewCommand.Execute: cancel existing BuildTreeAsync, clear tree, rebuild from file system
-- [ ] T068 [US5] Add keyboard shortcuts in MainWindow.xaml: Ctrl+R and F5 trigger RefreshTreeViewCommand (FR-022)
-- [ ] T069 [US5] Create TypeAheadSearchCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs with 300ms debounce using DispatcherTimer
-- [ ] T070 [US5] Implement OnPreviewTextInput handler in TreeViewView.xaml.cs to accumulate typed characters and trigger TypeAheadSearchCommand
-- [ ] T071 [US5] Implement TypeAheadSearchCommand.Execute: filter tree nodes by Name.Contains (case-insensitive), set IsVisible property, expand parent folders of matches (FR-021)
-- [ ] T072 [US5] Create ClearTypeAheadSearchCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs
-- [ ] T073 [US5] Implement ClearTypeAheadSearchCommand.Execute: reset IsVisible=true for all nodes, clear search buffer, collapse auto-expanded folders
-- [ ] T074 [US5] Add 2-second auto-clear timeout for type-ahead search (reset after no typing)
-- [ ] T075 [US5] Update TreeViewView.xaml ItemContainerStyle to show/hide nodes based on IsVisible property and highlight matching text
-- [ ] T076 [US5] Ensure TreeView participates in tab order and verify AutomationProperties for screen reader compatibility (FR-020)
-- [ ] T077 [P] [US5] Add unit tests in tests/unit/TreeViewViewModelTests.cs for NavigateTreeUp/Down (boundary conditions, depth-first order)
-- [ ] T078 [P] [US5] Add unit tests in tests/unit/TreeViewViewModelTests.cs for TypeAheadSearch (filtering, case-insensitive, parent expansion)
-- [ ] T079 [P] [US5] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify type-ahead search filters < 100ms (SC-010)
-- [ ] T080 [P] [US5] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify full keyboard accessibility - navigate and select file using only keyboard (SC-011)
+- [X] T060 [P] [US5] Create NavigateTreeUpCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs for up arrow navigation
+- [X] T061 [P] [US5] Create NavigateTreeDownCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs for down arrow navigation
+- [X] T062 [US5] Implement depth-first traversal helper in TreeViewViewModel to find previous/next visible nodes
+- [X] T063 [US5] Create ExpandTreeNodeCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs (set IsExpanded=true)
+- [X] T064 [US5] Create CollapseTreeNodeCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs (set IsExpanded=false)
+- [X] T065 [US5] Add keyboard input bindings in TreeViewView.xaml.cs: Up/Down arrows call Navigate commands, Right/Enter call Expand/Select, Left/Escape call Collapse
+- [X] T066 [US5] Create RefreshTreeViewCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs for manual refresh
+- [X] T067 [US5] Implement RefreshTreeViewCommand.Execute: cancel existing BuildTreeAsync, clear tree, rebuild from file system
+- [X] T068 [US5] Add keyboard shortcuts in MainWindow.xaml: Ctrl+R and F5 trigger RefreshTreeViewCommand (FR-022)
+- [X] T069 [US5] Create TypeAheadSearchCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs with 300ms debounce using DispatcherTimer
+- [X] T070 [US5] Implement OnPreviewTextInput handler in TreeViewView.xaml.cs to accumulate typed characters and trigger TypeAheadSearchCommand
+- [X] T071 [US5] Implement TypeAheadSearchCommand.Execute: filter tree nodes by Name.Contains (case-insensitive), set IsVisible property, expand parent folders of matches (FR-021)
+- [X] T072 [US5] Create ClearTypeAheadSearchCommand in src/UI/Sidebar/TreeView/TreeViewViewModel.cs
+- [X] T073 [US5] Implement ClearTypeAheadSearchCommand.Execute: reset IsVisible=true for all nodes, clear search buffer, collapse auto-expanded folders
+- [X] T074 [US5] Add 2-second auto-clear timeout for type-ahead search (reset after no typing)
+- [X] T075 [US5] Update TreeViewView.xaml ItemContainerStyle to show/hide nodes based on IsVisible property and highlight matching text
+- [X] T076 [US5] Ensure TreeView participates in tab order and verify AutomationProperties for screen reader compatibility (FR-020)
+- [ ] T077 [P] [US5] Add unit tests in tests/unit/TreeViewViewModelTests.cs for NavigateTreeUp/Down (boundary conditions, depth-first order) [SKIPPED - Optional]
+- [ ] T078 [P] [US5] Add unit tests in tests/unit/TreeViewViewModelTests.cs for TypeAheadSearch (filtering, case-insensitive, parent expansion) [SKIPPED - Optional]
+- [ ] T079 [P] [US5] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify type-ahead search filters < 100ms (SC-010) [SKIPPED - Optional]
+- [ ] T080 [P] [US5] Add integration test in tests/integration/TreeViewIntegrationTests.cs to verify full keyboard accessibility - navigate and select file using only keyboard (SC-011) [SKIPPED - Optional]
 
 **Checkpoint**: All user stories should now be independently functional with full keyboard navigation
 
