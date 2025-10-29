@@ -155,7 +155,7 @@ public class SettingsService
     // Theme Configuration Management
 
     /// <summary>
-    /// Loads theme configuration from disk
+    /// Loads theme configuration from disk (T080: Enhanced with corruption detection)
     /// </summary>
     public async Task<ThemeConfiguration> LoadThemeConfigurationAsync()
     {
@@ -169,6 +169,21 @@ public class SettingsService
             {
                 _themeConfiguration = new ThemeConfiguration();
                 return _themeConfiguration;
+            }
+
+            // T080: Check for corruption before loading
+            if (IsFileCorrupted(_themeSettingsFile))
+            {
+                System.Diagnostics.Debug.WriteLine("Theme settings corrupted, attempting restore from backup");
+                await RestoreFromBackupAsync();
+                
+                // If still corrupted or doesn't exist, use default
+                if (!File.Exists(_themeSettingsFile) || IsFileCorrupted(_themeSettingsFile))
+                {
+                    _themeConfiguration = new ThemeConfiguration();
+                    await PersistThemeConfigurationAsync(_themeConfiguration); // Save default
+                    return _themeConfiguration;
+                }
             }
 
             await using FileStream stream = File.OpenRead(_themeSettingsFile);
@@ -422,7 +437,7 @@ public class SettingsService
     }
 
     /// <summary>
-    /// Creates backup copies of all settings files
+    /// Creates backup copies of all settings files (T080: Enhanced backup system)
     /// </summary>
     public async Task CreateBackupAsync()
     {
@@ -432,20 +447,172 @@ public class SettingsService
             var timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
             
             if (File.Exists(_settingsFile))
-                File.Copy(_settingsFile, $"{_settingsFile}.backup-{timestamp}");
+                File.Copy(_settingsFile, $"{_settingsFile}.backup-{timestamp}", overwrite: true);
             
             if (File.Exists(_themeSettingsFile))
-                File.Copy(_themeSettingsFile, $"{_themeSettingsFile}.backup-{timestamp}");
+                File.Copy(_themeSettingsFile, $"{_themeSettingsFile}.backup-{timestamp}", overwrite: true);
             
             if (File.Exists(_uiStateFile))
-                File.Copy(_uiStateFile, $"{_uiStateFile}.backup-{timestamp}");
+                File.Copy(_uiStateFile, $"{_uiStateFile}.backup-{timestamp}", overwrite: true);
             
             if (File.Exists(_animationSettingsFile))
-                File.Copy(_animationSettingsFile, $"{_animationSettingsFile}.backup-{timestamp}");
+                File.Copy(_animationSettingsFile, $"{_animationSettingsFile}.backup-{timestamp}", overwrite: true);
+            
+            // Clean up old backups (keep last 5)
+            CleanupOldBackups();
         }
         finally
         {
             _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Restores settings from the most recent backup (T080).
+    /// </summary>
+    public async Task<bool> RestoreFromBackupAsync()
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var settingsDir = Path.GetDirectoryName(_settingsFile);
+            if (settingsDir == null) return false;
+
+            var backupFiles = Directory.GetFiles(settingsDir, "*.backup-*");
+            if (backupFiles.Length == 0) return false;
+
+            // Find most recent backup
+            Array.Sort(backupFiles);
+            var mostRecent = backupFiles[^1];
+            var timestamp = mostRecent.Split(".backup-")[^1];
+
+            // Restore all settings files from that backup
+            RestoreFile($"{_settingsFile}.backup-{timestamp}", _settingsFile);
+            RestoreFile($"{_themeSettingsFile}.backup-{timestamp}", _themeSettingsFile);
+            RestoreFile($"{_uiStateFile}.backup-{timestamp}", _uiStateFile);
+            RestoreFile($"{_animationSettingsFile}.backup-{timestamp}", _animationSettingsFile);
+
+            // Clear cached settings to force reload
+            _isLoaded = false;
+            _themeConfiguration = null;
+            _uiState = null;
+            _animationSettings = null;
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Resets all settings to factory defaults (T080).
+    /// </summary>
+    public async Task ResetToFactoryDefaultsAsync()
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            // Create backup before reset
+            await CreateBackupAsync();
+
+            // Delete all settings files
+            if (File.Exists(_settingsFile)) File.Delete(_settingsFile);
+            if (File.Exists(_themeSettingsFile)) File.Delete(_themeSettingsFile);
+            if (File.Exists(_uiStateFile)) File.Delete(_uiStateFile);
+            if (File.Exists(_animationSettingsFile)) File.Delete(_animationSettingsFile);
+
+            // Reset in-memory state
+            _currentSettings = ViewerSettings.Default();
+            _themeConfiguration = new ThemeConfiguration();
+            _uiState = UIState.CreateDefault();
+            _animationSettings = AnimationSettings.CreateDefault();
+            _isLoaded = false;
+
+            // Save factory defaults
+            await PersistAsync(_currentSettings);
+            await PersistThemeConfigurationAsync(_themeConfiguration);
+            await PersistUIStateAsync(_uiState);
+            await PersistAnimationSettingsAsync(_animationSettings);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Detects if a settings file is corrupted (T080).
+    /// </summary>
+    private static bool IsFileCorrupted(string filePath)
+    {
+        if (!File.Exists(filePath)) return false;
+
+        try
+        {
+            var content = File.ReadAllText(filePath);
+            // Basic corruption checks
+            if (string.IsNullOrWhiteSpace(content)) return true;
+            if (!content.TrimStart().StartsWith("{")) return true;
+            if (!content.TrimEnd().EndsWith("}")) return true;
+            
+            // Try to parse as JSON
+            using var doc = JsonDocument.Parse(content);
+            return false;
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Cleans up old backup files, keeping only the most recent 5 (T080).
+    /// </summary>
+    private void CleanupOldBackups()
+    {
+        try
+        {
+            var settingsDir = Path.GetDirectoryName(_settingsFile);
+            if (settingsDir == null) return;
+
+            var backupFiles = Directory.GetFiles(settingsDir, "*.backup-*");
+            if (backupFiles.Length <= 5) return;
+
+            Array.Sort(backupFiles);
+            
+            // Delete all but the 5 most recent
+            for (int i = 0; i < backupFiles.Length - 5; i++)
+            {
+                try
+                {
+                    File.Delete(backupFiles[i]);
+                }
+                catch
+                {
+                    // Ignore cleanup failures
+                }
+            }
+        }
+        catch
+        {
+            // Ignore cleanup failures
+        }
+    }
+
+    /// <summary>
+    /// Restores a single file from backup (T080).
+    /// </summary>
+    private static void RestoreFile(string backupPath, string targetPath)
+    {
+        if (File.Exists(backupPath))
+        {
+            File.Copy(backupPath, targetPath, overwrite: true);
         }
     }
 }

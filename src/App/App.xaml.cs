@@ -1,6 +1,7 @@
 using System.Windows.Input;
 
 using MarkRead.Cli;
+using MarkRead.Services;
 
 namespace MarkRead.App;
 
@@ -55,11 +56,16 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        // T083: Start monitoring startup performance
+        var perfMonitor = StartupPerformanceMonitor.Instance;
+        perfMonitor.StartPhase("Application Initialization");
+
         if (Current.MainWindow is not MainWindow window)
         {
             return;
         }
 
+        perfMonitor.StartPhase("Input Bindings Setup");
         AddInputBinding(window, OpenFolderCommand);
         AddInputBinding(window, OpenFileCommand);
         AddInputBinding(window, NewTabCommand);
@@ -68,8 +74,13 @@ public partial class App : System.Windows.Application
         AddInputBinding(window, NavigateBackCommand);
         AddInputBinding(window, NavigateForwardCommand);
 
+        perfMonitor.StartPhase("Shell Initialization");
         var startupArgs = StartupArguments.Parse(e.Args);
         await window.InitializeShellAsync(startupArgs);
+
+        perfMonitor.StartPhase("Startup Complete");
+        var report = perfMonitor.CompleteStartup();
+        System.Diagnostics.Debug.WriteLine(report);
     }
 
     private static void AddInputBinding(System.Windows.Window window, RoutedUICommand command)

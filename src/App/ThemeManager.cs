@@ -128,7 +128,7 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Initialize theme manager by loading saved settings
+    /// Initialize theme manager by loading saved settings (T079: Enhanced error handling)
     /// </summary>
     public async Task InitializeAsync()
     {
@@ -140,14 +140,31 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            // Fallback to light theme if initialization fails
+            // T079: Fallback to safe default theme if initialization fails
+            System.Diagnostics.Debug.WriteLine($"Theme initialization failed: {ex.Message}");
             OnThemeLoadFailed(ThemeType.System, ex);
+            
+            // Use factory default configuration
+            _themeConfiguration = CreateDefaultThemeConfiguration();
             ApplyThemeInternal(ThemeType.Light, false);
         }
     }
 
     /// <summary>
-    /// Switch application theme
+    /// Creates a factory default theme configuration (T079).
+    /// </summary>
+    private static ThemeConfiguration CreateDefaultThemeConfiguration()
+    {
+        return new ThemeConfiguration
+        {
+            CurrentTheme = ThemeType.Light,
+            SystemThemeFollow = false,
+            LastModified = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// Switch application theme (T079: Enhanced error handling and fallback)
     /// </summary>
     public async Task<bool> ApplyTheme(ThemeType theme)
     {
@@ -167,14 +184,41 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
             // Save the theme preference
             _themeConfiguration.CurrentTheme = theme;
             _themeConfiguration.LastModified = DateTime.UtcNow;
-            await _settingsService.SaveThemeConfigurationAsync(_themeConfiguration);
+            
+            try
+            {
+                await _settingsService.SaveThemeConfigurationAsync(_themeConfiguration);
+            }
+            catch (Exception saveEx)
+            {
+                // T079: Non-fatal - theme is applied but not persisted
+                System.Diagnostics.Debug.WriteLine($"Failed to save theme preference: {saveEx.Message}");
+                // Continue execution - theme is still applied in memory
+            }
             
             OnThemeChanged(oldTheme, effectiveTheme);
             return true;
         }
         catch (Exception ex)
         {
+            // T079: Graceful degradation on theme application failure
+            System.Diagnostics.Debug.WriteLine($"Theme application failed: {ex.Message}");
             OnThemeLoadFailed(theme, ex);
+            
+            // Attempt fallback to light theme if not already light
+            if (theme != ThemeType.Light)
+            {
+                try
+                {
+                    ApplyThemeInternal(ThemeType.Light, false);
+                    return false; // Indicate requested theme failed but fallback succeeded
+                }
+                catch
+                {
+                    // Even fallback failed - continue with current state
+                }
+            }
+            
             return false;
         }
     }
