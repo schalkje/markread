@@ -738,6 +738,7 @@ public partial class MainWindow : Window
                 StartScreen.Visibility = Visibility.Collapsed;
                 WelcomeOverlay.Visibility = Visibility.Visible;
                 SidebarPanel.Visibility = Visibility.Visible;
+                SidebarColumn.Width = new GridLength(280); // Restore sidebar when folder is loaded
             }
             else
             {
@@ -745,6 +746,7 @@ public partial class MainWindow : Window
                 StartScreen.Visibility = Visibility.Visible;
                 WelcomeOverlay.Visibility = Visibility.Collapsed;
                 SidebarPanel.Visibility = Visibility.Collapsed;
+                SidebarColumn.Width = new GridLength(0);
             }
             this.TabControl.Visibility = Visibility.Collapsed;
         }
@@ -754,6 +756,7 @@ public partial class MainWindow : Window
             StartScreen.Visibility = Visibility.Collapsed;
             WelcomeOverlay.Visibility = Visibility.Collapsed;
             SidebarPanel.Visibility = Visibility.Visible;
+            SidebarColumn.Width = new GridLength(280); // Restore to mockup width
         }
     }
 
