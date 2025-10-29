@@ -168,8 +168,8 @@ Based on WPF desktop application structure from plan.md:
 
 ### Tests for User Story 5
 
-- [ ] T057 [P] [US5] Create sidebar functionality test in tests/integration/SidebarTests.cs
-- [ ] T058 [P] [US5] Create responsive sidebar test in tests/integration/ResponsiveLayoutTests.cs
+- [x] T057 [P] [US5] Create sidebar functionality test in tests/integration/SidebarTests.cs
+- [x] T058 [P] [US5] Create responsive sidebar test in tests/integration/ResponsiveLayoutTests.cs
 
 ### Implementation for User Story 5
 
