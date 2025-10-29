@@ -68,6 +68,9 @@ public partial class MainWindow : Window
 
         this.TabControl.ItemsSource = _tabService.Tabs;
 
+        // Wire up NavigationBar services
+        this.NavigationBar.ThemeService = _themeManager;
+
         // Wire up FindBar events
         FindBar.SearchRequested += OnSearchRequested;
         FindBar.NextRequested += OnFindNextRequested;

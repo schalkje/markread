@@ -3,16 +3,18 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using MarkRead.Services;
+using MarkRead.App;
 
 namespace MarkRead.App.UI.Shell;
 
 /// <summary>
 /// Unified navigation bar containing back/forward buttons, file path display,
-/// search button, export dropdown, and window controls
+/// search button, export dropdown, theme toggle, and window controls
 /// </summary>
 public partial class NavigationBar : System.Windows.Controls.UserControl
 {
     private readonly INavigationService? _navigationService;
+    private IThemeService? _themeService;
 
     public NavigationBar()
     {
@@ -49,6 +51,56 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
         }
     }
 
+    /// <summary>
+    /// Dependency property for ThemeService to enable theme toggling
+    /// </summary>
+    public static readonly DependencyProperty ThemeServiceProperty =
+        DependencyProperty.Register(
+            nameof(ThemeService),
+            typeof(IThemeService),
+            typeof(NavigationBar),
+            new PropertyMetadata(null, OnThemeServiceChanged));
+
+    public IThemeService? ThemeService
+    {
+        get => (IThemeService?)GetValue(ThemeServiceProperty);
+        set => SetValue(ThemeServiceProperty, value);
+    }
+
+    private static void OnThemeServiceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is NavigationBar navBar && e.NewValue is IThemeService themeService)
+        {
+            navBar._themeService = themeService;
+            navBar.UpdateThemeIcon();
+            
+            // Subscribe to theme changes to update icon
+            themeService.ThemeChanged += (s, args) => navBar.UpdateThemeIcon();
+        }
+    }
+
+    private void UpdateThemeIcon()
+    {
+        if (_themeService == null || ThemeIcon == null) return;
+
+        var currentTheme = _themeService.GetCurrentTheme();
+        
+        // Show moon for light mode (clicking will switch to dark)
+        // Show sun for dark mode (clicking will switch to light)
+        if (currentTheme == ThemeType.Dark)
+        {
+            // Sun icon
+            ThemeIcon.Data = Geometry.Parse("M12 18c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6zm0-10c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4zM13 1h-2v3h2V1zm0 19h-2v3h2v-3zM4 13H1v-2h3v2zm19 0h-3v-2h3v2zm-2.1-7.5L19.5 4.1l-1.4 1.4 1.4 1.4 1.4-1.4zM6.3 17.8L4.9 19.2l-1.4-1.4 1.4-1.4 1.4 1.4zM19.5 19.2l-1.4-1.4-1.4 1.4 1.4 1.4 1.4-1.4zM6.3 6.3L4.9 4.9 6.3 3.5 7.7 4.9 6.3 6.3z");
+            ThemeToggleButton.ToolTip = "Switch to Light Mode";
+        }
+        else
+        {
+            // Moon icon
+            ThemeIcon.Data = Geometry.Parse("M9 2c-1.05 0-2.05.16-3 .46 4.06 1.27 7 5.06 7 9.54 0 4.48-2.94 8.27-7 9.54.95.3 1.95.46 3 .46 5.52 0 10-4.48 10-10S14.52 2 9 2z");
+            ThemeToggleButton.ToolTip = "Switch to Dark Mode";
+        }
+    }
+
     private void SearchButton_Click(object sender, RoutedEventArgs e)
     {
         // Raise event for search button click
@@ -59,6 +111,16 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
     {
         // Raise event for export button click
         ExportRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async void ThemeToggleButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_themeService == null) return;
+
+        var currentTheme = _themeService.GetCurrentTheme();
+        var newTheme = currentTheme == ThemeType.Dark ? ThemeType.Light : ThemeType.Dark;
+        
+        await _themeService.ApplyTheme(newTheme);
     }
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
