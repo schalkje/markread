@@ -19,6 +19,13 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
     public NavigationBar()
     {
         InitializeComponent();
+        Loaded += NavigationBar_Loaded;
+    }
+
+    private void NavigationBar_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Update theme icon after control is fully loaded
+        UpdateThemeIcon();
     }
 
     public NavigationBar(INavigationService navigationService) : this()
@@ -101,6 +108,12 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
         }
     }
 
+    private void MenuButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Raise event for menu button click (toggle sidebar)
+        MenuRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     private void SearchButton_Click(object sender, RoutedEventArgs e)
     {
         // Raise event for search button click
@@ -145,6 +158,11 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
     {
         Window.GetWindow(this)?.Close();
     }
+
+    /// <summary>
+    /// Event raised when menu button is clicked (toggle sidebar)
+    /// </summary>
+    public event EventHandler? MenuRequested;
 
     /// <summary>
     /// Event raised when search button is clicked

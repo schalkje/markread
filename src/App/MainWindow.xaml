@@ -111,6 +111,7 @@
         <!-- Navigation Bar with integrated back/forward, file path, search, export, and window controls -->
         <shell:NavigationBar x:Name="NavigationBar" 
                              Grid.Row="0"
+                             MenuRequested="NavigationBar_MenuRequested"
                              SearchRequested="NavigationBar_SearchRequested"
                              ExportRequested="NavigationBar_ExportRequested"/>
 

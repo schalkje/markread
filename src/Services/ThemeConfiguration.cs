@@ -59,9 +59,13 @@ namespace MarkRead.Services
         /// </summary>
         public ThemeType GetEffectiveTheme()
         {
-            if (!SystemThemeFollow)
-                return CurrentTheme;
+            // If following system theme, always detect Windows theme
+            if (SystemThemeFollow)
+            {
+                return DetectWindowsSystemTheme();
+            }
 
+            // If CurrentTheme is System, also detect Windows theme
             if (CurrentTheme == ThemeType.System)
             {
                 return DetectWindowsSystemTheme();

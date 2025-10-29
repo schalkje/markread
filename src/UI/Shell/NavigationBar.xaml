@@ -18,8 +18,36 @@
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Left Section: Back/Forward Navigation Buttons -->
+        <!-- Left Section: Menu + Title + Navigation Buttons -->
         <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+            <!-- Sidebar Toggle Button (32x32px) -->
+            <Button x:Name="MenuButton"
+                    Click="MenuButton_Click"
+                    Width="32" Height="32"
+                    Margin="2,0"
+                    Style="{DynamicResource NavigationButtonStyle}"
+                    ToolTip="Toggle Sidebar"
+                    WindowChrome.IsHitTestVisibleInChrome="True">
+                <Path Data="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" 
+                      Fill="{DynamicResource ThemeTextPrimaryBrush}"
+                      Stretch="Uniform"
+                      Width="16" Height="16"/>
+            </Button>
+
+            <!-- Application Title -->
+            <TextBlock Text="Markdown Viewer"
+                       FontSize="14"
+                       Foreground="{DynamicResource ThemeTextPrimaryBrush}"
+                       VerticalAlignment="Center"
+                       Margin="12,0"/>
+
+            <!-- Separator (only show when file is active) -->
+            <Border x:Name="NavSeparator"
+                    Width="1" Height="24"
+                    Background="{DynamicResource ThemeBorderBrush}"
+                    Margin="4,0"
+                    Visibility="Collapsed"/>
+
             <!-- Back Button (32x32px as per mockup) -->
             <Button x:Name="BackButton"
                     Command="{x:Static local:NavigationCommands.GoBack}"
@@ -105,9 +133,9 @@
                     Style="{DynamicResource NavigationButtonStyle}"
                     ToolTip="Toggle Theme"
                     WindowChrome.IsHitTestVisibleInChrome="True">
-                <!-- Moon icon (for light mode - shows what clicking will switch to) -->
+                <!-- Sun icon (default for dark mode - shows what clicking will switch to) -->
                 <Path x:Name="ThemeIcon"
-                      Data="M9 2c-1.05 0-2.05.16-3 .46 4.06 1.27 7 5.06 7 9.54 0 4.48-2.94 8.27-7 9.54.95.3 1.95.46 3 .46 5.52 0 10-4.48 10-10S14.52 2 9 2z" 
+                      Data="M12 18c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6zm0-10c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4zM13 1h-2v3h2V1zm0 19h-2v3h2v-3zM4 13H1v-2h3v2zm19 0h-3v-2h3v2zm-2.1-7.5L19.5 4.1l-1.4 1.4 1.4 1.4 1.4-1.4zM6.3 17.8L4.9 19.2l-1.4-1.4 1.4-1.4 1.4 1.4zM19.5 19.2l-1.4-1.4-1.4 1.4 1.4 1.4 1.4-1.4zM6.3 6.3L4.9 4.9 6.3 3.5 7.7 4.9 6.3 6.3z" 
                       Fill="{DynamicResource ThemeTextPrimaryBrush}"
                       Stretch="Uniform"
                       Width="16" Height="16"/>

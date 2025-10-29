@@ -949,6 +949,21 @@ public partial class MainWindow : Window
     }
 
     // NavigationBar event handlers
+    private void NavigationBar_MenuRequested(object? sender, EventArgs e)
+    {
+        // Toggle sidebar visibility
+        if (SidebarPanel.Visibility == Visibility.Visible)
+        {
+            SidebarPanel.Visibility = Visibility.Collapsed;
+            SidebarColumn.Width = new GridLength(0);
+        }
+        else
+        {
+            SidebarPanel.Visibility = Visibility.Visible;
+            SidebarColumn.Width = new GridLength(280);
+        }
+    }
+
     private void NavigationBar_SearchRequested(object? sender, EventArgs e)
     {
         FindBar?.Show();
