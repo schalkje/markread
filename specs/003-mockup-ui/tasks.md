@@ -114,20 +114,20 @@ Based on WPF desktop application structure from plan.md:
 
 ### Tests for User Story 3
 
-- [ ] T035 [P] [US3] Create navigation functionality test in tests/integration/NavigationTests.cs
-- [ ] T036 [P] [US3] Create header layout integration test in tests/integration/HeaderLayoutTests.cs
+- [x] T035 [P] [US3] Create navigation functionality test in tests/integration/NavigationTests.cs
+- [x] T036 [P] [US3] Create header layout integration test in tests/integration/HeaderLayoutTests.cs
 
 ### Implementation for User Story 3
 
-- [ ] T037 [P] [US3] Implement INavigationService interface in src/Services/NavigationService.cs
-- [ ] T038 [P] [US3] Create unified header layout in src/UI/Shell/NavigationBar.xaml
-- [ ] T039 [P] [US3] Implement back/forward navigation buttons in src/UI/Shell/NavigationCommands.cs
-- [ ] T040 [US3] Add current file path display component in src/UI/Shell/FilePathDisplay.xaml
-- [ ] T041 [US3] Integrate search button with existing search functionality in src/UI/Shell/NavigationBar.xaml.cs
-- [ ] T042 [US3] Implement export dropdown menu in src/UI/Shell/ExportDropdown.xaml
-- [ ] T043 [US3] Add window control buttons (minimize, maximize, close) in src/UI/Shell/WindowControls.xaml
-- [ ] T044 [US3] Apply navigation bar styling to match mockup design
-- [ ] T045 [US3] Implement navigation state management and button state updates
+- [x] T037 [P] [US3] Implement INavigationService interface in src/Services/NavigationService.cs
+- [x] T038 [P] [US3] Create unified header layout in src/UI/Shell/NavigationBar.xaml
+- [x] T039 [P] [US3] Implement back/forward navigation buttons in src/UI/Shell/NavigationCommands.cs
+- [x] T040 [US3] Add current file path display component in src/UI/Shell/FilePathDisplay.xaml
+- [x] T041 [US3] Integrate search button with existing search functionality in src/UI/Shell/NavigationBar.xaml.cs
+- [x] T042 [US3] Implement export dropdown menu in src/UI/Shell/ExportDropdown.xaml
+- [x] T043 [US3] Add window control buttons (minimize, maximize, close) in src/UI/Shell/WindowControls.xaml
+- [x] T044 [US3] Apply navigation bar styling to match mockup design
+- [x] T045 [US3] Implement navigation state management and button state updates
 
 **Checkpoint**: At this point, the enhanced header should provide full navigation functionality with mockup-accurate styling
 

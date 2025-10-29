@@ -52,9 +52,6 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         
-        // Window chrome setup
-        this.StateChanged += (s, e) => UpdateMaximizeButtonIcon();
-
         _renderer = new Renderer(_markdownService, _sanitizer);
         _linkResolver = new LinkResolver(_folderService);
         _openFolderCommand = new OpenFolderCommand(_folderService);
@@ -112,9 +109,6 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        // Initialize window chrome UI
-        UpdateMaximizeButtonIcon();
-        
         await EnsureWebViewAsync();
         await InitializeFromStartupAsync();
     }
@@ -382,9 +376,6 @@ public partial class MainWindow : Window
 
         tab.DocumentPath = document.FullPath;
         tab.Title = Path.GetFileNameWithoutExtension(document.FullPath);
-
-        // Update current file path display
-        UpdateFilePathDisplay(document.FullPath);
 
         // Push to history before loading
         if (pushHistory)
@@ -700,14 +691,8 @@ public partial class MainWindow : Window
         {
             var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
             _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
-            
-            // Update file path display
-            UpdateFilePathDisplay(tab.DocumentPath);
         }
-        else
-        {
-            UpdateFilePathDisplay(null);
-        }
+        
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -860,16 +845,6 @@ public partial class MainWindow : Window
         WindowState = WindowState == WindowState.Maximized 
             ? WindowState.Normal 
             : WindowState.Maximized;
-        UpdateMaximizeButtonIcon();
-    }
-    
-    private void UpdateMaximizeButtonIcon()
-    {
-        if (MaximizeButton is not null)
-        {
-            MaximizeButton.Content = WindowState == WindowState.Maximized ? "⧉" : "□";
-            MaximizeButton.ToolTip = WindowState == WindowState.Maximized ? "Restore Down" : "Maximize";
-        }
     }
 
     private void Close_Click(object sender, RoutedEventArgs e)
@@ -883,27 +858,7 @@ public partial class MainWindow : Window
         // This will show a dropdown with navigation history similar to the mockup
     }
 
-    // UI Helper methods
-    private void UpdateFilePathDisplay(string? filePath)
-    {
-        if (CurrentFilePathText is not null)
-        {
-            if (string.IsNullOrEmpty(filePath))
-            {
-                CurrentFilePathText.Text = "No file selected";
-            }
-            else if (_currentRoot is not null)
-            {
-                // Show relative path from root
-                var relativePath = Path.GetRelativePath(_currentRoot.Path, filePath);
-                CurrentFilePathText.Text = relativePath;
-            }
-            else
-            {
-                CurrentFilePathText.Text = Path.GetFileName(filePath);
-            }
-        }
-    }
+    // UI Helper methods - file path display now handled by NavigationBar
 
     // Sidebar integration
     private void OnSidebarFileSelected(object? sender, string filePath)
@@ -939,5 +894,18 @@ public partial class MainWindow : Window
                 });
             });
         }
+    }
+
+    // NavigationBar event handlers
+    private void NavigationBar_SearchRequested(object? sender, EventArgs e)
+    {
+        FindBar?.Show();
+    }
+
+    private void NavigationBar_ExportRequested(object? sender, EventArgs e)
+    {
+        // TODO: Show export dropdown menu
+        // For now, just show a placeholder message
+        WpfMessageBox.Show("Export functionality coming soon", "Export", MessageBoxButton.OK);
     }
 }
