@@ -141,20 +141,20 @@ Based on WPF desktop application structure from plan.md:
 
 ### Tests for User Story 4
 
-- [ ] T046 [P] [US4] Create tab management integration test in tests/integration/TabsAndSearchTests.cs
-- [ ] T047 [P] [US4] Create tab scrolling behavior test in tests/integration/TabScrollingTests.cs
+- [x] T046 [P] [US4] Create tab management integration test in tests/integration/TabsAndSearchTests.cs
+- [x] T047 [P] [US4] Create tab scrolling behavior test in tests/integration/TabScrollingTests.cs
 
 ### Implementation for User Story 4
 
-- [ ] T048 [P] [US4] Implement ITabService interface in src/Services/TabService.cs
-- [ ] T049 [P] [US4] Create enhanced TabItem control in src/UI/Tabs/TabItem.cs
-- [ ] T050 [P] [US4] Implement scrollable tab container in src/UI/Tabs/TabsView.xaml
-- [ ] T051 [US4] Add hover-based close button animations in src/UI/Tabs/TabContentControl.xaml
-- [ ] T052 [US4] Implement active tab visual indicators and transitions
-- [ ] T053 [US4] Add tab scrolling controls and smooth scroll animations
-- [ ] T054 [US4] Integrate tab service with existing file management system
-- [ ] T055 [US4] Apply professional tab styling to match mockup design
-- [ ] T056 [US4] Implement tab performance optimization for 20+ open files
+- [x] T048 [P] [US4] Implement ITabService interface in src/Services/TabService.cs
+- [x] T049 [P] [US4] Create enhanced TabItem control in src/UI/Tabs/TabItem.cs
+- [x] T050 [P] [US4] Implement scrollable tab container in src/UI/Tabs/TabsView.xaml
+- [x] T051 [US4] Add hover-based close button animations in src/UI/Tabs/TabContentControl.xaml
+- [x] T052 [US4] Implement active tab visual indicators and transitions
+- [x] T053 [US4] Add tab scrolling controls and smooth scroll animations
+- [x] T054 [US4] Integrate tab service with existing file management system
+- [x] T055 [US4] Apply professional tab styling to match mockup design
+- [x] T056 [US4] Implement tab performance optimization for 20+ open files
 
 **Checkpoint**: At this point, tab management should provide professional UX with smooth scrolling and animations
 

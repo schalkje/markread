@@ -1,7 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.ObjectModel;
-using System.Windows;
-using System.Windows.Controls;
+using System.Linq;
 using MarkRead.App.UI.Tabs;
 
 namespace MarkRead.IntegrationTests;

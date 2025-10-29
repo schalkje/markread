@@ -35,6 +35,7 @@ public partial class MainWindow : Window
     private readonly SettingsService _settingsService = new();
     private readonly HistoryService _historyService = new();
     private readonly FileWatcherService _fileWatcherService = new();
+    private readonly TabService _tabService = new();
     private readonly Renderer _renderer;
     private readonly LinkResolver _linkResolver;
     private readonly OpenFolderCommand _openFolderCommand;
@@ -44,7 +45,6 @@ public partial class MainWindow : Window
     private IDisposable? _documentWatcher;
     private StartupArguments _startupArguments = StartupArguments.Empty;
     private ViewerSettings _currentSettings = ViewerSettings.Default();
-    private ObservableCollection<TabItemModel> _tabs = new();
     private WebViewHost? _webViewHost;
     private bool _isInitialized;
 
@@ -62,7 +62,11 @@ public partial class MainWindow : Window
         _themeManager.ThemeChanged += OnThemeChanged;
         _themeManager.ThemeLoadFailed += OnThemeLoadFailed;
 
-        this.TabControl.ItemsSource = _tabs;
+        // Subscribe to TabService events
+        _tabService.ActiveTabChanged += OnActiveTabChanged;
+        _tabService.TabClosed += OnTabClosed;
+
+        this.TabControl.ItemsSource = _tabService.Tabs;
 
         // Wire up FindBar events
         FindBar.SearchRequested += OnSearchRequested;
@@ -239,7 +243,7 @@ public partial class MainWindow : Window
         if (result is null)
         {
             System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: result is null, showing overlay");
-            if (_tabs.Count == 0)
+            if (_tabService.Tabs.Count == 0)
             {
                 ShowStartOverlay(true);
             }
@@ -261,7 +265,7 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog(this) != true)
         {
-            if (_tabs.Count == 0)
+            if (_tabService.Tabs.Count == 0)
             {
                 ShowStartOverlay(true);
             }
@@ -313,13 +317,13 @@ public partial class MainWindow : Window
         SidebarContent.SetRootFolder(result.Root.Path);
 
         // Create initial tab if no tabs exist
-        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: _tabs.Count = {_tabs.Count}");
-        if (_tabs.Count == 0)
+        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: _tabService.Tabs.Count = {_tabService.Tabs.Count}");
+        if (_tabService.Tabs.Count == 0)
         {
             System.Diagnostics.Debug.WriteLine("LoadRootAsync: Creating initial tab");
             var initialTab = new TabItemModel(Guid.NewGuid(), result.Root.DisplayName);
             await AddTabAsync(initialTab);
-            System.Diagnostics.Debug.WriteLine($"LoadRootAsync: Tab created, _tabs.Count = {_tabs.Count}");
+            System.Diagnostics.Debug.WriteLine($"LoadRootAsync: Tab created, _tabService.Tabs.Count = {_tabService.Tabs.Count}");
         }
 
         // Show tabs and load document
@@ -351,10 +355,9 @@ public partial class MainWindow : Window
     private Task AddTabAsync(TabItemModel tab)
     {
         System.Diagnostics.Debug.WriteLine($"AddTabAsync: Creating tab '{tab.Title}'");
-        _tabs.Add(tab);
-        System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab added to collection, _tabs.Count={_tabs.Count}");
-        this.TabControl.SelectedItem = tab;
-        System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab selected, TabControl.SelectedItem={this.TabControl.SelectedItem}");
+        _tabService.AddTab(tab);
+        System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab added to collection, _tabService.Tabs.Count={_tabService.Tabs.Count}");
+        System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab selected, ActiveTab={_tabService.ActiveTab}");
         System.Diagnostics.Debug.WriteLine("AddTabAsync: Completed");
         return Task.CompletedTask;
     }
@@ -685,48 +688,32 @@ public partial class MainWindow : Window
 
     private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // When tab changes, reload the document for the selected tab
-        var tab = GetCurrentTab();
-        if (tab is not null && !string.IsNullOrEmpty(tab.DocumentPath))
+        // Sync manual tab selection to TabService
+        if (e.AddedItems.Count > 0 && e.AddedItems[0] is TabItemModel tab)
         {
-            var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
-            _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+            if (_tabService.ActiveTab != tab)
+            {
+                _tabService.SetActiveTab(tab);
+            }
         }
-        
-        CommandManager.InvalidateRequerySuggested();
     }
 
     private void CloseTab_Click(object sender, RoutedEventArgs e)
     {
         if (sender is System.Windows.Controls.Button button && button.Tag is Guid tabId)
         {
-            var tab = _tabs.FirstOrDefault(t => t.Id == tabId);
+            var tab = _tabService.FindTab(tabId);
             if (tab is not null)
             {
-                // Remove from collection
-                var index = _tabs.IndexOf(tab);
-                _tabs.Remove(tab);
-
-                // If this was the last tab, show start overlay
-                if (_tabs.Count == 0)
-                {
-                    ShowStartOverlay(true);
-                    this.TabControl.Visibility = Visibility.Collapsed;
-                    MarkdownView.Visibility = Visibility.Collapsed;
-                }
-                else if (index >= 0)
-                {
-                    // Select adjacent tab
-                    var newIndex = Math.Min(index, _tabs.Count - 1);
-                    this.TabControl.SelectedItem = _tabs[newIndex];
-                }
+                _tabService.CloseTab(tabId);
+                // TabClosed event handler will manage UI visibility
             }
         }
     }
 
     private TabItemModel? GetCurrentTab()
     {
-        return this.TabControl.SelectedItem as TabItemModel;
+        return _tabService.ActiveTab;
     }
 
     private void ShowStartOverlay(bool visible)
@@ -752,9 +739,45 @@ public partial class MainWindow : Window
         _themeManager.ThemeChanged -= OnThemeChanged;
         _themeManager.ThemeLoadFailed -= OnThemeLoadFailed;
 
+        // Unsubscribe from TabService events
+        _tabService.ActiveTabChanged -= OnActiveTabChanged;
+        _tabService.TabClosed -= OnTabClosed;
+
         _documentWatcher?.Dispose();
         _fileWatcherService.Dispose();
         _webViewHost?.Dispose();
+    }
+
+    private void OnActiveTabChanged(object? sender, TabItemModel? e)
+    {
+        // Sync TabService.ActiveTab to TabControl.SelectedItem
+        var tab = e ?? _tabService.ActiveTab;
+        if (tab is not null)
+        {
+            if (this.TabControl.SelectedItem != tab)
+            {
+                this.TabControl.SelectedItem = tab;
+            }
+            
+            if (!string.IsNullOrEmpty(tab.DocumentPath))
+            {
+                var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
+                _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+            }
+        }
+        
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void OnTabClosed(object? sender, TabItemModel e)
+    {
+        // If no tabs left, show start overlay
+        if (_tabService.Tabs.Count == 0)
+        {
+            ShowStartOverlay(true);
+            this.TabBarContainer.Visibility = Visibility.Collapsed;
+            this.MarkdownView.Visibility = Visibility.Collapsed;
+        }
     }
 
     private async void OnThemeChanged(object? sender, ThemeChangedEventArgs e)
@@ -873,11 +896,11 @@ public partial class MainWindow : Window
         if (document is DocumentInfo doc)
         {
             // Check if the file is already open in a tab
-            var existingTab = _tabs.FirstOrDefault(t => t.DocumentPath == filePath);
+            var existingTab = _tabService.Tabs.FirstOrDefault(t => t.DocumentPath == filePath);
             if (existingTab is not null)
             {
-                // Just switch to the existing tab
-                this.TabControl.SelectedItem = existingTab;
+                // Just activate the existing tab
+                _tabService.SetActiveTab(existingTab);
                 return;
             }
 
