@@ -173,15 +173,15 @@ Based on WPF desktop application structure from plan.md:
 
 ### Implementation for User Story 5
 
-- [ ] T059 [P] [US5] Implement ISidebarService interface in src/Services/SidebarService.cs
-- [ ] T060 [P] [US5] Create enhanced file tree icons in src/Rendering/assets/icons/
-- [ ] T061 [P] [US5] Implement improved file tree styling in src/UI/Sidebar/SidebarView.xaml
-- [ ] T062 [US5] Add folder/file icon system with visual hierarchy
-- [ ] T063 [US5] Implement smooth sidebar collapse/expand animations
-- [ ] T064 [US5] Add responsive sidebar auto-collapse at 768px breakpoint
-- [ ] T065 [US5] Implement file selection highlighting and navigation
-- [ ] T066 [US5] Add sidebar width persistence and resize handling
-- [ ] T067 [US5] Apply enhanced sidebar styling to match mockup design
+- [x] T059 [P] [US5] Implement ISidebarService interface in src/Services/SidebarService.cs
+- [x] T060 [P] [US5] Create enhanced file tree icons in src/Rendering/assets/icons/
+- [x] T061 [P] [US5] Implement improved file tree styling in src/UI/Sidebar/SidebarView.xaml
+- [x] T062 [US5] Add folder/file icon system with visual hierarchy
+- [x] T063 [US5] Implement smooth sidebar collapse/expand animations
+- [x] T064 [US5] Add responsive sidebar auto-collapse at 768px breakpoint
+- [x] T065 [US5] Implement file selection highlighting and navigation
+- [x] T066 [US5] Add sidebar width persistence and resize handling
+- [x] T067 [US5] Apply enhanced sidebar styling to match mockup design
 
 **Checkpoint**: At this point, the sidebar should provide enhanced file navigation with responsive behavior
 
@@ -195,19 +195,19 @@ Based on WPF desktop application structure from plan.md:
 
 ### Tests for User Story 6
 
-- [ ] T068 [P] [US6] Create search interface integration test in tests/integration/SearchInterfaceTests.cs
-- [ ] T069 [P] [US6] Create search styling validation test in tests/integration/SearchStylingTests.cs
+- [x] T068 [P] [US6] Create search interface integration test in tests/integration/SearchInterfaceTests.cs
+- [x] T069 [P] [US6] Create search styling validation test in tests/integration/SearchStylingTests.cs
 
 ### Implementation for User Story 6
 
-- [ ] T070 [P] [US6] Implement ISearchService interface in src/Services/SearchService.cs
-- [ ] T071 [P] [US6] Update in-page search bar styling in src/UI/Find/FindBar.xaml
-- [ ] T072 [P] [US6] Enhance global search panel design in src/UI/Search/GlobalSearchPanel.xaml
-- [ ] T073 [US6] Apply search interface styling to match mockup design
-- [ ] T074 [US6] Implement search animation and transition effects
-- [ ] T075 [US6] Add search result highlighting and navigation enhancements
-- [ ] T076 [US6] Integrate enhanced search with theme system
-- [ ] T077 [US6] Implement search performance optimization and visual feedback
+- [x] T070 [P] [US6] Implement ISearchService interface in src/Services/SearchService.cs
+- [x] T071 [P] [US6] Update in-page search bar styling in src/UI/Find/FindBar.xaml
+- [x] T072 [P] [US6] Enhance global search panel design in src/UI/Search/GlobalSearchPanel.xaml
+- [x] T073 [US6] Apply search interface styling to match mockup design
+- [x] T074 [US6] Implement search animation and transition effects
+- [x] T075 [US6] Add search result highlighting and navigation enhancements
+- [x] T076 [US6] Integrate enhanced search with theme system
+- [x] T077 [US6] Implement search performance optimization and visual feedback
 
 **Checkpoint**: At this point, all search interfaces should have professional styling matching the mockup
 

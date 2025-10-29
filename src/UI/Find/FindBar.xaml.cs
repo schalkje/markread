@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 
 using WpfUserControl = System.Windows.Controls.UserControl;
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
@@ -12,6 +13,7 @@ public partial class FindBar : WpfUserControl
 {
     private int _currentMatchIndex;
     private int _totalMatches;
+    private bool _isAnimating;
 
     public FindBar()
     {
@@ -25,19 +27,48 @@ public partial class FindBar : WpfUserControl
 
     public string SearchQuery => SearchTextBox.Text;
 
+    /// <summary>
+    /// Shows the find bar with animation (T074).
+    /// </summary>
     public void Show()
     {
+        if (_isAnimating) return;
+
         Visibility = Visibility.Visible;
+        _isAnimating = true;
+
+        var showAnimation = (Storyboard)FindResource("ShowAnimation");
+        showAnimation.Completed += (s, e) => _isAnimating = false;
+        showAnimation.Begin();
+
         SearchTextBox.Focus();
         SearchTextBox.SelectAll();
     }
 
+    /// <summary>
+    /// Hides the find bar with animation (T074).
+    /// </summary>
     public void Hide()
+    {
+        if (_isAnimating) return;
+
+        _isAnimating = true;
+
+        var hideAnimation = (Storyboard)FindResource("HideAnimation");
+        hideAnimation.Begin();
+        // Visibility will be set to Collapsed in OnHideAnimationCompleted
+    }
+
+    /// <summary>
+    /// Called when hide animation completes (T074).
+    /// </summary>
+    private void OnHideAnimationCompleted(object? sender, EventArgs e)
     {
         Visibility = Visibility.Collapsed;
         _currentMatchIndex = 0;
         _totalMatches = 0;
         UpdateMatchCount();
+        _isAnimating = false;
     }
 
     public void UpdateMatchCount(int currentIndex, int totalMatches)
@@ -51,11 +82,11 @@ public partial class FindBar : WpfUserControl
     {
         if (_totalMatches == 0)
         {
-            MatchCountText.Text = "0/0";
+            MatchCountText.Text = "0 of 0";
         }
         else
         {
-            MatchCountText.Text = $"{_currentMatchIndex + 1}/{_totalMatches}";
+            MatchCountText.Text = $"{_currentMatchIndex + 1} of {_totalMatches}";
         }
     }
 
