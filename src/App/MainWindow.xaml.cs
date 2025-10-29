@@ -724,10 +724,33 @@ public partial class MainWindow : Window
             return;
         }
 
-        WelcomeOverlay.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        // Determine which overlay to show based on whether a folder is loaded
+        bool hasFolderLoaded = _currentRoot is not null;
+
         if (visible)
         {
+            if (hasFolderLoaded)
+            {
+                // Folder loaded but no file selected - show welcome overlay
+                StartScreen.Visibility = Visibility.Collapsed;
+                WelcomeOverlay.Visibility = Visibility.Visible;
+                SidebarPanel.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                // No folder loaded - show start screen and hide sidebar
+                StartScreen.Visibility = Visibility.Visible;
+                WelcomeOverlay.Visibility = Visibility.Collapsed;
+                SidebarPanel.Visibility = Visibility.Collapsed;
+            }
             this.TabControl.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            // Hide all overlays, show content and sidebar
+            StartScreen.Visibility = Visibility.Collapsed;
+            WelcomeOverlay.Visibility = Visibility.Collapsed;
+            SidebarPanel.Visibility = Visibility.Visible;
         }
     }
 

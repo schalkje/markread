@@ -237,10 +237,14 @@
                               DefaultBackgroundColor="Transparent"
                               Visibility="Collapsed" />
 
-                <!-- Welcome Screen (matches mockup design) -->
+                <!-- Start Screen (shown when no folder loaded) -->
+                <start:StartView x:Name="StartScreen"
+                                 Visibility="Visible" />
+
+                <!-- Welcome Screen (shown when folder loaded but no file selected) -->
                 <Border x:Name="WelcomeOverlay"
                         Background="{DynamicResource ThemeBackgroundBrush}"
-                        Visibility="Visible">
+                        Visibility="Collapsed">
                     <StackPanel HorizontalAlignment="Center" 
                                 VerticalAlignment="Center"
                                 TextBlock.Foreground="{DynamicResource ThemeTextSecondaryBrush}">
