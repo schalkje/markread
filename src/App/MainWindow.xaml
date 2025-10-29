@@ -188,8 +188,8 @@
         <!-- Main Content Area with Sidebar -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <!-- Sidebar (256px width to match mockup) -->
-                <ColumnDefinition x:Name="SidebarColumn" Width="256" MinWidth="0"/>
+                <!-- Sidebar (280px width to match mockup) -->
+                <ColumnDefinition x:Name="SidebarColumn" Width="280" MinWidth="0"/>
                 <!-- Main Content -->
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
@@ -197,7 +197,7 @@
             <!-- Sidebar Panel -->
             <Border Grid.Column="0"
                     x:Name="SidebarPanel"
-                    Background="{DynamicResource ThemeBackgroundBrush}"
+                    Background="{DynamicResource ThemeSidebarBackgroundBrush}"
                     BorderBrush="{DynamicResource ThemeBorderBrush}"
                     BorderThickness="0,0,1,0">
                 
@@ -209,16 +209,18 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Sidebar Header -->
+                    <!-- Sidebar Header (40px height to match mockup) -->
                     <Border Grid.Row="0"
-                            Background="{DynamicResource ThemeBackgroundBrush}"
+                            Background="{DynamicResource ThemeSidebarBackgroundBrush}"
                             BorderBrush="{DynamicResource ThemeBorderBrush}"
                             BorderThickness="0,0,0,1"
+                            Height="40"
                             Padding="16,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="Files"
-                                       Style="{StaticResource HeaderTextBlock}"
-                                       FontSize="14"/>
+                                       Foreground="{DynamicResource ThemeTextPrimaryBrush}"
+                                       FontSize="14"
+                                       VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
 

@@ -52,29 +52,29 @@
             </DoubleAnimation>
         </Storyboard>
 
-        <!-- Modern input field style (T071) -->
+        <!-- Modern input field style (T071) - matching mockup -->
         <Style x:Key="ModernSearchInput" TargetType="TextBox">
-            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Padding" Value="10,8"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Background" Value="{DynamicResource ThemeBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Height" Value="32"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
+                                CornerRadius="6">
                             <ScrollViewer x:Name="PART_ContentHost"
                                         Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
                                 <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
-                                <Setter Property="BorderThickness" Value="2"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -148,25 +148,29 @@
             <!-- Find label -->
             <TextBlock Grid.Column="0"
                       Text="Find:"
-                      FontSize="14"
+                      FontSize="13"
                       Foreground="{DynamicResource ThemeForegroundBrush}"
                       VerticalAlignment="Center"
-                      Margin="0,0,12,0"/>
+                      Margin="0,0,8,0"/>
 
-            <!-- Modern search input (T071) -->
+            <!-- Modern search input (T071) - matches mockup width and style -->
             <TextBox x:Name="SearchTextBox"
                     Grid.Column="1"
                     Style="{StaticResource ModernSearchInput}"
-                    MinWidth="250"
+                    MinWidth="300"
                     VerticalAlignment="Center"
                     TextChanged="OnSearchTextChanged"
                     KeyDown="OnSearchKeyDown"/>
 
-            <!-- Result counter (T071) -->
+            <!-- Result counter (T071) - smaller, secondary color -->
             <TextBlock x:Name="MatchCountText"
                       Grid.Column="2"
                       Text="0 of 0"
-                      Style="{StaticResource ResultCounter}"/>
+                      FontSize="12"
+                      Foreground="{DynamicResource ThemeTextSecondaryBrush}"
+                      VerticalAlignment="Center"
+                      MinWidth="60"
+                      Margin="8,0"/>
 
             <!-- Previous button (T071) -->
             <Button Grid.Column="3"

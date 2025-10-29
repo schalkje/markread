@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:MarkRead.App.UI.Tabs"
              mc:Ignorable="d" 
              d:DesignHeight="40" d:DesignWidth="800">
-    <Grid Background="{DynamicResource SurfaceBackground}">
+    <Grid Background="{DynamicResource ThemeBackgroundBrush}">
         <Grid.ColumnDefinitions>
             <!-- Left scroll button -->
             <ColumnDefinition Width="Auto"/>
@@ -23,9 +23,9 @@
                 Grid.Column="0"
                 Content="‹"
                 FontSize="18"
-                Width="28"
-                Height="32"
-                Margin="2,4,0,4"
+                Width="32"
+                Height="40"
+                Margin="0"
                 Style="{DynamicResource TabScrollButtonStyle}"
                 ToolTip="Scroll tabs left"
                 Click="OnScrollLeftClicked"
@@ -47,60 +47,69 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type local:TabItem}">
                         <Border x:Name="TabBorder"
-                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderBrush="{DynamicResource ThemeBorderBrush}"
                                 BorderThickness="0,0,1,0"
-                                Background="{DynamicResource SurfaceSecondary}"
+                                Background="{DynamicResource ThemeBackgroundBrush}"
                                 Margin="0"
                                 MinWidth="120"
                                 MaxWidth="200"
-                                Height="32"
+                                Height="40"
                                 Cursor="Hand"
                                 MouseLeftButtonDown="OnTabClicked">
                             <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <!-- Tab content -->
+                                <Grid Grid.Row="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
 
-                                <TextBlock Grid.Column="0"
-                                          Text="{Binding Title}"
-                                          Margin="12,6,4,6"
-                                          TextTrimming="CharacterEllipsis"
-                                          VerticalAlignment="Center"
-                                          Foreground="{DynamicResource TextPrimary}"
-                                          FontSize="13"
-                                          ToolTip="{Binding Title}"/>
+                                    <TextBlock Grid.Column="0"
+                                              Text="{Binding Title}"
+                                              Margin="16,0,8,0"
+                                              TextTrimming="CharacterEllipsis"
+                                              VerticalAlignment="Center"
+                                              Foreground="{DynamicResource ThemeTextPrimaryBrush}"
+                                              FontSize="14"
+                                              ToolTip="{Binding Title}"/>
 
-                                <!-- Close button - visible on hover -->
-                                <Button x:Name="CloseButton"
-                                       Grid.Column="1"
-                                       Content="×"
-                                       FontSize="16"
-                                       FontWeight="Bold"
-                                       Width="20"
-                                       Height="20"
-                                       Margin="0,0,6,0"
-                                       Padding="0"
-                                       VerticalAlignment="Center"
-                                       Style="{DynamicResource TabCloseButtonStyle}"
-                                       ToolTip="Close tab"
-                                       Click="OnCloseTabClicked"
-                                       Opacity="0"/>
+                                    <!-- Close button - visible on hover and active tab -->
+                                    <Button x:Name="CloseButton"
+                                           Grid.Column="1"
+                                           Content="×"
+                                           FontSize="18"
+                                           Width="20"
+                                           Height="20"
+                                           Margin="0,0,12,0"
+                                           Padding="0"
+                                           VerticalAlignment="Center"
+                                           Style="{DynamicResource TabCloseButtonStyle}"
+                                           ToolTip="Close tab"
+                                           Click="OnCloseTabClicked"
+                                           Opacity="0"/>
+                                </Grid>
+                                
+                                <!-- Active indicator (2px line at bottom) -->
+                                <Border x:Name="ActiveIndicator"
+                                        Grid.Row="1"
+                                        Height="2"
+                                        Background="{DynamicResource ThemeAccentBrush}"
+                                        Visibility="Collapsed"/>
                             </Grid>
                         </Border>
                         <DataTemplate.Triggers>
                             <!-- Active tab styling -->
                             <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource SurfaceBackground}"/>
-                                <Setter TargetName="TabBorder" Property="BorderThickness" Value="0,2,1,0"/>
-                                <Setter TargetName="TabBorder" Property="BorderBrush">
-                                    <Setter.Value>
-                                        <SolidColorBrush Color="#3B82F6"/>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource ThemeSecondaryBackgroundBrush}"/>
+                                <Setter TargetName="ActiveIndicator" Property="Visibility" Value="Visible"/>
                                 <Setter TargetName="CloseButton" Property="Opacity" Value="1"/>
                             </DataTrigger>
-                            <!-- Hover effect - show close button -->
+                            <!-- Hover effect - show close button and highlight background -->
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                                 <Setter TargetName="CloseButton" Property="Opacity" Value="1"/>
@@ -116,9 +125,9 @@
                 Grid.Column="2"
                 Content="›"
                 FontSize="18"
-                Width="28"
-                Height="32"
-                Margin="0,4,2,4"
+                Width="32"
+                Height="40"
+                Margin="0"
                 Style="{DynamicResource TabScrollButtonStyle}"
                 ToolTip="Scroll tabs right"
                 Click="OnScrollRightClicked"
@@ -129,9 +138,9 @@
                Content="+"
                FontSize="16"
                FontWeight="Bold"
-               Width="32"
-               Height="32"
-               Margin="4"
+               Width="40"
+               Height="40"
+               Margin="0"
                Style="{DynamicResource TabScrollButtonStyle}"
                ToolTip="New tab (Ctrl+T)"
                Click="OnNewTabClicked"/>

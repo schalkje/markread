@@ -131,10 +131,10 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Children Container -->
+                                <!-- Children Container (20px indentation per level to match mockup) -->
                                 <ItemsPresenter x:Name="ItemsHost"
                                                 Grid.Row="1"
-                                                Margin="16,0,0,0"
+                                                Margin="20,0,0,0"
                                                 Visibility="Collapsed"/>
                             </Grid>
 
