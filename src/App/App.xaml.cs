@@ -56,14 +56,18 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        System.Diagnostics.Debug.WriteLine("App.OnStartup: START");
+        
         // T083: Start monitoring startup performance
         var perfMonitor = StartupPerformanceMonitor.Instance;
         perfMonitor.StartPhase("Application Initialization");
 
-        if (Current.MainWindow is not MainWindow window)
-        {
-            return;
-        }
+        // Create and show the main window
+        var window = new MainWindow();
+        MainWindow = window;
+        window.Show();
+        
+        System.Diagnostics.Debug.WriteLine("App.OnStartup: MainWindow created and shown");
 
         perfMonitor.StartPhase("Input Bindings Setup");
         AddInputBinding(window, OpenFolderCommand);

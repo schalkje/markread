@@ -19,13 +19,6 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
     public NavigationBar()
     {
         InitializeComponent();
-        Loaded += NavigationBar_Loaded;
-    }
-
-    private void NavigationBar_Loaded(object sender, RoutedEventArgs e)
-    {
-        // Update theme icon after control is fully loaded
-        UpdateThemeIcon();
     }
 
     public NavigationBar(INavigationService navigationService) : this()
@@ -79,9 +72,9 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
         if (d is NavigationBar navBar && e.NewValue is IThemeService themeService)
         {
             navBar._themeService = themeService;
-            navBar.UpdateThemeIcon();
             
             // Subscribe to theme changes to update icon
+            // Don't call UpdateThemeIcon() here - let ThemeChanged event handle it after initialization
             themeService.ThemeChanged += (s, args) => navBar.UpdateThemeIcon();
         }
     }
@@ -128,9 +121,13 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
 
     private async void ThemeToggleButton_Click(object sender, RoutedEventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine($"ThemeToggleButton_Click: _themeService is {(_themeService == null ? "NULL" : "set")}");
+        
         if (_themeService == null) return;
 
         var currentTheme = _themeService.GetCurrentTheme();
+        System.Diagnostics.Debug.WriteLine($"Current theme: {currentTheme}, switching to: {(currentTheme == ThemeType.Dark ? "Light" : "Dark")}");
+        
         var newTheme = currentTheme == ThemeType.Dark ? ThemeType.Light : ThemeType.Dark;
         
         await _themeService.ApplyTheme(newTheme);

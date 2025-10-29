@@ -110,13 +110,25 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
     /// </summary>
     public ThemeType CurrentTheme
     {
-        get => _currentTheme;
+        get
+        {
+            var instanceId = GetHashCode();
+            System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] CurrentTheme getter: returning {_currentTheme}");
+            return _currentTheme;
+        }
         private set
         {
+            var instanceId = GetHashCode();
+            System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] CurrentTheme setter: _currentTheme={_currentTheme}, new value={value}");
             if (_currentTheme != value)
             {
                 _currentTheme = value;
+                System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] CurrentTheme setter: _currentTheme updated to {_currentTheme}");
                 OnPropertyChanged(nameof(CurrentTheme));
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] CurrentTheme setter: value unchanged, not updating");
             }
         }
     }
@@ -125,6 +137,8 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _themeConfiguration = new ThemeConfiguration();
+        var instanceId = GetHashCode();
+        System.Diagnostics.Debug.WriteLine($"ThemeManager created: Instance #{instanceId}");
     }
 
     /// <summary>
@@ -132,16 +146,21 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
     /// </summary>
     public async Task InitializeAsync()
     {
+        var instanceId = GetHashCode();
+        System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] InitializeAsync: START");
+        
         try
         {
             _themeConfiguration = await _settingsService.LoadThemeConfigurationAsync();
             var effectiveTheme = _themeConfiguration.GetEffectiveTheme();
+            System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] InitializeAsync: effectiveTheme = {effectiveTheme}");
             ApplyThemeInternal(effectiveTheme, false); // Don't save during initialization
+            System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] InitializeAsync: COMPLETE");
         }
         catch (Exception ex)
         {
             // T079: Fallback to safe default theme if initialization fails
-            System.Diagnostics.Debug.WriteLine($"Theme initialization failed: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] Theme initialization failed: {ex.Message}");
             OnThemeLoadFailed(ThemeType.System, ex);
             
             // Use factory default configuration
@@ -225,11 +244,26 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
 
     private void ApplyThemeInternal(ThemeType theme, bool saveSettings)
     {
+        var instanceId = GetHashCode();
+        var oldTheme = CurrentTheme;
         var effectiveTheme = ResolveEffectiveTheme(theme);
+        System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] ApplyThemeInternal: theme={theme}, oldTheme={oldTheme}, effectiveTheme={effectiveTheme}");
         CurrentTheme = effectiveTheme;
+        System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] ApplyThemeInternal: CurrentTheme set to {CurrentTheme}");
         
         // Apply WPF theme
         ApplyWpfTheme(effectiveTheme);
+        
+        // Fire theme changed event if theme actually changed
+        if (oldTheme != effectiveTheme)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] ApplyThemeInternal: Firing ThemeChanged event ({oldTheme} -> {effectiveTheme})");
+            OnThemeChanged(oldTheme, effectiveTheme);
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"[Instance #{instanceId}] ApplyThemeInternal: NOT firing ThemeChanged (themes are same: {oldTheme})");
+        }
         
         // TODO: Apply WebView2 theme in future tasks
         // await ApplyWebView2Theme(effectiveTheme);

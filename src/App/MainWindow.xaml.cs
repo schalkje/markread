@@ -68,7 +68,7 @@ public partial class MainWindow : Window
 
         this.TabControl.ItemsSource = _tabService.Tabs;
 
-        // Wire up NavigationBar services
+        // Wire up NavigationBar ThemeService (icon will update after theme initialization)
         this.NavigationBar.ThemeService = _themeManager;
 
         // Wire up FindBar events
@@ -96,13 +96,18 @@ public partial class MainWindow : Window
 
     internal async Task InitializeShellAsync(StartupArguments startupArguments)
     {
+        System.Diagnostics.Debug.WriteLine("MainWindow.InitializeShellAsync: START");
         _startupArguments = startupArguments;
         
         // Load settings from disk
+        System.Diagnostics.Debug.WriteLine("MainWindow.InitializeShellAsync: Loading settings...");
         _currentSettings = await _settingsService.LoadAsync();
         
         // Initialize and apply saved theme using new ThemeManager
+        // Note: NavigationBar.ThemeService is already set in constructor
+        System.Diagnostics.Debug.WriteLine("MainWindow.InitializeShellAsync: Calling ThemeManager.InitializeAsync()...");
         await _themeManager.InitializeAsync();
+        System.Diagnostics.Debug.WriteLine("MainWindow.InitializeShellAsync: ThemeManager.InitializeAsync() complete");
         
         // Legacy theme manager for backward compatibility during transition
         var theme = _currentSettings.Theme.ToLowerInvariant() switch
@@ -811,8 +816,8 @@ public partial class MainWindow : Window
 
     private async void OnThemeChanged(object? sender, ThemeChangedEventArgs e)
     {
-        // Apply theme to WebView2 content if available
-        if (_webViewHost != null)
+        // Apply theme to WebView2 content if available and initialized
+        if (_webViewHost != null && _webViewHost.IsInitialized)
         {
             var themeConfig = await _settingsService.LoadThemeConfigurationAsync();
             var colorScheme = e.NewTheme switch
