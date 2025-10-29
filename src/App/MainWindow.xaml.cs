@@ -61,6 +61,10 @@ public partial class MainWindow : Window
         _themeManager = new ThemeManager(_settingsService);
         _webViewHost = new WebViewHost(MarkdownView, Path.Combine("Rendering", "assets"));
 
+        // Subscribe to theme change events for WebView2 coordination
+        _themeManager.ThemeChanged += OnThemeChanged;
+        _themeManager.ThemeLoadFailed += OnThemeLoadFailed;
+
         this.TabControl.ItemsSource = _tabs;
 
         // Wire up FindBar events
@@ -93,7 +97,10 @@ public partial class MainWindow : Window
         // Load settings from disk
         _currentSettings = await _settingsService.LoadAsync();
         
-        // Apply saved theme
+        // Initialize and apply saved theme using new ThemeManager
+        await _themeManager.InitializeAsync();
+        
+        // Legacy theme manager for backward compatibility during transition
         var theme = _currentSettings.Theme.ToLowerInvariant() switch
         {
             "dark" => LegacyThemeManager.AppTheme.Dark,
@@ -756,9 +763,37 @@ public partial class MainWindow : Window
     {
         base.OnClosed(e);
 
+        // Unsubscribe from theme events
+        _themeManager.ThemeChanged -= OnThemeChanged;
+        _themeManager.ThemeLoadFailed -= OnThemeLoadFailed;
+
         _documentWatcher?.Dispose();
         _fileWatcherService.Dispose();
         _webViewHost?.Dispose();
+    }
+
+    private async void OnThemeChanged(object? sender, ThemeChangedEventArgs e)
+    {
+        // Apply theme to WebView2 content if available
+        if (_webViewHost != null)
+        {
+            var themeConfig = await _settingsService.LoadThemeConfigurationAsync();
+            var colorScheme = e.NewTheme switch
+            {
+                ThemeType.Dark => themeConfig.DarkColorScheme,
+                ThemeType.Light => themeConfig.LightColorScheme,
+                _ => themeConfig.GetEffectiveTheme() == ThemeType.Dark ? themeConfig.DarkColorScheme : themeConfig.LightColorScheme
+            };
+            
+            var themeName = e.NewTheme.ToString().ToLowerInvariant();
+            await _webViewHost.InjectThemeFromColorSchemeAsync(themeName, colorScheme);
+        }
+    }
+
+    private void OnThemeLoadFailed(object? sender, ThemeErrorEventArgs e)
+    {
+        // Log or handle theme loading errors
+        System.Diagnostics.Debug.WriteLine($"Theme load failed for {e.AttemptedTheme}: {e.Error.Message}");
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e)

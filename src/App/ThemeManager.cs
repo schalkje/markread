@@ -3,11 +3,17 @@ using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
+using System.Linq;
+using System.Collections.Generic;
+using Microsoft.Win32;
 using MarkRead.Services;
 using MarkRead.App.Services;
 using WpfApplication = System.Windows.Application;
 using WpfColor = System.Windows.Media.Color;
 using DrawingColor = System.Drawing.Color;
+using ThemeType = MarkRead.Services.ThemeType;
+using ThemeConfiguration = MarkRead.Services.ThemeConfiguration;
+using ColorScheme = MarkRead.Services.ColorScheme;
 
 namespace MarkRead.App;
 
@@ -91,6 +97,9 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
     private readonly SettingsService _settingsService;
     private ThemeConfiguration _themeConfiguration;
     private ThemeType _currentTheme = ThemeType.System;
+    
+    // Performance optimization: Cache for resource dictionaries
+    private static readonly Dictionary<ThemeType, ResourceDictionary?> _resourceDictionaryCache = new();
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler<ThemeChangedEventArgs>? ThemeChanged;
@@ -127,13 +136,13 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
         {
             _themeConfiguration = await _settingsService.LoadThemeConfigurationAsync();
             var effectiveTheme = _themeConfiguration.GetEffectiveTheme();
-            await ApplyThemeInternal(effectiveTheme, false); // Don't save during initialization
+            ApplyThemeInternal(effectiveTheme, false); // Don't save during initialization
         }
         catch (Exception ex)
         {
             // Fallback to light theme if initialization fails
             OnThemeLoadFailed(ThemeType.System, ex);
-            await ApplyThemeInternal(ThemeType.Light, false);
+            ApplyThemeInternal(ThemeType.Light, false);
         }
     }
 
@@ -145,14 +154,22 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
         try
         {
             var oldTheme = CurrentTheme;
-            await ApplyThemeInternal(theme, true);
+            var effectiveTheme = ResolveEffectiveTheme(theme);
+            
+            // Performance optimization: Skip if already applied
+            if (effectiveTheme == oldTheme && _themeConfiguration.CurrentTheme == theme)
+            {
+                return true;
+            }
+            
+            ApplyThemeInternal(theme, true);
             
             // Save the theme preference
             _themeConfiguration.CurrentTheme = theme;
             _themeConfiguration.LastModified = DateTime.UtcNow;
             await _settingsService.SaveThemeConfigurationAsync(_themeConfiguration);
             
-            OnThemeChanged(oldTheme, theme);
+            OnThemeChanged(oldTheme, effectiveTheme);
             return true;
         }
         catch (Exception ex)
@@ -162,7 +179,7 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
         }
     }
 
-    private async Task ApplyThemeInternal(ThemeType theme, bool saveSettings)
+    private void ApplyThemeInternal(ThemeType theme, bool saveSettings)
     {
         var effectiveTheme = ResolveEffectiveTheme(theme);
         CurrentTheme = effectiveTheme;
@@ -182,20 +199,116 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
             ? _themeConfiguration.DarkColorScheme 
             : _themeConfiguration.LightColorScheme;
 
-        // Update application resources
-        WpfApplication.Current.Resources["ApplicationTheme"] = theme;
-        WpfApplication.Current.Resources["ThemeBackground"] = ColorToBrush(colorScheme.Background);
-        WpfApplication.Current.Resources["ThemeForeground"] = ColorToBrush(colorScheme.Foreground);
-        WpfApplication.Current.Resources["ThemeAccent"] = ColorToBrush(colorScheme.Accent);
-        WpfApplication.Current.Resources["ThemeBorder"] = ColorToBrush(colorScheme.Border);
-        WpfApplication.Current.Resources["ThemeButtonBackground"] = ColorToBrush(colorScheme.ButtonBackground);
-        WpfApplication.Current.Resources["ThemeButtonHover"] = ColorToBrush(colorScheme.ButtonHover);
-        WpfApplication.Current.Resources["ThemeSidebarBackground"] = ColorToBrush(colorScheme.SidebarBackground);
-        WpfApplication.Current.Resources["ThemeTabActive"] = ColorToBrush(colorScheme.TabActiveBackground);
-        WpfApplication.Current.Resources["ThemeTabInactive"] = ColorToBrush(colorScheme.TabInactiveBackground);
+        // Switch entire resource dictionaries for instant theme application
+        SwitchResourceDictionary(theme);
+
+        // Update dynamic color resources for custom components
+        UpdateDynamicColorResources(colorScheme);
 
         // Update main window if available
         UpdateMainWindow(colorScheme);
+    }
+
+    /// <summary>
+    /// Switch to the appropriate theme resource dictionary
+    /// </summary>
+    private static void SwitchResourceDictionary(ThemeType theme)
+    {
+        var app = WpfApplication.Current;
+        if (app?.Resources?.MergedDictionaries == null) return;
+
+        // Performance optimization: Check cache first
+        if (!_resourceDictionaryCache.TryGetValue(theme, out var cachedDict))
+        {
+            // Determine theme resource URI
+            var themeUri = theme == ThemeType.Dark 
+                ? new Uri("Themes/DarkTheme.xaml", UriKind.Relative)
+                : new Uri("Themes/LightTheme.xaml", UriKind.Relative);
+
+            try
+            {
+                // Load and cache the resource dictionary
+                cachedDict = new ResourceDictionary { Source = themeUri };
+                _resourceDictionaryCache[theme] = cachedDict;
+            }
+            catch (Exception ex)
+            {
+                // Cache the failure to avoid repeated attempts
+                _resourceDictionaryCache[theme] = null;
+                System.Diagnostics.Debug.WriteLine($"Failed to load theme resource: {ex.Message}");
+                return;
+            }
+        }
+
+        // Skip if cached dictionary is null (failed to load)
+        if (cachedDict == null) return;
+
+        try
+        {
+            // Remove existing theme dictionaries
+            var existingThemes = app.Resources.MergedDictionaries
+                .Where(d => d.Source?.OriginalString?.Contains("Theme.xaml") == true)
+                .ToList();
+
+            foreach (var existingTheme in existingThemes)
+            {
+                app.Resources.MergedDictionaries.Remove(existingTheme);
+            }
+
+            // Add cached theme dictionary
+            app.Resources.MergedDictionaries.Add(cachedDict);
+
+            // Set current theme indicator
+            app.Resources["CurrentTheme"] = theme;
+        }
+        catch (Exception ex)
+        {
+            // Fallback to manual resource updates if ResourceDictionary loading fails
+            System.Diagnostics.Debug.WriteLine($"ResourceDictionary switching failed: {ex.Message}");
+            // The existing UpdateDynamicColorResources call will handle fallback
+        }
+    }
+
+    /// <summary>
+    /// Update dynamic color resources for components that need runtime color updates
+    /// </summary>
+    private void UpdateDynamicColorResources(ColorScheme colorScheme)
+    {
+        var app = WpfApplication.Current;
+        if (app?.Resources == null) return;
+
+        // Update dynamic brushes for runtime theme switching
+        var resources = new Dictionary<string, SolidColorBrush>
+        {
+            ["BackgroundBrush"] = ColorToBrush(colorScheme.Background),
+            ["ForegroundBrush"] = ColorToBrush(colorScheme.Foreground),
+            ["AccentBrush"] = ColorToBrush(colorScheme.Accent),
+            ["BorderBrush"] = ColorToBrush(colorScheme.Border),
+            ["ButtonBackgroundBrush"] = ColorToBrush(colorScheme.ButtonBackground),
+            ["ButtonHoverBackground"] = ColorToBrush(colorScheme.ButtonHover),
+            ["ButtonPressedBackground"] = ColorToBrush(DarkenColor(colorScheme.ButtonHover, 0.1f)),
+            ["SidebarBackgroundBrush"] = ColorToBrush(colorScheme.SidebarBackground),
+            ["TabActiveBackgroundBrush"] = ColorToBrush(colorScheme.TabActiveBackground),
+            ["TabInactiveBackgroundBrush"] = ColorToBrush(colorScheme.TabInactiveBackground)
+        };
+
+        foreach (var resource in resources)
+        {
+            app.Resources[resource.Key] = resource.Value;
+        }
+    }
+
+    /// <summary>
+    /// Darken a color by a specified factor
+    /// </summary>
+    private static DrawingColor DarkenColor(DrawingColor color, float factor)
+    {
+        return DrawingColor.FromArgb(
+            color.A,
+            (int)(color.R * (1 - factor)),
+            (int)(color.G * (1 - factor)),
+            (int)(color.B * (1 - factor))
+        );
     }
 
     private void UpdateMainWindow(ColorScheme colorScheme)
@@ -215,9 +328,40 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
     {
         if (theme != ThemeType.System) return theme;
 
-        // TODO: Implement actual system theme detection
-        // For now, default to light theme
+        // Implement actual system theme detection for Windows 10+
+        return DetectWindowsSystemTheme();
+    }
+
+    /// <summary>
+    /// Detect the current Windows system theme preference
+    /// </summary>
+    private static ThemeType DetectWindowsSystemTheme()
+    {
+        try
+        {
+            // Check Windows 10+ theme setting via registry
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            if (key?.GetValue("AppsUseLightTheme") is int appsUseLightTheme)
+            {
+                return appsUseLightTheme == 0 ? ThemeType.Dark : ThemeType.Light;
+            }
+        }
+        catch (Exception)
+        {
+            // Registry access might fail due to permissions or missing keys
+            // Fall back to light theme
+        }
+
+        // Default to light theme if detection fails
         return ThemeType.Light;
+    }
+
+    /// <summary>
+    /// Get the resolved theme (converts System to actual Light/Dark)
+    /// </summary>
+    public ThemeType GetResolvedTheme()
+    {
+        return ResolveEffectiveTheme(CurrentTheme);
     }
 
     /// <summary>

@@ -93,14 +93,14 @@ Based on WPF desktop application structure from plan.md:
 
 ### Implementation for User Story 2
 
-- [ ] T027 [P] [US2] Implement theme detection and system theme support in src/App/ThemeManager.cs
-- [ ] T028 [P] [US2] Create theme toggle button component in src/UI/Shell/ThemeToggleButton.xaml
-- [ ] T029 [US2] Integrate theme switching logic with WPF ResourceDictionary system in src/App/ThemeManager.cs
-- [ ] T030 [US2] Implement CSS custom property injection for WebView2 theme switching in src/Rendering/WebViewHost.cs
-- [ ] T031 [US2] Add theme preference persistence to local settings file in src/Services/SettingsService.cs
-- [ ] T032 [US2] Implement automatic theme restoration on application startup in src/App/App.xaml.cs
-- [ ] T033 [US2] Add theme change event handling throughout UI components
-- [ ] T034 [US2] Implement theme switching performance optimization (<100ms target)
+- [x] T027 [P] [US2] Implement theme detection and system theme support in src/App/ThemeManager.cs
+- [x] T028 [P] [US2] Create theme toggle button component in src/UI/Shell/ThemeToggleButton.xaml
+- [x] T029 [US2] Integrate theme switching logic with WPF ResourceDictionary system in src/App/ThemeManager.cs
+- [x] T030 [US2] Implement CSS custom property injection for WebView2 theme switching in src/Rendering/WebViewHost.cs
+- [x] T031 [US2] Add theme preference persistence to local settings file in src/Services/SettingsService.cs
+- [x] T032 [US2] Implement automatic theme restoration on application startup in src/App/App.xaml.cs
+- [x] T033 [US2] Add theme change event handling throughout UI components
+- [x] T034 [US2] Implement theme switching performance optimization (<100ms target)
 
 **Checkpoint**: At this point, theme switching should work instantly across all UI elements with proper persistence
 

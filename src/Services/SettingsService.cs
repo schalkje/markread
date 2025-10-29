@@ -5,7 +5,9 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Drawing;
-using MarkRead.Services;
+using AnimationSettings = MarkRead.Services.AnimationSettings;
+using ThemeConfiguration = MarkRead.Services.ThemeConfiguration;
+using UIState = MarkRead.Services.UIState;
 
 namespace MarkRead.App.Services;
 

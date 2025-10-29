@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
@@ -23,6 +25,9 @@ public sealed class WebViewHost : IDisposable
     private CoreWebView2? _core;
     private TaskCompletionSource<bool>? _readyCompletionSource;
     private bool _disposed;
+    
+    // Performance optimization: Cache last injected theme to avoid redundant CSS injection
+    private string? _lastInjectedTheme;
 
     public WebViewHost(WebView2 webView, string assetRootRelativePath, string virtualHostName = "appassets")
     {
@@ -114,6 +119,201 @@ public sealed class WebViewHost : IDisposable
     public void HideLoadingIndicator()
     {
         PostMessage("hide-loading", null);
+    }
+
+    /// <summary>
+    /// Inject theme CSS custom properties into the WebView2 content
+    /// </summary>
+    public async Task InjectThemeAsync(string themeName, Dictionary<string, string> themeProperties)
+    {
+        ThrowIfDisposed();
+        if (_core is null)
+        {
+            throw new InvalidOperationException("WebView2 has not been initialized.");
+        }
+
+        // Performance optimization: Skip if same theme already injected
+        var themeKey = $"{themeName}:{string.Join(",", themeProperties.Select(kv => $"{kv.Key}={kv.Value}"))}";
+        if (_lastInjectedTheme == themeKey)
+        {
+            return;
+        }
+
+        try
+        {
+            // Build CSS custom properties string
+            var cssProperties = new StringBuilder();
+            foreach (var property in themeProperties)
+            {
+                cssProperties.AppendLine($"  --{property.Key}: {property.Value};");
+            }
+
+            // Create CSS injection script
+            var cssInjectionScript = $@"
+                (function() {{
+                    // Remove existing theme stylesheets
+                    const existingThemeStyles = document.querySelectorAll('style[data-theme-injected]');
+                    existingThemeStyles.forEach(style => style.remove());
+
+                    // Create new theme stylesheet
+                    const style = document.createElement('style');
+                    style.setAttribute('data-theme-injected', 'true');
+                    style.setAttribute('data-theme-name', '{themeName}');
+                    style.textContent = `
+                        :root {{
+{cssProperties}
+                        }}
+                        
+                        /* Add theme-specific class to body */
+                        body {{
+                            color-scheme: {(themeName.Contains("dark", StringComparison.OrdinalIgnoreCase) ? "dark" : "light")};
+                        }}
+                    `;
+                    
+                    // Add to document head
+                    document.head.appendChild(style);
+                    
+                    // Update body class for theme detection
+                    document.body.classList.remove('theme-light', 'theme-dark', 'theme-system');
+                    document.body.classList.add('theme-{themeName.ToLowerInvariant()}');
+                    
+                    // Dispatch theme change event for JavaScript listeners
+                    const themeEvent = new CustomEvent('themeChanged', {{
+                        detail: {{ theme: '{themeName}', properties: {JsonSerializer.Serialize(themeProperties)} }}
+                    }});
+                    document.dispatchEvent(themeEvent);
+                    
+                    // Return success indicator
+                    return true;
+                }})();
+            ";
+
+            // Execute the injection script
+            var result = await _core.ExecuteScriptAsync(cssInjectionScript);
+            
+            // Verify injection success
+            if (result != "true")
+            {
+                throw new InvalidOperationException($"Theme injection failed: {result}");
+            }
+            
+            // Cache the successfully injected theme
+            _lastInjectedTheme = themeKey;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to inject theme '{themeName}': {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
+    /// Inject theme from MarkRead Services color scheme
+    /// </summary>
+    public async Task InjectThemeFromColorSchemeAsync(string themeName, MarkRead.Services.ColorScheme colorScheme)
+    {
+        ThrowIfDisposed();
+        
+        // Convert ColorScheme to CSS custom properties
+        var themeProperties = new Dictionary<string, string>
+        {
+            ["bg-primary"] = ColorToCssHex(colorScheme.Background),
+            ["bg-secondary"] = ColorToCssHex(colorScheme.SidebarBackground),
+            ["fg-primary"] = ColorToCssHex(colorScheme.Foreground),
+            ["accent-color"] = ColorToCssHex(colorScheme.Accent),
+            ["border-color"] = ColorToCssHex(colorScheme.Border),
+            ["button-bg"] = ColorToCssHex(colorScheme.ButtonBackground),
+            ["button-hover"] = ColorToCssHex(colorScheme.ButtonHover),
+            ["tab-active-bg"] = ColorToCssHex(colorScheme.TabActiveBackground),
+            ["tab-inactive-bg"] = ColorToCssHex(colorScheme.TabInactiveBackground),
+            
+            // Additional computed colors for better UX
+            ["text-muted"] = themeName.Contains("dark", StringComparison.OrdinalIgnoreCase) ? "#a1a1aa" : "#71717a",
+            ["text-link"] = ColorToCssHex(colorScheme.Accent),
+            ["shadow-color"] = themeName.Contains("dark", StringComparison.OrdinalIgnoreCase) ? "#000000" : "#00000010",
+            
+            // Markdown-specific theme properties
+            ["code-bg"] = themeName.Contains("dark", StringComparison.OrdinalIgnoreCase) ? "#27272a" : "#f4f4f5",
+            ["blockquote-border"] = ColorToCssHex(colorScheme.Border),
+            ["table-border"] = ColorToCssHex(colorScheme.Border),
+            ["table-header-bg"] = ColorToCssHex(colorScheme.ButtonBackground)
+        };
+
+        await InjectThemeAsync(themeName, themeProperties);
+    }
+
+    /// <summary>
+    /// Get current theme information from WebView2
+    /// </summary>
+    public async Task<string?> GetCurrentThemeAsync()
+    {
+        ThrowIfDisposed();
+        if (_core is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var script = @"
+                (function() {
+                    const themeStyle = document.querySelector('style[data-theme-injected]');
+                    return themeStyle ? themeStyle.getAttribute('data-theme-name') : null;
+                })();
+            ";
+
+            var result = await _core.ExecuteScriptAsync(script);
+            return result?.Trim('"'); // Remove JSON string quotes
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Check if theme has been successfully applied to WebView2
+    /// </summary>
+    public async Task<bool> IsThemeAppliedAsync()
+    {
+        ThrowIfDisposed();
+        if (_core is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            var script = @"
+                (function() {
+                    const themeStyle = document.querySelector('style[data-theme-injected]');
+                    return themeStyle !== null;
+                })();
+            ";
+
+            var result = await _core.ExecuteScriptAsync(script);
+            return result == "true";
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Convert System.Drawing.Color to CSS hex string
+    /// </summary>
+    private static string ColorToCssHex(System.Drawing.Color color)
+    {
+        if (color.A < 255)
+        {
+            // Include alpha channel for semi-transparent colors
+            return $"#{color.R:X2}{color.G:X2}{color.B:X2}{color.A:X2}";
+        }
+        else
+        {
+            // Standard hex color for opaque colors
+            return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+        }
     }
 
     public void NavigateToString(string html)

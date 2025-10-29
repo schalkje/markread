@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using Microsoft.Win32;
 
 namespace MarkRead.Services
 {
@@ -61,9 +62,34 @@ namespace MarkRead.Services
             if (!SystemThemeFollow)
                 return CurrentTheme;
 
-            // TODO: Implement system theme detection
-            // For now, return the current theme
-            return CurrentTheme == ThemeType.System ? ThemeType.Light : CurrentTheme;
+            if (CurrentTheme == ThemeType.System)
+            {
+                return DetectWindowsSystemTheme();
+            }
+
+            return CurrentTheme;
+        }
+
+        /// <summary>
+        /// Detects the current Windows system theme preference
+        /// </summary>
+        private static ThemeType DetectWindowsSystemTheme()
+        {
+            try
+            {
+                // Check Windows Registry for theme preference
+                using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+                if (key?.GetValue("AppsUseLightTheme") is int appsUseLightTheme)
+                {
+                    return appsUseLightTheme == 1 ? ThemeType.Light : ThemeType.Dark;
+                }
+            }
+            catch
+            {
+                // If we can't access registry, default to light theme
+            }
+
+            return ThemeType.Light;
         }
     }
 
