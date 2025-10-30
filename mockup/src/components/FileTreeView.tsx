@@ -39,20 +39,18 @@ export const FileTreeView: React.FC<FileTreeViewProps> = ({
         <div key={node.id}>
           <button
             onClick={() => toggleFolder(node.id)}
-            className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50 ${
-              level === 0 ? '' : 'ml-' + (level * 4)
-            }`}
-            style={{ paddingLeft: `${12 + level * 16}px` }}
+            className="w-full flex items-center gap-2 py-1.5 text-left transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md text-neutral-900 dark:text-neutral-100"
+            style={{ paddingLeft: `${8 + level * 16}px`, paddingRight: '8px' }}
           >
             {isExpanded ? (
-              <ChevronDown className="w-4 h-4 text-neutral-500" />
+              <ChevronDown className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-neutral-500" />
+              <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
             )}
             {isExpanded ? (
-              <FolderOpen className="w-4 h-4 text-blue-500" />
+              <FolderOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             ) : (
-              <Folder className="w-4 h-4 text-blue-500" />
+              <Folder className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             )}
             <span className="text-sm">{node.name}</span>
           </button>
@@ -69,14 +67,14 @@ export const FileTreeView: React.FC<FileTreeViewProps> = ({
       <button
         key={node.id}
         onClick={() => onFileSelect(node)}
-        className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${
+        className={`w-full flex items-center gap-2 py-1.5 text-left transition-colors rounded-md ${
           isSelected
-            ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400'
-            : 'hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50'
+            ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-medium'
+            : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-900 dark:text-neutral-100'
         }`}
-        style={{ paddingLeft: `${12 + level * 16 + 20}px` }}
+        style={{ paddingLeft: `${8 + level * 16 + 20}px`, paddingRight: '8px' }}
       >
-        <File className="w-4 h-4" />
+        <File className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
         <span className="text-sm truncate">{node.name}</span>
       </button>
     );
@@ -84,7 +82,7 @@ export const FileTreeView: React.FC<FileTreeViewProps> = ({
 
   return (
     <ScrollArea className="h-full">
-      <div className="py-2">
+      <div className="py-2 px-2">
         {renderNode(rootNode)}
       </div>
     </ScrollArea>

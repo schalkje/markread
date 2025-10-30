@@ -73,7 +73,8 @@
                                         Background="Transparent"
                                         BorderThickness="0"
                                         Padding="{TemplateBinding Padding}"
-                                        CornerRadius="4">
+                                        CornerRadius="4"
+                                        TextElement.Foreground="{TemplateBinding Foreground}">
                                     <StackPanel Orientation="Horizontal">
                                         <!-- Expander Toggle for Folders -->
                                         <ToggleButton x:Name="Expander"
@@ -124,7 +125,8 @@
                                               Height="16"
                                               Margin="0,0,6,0"
                                               VerticalAlignment="Center"
-                                              Stretch="Uniform"/>
+                                              Stretch="Uniform"
+                                              Fill="{DynamicResource ThemeTextSecondaryBrush}"/>
 
                                         <!-- Item Text -->
                                         <ContentPresenter x:Name="PART_Header"
@@ -145,7 +147,7 @@
                                 <Trigger Property="HasItems" Value="True">
                                     <Setter TargetName="Expander" Property="Visibility" Value="Visible"/>
                                     <Setter TargetName="ItemIcon" Property="Data" Value="{StaticResource FolderClosedIcon}"/>
-                                    <Setter TargetName="ItemIcon" Property="Fill" Value="#FFA066"/>
+                                    <Setter TargetName="ItemIcon" Property="Fill" Value="{DynamicResource ThemeFolderIconBrush}"/>
                                 </Trigger>
 
                                 <!-- Change folder icon when expanded -->
@@ -157,7 +159,7 @@
                                 <!-- File icon for leaf items -->
                                 <Trigger Property="HasItems" Value="False">
                                     <Setter TargetName="ItemIcon" Property="Data" Value="{StaticResource MarkdownFileIcon}"/>
-                                    <Setter TargetName="ItemIcon" Property="Fill" Value="#64B5F6"/>
+                                    <Setter TargetName="ItemIcon" Property="Fill" Value="{DynamicResource ThemeFileIconBrush}"/>
                                 </Trigger>
 
                                 <!-- Hover effect -->
@@ -227,7 +229,7 @@
         <!-- File Tree -->
         <TreeView Grid.Row="1" 
                   x:Name="FileTreeView"
-                  Background="{DynamicResource ThemeBackgroundBrush}"
+                  Background="{DynamicResource ThemeSecondaryBackgroundBrush}"
                   BorderThickness="0"
                   Padding="8,4"
                   MouseDoubleClick="FileTreeView_MouseDoubleClick"

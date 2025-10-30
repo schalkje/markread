@@ -2,6 +2,7 @@ using System.Windows.Input;
 
 using MarkRead.Cli;
 using MarkRead.Services;
+using MarkRead.App.Services;
 
 namespace MarkRead.App;
 
@@ -10,6 +11,12 @@ namespace MarkRead.App;
 /// </summary>
 public partial class App : System.Windows.Application
 {
+    public SettingsService SettingsService { get; private set; } = null!;
+
+    public ThemeManager ThemeManager { get; private set; } = null!;
+
+    public IThemeService ThemeService => ThemeManager;
+
     public static readonly RoutedUICommand OpenFolderCommand = new(
         "Open Folder",
         nameof(OpenFolderCommand),
@@ -60,10 +67,14 @@ public partial class App : System.Windows.Application
         var perfMonitor = StartupPerformanceMonitor.Instance;
         perfMonitor.StartPhase("Application Initialization");
 
+        // Initialize shared application services prior to UI creation
+        SettingsService = new SettingsService();
+        ThemeManager = new ThemeManager(SettingsService);
+
         // Apply default theme BEFORE creating MainWindow to avoid resource warnings
         // This ensures all theme resources exist when XAML is parsed
-        var tempThemeManager = new ThemeManager(new Services.SettingsService());
-        await tempThemeManager.InitializeAsync();
+        Resources["ThemeService"] = ThemeManager;
+        await ThemeManager.InitializeAsync();
 
         // Create the main window (but don't show yet)
         var window = new MainWindow();

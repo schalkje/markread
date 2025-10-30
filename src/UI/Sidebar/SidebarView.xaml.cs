@@ -18,6 +18,7 @@ public partial class SidebarView : System.Windows.Controls.UserControl
     private string? _rootFolder;
     private double _width = 300;
     private bool _isCollapsed;
+    private readonly Style? _treeViewItemStyle;
 
     public event EventHandler<string>? FileSelected;
     public event EventHandler<bool>? CollapsedChanged;
@@ -62,6 +63,7 @@ public partial class SidebarView : System.Windows.Controls.UserControl
     {
         InitializeComponent();
         SidebarGrid.Width = _width;
+        _treeViewItemStyle = TryFindResource("TreeViewItemStyle") as Style;
     }
 
     public void SetRootFolder(string? folderPath)
@@ -140,6 +142,8 @@ public partial class SidebarView : System.Windows.Controls.UserControl
             Tag = path
         };
 
+        ApplyTreeViewItemStyle(item);
+
         if (Directory.Exists(path))
         {
             // Add folders first
@@ -155,20 +159,34 @@ public partial class SidebarView : System.Windows.Controls.UserControl
             {
                 var fileItem = new TreeViewItem
                 {
-                    Header = $"📄 {Path.GetFileName(file)}",
+                    Header = Path.GetFileName(file),
                     Tag = file
                 };
+                ApplyTreeViewItemStyle(fileItem);
                 item.Items.Add(fileItem);
             }
 
             // Add placeholder for lazy loading if there are items
             if (item.Items.Count == 0 && HasAccessibleContent(path))
             {
-                item.Items.Add(new TreeViewItem { Header = "..." });
+                var placeholder = new TreeViewItem { Header = "..." };
+                ApplyTreeViewItemStyle(placeholder);
+                item.Items.Add(placeholder);
             }
         }
 
         return item;
+    }
+
+    private void ApplyTreeViewItemStyle(TreeViewItem item)
+    {
+        if (_treeViewItemStyle != null)
+        {
+            item.Style = _treeViewItemStyle;
+            item.ItemContainerStyle = _treeViewItemStyle;
+        }
+
+        item.SetResourceReference(System.Windows.Controls.Control.ForegroundProperty, "ThemeTextPrimaryBrush");
     }
 
     private IEnumerable<string> GetSortedDirectories(string path)

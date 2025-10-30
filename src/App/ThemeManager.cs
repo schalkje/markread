@@ -48,6 +48,11 @@ public interface IThemeService : INotifyPropertyChanged
     bool IsSystemThemeSupported();
 
     /// <summary>
+    /// Snapshot current theme configuration
+    /// </summary>
+    ThemeConfiguration GetCurrentConfiguration();
+
+    /// <summary>
     /// Fired when theme is successfully applied
     /// </summary>
     event EventHandler<ThemeChangedEventArgs>? ThemeChanged;
@@ -480,13 +485,18 @@ public static class LegacyThemeManager
     {
         _current = theme;
 
-        if (System.Windows.Application.Current is null)
+        if (System.Windows.Application.Current is App app && app.ThemeService is not null)
         {
-            return;
-        }
+            var themeType = theme switch
+            {
+                AppTheme.Dark => ThemeType.Dark,
+                AppTheme.Light => ThemeType.Light,
+                _ => ThemeType.System
+            };
 
-        System.Windows.Application.Current.Resources["ApplicationTheme"] = theme;
-        UpdateWindowBackground(theme);
+            _ = app.Dispatcher.InvokeAsync(async () => await app.ThemeService.ApplyTheme(themeType));
+            UpdateWindowBackground(theme);
+        }
     }
 
     private static void UpdateWindowBackground(AppTheme theme)

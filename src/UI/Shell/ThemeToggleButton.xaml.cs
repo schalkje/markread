@@ -15,7 +15,7 @@ namespace MarkRead.UI.Shell;
 /// </summary>
 public partial class ThemeToggleButton : System.Windows.Controls.UserControl, INotifyPropertyChanged
 {
-    private readonly ThemeManager _themeManager;
+    private readonly IThemeService _themeService;
     private ThemeType _currentTheme = ThemeType.System;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -45,19 +45,18 @@ public partial class ThemeToggleButton : System.Windows.Controls.UserControl, IN
         // Wire up unloaded event for cleanup
         Unloaded += ThemeToggleButton_Unloaded;
         
-        // Get theme manager instance (will be injected via DI in full implementation)
-        _themeManager = WpfApplication.Current.MainWindow?.DataContext as ThemeManager 
-            ?? throw new InvalidOperationException("ThemeManager not available");
-        
+        if (WpfApplication.Current is not App.App application || application.ThemeService is null)
+        {
+            throw new InvalidOperationException("Theme service not available");
+        }
+
+        _themeService = application.ThemeService;
+
         // Subscribe to theme changes
-        _themeManager.PropertyChanged += OnThemeManagerPropertyChanged;
-        
-        // Initialize current theme
-        CurrentTheme = _themeManager.CurrentTheme;
-        
-        // Set initial theme icon and tooltip
-        UpdateThemeIcon();
-        UpdateTooltip();
+        _themeService.PropertyChanged += OnThemeManagerPropertyChanged;
+
+    // Initialize current theme preference from configuration
+    CurrentTheme = _themeService.GetCurrentConfiguration().CurrentTheme;
     }
 
     /// <summary>
@@ -75,13 +74,17 @@ public partial class ThemeToggleButton : System.Windows.Controls.UserControl, IN
             var nextTheme = GetNextTheme(CurrentTheme);
             
             // Apply theme through theme manager
-            var success = await _themeManager.ApplyTheme(nextTheme);
+            var success = await _themeService.ApplyTheme(nextTheme);
             
             if (!success)
             {
                 // Revert animation if theme application failed
                 IconRotateTransform.Angle = 0;
                 ShowThemeError($"Failed to apply {nextTheme} theme");
+            }
+            else
+            {
+                CurrentTheme = nextTheme;
             }
         }
         catch (Exception ex)
@@ -142,12 +145,12 @@ public partial class ThemeToggleButton : System.Windows.Controls.UserControl, IN
     /// </summary>
     private void OnThemeManagerPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ThemeManager.CurrentTheme))
+        if (e.PropertyName == nameof(IThemeService.CurrentTheme))
         {
             // Update current theme when theme manager changes
             Dispatcher.BeginInvoke(() =>
             {
-                CurrentTheme = _themeManager.CurrentTheme;
+                CurrentTheme = _themeService.GetCurrentConfiguration().CurrentTheme;
             });
         }
     }
@@ -179,9 +182,6 @@ public partial class ThemeToggleButton : System.Windows.Controls.UserControl, IN
     /// </summary>
     private void ThemeToggleButton_Unloaded(object sender, RoutedEventArgs e)
     {
-        if (_themeManager != null)
-        {
-            _themeManager.PropertyChanged -= OnThemeManagerPropertyChanged;
-        }
+        _themeService.PropertyChanged -= OnThemeManagerPropertyChanged;
     }
 }

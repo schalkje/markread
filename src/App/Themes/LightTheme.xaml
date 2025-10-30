@@ -40,6 +40,10 @@
     <SolidColorBrush x:Key="ThemeWarningBrush" Color="#EAB308"/>
     <SolidColorBrush x:Key="ThemeErrorBrush" Color="#DC2626"/>
     <SolidColorBrush x:Key="ThemeInfoBrush" Color="#0EA5E9"/>
+    
+    <!-- Light Theme File Tree Icon Colors -->
+    <SolidColorBrush x:Key="ThemeFolderIconBrush" Color="#2563EB"/>
+    <SolidColorBrush x:Key="ThemeFileIconBrush" Color="#6B7280"/>
 
     <!-- Typography System -->
     

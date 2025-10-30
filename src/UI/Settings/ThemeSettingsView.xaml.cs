@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using MarkRead.App;
 using MarkRead.App.Services;
+using MarkRead.Services;
 
 namespace MarkRead.UI.Settings;
 
@@ -12,11 +13,18 @@ public partial class ThemeSettingsView : Window
 {
     private readonly SettingsService _settingsService;
     private ViewerSettings _currentSettings;
+    private readonly IThemeService _themeService;
 
     public ThemeSettingsView(SettingsService settingsService, ViewerSettings currentSettings)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _currentSettings = currentSettings ?? throw new ArgumentNullException(nameof(currentSettings));
+        if (System.Windows.Application.Current is not App.App app || app.ThemeService is null)
+        {
+            throw new InvalidOperationException("Theme service not available");
+        }
+
+        _themeService = app.ThemeService;
         
         InitializeComponent();
         LoadCurrentSettings();
@@ -43,20 +51,13 @@ public partial class ThemeSettingsView : Window
         ShowFileTreeCheckBox.IsChecked = _currentSettings.ShowFileTree;
     }
 
-    private void ThemeRadio_Checked(object sender, RoutedEventArgs e)
+    private async void ThemeRadio_Checked(object sender, RoutedEventArgs e)
     {
         // Apply theme immediately for preview
         if (!IsLoaded) return;
 
-        LegacyThemeManager.AppTheme theme;
-        if (DarkThemeRadio.IsChecked == true)
-            theme = LegacyThemeManager.AppTheme.Dark;
-        else if (LightThemeRadio.IsChecked == true)
-            theme = LegacyThemeManager.AppTheme.Light;
-        else
-            theme = LegacyThemeManager.AppTheme.System;
-
-        LegacyThemeManager.ApplyTheme(theme);
+        var theme = GetSelectedTheme();
+        await _themeService.ApplyTheme(theme);
     }
 
     private async void OkButton_Click(object sender, RoutedEventArgs e)
@@ -78,6 +79,9 @@ public partial class ThemeSettingsView : Window
                 ShowFileTree = ShowFileTreeCheckBox.IsChecked == true
             };
 
+            // Persist theme selection through theme service to ensure resources stay synchronized
+            await _themeService.ApplyTheme(GetThemeType(themeValue));
+
             // Persist to disk
             await _settingsService.SaveAsync(updatedSettings);
 
@@ -94,18 +98,38 @@ public partial class ThemeSettingsView : Window
         }
     }
 
-    private void CancelButton_Click(object sender, RoutedEventArgs e)
+    private async void CancelButton_Click(object sender, RoutedEventArgs e)
     {
         // Restore original theme
-        var originalTheme = _currentSettings.Theme.ToLowerInvariant() switch
-        {
-            "dark" => LegacyThemeManager.AppTheme.Dark,
-            "light" => LegacyThemeManager.AppTheme.Light,
-            _ => LegacyThemeManager.AppTheme.System
-        };
-        LegacyThemeManager.ApplyTheme(originalTheme);
+        var originalTheme = GetThemeType(_currentSettings.Theme);
+        await _themeService.ApplyTheme(originalTheme);
 
         DialogResult = false;
         Close();
+    }
+
+    private ThemeType GetSelectedTheme()
+    {
+        if (DarkThemeRadio.IsChecked == true)
+        {
+            return ThemeType.Dark;
+        }
+
+        if (LightThemeRadio.IsChecked == true)
+        {
+            return ThemeType.Light;
+        }
+
+        return ThemeType.System;
+    }
+
+    private static ThemeType GetThemeType(string? themeValue)
+    {
+        return themeValue?.ToLowerInvariant() switch
+        {
+            "dark" => ThemeType.Dark,
+            "light" => ThemeType.Light,
+            _ => ThemeType.System
+        };
     }
 }

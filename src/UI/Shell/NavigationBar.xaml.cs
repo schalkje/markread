@@ -15,6 +15,7 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
 {
     private readonly INavigationService? _navigationService;
     private IThemeService? _themeService;
+    private EventHandler<ThemeChangedEventArgs>? _themeChangedHandler;
 
     public NavigationBar()
     {
@@ -69,13 +70,25 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
 
     private static void OnThemeServiceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (d is NavigationBar navBar && e.NewValue is IThemeService themeService)
+        if (d is NavigationBar navBar)
         {
-            navBar._themeService = themeService;
-            
-            // Subscribe to theme changes to update icon
-            // Don't call UpdateThemeIcon() here - let ThemeChanged event handle it after initialization
-            themeService.ThemeChanged += (s, args) => navBar.UpdateThemeIcon();
+            if (navBar._themeService != null && navBar._themeChangedHandler != null)
+            {
+                navBar._themeService.ThemeChanged -= navBar._themeChangedHandler;
+            }
+
+            if (e.NewValue is IThemeService themeService)
+            {
+                navBar._themeService = themeService;
+                navBar._themeChangedHandler = (_, _) => navBar.UpdateThemeIcon();
+                themeService.ThemeChanged += navBar._themeChangedHandler;
+                navBar.UpdateThemeIcon();
+            }
+            else
+            {
+                navBar._themeService = null;
+                navBar._themeChangedHandler = null;
+            }
         }
     }
 

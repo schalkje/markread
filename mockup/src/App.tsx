@@ -435,9 +435,9 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         {!sidebarCollapsed && (
-          <div className="w-64 border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950">
+          <div className="w-64 border-r border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
             <div className="h-10 flex items-center px-4 border-b border-neutral-200 dark:border-neutral-800">
-              <span className="text-sm">Files</span>
+              <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Files</span>
             </div>
             <FileTreeView
               rootNode={mockFileSystem}

@@ -32,7 +32,7 @@ public partial class MainWindow : Window
     private readonly FolderService _folderService = new();
     private readonly MarkdownService _markdownService = new();
     private readonly HtmlSanitizerService _sanitizer = new();
-    private readonly SettingsService _settingsService = new();
+    private readonly SettingsService _settingsService;
     private readonly HistoryService _historyService = new();
     private readonly FileWatcherService _fileWatcherService = new();
     private readonly TabService _tabService = new();
@@ -51,11 +51,18 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        
+
+        if (System.Windows.Application.Current is not App app)
+        {
+            throw new InvalidOperationException("Application services are not available.");
+        }
+
+        _settingsService = app.SettingsService;
+        _themeManager = app.ThemeManager;
+
         _renderer = new Renderer(_markdownService, _sanitizer);
         _linkResolver = new LinkResolver(_folderService);
         _openFolderCommand = new OpenFolderCommand(_folderService);
-        _themeManager = new ThemeManager(_settingsService);
         _webViewHost = new WebViewHost(MarkdownView, Path.Combine("Rendering", "assets"));
 
         // Subscribe to theme change events for WebView2 coordination
@@ -100,19 +107,8 @@ public partial class MainWindow : Window
         
         // Load settings from disk
         _currentSettings = await _settingsService.LoadAsync();
-        
-        // Initialize and apply saved theme using new ThemeManager
-        // Note: NavigationBar.ThemeService is already set in constructor
-        await _themeManager.InitializeAsync();
-        
-        // Legacy theme manager for backward compatibility during transition
-        var theme = _currentSettings.Theme.ToLowerInvariant() switch
-        {
-            "dark" => LegacyThemeManager.AppTheme.Dark,
-            "light" => LegacyThemeManager.AppTheme.Light,
-            _ => LegacyThemeManager.AppTheme.System
-        };
-        LegacyThemeManager.ApplyTheme(theme);
+
+        // Theme manager is initialized during application startup
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -416,12 +412,14 @@ public partial class MainWindow : Window
             return;
         }
 
+        var resolvedTheme = _themeManager.GetResolvedTheme().ToString().ToLowerInvariant();
+
         var request = new RenderRequest(
             markdown,
             document.FullPath,
             document.RelativePath,
             anchor,
-            LegacyThemeManager.Current.ToString().ToLowerInvariant());
+            resolvedTheme);
 
         var renderResult = await _renderer.RenderAsync(request);
 
@@ -815,14 +813,11 @@ public partial class MainWindow : Window
         // Apply theme to WebView2 content if available and initialized
         if (_webViewHost != null && _webViewHost.IsInitialized)
         {
-            var themeConfig = await _settingsService.LoadThemeConfigurationAsync();
-            var colorScheme = e.NewTheme switch
-            {
-                ThemeType.Dark => themeConfig.DarkColorScheme,
-                ThemeType.Light => themeConfig.LightColorScheme,
-                _ => themeConfig.GetEffectiveTheme() == ThemeType.Dark ? themeConfig.DarkColorScheme : themeConfig.LightColorScheme
-            };
-            
+            var themeConfig = _themeManager.GetCurrentConfiguration();
+            var colorScheme = e.NewTheme == ThemeType.Dark
+                ? themeConfig.DarkColorScheme
+                : themeConfig.LightColorScheme;
+
             var themeName = e.NewTheme.ToString().ToLowerInvariant();
             await _webViewHost.InjectThemeFromColorSchemeAsync(themeName, colorScheme);
         }
@@ -858,23 +853,12 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ThemeToggle_Click(object sender, RoutedEventArgs e)
+    private async void ThemeToggle_Click(object sender, RoutedEventArgs e)
     {
-        // Toggle between light and dark themes
-        var currentTheme = LegacyThemeManager.Current;
-        
-        var newTheme = currentTheme == LegacyThemeManager.AppTheme.Light 
-            ? LegacyThemeManager.AppTheme.Dark 
-            : LegacyThemeManager.AppTheme.Light;
-            
-        LegacyThemeManager.ApplyTheme(newTheme);
-        
-        // Update the theme toggle icon
-        var button = sender as System.Windows.Controls.Button;
-        if (button is not null)
-        {
-            button.Content = newTheme == LegacyThemeManager.AppTheme.Dark ? "☀" : "🌙";
-        }
+        var currentTheme = _themeManager.CurrentTheme;
+        var newTheme = currentTheme == ThemeType.Dark ? ThemeType.Light : ThemeType.Dark;
+
+        await _themeManager.ApplyTheme(newTheme);
     }
 
     private void ExportButton_Click(object sender, RoutedEventArgs e)
