@@ -323,18 +323,18 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
 
         try
         {
-            // Remove existing theme dictionaries
+            // Add new theme dictionary BEFORE removing old ones to avoid resource lookup failures
+            app.Resources.MergedDictionaries.Add(cachedDict);
+
+            // Remove existing theme dictionaries (except the one we just added)
             var existingThemes = app.Resources.MergedDictionaries
-                .Where(d => d.Source?.OriginalString?.Contains("Theme.xaml") == true)
+                .Where(d => d != cachedDict && d.Source?.OriginalString?.Contains("Theme.xaml") == true)
                 .ToList();
 
             foreach (var existingTheme in existingThemes)
             {
                 app.Resources.MergedDictionaries.Remove(existingTheme);
             }
-
-            // Add cached theme dictionary
-            app.Resources.MergedDictionaries.Add(cachedDict);
 
             // Set current theme indicator
             app.Resources["CurrentTheme"] = theme;

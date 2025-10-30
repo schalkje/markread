@@ -62,12 +62,17 @@ public partial class App : System.Windows.Application
         var perfMonitor = StartupPerformanceMonitor.Instance;
         perfMonitor.StartPhase("Application Initialization");
 
-        // Create and show the main window
+        // Apply default theme BEFORE creating MainWindow to avoid resource warnings
+        // This ensures all theme resources exist when XAML is parsed
+        var tempThemeManager = new ThemeManager(new Services.SettingsService());
+        await tempThemeManager.InitializeAsync();
+        System.Diagnostics.Debug.WriteLine("App.OnStartup: Default theme applied");
+
+        // Create the main window (but don't show yet)
         var window = new MainWindow();
         MainWindow = window;
-        window.Show();
         
-        System.Diagnostics.Debug.WriteLine("App.OnStartup: MainWindow created and shown");
+        System.Diagnostics.Debug.WriteLine("App.OnStartup: MainWindow created");
 
         perfMonitor.StartPhase("Input Bindings Setup");
         AddInputBinding(window, OpenFolderCommand);
@@ -81,6 +86,10 @@ public partial class App : System.Windows.Application
         perfMonitor.StartPhase("Shell Initialization");
         var startupArgs = StartupArguments.Parse(e.Args);
         await window.InitializeShellAsync(startupArgs);
+        
+        // Show the window after initialization is complete
+        window.Show();
+        System.Diagnostics.Debug.WriteLine("App.OnStartup: MainWindow shown");
 
         perfMonitor.StartPhase("Startup Complete");
         var report = perfMonitor.CompleteStartup();
