@@ -121,13 +121,9 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
 
     private async void ThemeToggleButton_Click(object sender, RoutedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"ThemeToggleButton_Click: _themeService is {(_themeService == null ? "NULL" : "set")}");
-        
         if (_themeService == null) return;
 
         var currentTheme = _themeService.GetCurrentTheme();
-        System.Diagnostics.Debug.WriteLine($"Current theme: {currentTheme}, switching to: {(currentTheme == ThemeType.Dark ? "Light" : "Dark")}");
-        
         var newTheme = currentTheme == ThemeType.Dark ? ThemeType.Light : ThemeType.Dark;
         
         await _themeService.ApplyTheme(newTheme);

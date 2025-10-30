@@ -55,8 +55,6 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(System.Windows.StartupEventArgs e)
     {
         base.OnStartup(e);
-
-        System.Diagnostics.Debug.WriteLine("App.OnStartup: START");
         
         // T083: Start monitoring startup performance
         var perfMonitor = StartupPerformanceMonitor.Instance;
@@ -66,13 +64,10 @@ public partial class App : System.Windows.Application
         // This ensures all theme resources exist when XAML is parsed
         var tempThemeManager = new ThemeManager(new Services.SettingsService());
         await tempThemeManager.InitializeAsync();
-        System.Diagnostics.Debug.WriteLine("App.OnStartup: Default theme applied");
 
         // Create the main window (but don't show yet)
         var window = new MainWindow();
         MainWindow = window;
-        
-        System.Diagnostics.Debug.WriteLine("App.OnStartup: MainWindow created");
 
         perfMonitor.StartPhase("Input Bindings Setup");
         AddInputBinding(window, OpenFolderCommand);
@@ -89,11 +84,9 @@ public partial class App : System.Windows.Application
         
         // Show the window after initialization is complete
         window.Show();
-        System.Diagnostics.Debug.WriteLine("App.OnStartup: MainWindow shown");
 
         perfMonitor.StartPhase("Startup Complete");
-        var report = perfMonitor.CompleteStartup();
-        System.Diagnostics.Debug.WriteLine(report);
+        perfMonitor.CompleteStartup();
     }
 
     private static void AddInputBinding(System.Windows.Window window, RoutedUICommand command)

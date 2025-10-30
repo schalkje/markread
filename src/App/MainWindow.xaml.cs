@@ -96,18 +96,14 @@ public partial class MainWindow : Window
 
     internal async Task InitializeShellAsync(StartupArguments startupArguments)
     {
-        System.Diagnostics.Debug.WriteLine("MainWindow.InitializeShellAsync: START");
         _startupArguments = startupArguments;
         
         // Load settings from disk
-        System.Diagnostics.Debug.WriteLine("MainWindow.InitializeShellAsync: Loading settings...");
         _currentSettings = await _settingsService.LoadAsync();
         
         // Initialize and apply saved theme using new ThemeManager
         // Note: NavigationBar.ThemeService is already set in constructor
-        System.Diagnostics.Debug.WriteLine("MainWindow.InitializeShellAsync: Calling ThemeManager.InitializeAsync()...");
         await _themeManager.InitializeAsync();
-        System.Diagnostics.Debug.WriteLine("MainWindow.InitializeShellAsync: ThemeManager.InitializeAsync() complete");
         
         // Legacy theme manager for backward compatibility during transition
         var theme = _currentSettings.Theme.ToLowerInvariant() switch
