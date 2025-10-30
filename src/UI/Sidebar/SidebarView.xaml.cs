@@ -72,11 +72,6 @@ public partial class SidebarView : System.Windows.Controls.UserControl
         RefreshTree();
     }
 
-    private void CollapseButton_Click(object sender, RoutedEventArgs e)
-    {
-        IsCollapsed = !IsCollapsed;
-    }
-
     private void AnimateCollapse()
     {
         var collapseStoryboard = (Storyboard)this.Resources["CollapseAnimation"];
@@ -107,30 +102,57 @@ public partial class SidebarView : System.Windows.Controls.UserControl
             EmptyStatePanel.Visibility = Visibility.Visible;
             FileTreeView.Visibility = Visibility.Collapsed;
             RootFolderText.Text = "Folder";
+            RootFolderText.ToolTip = null;
             return;
         }
 
         EmptyStatePanel.Visibility = Visibility.Collapsed;
         FileTreeView.Visibility = Visibility.Visible;
         RootFolderText.Text = Path.GetFileName(_rootFolder) ?? _rootFolder;
+        RootFolderText.ToolTip = _rootFolder;
 
         try
         {
-            var rootItem = CreateTreeItem(_rootFolder, isRoot: true);
-            FileTreeView.Items.Add(rootItem);
-            rootItem.IsExpanded = true;
+            bool hasItems = false;
+
+            foreach (var directory in GetSortedDirectories(_rootFolder))
+            {
+                FileTreeView.Items.Add(CreateTreeItem(directory));
+                hasItems = true;
+            }
+
+            foreach (var file in GetMarkdownFiles(_rootFolder))
+            {
+                var fileItem = new TreeViewItem
+                {
+                    Header = Path.GetFileName(file),
+                    Tag = file
+                };
+                ApplyTreeViewItemStyle(fileItem);
+                FileTreeView.Items.Add(fileItem);
+                hasItems = true;
+            }
+
+            if (!hasItems && HasAccessibleContent(_rootFolder))
+            {
+                var placeholder = new TreeViewItem { Header = "..." };
+                ApplyTreeViewItemStyle(placeholder);
+                FileTreeView.Items.Add(placeholder);
+            }
         }
         catch (UnauthorizedAccessException)
         {
             EmptyStateText.Text = "Access denied to folder";
             EmptyStatePanel.Visibility = Visibility.Visible;
             FileTreeView.Visibility = Visibility.Collapsed;
+            RootFolderText.ToolTip = _rootFolder;
         }
         catch (Exception ex)
         {
             EmptyStateText.Text = $"Error: {ex.Message}";
             EmptyStatePanel.Visibility = Visibility.Visible;
             FileTreeView.Visibility = Visibility.Collapsed;
+            RootFolderText.ToolTip = _rootFolder;
         }
     }
 

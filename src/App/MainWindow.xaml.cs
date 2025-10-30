@@ -237,7 +237,6 @@ public partial class MainWindow : Window
     private async Task ExecuteOpenFolderAsync()
     {
         System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: Starting");
-        ShowStartOverlay(false);
         var result = _openFolderCommand.Execute(this);
         System.Diagnostics.Debug.WriteLine($"ExecuteOpenFolderAsync: result = {result}");
         if (result is null)

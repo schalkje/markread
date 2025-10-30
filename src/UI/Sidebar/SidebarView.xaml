@@ -195,7 +195,6 @@
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <TextBlock x:Name="RootFolderText" 
@@ -207,22 +206,6 @@
                            Foreground="{DynamicResource ThemeTextPrimaryBrush}"
                            VerticalAlignment="Center"/>
 
-                <!-- Collapse/Expand Button -->
-                <Button x:Name="CollapseButton"
-                        Grid.Column="1"
-                        Width="24"
-                        Height="24"
-                        Padding="0"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        ToolTip="Collapse sidebar"
-                        Click="CollapseButton_Click">
-                    <Path Width="12"
-                          Height="12"
-                          Fill="{DynamicResource ThemeTextSecondaryBrush}"
-                          Data="{StaticResource ChevronRightIcon}"
-                          Stretch="Uniform"/>
-                </Button>
             </Grid>
         </Border>
 
