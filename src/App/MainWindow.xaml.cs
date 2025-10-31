@@ -848,18 +848,16 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void OnThemeChanged(object? sender, ThemeChangedEventArgs e)
+    private void OnThemeChanged(object? sender, ThemeChangedEventArgs e)
     {
         // Apply theme to WebView2 content if available and initialized
         if (_webViewHost != null && _webViewHost.IsInitialized)
         {
-            var themeConfig = _themeManager.GetCurrentConfiguration();
-            var colorScheme = e.NewTheme == ThemeType.Dark
-                ? themeConfig.DarkColorScheme
-                : themeConfig.LightColorScheme;
-
             var themeName = e.NewTheme.ToString().ToLowerInvariant();
-            await _webViewHost.InjectThemeFromColorSchemeAsync(themeName, colorScheme);
+            
+            // Send apply-theme message to update the data-theme attribute on body
+            // This will trigger the CSS to switch between light and dark themes
+            _webViewHost.PostMessage("apply-theme", new { theme = themeName });
         }
     }
 
