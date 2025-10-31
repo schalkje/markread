@@ -145,14 +145,12 @@ public partial class SidebarView : System.Windows.Controls.UserControl
             EmptyStateText.Text = "Access denied to folder";
             EmptyStatePanel.Visibility = Visibility.Visible;
             FileTreeView.Visibility = Visibility.Collapsed;
-            RootFolderText.ToolTip = _rootFolder;
         }
         catch (Exception ex)
         {
             EmptyStateText.Text = $"Error: {ex.Message}";
             EmptyStatePanel.Visibility = Visibility.Visible;
             FileTreeView.Visibility = Visibility.Collapsed;
-            RootFolderText.ToolTip = _rootFolder;
         }
     }
 

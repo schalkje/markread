@@ -36,6 +36,7 @@ public partial class MainWindow : Window
     private readonly HistoryService _historyService = new();
     private readonly FileWatcherService _fileWatcherService = new();
     private readonly TabService _tabService = new();
+    private readonly INavigationService _navigationService = new NavigationService();
     private readonly Renderer _renderer;
     private readonly LinkResolver _linkResolver;
     private readonly OpenFolderCommand _openFolderCommand;
@@ -77,6 +78,8 @@ public partial class MainWindow : Window
 
         // Wire up NavigationBar ThemeService (icon will update after theme initialization)
         this.NavigationBar.ThemeService = _themeManager;
+        this.NavigationBar.NavigationService = _navigationService;
+        _navigationService.ClearCurrentFile();
 
         // Wire up FindBar events
         FindBar.SearchRequested += OnSearchRequested;
@@ -312,6 +315,9 @@ public partial class MainWindow : Window
         _renderer.SetRootPath(result.Root.Path);
         Title = $"MarkRead - {result.Root.DisplayName}";
 
+        _navigationService.ClearCurrentFile();
+        _navigationService.UpdateHistoryState(false, false);
+
         // Initialize sidebar with folder root
         SidebarContent.SetRootFolder(result.Root.Path);
 
@@ -358,6 +364,7 @@ public partial class MainWindow : Window
         System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab added to collection, _tabService.Tabs.Count={_tabService.Tabs.Count}");
         System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab selected, ActiveTab={_tabService.ActiveTab}");
         System.Diagnostics.Debug.WriteLine("AddTabAsync: Completed");
+        UpdateNavigationHistoryState();
         return Task.CompletedTask;
     }
 
@@ -387,6 +394,8 @@ public partial class MainWindow : Window
             history.Push(entry);
         }
 
+        _navigationService.UpdateCurrentFile(document.FullPath, _currentRoot?.Path);
+
         string markdown;
         try
         {
@@ -407,6 +416,7 @@ public partial class MainWindow : Window
         }
         catch (IOException ex)
         {
+            _navigationService.ClearCurrentFile();
             System.Windows.MessageBox.Show(this, $"Unable to read document: {ex.Message}", "MarkRead", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
@@ -450,6 +460,8 @@ public partial class MainWindow : Window
         {
             _webViewHost.PostMessage("scroll-to", new { anchor });
         }
+
+        UpdateNavigationHistoryState();
     }
 
     private void SubscribeToDocumentChanges(TabItemModel tab, DocumentInfo document)
@@ -717,6 +729,19 @@ public partial class MainWindow : Window
         return _tabService.ActiveTab;
     }
 
+    private void UpdateNavigationHistoryState()
+    {
+        var currentTab = GetCurrentTab();
+        if (currentTab is null)
+        {
+            _navigationService.UpdateHistoryState(false, false);
+            return;
+        }
+
+        var history = _historyService.GetOrCreate(currentTab.Id);
+        _navigationService.UpdateHistoryState(history.CanGoBack, history.CanGoForward);
+    }
+
     private void ShowStartOverlay(bool visible)
     {
         if (!Dispatcher.CheckAccess())
@@ -730,6 +755,8 @@ public partial class MainWindow : Window
 
         if (visible)
         {
+            _navigationService.ClearCurrentFile();
+            _navigationService.UpdateHistoryState(false, false);
             if (hasFolderLoaded)
             {
                 // Folder loaded but no file selected - show welcome overlay
@@ -755,6 +782,7 @@ public partial class MainWindow : Window
             WelcomeOverlay.Visibility = Visibility.Collapsed;
             SidebarPanel.Visibility = Visibility.Visible;
             SidebarColumn.Width = new GridLength(280); // Restore to mockup width
+            UpdateNavigationHistoryState();
         }
     }
 
@@ -791,8 +819,17 @@ public partial class MainWindow : Window
                 var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
                 _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
             }
+            else
+            {
+                _navigationService.ClearCurrentFile();
+            }
+        }
+        else
+        {
+            _navigationService.ClearCurrentFile();
         }
         
+        UpdateNavigationHistoryState();
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -804,6 +841,10 @@ public partial class MainWindow : Window
             ShowStartOverlay(true);
             this.TabBarContainer.Visibility = Visibility.Collapsed;
             this.MarkdownView.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            UpdateNavigationHistoryState();
         }
     }
 

@@ -45,8 +45,21 @@
             <Border x:Name="NavSeparator"
                     Width="1" Height="24"
                     Background="{DynamicResource ThemeBorderBrush}"
-                    Margin="4,0"
-                    Visibility="Collapsed"/>
+                    Margin="4,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentFilePath}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentFilePath}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+            </Border>
 
             <!-- Back Button (32x32px as per mockup) -->
             <Button x:Name="BackButton"
@@ -86,13 +99,29 @@
                 Background="Transparent"
                 VerticalAlignment="Center">
             <TextBlock x:Name="FilePathText"
-                       Text="{Binding RelativeFilePath, FallbackValue=''}"
+                       Text="{Binding CurrentFilePath, FallbackValue=''}"
                        Foreground="{DynamicResource ThemeTextSecondaryBrush}"
                        FontSize="12"
                        VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis"
+                       TextAlignment="Center"
                        HorizontalAlignment="Center"
-                       MaxWidth="600"/>
+                       MaxWidth="600"
+                       ToolTip="{Binding CurrentFilePath}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentFilePath}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentFilePath}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
         </Border>
 
         <!-- Right Section: Actions and Window Controls -->

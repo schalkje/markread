@@ -37,6 +37,11 @@ public interface INavigationService : INotifyPropertyChanged
     void UpdateCurrentFile(string fullPath, string? rootPath = null);
 
     /// <summary>
+    /// Clears the current file information
+    /// </summary>
+    void ClearCurrentFile();
+
+    /// <summary>
     /// Notifies that back navigation occurred
     /// </summary>
     void NotifyBackNavigation();
@@ -128,6 +133,12 @@ public class NavigationService : INavigationService
 
     public void UpdateCurrentFile(string fullPath, string? rootPath = null)
     {
+        if (string.IsNullOrWhiteSpace(fullPath))
+        {
+            ClearCurrentFile();
+            return;
+        }
+
         CurrentFilePath = fullPath;
 
         if (!string.IsNullOrEmpty(rootPath) && !string.IsNullOrEmpty(fullPath))
@@ -146,6 +157,12 @@ public class NavigationService : INavigationService
         {
             RelativeFilePath = System.IO.Path.GetFileName(fullPath);
         }
+    }
+
+    public void ClearCurrentFile()
+    {
+        CurrentFilePath = null;
+        RelativeFilePath = null;
     }
 
     public void NotifyBackNavigation()
