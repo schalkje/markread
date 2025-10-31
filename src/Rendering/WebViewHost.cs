@@ -28,6 +28,10 @@ public sealed class WebViewHost : IDisposable
     
     // Performance optimization: Cache last injected theme to avoid redundant CSS injection
     private string? _lastInjectedTheme;
+    
+    // Store the last theme information for re-injection after navigation
+    private string? _pendingThemeName;
+    private Dictionary<string, string>? _pendingThemeProperties;
 
     public WebViewHost(WebView2 webView, string assetRootRelativePath, string virtualHostName = "appassets")
     {
@@ -132,6 +136,10 @@ public sealed class WebViewHost : IDisposable
             throw new InvalidOperationException("WebView2 has not been initialized.");
         }
 
+        // Store theme for re-injection after navigation
+        _pendingThemeName = themeName;
+        _pendingThemeProperties = new Dictionary<string, string>(themeProperties);
+
         // Performance optimization: Skip if same theme already injected
         var themeKey = $"{themeName}:{string.Join(",", themeProperties.Select(kv => $"{kv.Key}={kv.Value}"))}";
         if (_lastInjectedTheme == themeKey)
@@ -151,8 +159,11 @@ public sealed class WebViewHost : IDisposable
             // Create CSS injection script
             var cssInjectionScript = $@"
                 (function() {{
+                    console.log('Injecting theme: {themeName}');
+                    
                     // Remove existing theme stylesheets
                     const existingThemeStyles = document.querySelectorAll('style[data-theme-injected]');
+                    console.log('Removing existing theme styles:', existingThemeStyles.length);
                     existingThemeStyles.forEach(style => style.remove());
 
                     // Create new theme stylesheet
@@ -170,8 +181,15 @@ public sealed class WebViewHost : IDisposable
                         }}
                     `;
                     
+                    console.log('CSS variables being injected:', style.textContent.substring(0, 500));
+                    
                     // Add to document head
                     document.head.appendChild(style);
+                    console.log('Theme stylesheet added to head');
+                    
+                    // Update body data-theme attribute for CSS selectors
+                    document.body.setAttribute('data-theme', '{themeName.ToLowerInvariant()}');
+                    console.log('Set body data-theme to:', '{themeName.ToLowerInvariant()}');
                     
                     // Update body class for theme detection
                     document.body.classList.remove('theme-light', 'theme-dark', 'theme-system');
@@ -182,6 +200,14 @@ public sealed class WebViewHost : IDisposable
                         detail: {{ theme: '{themeName}', properties: {JsonSerializer.Serialize(themeProperties)} }}
                     }});
                     document.dispatchEvent(themeEvent);
+                    
+                    // Log computed styles for debugging
+                    const rootStyles = getComputedStyle(document.documentElement);
+                    console.log('--theme-background:', rootStyles.getPropertyValue('--theme-background'));
+                    console.log('--theme-text-primary:', rootStyles.getPropertyValue('--theme-text-primary'));
+                    const bodyBg = getComputedStyle(document.body).backgroundColor;
+                    const bodyColor = getComputedStyle(document.body).color;
+                    console.log('Body background:', bodyBg, 'Body color:', bodyColor);
                     
                     // Return success indicator
                     return true;
@@ -213,29 +239,48 @@ public sealed class WebViewHost : IDisposable
     {
         ThrowIfDisposed();
         
-        // Convert ColorScheme to CSS custom properties
+        // Determine if dark theme
+        var isDark = themeName.Contains("dark", StringComparison.OrdinalIgnoreCase);
+        
+        // Calculate secondary text color (lighter/darker based on theme)
+        var textSecondaryColor = isDark ? "#a3a3a3" : "#6B7280";
+        var textMutedColor = isDark ? "#737373" : "#9CA3AF";
+        var linkHoverColor = isDark ? "#93c5fd" : "#2563EB";
+        
+        // Convert ColorScheme to CSS custom properties matching theme-variables.css
         var themeProperties = new Dictionary<string, string>
         {
-            ["bg-primary"] = ColorToCssHex(colorScheme.Background),
-            ["bg-secondary"] = ColorToCssHex(colorScheme.SidebarBackground),
-            ["fg-primary"] = ColorToCssHex(colorScheme.Foreground),
-            ["accent-color"] = ColorToCssHex(colorScheme.Accent),
-            ["border-color"] = ColorToCssHex(colorScheme.Border),
-            ["button-bg"] = ColorToCssHex(colorScheme.ButtonBackground),
-            ["button-hover"] = ColorToCssHex(colorScheme.ButtonHover),
-            ["tab-active-bg"] = ColorToCssHex(colorScheme.TabActiveBackground),
-            ["tab-inactive-bg"] = ColorToCssHex(colorScheme.TabInactiveBackground),
+            // Main theme colors
+            ["theme-background"] = ColorToCssHex(colorScheme.Background),
+            ["theme-secondary-background"] = ColorToCssHex(colorScheme.SidebarBackground),
+            ["theme-foreground"] = ColorToCssHex(colorScheme.Foreground),
+            ["theme-accent"] = ColorToCssHex(colorScheme.Accent),
+            ["theme-border"] = ColorToCssHex(colorScheme.Border),
+            ["theme-button-background"] = ColorToCssHex(colorScheme.ButtonBackground),
+            ["theme-button-hover"] = ColorToCssHex(colorScheme.ButtonHover),
+            ["theme-sidebar-background"] = ColorToCssHex(colorScheme.SidebarBackground),
+            ["theme-tab-active"] = ColorToCssHex(colorScheme.TabActiveBackground),
+            ["theme-tab-inactive"] = ColorToCssHex(colorScheme.TabInactiveBackground),
             
-            // Additional computed colors for better UX
-            ["text-muted"] = themeName.Contains("dark", StringComparison.OrdinalIgnoreCase) ? "#a1a1aa" : "#71717a",
-            ["text-link"] = ColorToCssHex(colorScheme.Accent),
-            ["shadow-color"] = themeName.Contains("dark", StringComparison.OrdinalIgnoreCase) ? "#000000" : "#00000010",
+            // Text colors
+            ["theme-text-primary"] = ColorToCssHex(colorScheme.Foreground),
+            ["theme-text-secondary"] = textSecondaryColor,
+            ["theme-text-muted"] = textMutedColor,
+            ["theme-text-link"] = ColorToCssHex(colorScheme.Accent),
+            ["theme-text-link-hover"] = linkHoverColor,
             
-            // Markdown-specific theme properties
-            ["code-bg"] = themeName.Contains("dark", StringComparison.OrdinalIgnoreCase) ? "#27272a" : "#f4f4f5",
-            ["blockquote-border"] = ColorToCssHex(colorScheme.Border),
-            ["table-border"] = ColorToCssHex(colorScheme.Border),
-            ["table-header-bg"] = ColorToCssHex(colorScheme.ButtonBackground)
+            // UI Component Colors
+            ["theme-input-background"] = ColorToCssHex(colorScheme.Background),
+            ["theme-input-border"] = ColorToCssHex(colorScheme.Border),
+            ["theme-input-focus"] = ColorToCssHex(colorScheme.Accent),
+            ["theme-dropdown-background"] = ColorToCssHex(colorScheme.Background),
+            ["theme-dropdown-shadow"] = isDark ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 0, 0, 0.1)",
+            ["theme-tooltip-background"] = isDark ? "#f8f9fa" : "#000000",
+            ["theme-tooltip-text"] = isDark ? "#171717" : "#ffffff",
+            
+            // Shadows
+            ["theme-shadow"] = isDark ? "0 1px 3px rgba(0, 0, 0, 0.3)" : "0 1px 3px rgba(0, 0, 0, 0.1)",
+            ["theme-shadow-large"] = isDark ? "0 4px 6px rgba(0, 0, 0, 0.4)" : "0 4px 6px rgba(0, 0, 0, 0.15)"
         };
 
         await InjectThemeAsync(themeName, themeProperties);
@@ -304,6 +349,17 @@ public sealed class WebViewHost : IDisposable
     /// </summary>
     private static string ColorToCssHex(System.Drawing.Color color)
     {
+        // Debug output
+        System.Diagnostics.Debug.WriteLine($"ColorToCssHex: A={color.A}, R={color.R}, G={color.G}, B={color.B}, IsEmpty={color.IsEmpty}");
+        
+        // Handle empty/default color (should not happen, but guard against it)
+        if (color.IsEmpty || color.A == 0)
+        {
+            System.Diagnostics.Debug.WriteLine($"WARNING: Empty or transparent color detected: {color}");
+            // Return a visible default instead of transparent
+            return "#000000"; // Black as fallback
+        }
+        
         if (color.A < 255)
         {
             // Include alpha channel for semi-transparent colors
@@ -384,11 +440,26 @@ public sealed class WebViewHost : IDisposable
         _core.NavigationCompleted += OnNavigationCompleted;
     }
 
-    private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+    private async void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
         if (!e.IsSuccess)
         {
             return;
+        }
+
+        // Re-inject theme after navigation if we have a pending theme
+        if (_pendingThemeName != null && _pendingThemeProperties != null)
+        {
+            try
+            {
+                // Clear the cache to force re-injection
+                _lastInjectedTheme = null;
+                await InjectThemeAsync(_pendingThemeName, _pendingThemeProperties);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to re-inject theme after navigation: {ex.Message}");
+            }
         }
 
         _readyCompletionSource ??= new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -70,39 +70,7 @@
   --z-tooltip: 1040;
 }
 
-/* Dark Theme Override (matching WPF DarkTheme.xaml) */
-[data-theme="dark"] {
-  --theme-background: #0a0a0a;
-  --theme-secondary-background: #171717;
-  --theme-foreground: #fafafa;
-  --theme-accent: #3b82f6;
-  --theme-border: #262626;
-  --theme-button-background: #171717;
-  --theme-button-hover: #262626;
-  --theme-sidebar-background: #0a0a0a;
-  --theme-tab-active: #171717;
-  --theme-tab-inactive: #0a0a0a;
-
-  /* Dark Theme Text */
-  --theme-text-primary: #fafafa;
-  --theme-text-secondary: #a3a3a3;
-  --theme-text-muted: #737373;
-  --theme-text-link: #60a5fa;
-  --theme-text-link-hover: #93c5fd;
-
-  /* Dark Theme UI Components */
-  --theme-input-background: #171717;
-  --theme-input-border: #262626;
-  --theme-input-focus: #3b82f6;
-  --theme-dropdown-background: #171717;
-  --theme-dropdown-shadow: rgba(0, 0, 0, 0.3);
-  --theme-tooltip-background: #f8f9fa;
-  --theme-tooltip-text: #171717;
-
-  /* Dark Theme Shadows */
-  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --theme-shadow-large: 0 4px 6px rgba(0, 0, 0, 0.4);
-}
+/* Dark theme variables will be injected dynamically by WebViewHost */
 
 /* High Contrast Theme Support (for accessibility) */
 @media (prefers-contrast: high) {
@@ -124,47 +92,6 @@
     --theme-transition-normal: 0ms;
     --theme-transition-slow: 0ms;
   }
-}
-
-/* System Theme Detection */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    --theme-background: #0a0a0a;
-    --theme-secondary-background: #171717;
-    --theme-foreground: #fafafa;
-    --theme-accent: #3b82f6;
-    --theme-border: #262626;
-    --theme-button-background: #171717;
-    --theme-button-hover: #262626;
-    --theme-sidebar-background: #0a0a0a;
-    --theme-tab-active: #171717;
-    --theme-tab-inactive: #0a0a0a;
-
-    --theme-text-primary: #fafafa;
-    --theme-text-secondary: #a3a3a3;
-    --theme-text-muted: #737373;
-    --theme-text-link: #60a5fa;
-    --theme-text-link-hover: #93c5fd;
-
-    --theme-input-background: #171717;
-    --theme-input-border: #262626;
-    --theme-dropdown-background: #171717;
-    --theme-dropdown-shadow: rgba(0, 0, 0, 0.3);
-    --theme-tooltip-background: #f8f9fa;
-    --theme-tooltip-text: #171717;
-
-    --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    --theme-shadow-large: 0 4px 6px rgba(0, 0, 0, 0.4);
-  }
-}
-
-/* Base Element Styling Using Theme Variables */
-body {
-  font-family: var(--theme-font-family);
-  background-color: var(--theme-background);
-  color: var(--theme-text-primary);
-  transition: background-color var(--theme-transition-normal),
-              color var(--theme-transition-normal);
 }
 
 /* Utility Classes for Theme-Aware Components */

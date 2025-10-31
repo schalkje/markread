@@ -132,6 +132,23 @@ public partial class MainWindow : Window
         _webViewHost.LinkClicked += OnLinkClicked;
         _webViewHost.AnchorClicked += OnAnchorClicked;
         _isInitialized = true;
+        
+        // Inject initial theme into WebView after initialization
+        var currentTheme = _themeManager.CurrentTheme;
+        var themeName = currentTheme.ToString().ToLowerInvariant();
+        var themeConfig = _themeManager.GetCurrentConfiguration();
+        var colorScheme = currentTheme == ThemeType.Dark 
+            ? themeConfig.DarkColorScheme 
+            : themeConfig.LightColorScheme;
+        
+        try
+        {
+            await _webViewHost.InjectThemeFromColorSchemeAsync(themeName, colorScheme);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to inject initial theme into WebView: {ex.Message}");
+        }
     }
 
     private async Task InitializeFromStartupAsync()
@@ -848,15 +865,31 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnThemeChanged(object? sender, ThemeChangedEventArgs e)
+    private async void OnThemeChanged(object? sender, ThemeChangedEventArgs e)
     {
         // Apply theme to WebView2 content if available and initialized
         if (_webViewHost != null && _webViewHost.IsInitialized)
         {
             var themeName = e.NewTheme.ToString().ToLowerInvariant();
             
-            // Send apply-theme message to update the data-theme attribute on body
-            // This will trigger the CSS to switch between light and dark themes
+            // Get the color scheme for the theme
+            var themeConfig = _themeManager.GetCurrentConfiguration();
+            var colorScheme = e.NewTheme == ThemeType.Dark 
+                ? themeConfig.DarkColorScheme 
+                : themeConfig.LightColorScheme;
+            
+            // Inject theme CSS variables into the WebView
+            try
+            {
+                await _webViewHost.InjectThemeFromColorSchemeAsync(themeName, colorScheme);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to inject theme into WebView: {ex.Message}");
+            }
+            
+            // Also send apply-theme message to update the data-theme attribute on body
+            // This ensures both the CSS variables and data-theme attribute are updated
             _webViewHost.PostMessage("apply-theme", new { theme = themeName });
         }
     }

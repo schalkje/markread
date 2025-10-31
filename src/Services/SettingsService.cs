@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Drawing;
 using AnimationSettings = MarkRead.Services.AnimationSettings;
+using ColorJsonConverter = MarkRead.Services.ColorJsonConverter;
 using ThemeConfiguration = MarkRead.Services.ThemeConfiguration;
 using UIState = MarkRead.Services.UIState;
 
@@ -20,7 +21,8 @@ public class SettingsService
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new ColorJsonConverter() }
     };
 
     private readonly string _settingsFile;
