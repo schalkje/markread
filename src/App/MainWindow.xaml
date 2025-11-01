@@ -115,47 +115,34 @@
                              SearchRequested="NavigationBar_SearchRequested"
                              ExportRequested="NavigationBar_ExportRequested"/>
 
-        <!-- Enhanced Tab Bar with Debug Visuals -->
+        <!-- Enhanced Tab Bar -->
         <Border Grid.Row="1"
                 x:Name="TabBarContainer"
-                Background="LightBlue"
+                Background="{DynamicResource ThemeBackgroundBrush}"
                 BorderBrush="{DynamicResource ThemeBorderBrush}"
                 BorderThickness="0,0,0,1"
-                Padding="8"
-                MinHeight="40"
-                Visibility="Visible">
+                Visibility="Collapsed">
             
-            <Grid>
-                <TextBlock Text="{Binding ElementName=TabControl, Path=Items.Count, StringFormat='TabControl Items: {0}'}" 
-                           Foreground="Red" 
-                           FontSize="16" 
-                           FontWeight="Bold"
-                           VerticalAlignment="Center"
-                           Margin="10"/>
-                
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" 
-                              VerticalScrollBarVisibility="Hidden"
-                              CanContentScroll="True"
-                              Background="Green">
-                    <TabControl x:Name="TabControl"
-                                SelectionChanged="TabControl_SelectionChanged"
-                                BorderThickness="0"
-                                Background="Transparent"
-                                DisplayMemberPath="Title"
-                                Style="{DynamicResource DefaultTabControl}"
-                                ItemContainerStyle="{DynamicResource DefaultTabItem}">
-                        
-                        <!-- No ItemTemplate - using DisplayMemberPath for simple property binding -->
-                        <!-- No ItemsPanel override - let ControlTemplate's TabPanel handle layout -->
-                        
-                        <TabControl.ContentTemplate>
-                            <DataTemplate>
-                                <!-- Empty - content is shown in MarkdownView below -->
-                            </DataTemplate>
-                        </TabControl.ContentTemplate>
-                    </TabControl>
-                </ScrollViewer>
-            </Grid>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                          VerticalScrollBarVisibility="Hidden"
+                          CanContentScroll="True">
+                <TabControl x:Name="TabControl"
+                            SelectionChanged="TabControl_SelectionChanged"
+                            BorderThickness="0"
+                            Background="Transparent"
+                            DisplayMemberPath="Title"
+                            Style="{DynamicResource DefaultTabControl}"
+                            ItemContainerStyle="{DynamicResource DefaultTabItem}">
+                    
+                    <!-- Using DisplayMemberPath for simple property binding -->
+                    
+                    <TabControl.ContentTemplate>
+                        <DataTemplate>
+                            <!-- Empty - content is shown in MarkdownView below -->
+                        </DataTemplate>
+                    </TabControl.ContentTemplate>
+                </TabControl>
+            </ScrollViewer>
         </Border>
 
         <!-- Main Content Area with Sidebar -->

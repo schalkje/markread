@@ -513,7 +513,8 @@
     <Style x:Key="DarkThemeTabControl" TargetType="{x:Type TabControl}">
         <Setter Property="Background" Value="{StaticResource ThemeBackgroundBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
-        <Setter Property="BorderThickness" Value="0,1,0,0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TabControl}">
@@ -526,8 +527,8 @@
                         <!-- Tab Headers -->
                         <TabPanel Grid.Row="0"
                                   IsItemsHost="True"
-                                  Background="Pink"
-                                  MinHeight="30"/>
+                                  Background="Transparent"
+                                  Margin="8,4,8,0"/>
                         
                         <!-- Tab Content -->
                         <Border Grid.Row="1"
@@ -544,14 +545,13 @@
 
     <!-- TabItem Style -->
     <Style x:Key="DarkThemeTabItem" TargetType="{x:Type TabItem}">
-        <Setter Property="Background" Value="Cyan"/>
-        <Setter Property="Foreground" Value="Black"/>
-        <Setter Property="BorderBrush" Value="Red"/>
-        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource ThemeTextSecondaryBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0,0,0,2"/>
         <Setter Property="Padding" Value="12,8"/>
-        <Setter Property="Margin" Value="2"/>
-        <Setter Property="MinHeight" Value="30"/>
-        <Setter Property="MinWidth" Value="80"/>
+        <Setter Property="Margin" Value="0,0,4,0"/>
+        <Setter Property="FontSize" Value="14"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TabItem}">
@@ -559,21 +559,21 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="4,4,0,0"
+                            Padding="{TemplateBinding Padding}"
                             Margin="{TemplateBinding Margin}">
                         <ContentPresenter x:Name="contentPresenter"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center"
                                           ContentSource="Header"
-                                          Margin="{TemplateBinding Padding}"/>
+                                          TextBlock.Foreground="{TemplateBinding Foreground}"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeTabActiveBrush}"/>
-                            <Setter TargetName="border" Property="BorderThickness" Value="1,1,1,0"/>
+                            <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource ThemeAccentBrush}"/>
                             <Setter Property="Panel.ZIndex" Value="1"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
