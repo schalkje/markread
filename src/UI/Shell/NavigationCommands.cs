@@ -21,4 +21,13 @@ public static class NavigationCommands
         {
             new KeyGesture(Key.Right, ModifierKeys.Alt)
         });
+
+    public static readonly RoutedUICommand Find = new(
+        "Find",
+        nameof(Find),
+        typeof(NavigationCommands),
+        new InputGestureCollection
+        {
+            new KeyGesture(Key.F, ModifierKeys.Control)
+        });
 }

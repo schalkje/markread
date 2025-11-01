@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="clr-namespace:MarkRead.App.UI.Shell"
+             xmlns:start="clr-namespace:MarkRead.App.UI.Start"
              mc:Ignorable="d"
              d:DesignHeight="48" Height="48"
              Background="{DynamicResource ThemeSecondaryBackgroundBrush}">
@@ -39,7 +40,55 @@
                        FontSize="14"
                        Foreground="{DynamicResource ThemeTextPrimaryBrush}"
                        VerticalAlignment="Center"
-                       Margin="12,0"/>
+                       Margin="12,0,8,0"/>
+
+            <!-- Menu Bar -->
+            <Menu Background="Transparent"
+                  VerticalAlignment="Center"
+                  WindowChrome.IsHitTestVisibleInChrome="True">
+                <Menu.Resources>
+                    <Style TargetType="MenuItem">
+                        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
+                        <Setter Property="FontSize" Value="14"/>
+                        <Setter Property="Padding" Value="8,6"/>
+                    </Style>
+                </Menu.Resources>
+                
+                <!-- File Menu -->
+                <MenuItem Header="_File">
+                    <MenuItem Header="Open _Folder..." 
+                              Command="{x:Static start:StartCommands.OpenFolder}"
+                              InputGestureText="Ctrl+O"/>
+                    <MenuItem Header="Open F_ile..." 
+                              Command="{x:Static start:StartCommands.OpenFile}"
+                              InputGestureText="Ctrl+Shift+O"/>
+                    <Separator/>
+                    <MenuItem Header="_New Tab" 
+                              InputGestureText="Ctrl+T"
+                              IsEnabled="False"/>
+                    <MenuItem Header="_Close Tab" 
+                              InputGestureText="Ctrl+W"
+                              IsEnabled="False"/>
+                    <Separator/>
+                    <MenuItem Header="E_xit" 
+                              Click="ExitMenuItem_Click"
+                              InputGestureText="Alt+F4"/>
+                </MenuItem>
+                
+                <!-- Edit Menu -->
+                <MenuItem Header="_Edit">
+                    <MenuItem Header="_Find..." 
+                              Command="{x:Static local:NavigationCommands.Find}"
+                              InputGestureText="Ctrl+F"/>
+                    <Separator/>
+                    <MenuItem Header="Go _Back" 
+                              Command="{x:Static local:NavigationCommands.GoBack}"
+                              InputGestureText="Alt+Left"/>
+                    <MenuItem Header="Go _Forward" 
+                              Command="{x:Static local:NavigationCommands.GoForward}"
+                              InputGestureText="Alt+Right"/>
+                </MenuItem>
+            </Menu>
 
             <!-- Separator (only show when file is active) -->
             <Border x:Name="NavSeparator"

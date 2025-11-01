@@ -165,6 +165,11 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
         Window.GetWindow(this)?.Close();
     }
 
+    private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        Window.GetWindow(this)?.Close();
+    }
+
     /// <summary>
     /// Event raised when menu button is clicked (toggle sidebar)
     /// </summary>
