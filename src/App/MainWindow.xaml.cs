@@ -10,6 +10,8 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 
+using Microsoft.Web.WebView2.Core;
+
 using MarkRead.App.Rendering;
 using MarkRead.App.Services;
 using MarkRead.App.UI.Shell;
@@ -65,6 +67,9 @@ public partial class MainWindow : Window
         _linkResolver = new LinkResolver(_folderService);
         _openFolderCommand = new OpenFolderCommand(_folderService);
         _webViewHost = new WebViewHost(MarkdownView, Path.Combine("Rendering", "assets"));
+
+        // Set initial WebView2 background color based on current theme (before initialization)
+        SetInitialWebViewBackground();
 
         // Subscribe to theme change events for WebView2 coordination
         _themeManager.ThemeChanged += OnThemeChanged;
@@ -140,6 +145,9 @@ public partial class MainWindow : Window
         var colorScheme = currentTheme == ThemeType.Dark 
             ? themeConfig.DarkColorScheme 
             : themeConfig.LightColorScheme;
+        
+        // Set WebView2 default background color to match theme
+        UpdateWebViewBackgroundColor(colorScheme.Background);
         
         try
         {
@@ -863,16 +871,31 @@ public partial class MainWindow : Window
 
     private async void OnThemeChanged(object? sender, ThemeChangedEventArgs e)
     {
+        // Get the color scheme for the theme
+        var themeConfig = _themeManager.GetCurrentConfiguration();
+        var colorScheme = e.NewTheme == ThemeType.Dark 
+            ? themeConfig.DarkColorScheme 
+            : themeConfig.LightColorScheme;
+        
+        // Update WebView2 default background color to prevent white flash
+        UpdateWebViewBackgroundColor(colorScheme.Background);
+        
+        // Reload the current document to apply the new theme
+        // This ensures the inline styles in the HTML match the new theme
+        var currentTab = GetCurrentTab();
+        if (currentTab != null && !string.IsNullOrEmpty(currentTab.DocumentPath) && _currentRoot != null)
+        {
+            var document = _folderService.TryResolveDocument(_currentRoot, currentTab.DocumentPath);
+            if (document is DocumentInfo doc)
+            {
+                await LoadDocumentInTabAsync(currentTab, doc, pushHistory: false);
+            }
+        }
+        
         // Apply theme to WebView2 content if available and initialized
         if (_webViewHost != null && _webViewHost.IsInitialized)
         {
             var themeName = e.NewTheme.ToString().ToLowerInvariant();
-            
-            // Get the color scheme for the theme
-            var themeConfig = _themeManager.GetCurrentConfiguration();
-            var colorScheme = e.NewTheme == ThemeType.Dark 
-                ? themeConfig.DarkColorScheme 
-                : themeConfig.LightColorScheme;
             
             // Inject theme CSS variables into the WebView
             try
@@ -894,6 +917,65 @@ public partial class MainWindow : Window
     {
         // Log or handle theme loading errors
         System.Diagnostics.Debug.WriteLine($"Theme load failed for {e.AttemptedTheme}: {e.Error.Message}");
+    }
+
+    /// <summary>
+    /// Sets initial WebView2 background color before CoreWebView2 initialization
+    /// </summary>
+    private void SetInitialWebViewBackground()
+    {
+        try
+        {
+            var currentTheme = _themeManager.CurrentTheme;
+            var themeConfig = _themeManager.GetCurrentConfiguration();
+            var colorScheme = currentTheme == ThemeType.Dark 
+                ? themeConfig.DarkColorScheme 
+                : themeConfig.LightColorScheme;
+            
+            // Set default background color BEFORE CoreWebView2 initializes
+            MarkdownView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(
+                colorScheme.Background.A, 
+                colorScheme.Background.R, 
+                colorScheme.Background.G, 
+                colorScheme.Background.B);
+            
+            System.Diagnostics.Debug.WriteLine($"Set initial WebView background to: #{colorScheme.Background.R:X2}{colorScheme.Background.G:X2}{colorScheme.Background.B:X2}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to set initial WebView background: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Updates the WebView2 default background color to prevent white flash during navigation
+    /// </summary>
+    private void UpdateWebViewBackgroundColor(System.Drawing.Color backgroundColor)
+    {
+        try
+        {
+            // Set default background color (works even before CoreWebView2 is initialized)
+            MarkdownView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(
+                backgroundColor.A, 
+                backgroundColor.R, 
+                backgroundColor.G, 
+                backgroundColor.B);
+            
+            // If CoreWebView2 is available, also set the preferred color scheme
+            if (MarkdownView?.CoreWebView2 is not null)
+            {
+                MarkdownView.CoreWebView2.Profile.PreferredColorScheme = 
+                    backgroundColor.GetBrightness() < 0.5 
+                        ? CoreWebView2PreferredColorScheme.Dark 
+                        : CoreWebView2PreferredColorScheme.Light;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"Updated WebView background to: #{backgroundColor.R:X2}{backgroundColor.G:X2}{backgroundColor.B:X2}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to update WebView background color: {ex.Message}");
+        }
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e)

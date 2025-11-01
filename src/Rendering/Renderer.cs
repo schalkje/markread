@@ -14,6 +14,7 @@ public sealed class Renderer
     private const string ContentToken = "<!--CONTENT-->";
     private const string StateToken = "__STATE_JSON__";
     private const string BaseUrlToken = "<!--BASE_URL-->";
+    private const string ThemeStyleToken = "<!--THEME_STYLE-->";
 
     private readonly MarkdownService _markdownService;
     private readonly HtmlSanitizerService _sanitizer;
@@ -84,10 +85,14 @@ public sealed class Renderer
         // Set base URL for resolving relative paths in images/links
         var baseUrl = GetBaseUrlFromPath(request.DocumentPath);
 
+        // Inject theme-specific inline style to prevent white flash
+        var themeStyle = GenerateThemeInlineStyle(request.PreferredTheme);
+
         var output = template
             .Replace(ContentToken, sanitized, StringComparison.Ordinal)
             .Replace(StateToken, stateJson, StringComparison.Ordinal)
-            .Replace(BaseUrlToken, baseUrl, StringComparison.Ordinal);
+            .Replace(BaseUrlToken, baseUrl, StringComparison.Ordinal)
+            .Replace(ThemeStyleToken, themeStyle, StringComparison.Ordinal);
 
         var title = DetermineTitle(markdown, request.DocumentPath);
         if (isFallback)
@@ -259,6 +264,34 @@ public sealed class Renderer
             replacement);
         
         return result;
+    }
+
+    private static string GenerateThemeInlineStyle(string theme)
+    {
+        // Generate inline style that matches the theme to prevent white flash
+        // This is applied immediately before external CSS loads
+        var isDark = theme.Contains("dark", StringComparison.OrdinalIgnoreCase);
+        
+        if (isDark)
+        {
+            // Dark theme colors matching DarkTheme.xaml
+            return @"<style>
+        html, body { 
+            background: #0F0F0F !important; 
+            color: #fafafa !important;
+        }
+    </style>";
+        }
+        else
+        {
+            // Light theme colors matching LightTheme.xaml
+            return @"<style>
+        html, body { 
+            background: #FFFFFF !important; 
+            color: #171717 !important;
+        }
+    </style>";
+        }
     }
 }
 

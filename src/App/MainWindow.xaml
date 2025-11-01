@@ -256,7 +256,6 @@
                               HorizontalAlignment="Stretch"
                               VerticalAlignment="Stretch"
                               Margin="0"
-                              DefaultBackgroundColor="Transparent"
                               Visibility="Collapsed" />
 
                 <!-- Start Screen (shown when no folder loaded) -->

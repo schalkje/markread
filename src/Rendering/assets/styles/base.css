@@ -71,12 +71,17 @@ body {
     font-family: var(--font-family);
     font-size: var(--font-size-base);
     line-height: var(--line-height-normal);
-    background: var(--theme-background, var(--surface-light));
+    background: var(--theme-background, transparent);
     color: var(--theme-text-primary, var(--text-primary-light));
     transition: var(--transition);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure html also has transparent background to prevent white flash */
+html {
+    background: transparent;
 }
 
 /* Modern content container with better spacing */
