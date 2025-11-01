@@ -187,13 +187,14 @@ public sealed class WebViewHost : IDisposable
                     document.head.appendChild(style);
                     console.log('Theme stylesheet added to head');
                     
-                    // Update body data-theme attribute for CSS selectors
-                    document.body.setAttribute('data-theme', '{themeName.ToLowerInvariant()}');
-                    console.log('Set body data-theme to:', '{themeName.ToLowerInvariant()}');
+                    // Update body data-theme attribute for CSS selectors (use 'light' or 'dark' only)
+                    const resolvedTheme = '{(themeName.Contains("dark", StringComparison.OrdinalIgnoreCase) ? "dark" : "light")}';
+                    document.body.setAttribute('data-theme', resolvedTheme);
+                    console.log('Set body data-theme to:', resolvedTheme);
                     
                     // Update body class for theme detection
                     document.body.classList.remove('theme-light', 'theme-dark', 'theme-system');
-                    document.body.classList.add('theme-{themeName.ToLowerInvariant()}');
+                    document.body.classList.add('theme-' + resolvedTheme);
                     
                     // Dispatch theme change event for JavaScript listeners
                     const themeEvent = new CustomEvent('themeChanged', {{

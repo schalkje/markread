@@ -443,6 +443,7 @@ public partial class MainWindow : Window
         }
 
         var resolvedTheme = _themeManager.GetResolvedTheme().ToString().ToLowerInvariant();
+        System.Diagnostics.Debug.WriteLine($"LoadDocumentInTabAsync: CurrentTheme={_themeManager.CurrentTheme}, ResolvedTheme={resolvedTheme}");
 
         var request = new RenderRequest(
             markdown,

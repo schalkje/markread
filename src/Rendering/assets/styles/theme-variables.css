@@ -5,33 +5,34 @@
  */
 
 :root {
-  /* Light Theme Colors (matching WPF LightTheme.xaml) */
-  --theme-background: #ffffff;
-  --theme-secondary-background: #f8f9fa;
-  --theme-foreground: #171717;
-  --theme-accent: #0066cc;
-  --theme-border: #e5e5e5;
-  --theme-button-background: #f8f9fa;
-  --theme-button-hover: #e5e5e5;
-  --theme-sidebar-background: #ffffff;
-  --theme-tab-active: #ffffff;
-  --theme-tab-inactive: #f8f9fa;
+  /* Default to Dark Theme Colors (matching WPF DarkTheme.xaml) */
+  /* These will be overridden by inline styles and JavaScript injection */
+  --theme-background: #1a1a1a;
+  --theme-secondary-background: #333333;
+  --theme-foreground: #ffffff;
+  --theme-accent: #66b3ff;
+  --theme-border: #444444;
+  --theme-button-background: #333333;
+  --theme-button-hover: #444444;
+  --theme-sidebar-background: #222222;
+  --theme-tab-active: #333333;
+  --theme-tab-inactive: #222222;
 
   /* Text and Typography */
-  --theme-text-primary: #171717;
-  --theme-text-secondary: #737373;
-  --theme-text-muted: #a3a3a3;
-  --theme-text-link: #0066cc;
-  --theme-text-link-hover: #0052a3;
+  --theme-text-primary: #ffffff;
+  --theme-text-secondary: #a3a3a3;
+  --theme-text-muted: #737373;
+  --theme-text-link: #66b3ff;
+  --theme-text-link-hover: #93c5fd;
 
   /* UI Component Colors */
-  --theme-input-background: #ffffff;
-  --theme-input-border: #e5e5e5;
-  --theme-input-focus: #0066cc;
-  --theme-dropdown-background: #ffffff;
-  --theme-dropdown-shadow: rgba(0, 0, 0, 0.1);
-  --theme-tooltip-background: #000000;
-  --theme-tooltip-text: #ffffff;
+  --theme-input-background: #1a1a1a;
+  --theme-input-border: #444444;
+  --theme-input-focus: #66b3ff;
+  --theme-dropdown-background: #1a1a1a;
+  --theme-dropdown-shadow: rgba(0, 0, 0, 0.3);
+  --theme-tooltip-background: #f8f9fa;
+  --theme-tooltip-text: #171717;
 
   /* Status Colors (consistent across themes) */
   --theme-success: #16a34a;
@@ -42,8 +43,8 @@
   /* Layout and Spacing */
   --theme-radius: 6px;
   --theme-radius-large: 8px;
-  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --theme-shadow-large: 0 4px 6px rgba(0, 0, 0, 0.15);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --theme-shadow-large: 0 4px 6px rgba(0, 0, 0, 0.4);
 
   /* Animation Properties */
   --theme-transition-fast: 150ms ease-in-out;

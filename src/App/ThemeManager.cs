@@ -281,22 +281,22 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
 
         try
         {
-            // Remove ALL existing theme dictionaries first
+            // Load the new theme dictionary FIRST (before removing old one)
+            var newThemeDict = new ResourceDictionary { Source = themeUri };
+            app.Resources.MergedDictionaries.Add(newThemeDict);
+            System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Added {themeUri}");
+
+            // Now safely remove existing theme dictionaries (except the one we just added)
             var existingThemes = app.Resources.MergedDictionaries
-                .Where(d => d.Source?.OriginalString?.Contains("Theme.xaml") == true)
+                .Where(d => d.Source?.OriginalString?.Contains("Theme.xaml") == true && d != newThemeDict)
                 .ToList();
 
-            System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Removing {existingThemes.Count} existing theme dictionaries");
+            System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Removing {existingThemes.Count} old theme dictionaries");
             foreach (var existingTheme in existingThemes)
             {
                 System.Diagnostics.Debug.WriteLine($"  Removing: {existingTheme.Source}");
                 app.Resources.MergedDictionaries.Remove(existingTheme);
             }
-
-            // Load and add the new theme dictionary
-            var newThemeDict = new ResourceDictionary { Source = themeUri };
-            app.Resources.MergedDictionaries.Add(newThemeDict);
-            System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Added {themeUri}");
 
             // Update the Default style aliases to point to the new theme
             var themePrefix = theme == ThemeType.Dark ? "DarkTheme" : "LightTheme";

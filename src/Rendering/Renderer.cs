@@ -86,7 +86,9 @@ public sealed class Renderer
         var baseUrl = GetBaseUrlFromPath(request.DocumentPath);
 
         // Inject theme-specific inline style to prevent white flash
+        System.Diagnostics.Debug.WriteLine($"Renderer.RenderAsync: PreferredTheme = '{request.PreferredTheme}'");
         var themeStyle = GenerateThemeInlineStyle(request.PreferredTheme);
+        System.Diagnostics.Debug.WriteLine($"Renderer.RenderAsync: Generated inline style for theme");
 
         var output = template
             .Replace(ContentToken, sanitized, StringComparison.Ordinal)
@@ -270,25 +272,27 @@ public sealed class Renderer
     {
         // Generate inline style that matches the theme to prevent white flash
         // This is applied immediately before external CSS loads
+        // Colors must match ColorScheme.CreateLightDefault() and CreateDarkDefault()
         var isDark = theme.Contains("dark", StringComparison.OrdinalIgnoreCase);
+        System.Diagnostics.Debug.WriteLine($"GenerateThemeInlineStyle: theme='{theme}', isDark={isDark}");
         
         if (isDark)
         {
-            // Dark theme colors matching DarkTheme.xaml
+            // Dark theme colors matching ColorScheme.CreateDarkDefault()
             return @"<style>
         html, body { 
-            background: #0F0F0F !important; 
-            color: #fafafa !important;
+            background: #1A1A1A !important; 
+            color: #FFFFFF !important;
         }
     </style>";
         }
         else
         {
-            // Light theme colors matching LightTheme.xaml
+            // Light theme colors matching ColorScheme.CreateLightDefault()
             return @"<style>
         html, body { 
             background: #FFFFFF !important; 
-            color: #171717 !important;
+            color: #212529 !important;
         }
     </style>";
         }

@@ -2,38 +2,38 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
-    <!-- Dark Theme Color Definitions (matching mockup) -->
-    <SolidColorBrush x:Key="ThemeBackgroundBrush" Color="#0F0F0F"/>
-    <SolidColorBrush x:Key="ThemeSecondaryBackgroundBrush" Color="#1A1A1A"/>
-    <SolidColorBrush x:Key="ThemeForegroundBrush" Color="#F0F0F0"/>
-    <SolidColorBrush x:Key="ThemeAccentBrush" Color="#3B82F6"/>
-    <SolidColorBrush x:Key="ThemeBorderBrush" Color="#262626"/>
-    <SolidColorBrush x:Key="ThemeButtonBackgroundBrush" Color="#1A1A1A"/>
-    <SolidColorBrush x:Key="ThemeButtonHoverBrush" Color="#2A2A2A"/>
-    <SolidColorBrush x:Key="ThemeSidebarBackgroundBrush" Color="#0F0F0F"/>
-    <SolidColorBrush x:Key="ThemeTabActiveBrush" Color="#1A1A1A"/>
-    <SolidColorBrush x:Key="ThemeTabInactiveBrush" Color="#0F0F0F"/>
+    <!-- Dark Theme Color Definitions (matching ColorScheme.CreateDarkDefault) -->
+    <SolidColorBrush x:Key="ThemeBackgroundBrush" Color="#1A1A1A"/>           <!-- 26,26,26 -->
+    <SolidColorBrush x:Key="ThemeSecondaryBackgroundBrush" Color="#333333"/>  <!-- Secondary bg for code blocks, etc -->
+    <SolidColorBrush x:Key="ThemeForegroundBrush" Color="#FFFFFF"/>           <!-- 255,255,255 -->
+    <SolidColorBrush x:Key="ThemeAccentBrush" Color="#66B3FF"/>               <!-- 102,179,255 -->
+    <SolidColorBrush x:Key="ThemeBorderBrush" Color="#444444"/>               <!-- 68,68,68 -->
+    <SolidColorBrush x:Key="ThemeButtonBackgroundBrush" Color="#333333"/>     <!-- 51,51,51 -->
+    <SolidColorBrush x:Key="ThemeButtonHoverBrush" Color="#444444"/>          <!-- 68,68,68 -->
+    <SolidColorBrush x:Key="ThemeSidebarBackgroundBrush" Color="#222222"/>    <!-- 34,34,34 -->
+    <SolidColorBrush x:Key="ThemeTabActiveBrush" Color="#333333"/>            <!-- 51,51,51 -->
+    <SolidColorBrush x:Key="ThemeTabInactiveBrush" Color="#222222"/>          <!-- 34,34,34 -->
 
-    <!-- Dark Theme Text Colors (matching mockup) -->
-    <SolidColorBrush x:Key="ThemeTextPrimaryBrush" Color="#F0F0F0"/>
+    <!-- Dark Theme Text Colors -->
+    <SolidColorBrush x:Key="ThemeTextPrimaryBrush" Color="#FFFFFF"/>          <!-- Matches Foreground -->
     <SolidColorBrush x:Key="ThemeTextSecondaryBrush" Color="#9CA3AF"/>
     <SolidColorBrush x:Key="ThemeTextMutedBrush" Color="#6B7280"/>
-    <SolidColorBrush x:Key="ThemeTextLinkBrush" Color="#60A5FA"/>
+    <SolidColorBrush x:Key="ThemeTextLinkBrush" Color="#66B3FF"/>             <!-- Matches Accent -->
 
     <!-- Dark Theme Input Controls -->
-    <SolidColorBrush x:Key="ThemeInputBackgroundBrush" Color="#1A1A1A"/>
-    <SolidColorBrush x:Key="ThemeInputBorderBrush" Color="#262626"/>
-    <SolidColorBrush x:Key="ThemeInputFocusBrush" Color="#3B82F6"/>
+    <SolidColorBrush x:Key="ThemeInputBackgroundBrush" Color="#1A1A1A"/>      <!-- Matches Background -->
+    <SolidColorBrush x:Key="ThemeInputBorderBrush" Color="#444444"/>          <!-- Matches Border -->
+    <SolidColorBrush x:Key="ThemeInputFocusBrush" Color="#66B3FF"/>           <!-- Matches Accent -->
     
     <!-- Additional theme brushes for consistency -->
     <SolidColorBrush x:Key="ThemeSecondaryForegroundBrush" Color="#9CA3AF"/>
     <SolidColorBrush x:Key="ThemeSelectionBrush" Color="#1E3A5F"/>
     
     <!-- Aliases for backward compatibility -->
-    <SolidColorBrush x:Key="SurfaceBackground" Color="#0F0F0F"/>
-    <SolidColorBrush x:Key="SurfaceSecondary" Color="#1A1A1A"/>
-    <SolidColorBrush x:Key="BorderColor" Color="#262626"/>
-    <SolidColorBrush x:Key="TextPrimary" Color="#F0F0F0"/>
+    <SolidColorBrush x:Key="SurfaceBackground" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="SurfaceSecondary" Color="#333333"/>
+    <SolidColorBrush x:Key="BorderColor" Color="#444444"/>
+    <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
 
     <!-- Dark Theme Status Colors -->
     <SolidColorBrush x:Key="ThemeSuccessBrush" Color="#22C55E"/>

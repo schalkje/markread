@@ -116,11 +116,17 @@
     }
 
     function getMermaidTheme() {
-        // Check data-theme attribute
+        // Check data-theme attribute (should be 'light' or 'dark')
         const theme = document.body.getAttribute('data-theme');
-        if (theme === 'dark' || theme === 'theme-dark') {
+        console.log('getMermaidTheme: data-theme attribute is:', theme);
+        
+        // Match against 'dark' or theme names containing 'dark'
+        if (theme && (theme === 'dark' || theme.toLowerCase().includes('dark'))) {
+            console.log('Using Mermaid dark theme');
             return 'dark';
         }
+        
+        console.log('Using Mermaid default (light) theme');
         return 'default';
     }
 
