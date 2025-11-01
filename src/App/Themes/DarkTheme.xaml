@@ -549,9 +549,11 @@
         <Setter Property="Foreground" Value="{StaticResource ThemeTextSecondaryBrush}"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0,0,0,2"/>
-        <Setter Property="Padding" Value="12,8"/>
-        <Setter Property="Margin" Value="0,0,4,0"/>
-        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Padding" Value="12,10,12,8"/>
+        <Setter Property="Margin" Value="0,0,1,0"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="MinHeight" Value="36"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TabItem}">
@@ -560,12 +562,14 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             Padding="{TemplateBinding Padding}"
-                            Margin="{TemplateBinding Margin}">
+                            Margin="{TemplateBinding Margin}"
+                            CornerRadius="0">
                         <ContentPresenter x:Name="contentPresenter"
-                                          HorizontalAlignment="Center"
+                                          HorizontalAlignment="Left"
                                           VerticalAlignment="Center"
                                           ContentSource="Header"
-                                          TextBlock.Foreground="{TemplateBinding Foreground}"/>
+                                          TextBlock.Foreground="{TemplateBinding Foreground}"
+                                          TextBlock.FontWeight="{TemplateBinding FontWeight}"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -573,9 +577,17 @@
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+                            <Setter Property="FontWeight" Value="Medium"/>
                             <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource ThemeAccentBrush}"/>
                             <Setter Property="Panel.ZIndex" Value="1"/>
                         </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsSelected" Value="True"/>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                        </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
