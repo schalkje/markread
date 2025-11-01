@@ -52,12 +52,19 @@
             </DoubleAnimation>
         </Storyboard>
 
-        <!-- Modern input field style (T071) - based on theme TextBox style -->
-        <Style x:Key="ModernSearchInput" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+        <!-- Modern input field style (T071) - with dynamic theme support -->
+        <Style x:Key="ModernSearchInput" TargetType="TextBox">
             <Setter Property="Padding" Value="8,4"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Height" Value="32"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="{DynamicResource ThemeInputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource ThemeForegroundBrush}"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+            <Setter Property="SelectionOpacity" Value="0.4"/>
         </Style>
 
         <!-- Modern navigation button style (T071) -->
