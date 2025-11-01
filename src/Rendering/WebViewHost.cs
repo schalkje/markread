@@ -153,7 +153,7 @@ public sealed class WebViewHost : IDisposable
             var cssProperties = new StringBuilder();
             foreach (var property in themeProperties)
             {
-                cssProperties.AppendLine($"  --{property.Key}: {property.Value};");
+                cssProperties.AppendLine($"  --{property.Key}: {property.Value} !important;");
             }
 
             // Create CSS injection script
@@ -238,6 +238,9 @@ public sealed class WebViewHost : IDisposable
     public async Task InjectThemeFromColorSchemeAsync(string themeName, MarkRead.Services.ColorScheme colorScheme)
     {
         ThrowIfDisposed();
+        
+        // Clear cache to force re-injection when explicitly called (e.g., theme toggle)
+        _lastInjectedTheme = null;
         
         // Determine if dark theme
         var isDark = themeName.Contains("dark", StringComparison.OrdinalIgnoreCase);

@@ -71,9 +71,9 @@ body {
     font-family: var(--font-family);
     font-size: var(--font-size-base);
     line-height: var(--line-height-normal);
-    background: var(--theme-background, transparent);
-    color: var(--theme-text-primary, var(--text-primary-light));
-    transition: var(--transition);
+    background: var(--theme-background);
+    color: var(--theme-text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -108,7 +108,7 @@ h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-family);
     font-weight: 600;
     line-height: var(--line-height-tight);
-    color: var(--theme-text-primary, var(--text-primary-light));
+    color: var(--theme-text-primary);
     margin: var(--space-8) 0 var(--space-4);
     scroll-margin-top: var(--space-20);
 }
@@ -155,7 +155,7 @@ h6 {
 p {
     margin: var(--space-4) 0;
     line-height: var(--line-height-relaxed);
-    color: var(--theme-text-primary, var(--text-primary-light));
+    color: var(--theme-text-primary);
 }
 
 /* Lists */
@@ -175,7 +175,7 @@ li + li {
 
 /* Links */
 a {
-    color: var(--accent);
+    color: var(--theme-text-link);
     text-decoration: none;
     border-bottom: 1px solid transparent;
     transition: var(--transition);
@@ -183,7 +183,7 @@ a {
 
 a:hover,
 a:focus {
-    color: var(--accent-hover);
+    color: var(--theme-text-link-hover);
     border-bottom-color: currentColor;
     text-decoration: none;
 }
@@ -202,11 +202,11 @@ em {
 code {
     font-family: var(--font-mono);
     font-size: var(--font-size-sm);
-    background: var(--theme-secondary-background, var(--surface-secondary-light));
-    color: var(--theme-text-primary, var(--text-primary-light));
+    background: var(--theme-secondary-background);
+    color: var(--theme-text-primary);
     padding: var(--space-1) calc(var(--space-1) + 2px);
     border-radius: var(--radius-sm);
-    border: 1px solid var(--theme-border, var(--border-light));
+    border: 1px solid var(--theme-border);
 }
 
 /* Code blocks */
@@ -216,9 +216,9 @@ pre {
     margin: var(--space-6) 0;
     padding: var(--space-6);
     border-radius: var(--radius-lg);
-    background: #1e293b;
-    color: #f1f5f9;
-    border: 1px solid var(--border-light);
+    background: var(--theme-secondary-background);
+    color: var(--theme-text-primary);
+    border: 1px solid var(--theme-border);
 }
 
 pre code {
@@ -268,14 +268,14 @@ th {
     font-weight: 600;
     text-align: left;
     padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid var(--theme-border, var(--border-light));
-    color: var(--theme-text-primary, var(--text-primary-light));
+    border-bottom: 1px solid var(--theme-border);
+    color: var(--theme-text-primary);
 }
 
 td {
     padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid var(--theme-border, var(--border-light));
-    color: var(--theme-text-primary, var(--text-primary-light));
+    border-bottom: 1px solid var(--theme-border);
+    color: var(--theme-text-primary);
 }
 
 tbody tr:hover {
@@ -320,12 +320,13 @@ input[type="checkbox"] {
 }
 
 /* Mermaid diagrams */
+/* Note: Mermaid theme colors are handled by JavaScript (theme: 'default' or 'dark') */
+/* Diagrams are re-rendered when theme changes for proper color updates */
 .mermaid {
     margin: var(--space-8) 0;
     border-radius: var(--radius-lg);
     overflow: hidden;
-    background: var(--surface-secondary-light);
-    border: 1px solid var(--border-light);
+    padding: var(--space-4);
     text-align: center;
 }
 

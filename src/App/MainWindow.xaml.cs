@@ -871,36 +871,31 @@ public partial class MainWindow : Window
 
     private async void OnThemeChanged(object? sender, ThemeChangedEventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine($"OnThemeChanged: OldTheme={e.OldTheme}, NewTheme={e.NewTheme}");
+        
         // Get the color scheme for the theme
         var themeConfig = _themeManager.GetCurrentConfiguration();
         var colorScheme = e.NewTheme == ThemeType.Dark 
             ? themeConfig.DarkColorScheme 
             : themeConfig.LightColorScheme;
         
+        System.Diagnostics.Debug.WriteLine($"OnThemeChanged: colorScheme.Background={colorScheme.Background}");
+        
         // Update WebView2 default background color to prevent white flash
         UpdateWebViewBackgroundColor(colorScheme.Background);
         
-        // Reload the current document to apply the new theme
-        // This ensures the inline styles in the HTML match the new theme
-        var currentTab = GetCurrentTab();
-        if (currentTab != null && !string.IsNullOrEmpty(currentTab.DocumentPath) && _currentRoot != null)
-        {
-            var document = _folderService.TryResolveDocument(_currentRoot, currentTab.DocumentPath);
-            if (document is DocumentInfo doc)
-            {
-                await LoadDocumentInTabAsync(currentTab, doc, pushHistory: false);
-            }
-        }
-        
         // Apply theme to WebView2 content if available and initialized
+        // Do NOT reload the document - just update the theme styling
         if (_webViewHost != null && _webViewHost.IsInitialized)
         {
+            System.Diagnostics.Debug.WriteLine($"OnThemeChanged: WebViewHost is initialized, injecting theme");
             var themeName = e.NewTheme.ToString().ToLowerInvariant();
             
             // Inject theme CSS variables into the WebView
             try
             {
                 await _webViewHost.InjectThemeFromColorSchemeAsync(themeName, colorScheme);
+                System.Diagnostics.Debug.WriteLine($"OnThemeChanged: Theme injection completed successfully");
             }
             catch (Exception ex)
             {
@@ -910,6 +905,11 @@ public partial class MainWindow : Window
             // Also send apply-theme message to update the data-theme attribute on body
             // This ensures both the CSS variables and data-theme attribute are updated
             _webViewHost.PostMessage("apply-theme", new { theme = themeName });
+            System.Diagnostics.Debug.WriteLine($"OnThemeChanged: Posted apply-theme message");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"OnThemeChanged: WebViewHost not available or not initialized");
         }
     }
 

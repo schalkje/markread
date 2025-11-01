@@ -101,7 +101,10 @@
         blocks.forEach(block => {
             const wrapper = document.createElement("div");
             wrapper.className = "mermaid";
-            wrapper.textContent = block.textContent;
+            const source = block.textContent;
+            wrapper.textContent = source;
+            // Store original source for re-rendering on theme change
+            wrapper.setAttribute('data-mermaid-source', source);
 
             const pre = block.parentElement;
             if (pre && pre.parentElement) {
@@ -110,6 +113,15 @@
             }
         });
         return nodes;
+    }
+
+    function getMermaidTheme() {
+        // Check data-theme attribute
+        const theme = document.body.getAttribute('data-theme');
+        if (theme === 'dark' || theme === 'theme-dark') {
+            return 'dark';
+        }
+        return 'default';
     }
 
     function renderMermaidGraphs() {
@@ -122,11 +134,64 @@
             return Promise.resolve();
         }
 
-        window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+        // Use built-in themes that match our color scheme
+        const theme = getMermaidTheme();
+        window.mermaid.initialize({ 
+            startOnLoad: false, 
+            securityLevel: "strict",
+            theme: theme
+        });
         try {
             return window.mermaid.run({ nodes });
         } catch (error) {
             console.warn("Mermaid failed to render", error);
+            return Promise.resolve();
+        }
+    }
+
+    function reRenderMermaidGraphs() {
+        if (!window.mermaid) {
+            return Promise.resolve();
+        }
+
+        // Find all existing mermaid diagrams
+        const mermaidElements = document.querySelectorAll('.mermaid[data-mermaid-source]');
+        if (mermaidElements.length === 0) {
+            return Promise.resolve();
+        }
+
+        // Get the new theme
+        const theme = getMermaidTheme();
+        
+        // Re-initialize with new theme
+        window.mermaid.initialize({ 
+            startOnLoad: false, 
+            securityLevel: "strict",
+            theme: theme
+        });
+
+        // Restore original source and clear SVG
+        const nodes = [];
+        mermaidElements.forEach(element => {
+            const source = element.getAttribute('data-mermaid-source');
+            if (source) {
+                // Clear the rendered SVG
+                element.innerHTML = '';
+                element.textContent = source;
+                element.removeAttribute('data-processed');
+                nodes.push(element);
+            }
+        });
+
+        if (nodes.length === 0) {
+            return Promise.resolve();
+        }
+
+        // Re-render with new theme
+        try {
+            return window.mermaid.run({ nodes });
+        } catch (error) {
+            console.warn("Mermaid failed to re-render", error);
             return Promise.resolve();
         }
     }
@@ -211,11 +276,22 @@
         });
     }
 
+    function listenForThemeChanges() {
+        // Listen for theme changes dispatched by WebViewHost.InjectThemeAsync
+        document.addEventListener('themeChanged', (event) => {
+            console.log('Theme changed, re-rendering Mermaid diagrams');
+            reRenderMermaidGraphs().catch(error => {
+                console.warn('Failed to re-render Mermaid diagrams:', error);
+            });
+        });
+    }
+
     function initialise() {
     applyTheme(state.theme);
     ensureSafeLinks();
     handleLinkClicks();
     listenForBridgeMessages();
+    listenForThemeChanges();
 
     const mermaidPromise = renderMermaidGraphs();
     highlightCodeBlocks();

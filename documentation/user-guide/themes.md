@@ -434,6 +434,433 @@ Settings → Advanced → Import Settings → Select file
 
 💡 **Accessibility Matters** - Consider contrast and font size for all users
 
+## How Theming Works (Technical Overview)
+
+MarkRead uses a dual-layer theming system that coordinates between the WPF application shell and the WebView2 content renderer to provide a seamless, unified appearance.
+
+### Architecture Overview
+
+```mermaid
+graph TB
+    A[User Clicks Theme Toggle] --> B[ThemeManager.ApplyTheme]
+    B --> C[Update WPF Resources]
+    B --> D[Fire ThemeChanged Event]
+    D --> E[MainWindow.OnThemeChanged]
+    E --> F[WebViewHost.InjectThemeFromColorScheme]
+    F --> G[Generate CSS Variables]
+    F --> H[Execute JavaScript Injection]
+    H --> I[Update :root CSS Properties]
+    H --> J[Update body data-theme Attribute]
+    I --> K[CSS Recalculates Styles]
+    J --> K
+    K --> L[Content Re-renders with New Theme]
+```
+
+### Layer 1: WPF Application Shell
+
+**Theme Manager** (`ThemeManager.cs`)
+
+The theme manager is responsible for the WPF portion of the application (window chrome, sidebar, tabs, buttons):
+
+```csharp
+public async Task<bool> ApplyTheme(ThemeType theme)
+{
+    // 1. Resolve effective theme (System → Light/Dark)
+    var effectiveTheme = ResolveEffectiveTheme(theme);
+    
+    // 2. Switch WPF resource dictionaries
+    SwitchResourceDictionary(effectiveTheme);
+    
+    // 3. Update dynamic color resources
+    UpdateDynamicColorResources(colorScheme);
+    
+    // 4. Fire ThemeChanged event
+    OnThemeChanged(oldTheme, effectiveTheme);
+    
+    // 5. Persist theme preference
+    await _settingsService.SaveThemeConfigurationAsync();
+}
+```
+
+**Resource Dictionaries** (`Themes/LightTheme.xaml`, `Themes/DarkTheme.xaml`)
+
+Each theme has a XAML resource dictionary defining:
+- Brush resources (backgrounds, foregrounds, borders)
+- Style templates for controls (buttons, tabs, text boxes)
+- Animation and transition definitions
+
+```xaml
+<!-- Example from LightTheme.xaml -->
+<ResourceDictionary>
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ForegroundBrush" Color="#171717"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#0066CC"/>
+    
+    <Style x:Key="LightThemeButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+        <!-- ... hover states, transitions, etc. -->
+    </Style>
+</ResourceDictionary>
+```
+
+**Color Scheme Classes** (`Services/ThemeConfiguration.cs`)
+
+Theme colors are defined in C# classes:
+
+```csharp
+public class ColorScheme
+{
+    public Color Background { get; set; }          // Main background
+    public Color Foreground { get; set; }          // Main text
+    public Color Accent { get; set; }              // Links, highlights
+    public Color Border { get; set; }              // Separators
+    public Color SidebarBackground { get; set; }   // Sidebar bg
+    public Color TabActiveBackground { get; set; } // Active tab
+    // ... more colors
+}
+```
+
+These colors are shared between WPF and WebView2 to ensure consistency.
+
+### Layer 2: WebView2 Content Rendering
+
+**WebViewHost Bridge** (`Rendering/WebViewHost.cs`)
+
+When a theme changes, the `WebViewHost` translates the WPF `ColorScheme` into CSS custom properties:
+
+```csharp
+public async Task InjectThemeFromColorSchemeAsync(
+    string themeName, 
+    ColorScheme colorScheme)
+{
+    // Clear cache to force re-injection
+    _lastInjectedTheme = null;
+    
+    // Convert System.Drawing.Color to CSS hex
+    var themeProperties = new Dictionary<string, string>
+    {
+        ["theme-background"] = ColorToCssHex(colorScheme.Background),
+        ["theme-text-primary"] = ColorToCssHex(colorScheme.Foreground),
+        ["theme-accent"] = ColorToCssHex(colorScheme.Accent),
+        // ... 20+ more properties
+    };
+    
+    // Inject via JavaScript
+    await InjectThemeAsync(themeName, themeProperties);
+}
+```
+
+**JavaScript Injection** (Dynamic Style Element)
+
+The WebViewHost creates a `<style>` element in the document `<head>`:
+
+```javascript
+// Executed in the WebView2 JavaScript context
+(function() {
+    // Remove any existing theme styles
+    document.querySelectorAll('style[data-theme-injected]')
+        .forEach(style => style.remove());
+    
+    // Create new theme stylesheet
+    const style = document.createElement('style');
+    style.setAttribute('data-theme-injected', 'true');
+    style.textContent = `
+        :root {
+            --theme-background: #FFFFFF !important;
+            --theme-text-primary: #171717 !important;
+            --theme-accent: #0066CC !important;
+            /* ... all theme variables */
+        }
+    `;
+    
+    // Add to document
+    document.head.appendChild(style);
+    
+    // Update body attribute for CSS selectors
+    document.body.setAttribute('data-theme', 'light');
+    
+    // Dispatch custom event for components
+    document.dispatchEvent(new CustomEvent('themeChanged', {
+        detail: { theme: 'light', properties: {...} }
+    }));
+})();
+```
+
+**CSS Variable System** (`assets/styles/theme-variables.css`)
+
+The CSS defines default values and structure:
+
+```css
+:root {
+    /* Default light theme values */
+    --theme-background: #ffffff;
+    --theme-text-primary: #171717;
+    --theme-accent: #0066cc;
+    /* ... more variables */
+}
+
+/* Variables are overridden by injected styles with !important */
+```
+
+**Content Styling** (`assets/styles/base.css`)
+
+All content styles reference the CSS variables:
+
+```css
+body {
+    background: var(--theme-background);
+    color: var(--theme-text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--theme-text-primary);
+}
+
+a {
+    color: var(--theme-text-link);
+}
+
+code {
+    background: var(--theme-secondary-background);
+    border: 1px solid var(--theme-border);
+}
+```
+
+When the injected `:root` variables change, CSS recalculates all dependent styles automatically.
+
+### Theme Change Flow
+
+**1. User Interaction**
+```
+User clicks theme toggle button → ThemeToggle_Click event handler
+```
+
+**2. Theme Manager Update**
+```csharp
+await _themeManager.ApplyTheme(newTheme);
+// Updates WPF UI instantly via resource dictionary switch
+```
+
+**3. Event Propagation**
+```csharp
+_themeManager.ThemeChanged += OnThemeChanged;
+// MainWindow receives ThemeChangedEventArgs
+```
+
+**4. WebView Synchronization**
+```csharp
+await _webViewHost.InjectThemeFromColorSchemeAsync(themeName, colorScheme);
+// Converts ColorScheme → CSS variables → JavaScript injection
+```
+
+**5. CSS Recalculation**
+```
+Browser engine detects :root variable changes
+→ Recalculates all styles using var(--theme-*)
+→ Repaints content with new colors
+```
+
+**6. Component Updates**
+```javascript
+document.addEventListener('themeChanged', (event) => {
+    // Mermaid diagrams re-render with new theme
+    reRenderMermaidGraphs();
+});
+```
+
+### Why Two Layers?
+
+**WPF Layer (Native)**
+- Fast, hardware-accelerated rendering
+- Native Windows controls (buttons, menus, tabs)
+- Direct access to Windows theming APIs
+- Handles window chrome, borders, title bar
+
+**WebView2 Layer (Web)**
+- Rich markdown rendering with Markdig
+- Syntax highlighting with Highlight.js
+- Diagram rendering with Mermaid
+- Better HTML/CSS flexibility for content
+
+**Synchronization Benefits**
+- Seamless appearance: Shell and content match perfectly
+- Single source of truth: `ColorScheme` class defines all colors
+- Instant updates: Both layers update simultaneously
+- Consistency: Same hex colors used in WPF and CSS
+
+### Performance Optimizations
+
+**Caching**
+```csharp
+// Avoid re-injecting same theme
+private string? _lastInjectedTheme;
+if (_lastInjectedTheme == themeKey) return;
+```
+
+**Navigation Persistence**
+```csharp
+// Store theme for re-injection after page navigation
+private string? _pendingThemeName;
+private Dictionary<string, string>? _pendingThemeProperties;
+
+// Re-apply automatically when WebView navigates
+private async void OnNavigationCompleted(...)
+{
+    if (_pendingThemeName != null)
+        await InjectThemeAsync(_pendingThemeName, _pendingThemeProperties);
+}
+```
+
+**CSS Transitions**
+```css
+body {
+    /* Smooth transition when theme changes */
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+```
+
+**!important Override**
+```csharp
+// Injected variables use !important to override defaults
+cssProperties.AppendLine($"  --{property.Key}: {property.Value} !important;");
+```
+
+### System Theme Detection
+
+**Windows 10/11 Integration**
+
+MarkRead can detect and follow Windows theme preference:
+
+```csharp
+private static ThemeType DetectWindowsSystemTheme()
+{
+    try
+    {
+        // Read Windows registry setting
+        using var key = Registry.CurrentUser.OpenSubKey(
+            @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+        
+        if (key?.GetValue("AppsUseLightTheme") is int appsUseLightTheme)
+        {
+            return appsUseLightTheme == 0 ? ThemeType.Dark : ThemeType.Light;
+        }
+    }
+    catch { /* fallback */ }
+    
+    return ThemeType.Light;
+}
+```
+
+**Automatic Updates**
+
+When theme is set to "System", MarkRead can respond to Windows theme changes (future feature):
+
+```csharp
+// Subscribe to Windows theme change notifications
+SystemEvents.UserPreferenceChanged += (sender, e) =>
+{
+    if (e.Category == UserPreferenceCategory.General)
+    {
+        var newTheme = DetectWindowsSystemTheme();
+        await ApplyTheme(newTheme);
+    }
+};
+```
+
+### Extending the Theme System
+
+**Adding New Colors**
+
+1. **Define in ColorScheme class**:
+```csharp
+public class ColorScheme
+{
+    // Add new color
+    public Color CustomHighlight { get; set; }
+}
+```
+
+2. **Add to WPF resource dictionaries**:
+```xaml
+<SolidColorBrush x:Key="CustomHighlightBrush" Color="#FF5733"/>
+```
+
+3. **Add to CSS variable injection**:
+```csharp
+["theme-custom-highlight"] = ColorToCssHex(colorScheme.CustomHighlight)
+```
+
+4. **Use in CSS**:
+```css
+.special-element {
+    background: var(--theme-custom-highlight);
+}
+```
+
+**Creating Component-Specific Themes**
+
+For specialized components (diagrams, code blocks), listen to theme changes:
+
+```javascript
+document.addEventListener('themeChanged', (event) => {
+    const isDark = event.detail.theme === 'dark';
+    
+    // Configure component
+    if (window.mermaid) {
+        mermaid.initialize({ theme: isDark ? 'dark' : 'default' });
+        reRenderAllDiagrams();
+    }
+    
+    if (window.hljs) {
+        // Switch syntax highlighting theme
+        updateHighlightTheme(isDark ? 'github-dark' : 'github-light');
+    }
+});
+```
+
+### Debugging Theme Issues
+
+**Check WPF Theme Application**
+```csharp
+// Add to ThemeManager
+System.Diagnostics.Debug.WriteLine($"Applying theme: {theme}");
+System.Diagnostics.Debug.WriteLine($"Effective theme: {effectiveTheme}");
+System.Diagnostics.Debug.WriteLine($"Background: {colorScheme.Background}");
+```
+
+**Check CSS Variable Injection**
+
+Open browser DevTools (F12 in app) and inspect:
+```javascript
+// Check injected variables
+const styles = getComputedStyle(document.documentElement);
+console.log('Background:', styles.getPropertyValue('--theme-background'));
+console.log('Text:', styles.getPropertyValue('--theme-text-primary'));
+
+// Check injected style element
+const themeStyle = document.querySelector('style[data-theme-injected]');
+console.log('Theme style:', themeStyle?.textContent);
+```
+
+**Verify WebView Synchronization**
+```csharp
+// In MainWindow.OnThemeChanged
+System.Diagnostics.Debug.WriteLine($"WebView initialized: {_webViewHost?.IsInitialized}");
+System.Diagnostics.Debug.WriteLine($"Injecting theme: {themeName}");
+```
+
+### Best Practices
+
+1. **Always use CSS variables** - Never hardcode colors in component CSS
+2. **Test both themes** - Ensure readability in light and dark modes
+3. **Maintain contrast ratios** - Follow WCAG guidelines (4.5:1 minimum)
+4. **Use semantic names** - `--theme-text-primary` not `--dark-gray`
+5. **Preserve user choice** - Save theme preference to settings
+6. **Smooth transitions** - Add CSS transitions for color changes
+7. **Handle edge cases** - Test with custom Windows scaling, high contrast mode
+
 ## Next Steps
 
 - **[Settings](settings.md)** - All configuration options
