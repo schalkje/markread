@@ -350,7 +350,7 @@ public sealed class WebViewHost : IDisposable
     private static string ColorToCssHex(System.Drawing.Color color)
     {
         // Debug output
-        System.Diagnostics.Debug.WriteLine($"ColorToCssHex: A={color.A}, R={color.R}, G={color.G}, B={color.B}, IsEmpty={color.IsEmpty}");
+        // System.Diagnostics.Debug.WriteLine($"ColorToCssHex: A={color.A}, R={color.R}, G={color.G}, B={color.B}, IsEmpty={color.IsEmpty}");
         
         // Handle empty/default color (should not happen, but guard against it)
         if (color.IsEmpty || color.A == 0)

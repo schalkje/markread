@@ -272,55 +272,74 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
         var app = WpfApplication.Current;
         if (app?.Resources?.MergedDictionaries == null) return;
 
-        // Performance optimization: Check cache first
-        if (!_resourceDictionaryCache.TryGetValue(theme, out var cachedDict))
-        {
-            // Determine theme resource URI
-            var themeUri = theme == ThemeType.Dark 
-                ? new Uri("Themes/DarkTheme.xaml", UriKind.Relative)
-                : new Uri("Themes/LightTheme.xaml", UriKind.Relative);
+        System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Switching to {theme} theme");
 
-            try
-            {
-                // Load and cache the resource dictionary
-                cachedDict = new ResourceDictionary { Source = themeUri };
-                _resourceDictionaryCache[theme] = cachedDict;
-            }
-            catch (Exception ex)
-            {
-                // Cache the failure to avoid repeated attempts
-                _resourceDictionaryCache[theme] = null;
-                System.Diagnostics.Debug.WriteLine($"Failed to load theme resource: {ex.Message}");
-                return;
-            }
-        }
-
-        // Skip if cached dictionary is null (failed to load)
-        if (cachedDict == null) return;
+        // Determine theme resource URI
+        var themeUri = theme == ThemeType.Dark 
+            ? new Uri("Themes/DarkTheme.xaml", UriKind.Relative)
+            : new Uri("Themes/LightTheme.xaml", UriKind.Relative);
 
         try
         {
-            // Add new theme dictionary BEFORE removing old ones to avoid resource lookup failures
-            app.Resources.MergedDictionaries.Add(cachedDict);
-
-            // Remove existing theme dictionaries (except the one we just added)
+            // Remove ALL existing theme dictionaries first
             var existingThemes = app.Resources.MergedDictionaries
-                .Where(d => d != cachedDict && d.Source?.OriginalString?.Contains("Theme.xaml") == true)
+                .Where(d => d.Source?.OriginalString?.Contains("Theme.xaml") == true)
                 .ToList();
 
+            System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Removing {existingThemes.Count} existing theme dictionaries");
             foreach (var existingTheme in existingThemes)
             {
+                System.Diagnostics.Debug.WriteLine($"  Removing: {existingTheme.Source}");
                 app.Resources.MergedDictionaries.Remove(existingTheme);
             }
 
-            // Set current theme indicator
-            app.Resources["CurrentTheme"] = theme;
+            // Load and add the new theme dictionary
+            var newThemeDict = new ResourceDictionary { Source = themeUri };
+            app.Resources.MergedDictionaries.Add(newThemeDict);
+            System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Added {themeUri}");
+
+            // Update the Default style aliases to point to the new theme
+            var themePrefix = theme == ThemeType.Dark ? "DarkTheme" : "LightTheme";
+            UpdateStyleAlias(app, "DefaultWindow", $"{themePrefix}Window");
+            UpdateStyleAlias(app, "DefaultButton", $"{themePrefix}Button");
+            UpdateStyleAlias(app, "DefaultTextBox", $"{themePrefix}TextBox");
+            UpdateStyleAlias(app, "DefaultListBox", $"{themePrefix}ListBox");
+            UpdateStyleAlias(app, "DefaultListBoxItem", $"{themePrefix}ListBoxItem");
+            UpdateStyleAlias(app, "DefaultTreeView", $"{themePrefix}TreeView");
+            UpdateStyleAlias(app, "DefaultTreeViewItem", $"{themePrefix}TreeViewItem");
+            UpdateStyleAlias(app, "DefaultTabControl", $"{themePrefix}TabControl");
+            UpdateStyleAlias(app, "DefaultTabItem", $"{themePrefix}TabItem");
+            UpdateStyleAlias(app, "DefaultMenu", $"{themePrefix}Menu");
+            UpdateStyleAlias(app, "DefaultMenuItem", $"{themePrefix}MenuItem");
+            
+            System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Theme switch complete");
         }
         catch (Exception ex)
         {
             // Fallback to manual resource updates if ResourceDictionary loading fails
             System.Diagnostics.Debug.WriteLine($"ResourceDictionary switching failed: {ex.Message}");
             // The existing UpdateDynamicColorResources call will handle fallback
+        }
+    }
+
+    /// <summary>
+    /// Update a style alias to point to a different base style
+    /// </summary>
+    private static void UpdateStyleAlias(WpfApplication app, string aliasKey, string baseStyleKey)
+    {
+        try
+        {
+            if (app.Resources[baseStyleKey] is Style baseStyle)
+            {
+                var targetType = baseStyle.TargetType;
+                var newStyle = new Style(targetType, baseStyle);
+                app.Resources[aliasKey] = newStyle;
+                System.Diagnostics.Debug.WriteLine($"  Updated {aliasKey} -> {baseStyleKey}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"  Failed to update {aliasKey}: {ex.Message}");
         }
     }
 
