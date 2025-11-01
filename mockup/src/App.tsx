@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from './components/ui/dropdown-menu';
 import { Separator } from './components/ui/separator';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
@@ -55,17 +55,25 @@ export default function App() {
   };
 
   const handleFileSelect = (file: FileNode) => {
-    if (file.type !== 'file' || !file.content) return;
+    console.log('File selected:', file.name, 'Type:', file.type, 'Has content:', !!file.content);
+    
+    if (file.type !== 'file' || !file.content) {
+      console.log('Skipping - not a file or no content');
+      return;
+    }
 
     // Check if file is already open
     const existingFile = openFiles.find(f => f.id === file.id);
     if (existingFile) {
+      console.log('File already open, switching to tab');
       setActiveFileId(file.id);
       addToHistory(file);
+      toast.info(`Switched to ${file.name}`);
       return;
     }
 
     // Open new file
+    console.log('Opening new file in tab');
     const newFile: OpenFile = {
       id: file.id,
       name: file.name,
@@ -76,6 +84,7 @@ export default function App() {
     setOpenFiles(prev => [...prev, newFile]);
     setActiveFileId(file.id);
     addToHistory(file);
+    toast.success(`Opened ${file.name}`);
   };
 
   const addToHistory = (file: FileNode) => {

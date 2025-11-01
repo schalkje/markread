@@ -115,75 +115,47 @@
                              SearchRequested="NavigationBar_SearchRequested"
                              ExportRequested="NavigationBar_ExportRequested"/>
 
-        <!-- Enhanced Tab Bar -->
+        <!-- Enhanced Tab Bar with Debug Visuals -->
         <Border Grid.Row="1"
                 x:Name="TabBarContainer"
-                Background="{DynamicResource ThemeBackgroundBrush}"
+                Background="LightBlue"
                 BorderBrush="{DynamicResource ThemeBorderBrush}"
                 BorderThickness="0,0,0,1"
-                Visibility="Collapsed">
+                Padding="8"
+                MinHeight="40"
+                Visibility="Visible">
             
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" 
-                          VerticalScrollBarVisibility="Hidden"
-                          CanContentScroll="True">
-                <TabControl x:Name="TabControl"
-                            SelectionChanged="TabControl_SelectionChanged"
-                            BorderThickness="0"
-                            Background="Transparent"
-                            Style="{DynamicResource DefaultTabControl}">
-                    
-                    <TabControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type tabs:TabItem}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <TextBlock Grid.Column="0"
-                                           Text="{Binding Title}" 
-                                           Margin="0,0,8,0"
-                                           VerticalAlignment="Center"
-                                           MaxWidth="200"
-                                           TextTrimming="CharacterEllipsis"/>
-                                
-                                <Button Grid.Column="1"
-                                        Content="×"
-                                        FontSize="14"
-                                        FontWeight="Bold"
-                                        Width="16"
-                                        Height="16"
-                                        Padding="0"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Foreground="{DynamicResource ThemeTextSecondaryBrush}"
-                                        Cursor="Hand"
-                                        ToolTip="Close tab"
-                                        Click="CloseTab_Click"
-                                        Tag="{Binding Id}">
-                                    <Button.Style>
-                                        <Style TargetType="Button">
-                                            <Setter Property="Opacity" Value="0.6"/>
-                                            <Style.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Opacity" Value="1"/>
-                                                    <Setter Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                            </Grid>
-                        </DataTemplate>
-                    </TabControl.ItemTemplate>
-                    
-                    <TabControl.ContentTemplate>
-                        <DataTemplate>
-                            <!-- Empty - content is shown in MarkdownView below -->
-                        </DataTemplate>
-                    </TabControl.ContentTemplate>
-                </TabControl>
-            </ScrollViewer>
+            <Grid>
+                <TextBlock Text="{Binding ElementName=TabControl, Path=Items.Count, StringFormat='TabControl Items: {0}'}" 
+                           Foreground="Red" 
+                           FontSize="16" 
+                           FontWeight="Bold"
+                           VerticalAlignment="Center"
+                           Margin="10"/>
+                
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                              VerticalScrollBarVisibility="Hidden"
+                              CanContentScroll="True"
+                              Background="Green">
+                    <TabControl x:Name="TabControl"
+                                SelectionChanged="TabControl_SelectionChanged"
+                                BorderThickness="0"
+                                Background="Transparent"
+                                DisplayMemberPath="Title"
+                                Style="{DynamicResource DefaultTabControl}"
+                                ItemContainerStyle="{DynamicResource DefaultTabItem}">
+                        
+                        <!-- No ItemTemplate - using DisplayMemberPath for simple property binding -->
+                        <!-- No ItemsPanel override - let ControlTemplate's TabPanel handle layout -->
+                        
+                        <TabControl.ContentTemplate>
+                            <DataTemplate>
+                                <!-- Empty - content is shown in MarkdownView below -->
+                            </DataTemplate>
+                        </TabControl.ContentTemplate>
+                    </TabControl>
+                </ScrollViewer>
+            </Grid>
         </Border>
 
         <!-- Main Content Area with Sidebar -->

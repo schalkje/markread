@@ -379,6 +379,21 @@ public partial class MainWindow : Window
         System.Diagnostics.Debug.WriteLine($"AddTabAsync: Creating tab '{tab.Title}'");
         _tabService.AddTab(tab);
         System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab added to collection, _tabService.Tabs.Count={_tabService.Tabs.Count}");
+        
+        // Force UI update
+        Dispatcher.Invoke(() =>
+        {
+            System.Diagnostics.Debug.WriteLine($"AddTabAsync: TabControl.ItemsSource is null? {this.TabControl.ItemsSource == null}");
+            System.Diagnostics.Debug.WriteLine($"AddTabAsync: TabControl.Items.Count={this.TabControl.Items.Count}");
+            System.Diagnostics.Debug.WriteLine($"AddTabAsync: TabBarContainer.Visibility={TabBarContainer.Visibility}");
+            
+            // List all tabs in the collection
+            for (int i = 0; i < _tabService.Tabs.Count; i++)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Tab {i}: {_tabService.Tabs[i].Title}");
+            }
+        });
+        
         System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab selected, ActiveTab={_tabService.ActiveTab}");
         System.Diagnostics.Debug.WriteLine("AddTabAsync: Completed");
         UpdateNavigationHistoryState();
@@ -988,6 +1003,13 @@ public partial class MainWindow : Window
                 _tabService.SetActiveTab(existingTab);
                 return;
             }
+
+            // Ensure tab bar and content are visible
+            System.Diagnostics.Debug.WriteLine($"OnSidebarFileSelected: Making tab bar visible, current tabs count: {_tabService.Tabs.Count}");
+            ShowStartOverlay(false);
+            TabBarContainer.Visibility = Visibility.Visible;
+            MarkdownView.Visibility = Visibility.Visible;
+            System.Diagnostics.Debug.WriteLine($"OnSidebarFileSelected: TabBarContainer.Visibility = {TabBarContainer.Visibility}");
 
             // Create a new tab for the file
             var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);

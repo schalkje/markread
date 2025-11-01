@@ -14,6 +14,8 @@ export const FileTreeView: React.FC<FileTreeViewProps> = ({
   onFileSelect,
   selectedFileId
 }) => {
+  console.log('FileTreeView rendered with onFileSelect:', typeof onFileSelect);
+  
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set(['root', 'getting-started', 'guides'])
   );
@@ -66,7 +68,11 @@ export const FileTreeView: React.FC<FileTreeViewProps> = ({
     return (
       <button
         key={node.id}
-        onClick={() => onFileSelect(node)}
+        onClick={(e) => {
+          console.log('FileTreeView: File button clicked:', node.name, node);
+          e.stopPropagation();
+          onFileSelect(node);
+        }}
         className={`w-full flex items-center gap-2 py-1.5 text-left transition-colors rounded-md ${
           isSelected
             ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-medium'
@@ -83,6 +89,15 @@ export const FileTreeView: React.FC<FileTreeViewProps> = ({
   return (
     <ScrollArea className="h-full">
       <div className="py-2 px-2">
+        <button
+          onClick={() => {
+            console.log('TEST BUTTON CLICKED');
+            alert('Test button works! onFileSelect type: ' + typeof onFileSelect);
+          }}
+          className="w-full mb-2 py-2 px-4 bg-red-500 text-white rounded"
+        >
+          TEST CLICK ME
+        </button>
         {renderNode(rootNode)}
       </div>
     </ScrollArea>

@@ -263,9 +263,9 @@ public partial class SidebarView : System.Windows.Controls.UserControl
         }
     }
 
-    private void FileTreeView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private void FileTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
-        if (FileTreeView.SelectedItem is TreeViewItem item && item.Tag is string path)
+        if (e.NewValue is TreeViewItem item && item.Tag is string path)
         {
             if (File.Exists(path) && path.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
             {

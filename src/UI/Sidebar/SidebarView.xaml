@@ -215,7 +215,7 @@
                   Background="{DynamicResource ThemeSecondaryBackgroundBrush}"
                   BorderThickness="0"
                   Padding="8,4"
-                  MouseDoubleClick="FileTreeView_MouseDoubleClick"
+                  SelectedItemChanged="FileTreeView_SelectedItemChanged"
                   ItemContainerStyle="{StaticResource TreeViewItemStyle}">
         </TreeView>
 
