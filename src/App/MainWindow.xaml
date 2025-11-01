@@ -101,10 +101,8 @@
                 <RowDefinition Height="48"/>
                 <!-- Tab Bar -->
                 <RowDefinition Height="Auto"/>
-                <!-- Main Content Area -->
+                <!-- Main Content Area (includes FindBar at top) -->
                 <RowDefinition Height="*"/>
-                <!-- Find Bar (collapsed by default) -->
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
         <!-- Unified Title/Navigation Bar (48px height to match mockup) -->
@@ -251,60 +249,68 @@
 
             <!-- Main Content Panel -->
             <Grid Grid.Column="1" Background="{DynamicResource ThemeBackgroundBrush}">
-                <!-- WebView2 for markdown content -->
-                <wv2:WebView2 x:Name="MarkdownView"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch"
-                              Margin="0"
-                              Visibility="Collapsed" />
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Find Bar at top of content area -->
+                <find:FindBar x:Name="FindBar" Grid.Row="0"/>
+                
+                <!-- Content area -->
+                <Grid Grid.Row="1">
+                    <!-- WebView2 for markdown content -->
+                    <wv2:WebView2 x:Name="MarkdownView"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch"
+                                  Margin="0"
+                                  Visibility="Collapsed" />
 
-                <!-- Start Screen (shown when no folder loaded) -->
-                <start:StartView x:Name="StartScreen"
-                                 Visibility="Visible" />
+                    <!-- Start Screen (shown when no folder loaded) -->
+                    <start:StartView x:Name="StartScreen"
+                                     Visibility="Visible" />
 
-                <!-- Welcome Screen (shown when folder loaded but no file selected) -->
-                <Border x:Name="WelcomeOverlay"
-                        Background="{DynamicResource ThemeBackgroundBrush}"
-                        Visibility="Collapsed">
-                    <StackPanel HorizontalAlignment="Center" 
-                                VerticalAlignment="Center"
-                                TextBlock.Foreground="{DynamicResource ThemeTextSecondaryBrush}">
-                        <TextBlock Text="🔍" 
-                                   FontSize="64" 
-                                   HorizontalAlignment="Center" 
-                                   Opacity="0.2"
-                                   Margin="0,0,0,16"/>
-                        <TextBlock Text="No file selected" 
-                                   FontSize="16"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,0,0,8"/>
-                        <TextBlock Text="Select a markdown file from the sidebar to begin" 
-                                   FontSize="14"
-                                   HorizontalAlignment="Center"
-                                   Opacity="0.7"/>
-                    </StackPanel>
-                </Border>
+                    <!-- Welcome Screen (shown when folder loaded but no file selected) -->
+                    <Border x:Name="WelcomeOverlay"
+                            Background="{DynamicResource ThemeBackgroundBrush}"
+                            Visibility="Collapsed">
+                        <StackPanel HorizontalAlignment="Center" 
+                                    VerticalAlignment="Center"
+                                    TextBlock.Foreground="{DynamicResource ThemeTextSecondaryBrush}">
+                            <TextBlock Text="🔍" 
+                                       FontSize="64" 
+                                       HorizontalAlignment="Center" 
+                                       Opacity="0.2"
+                                       Margin="0,0,0,16"/>
+                            <TextBlock Text="No file selected" 
+                                       FontSize="16"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,8"/>
+                            <TextBlock Text="Select a markdown file from the sidebar to begin" 
+                                       FontSize="14"
+                                       HorizontalAlignment="Center"
+                                       Opacity="0.7"/>
+                        </StackPanel>
+                    </Border>
 
-                <!-- Loading Indicator -->
-                <Border x:Name="LoadingOverlay"
-                        Background="{DynamicResource ThemeBackgroundBrush}"
-                        Visibility="Collapsed">
-                    <StackPanel HorizontalAlignment="Center" 
-                                VerticalAlignment="Center">
-                        <ProgressBar IsIndeterminate="True" 
-                                     Width="200" 
-                                     Height="4" 
-                                     Margin="0,0,0,16"/>
-                        <TextBlock Text="Loading..." 
-                                   Style="{StaticResource HeaderTextBlock}"
-                                   HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </Border>
+                    <!-- Loading Indicator -->
+                    <Border x:Name="LoadingOverlay"
+                            Background="{DynamicResource ThemeBackgroundBrush}"
+                            Visibility="Collapsed">
+                        <StackPanel HorizontalAlignment="Center" 
+                                    VerticalAlignment="Center">
+                            <ProgressBar IsIndeterminate="True" 
+                                         Width="200" 
+                                         Height="4" 
+                                         Margin="0,0,0,16"/>
+                            <TextBlock Text="Loading..." 
+                                       Style="{StaticResource HeaderTextBlock}"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </Grid>
         </Grid>
-
-        <!-- Find Bar -->
-        <find:FindBar x:Name="FindBar" Grid.Row="3"/>
     </Grid>
 </Border>
 </Window>
