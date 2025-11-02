@@ -277,19 +277,15 @@
                         <StackPanel HorizontalAlignment="Center" 
                                     VerticalAlignment="Center"
                                     TextBlock.Foreground="{DynamicResource ThemeTextSecondaryBrush}">
-                            <TextBlock Text="🔍" 
+                            <TextBlock Text="�" 
                                        FontSize="64" 
                                        HorizontalAlignment="Center" 
                                        Opacity="0.2"
                                        Margin="0,0,0,16"/>
-                            <TextBlock Text="No file selected" 
+                            <TextBlock Text="Please select a markdown document to view" 
                                        FontSize="16"
                                        HorizontalAlignment="Center"
                                        Margin="0,0,0,8"/>
-                            <TextBlock Text="Select a markdown file from the sidebar to begin" 
-                                       FontSize="14"
-                                       HorizontalAlignment="Center"
-                                       Opacity="0.7"/>
                         </StackPanel>
                     </Border>
 

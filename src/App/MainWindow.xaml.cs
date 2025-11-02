@@ -102,6 +102,9 @@ public partial class MainWindow : Window
         CommandBindings.Add(new CommandBinding(AppNavigationCommands.GoBack, async (_, _) => await ExecuteGoBackAsync(), CanExecuteGoBack));
         CommandBindings.Add(new CommandBinding(AppNavigationCommands.GoForward, async (_, _) => await ExecuteGoForwardAsync(), CanExecuteGoForward));
         CommandBindings.Add(new CommandBinding(App.FindInDocumentCommand, (_, _) => ExecuteFind(), CanExecuteWhenInteractive));
+
+        // Add keyboard event handler for tab shortcuts
+        this.PreviewKeyDown += Window_PreviewKeyDown;
     }
 
     internal void InitializeShell(StartupArguments startupArguments)
@@ -123,6 +126,33 @@ public partial class MainWindow : Window
     {
         await EnsureWebViewAsync();
         await InitializeFromStartupAsync();
+    }
+
+    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        // Handle tab navigation shortcuts
+        if (e.Key == Key.Tab && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+            {
+                // Ctrl+Shift+Tab - Previous tab
+                _tabService.ActivatePreviousTab();
+                e.Handled = true;
+            }
+            else
+            {
+                // Ctrl+Tab - Next tab
+                _tabService.ActivateNextTab();
+                e.Handled = true;
+            }
+        }
+        // Handle close tab shortcut
+        else if (e.Key == Key.F4 && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            // Ctrl+F4 - Close active tab
+            _tabService.CloseActiveTab();
+            e.Handled = true;
+        }
     }
 
     private async Task EnsureWebViewAsync()

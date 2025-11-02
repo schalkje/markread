@@ -65,6 +65,21 @@ public interface ITabService
     void SetActiveTab(TabItem tab);
 
     /// <summary>
+    /// Activate the next tab in the collection (wraps around)
+    /// </summary>
+    void ActivateNextTab();
+
+    /// <summary>
+    /// Activate the previous tab in the collection (wraps around)
+    /// </summary>
+    void ActivatePreviousTab();
+
+    /// <summary>
+    /// Close the currently active tab
+    /// </summary>
+    void CloseActiveTab();
+
+    /// <summary>
     /// Event raised when the active tab changes
     /// </summary>
     event EventHandler<TabItem?>? ActiveTabChanged;
@@ -227,5 +242,48 @@ public class TabService : ITabService
             throw new InvalidOperationException("Tab is not in the collection");
 
         ActiveTab = tab;
+    }
+
+    public void ActivateNextTab()
+    {
+        if (Tabs.Count == 0)
+            return;
+
+        if (ActiveTab == null)
+        {
+            SetActiveTab(Tabs[0]);
+            return;
+        }
+
+        var currentIndex = Tabs.IndexOf(ActiveTab);
+        var nextIndex = (currentIndex + 1) % Tabs.Count;
+        SetActiveTab(Tabs[nextIndex]);
+    }
+
+    public void ActivatePreviousTab()
+    {
+        if (Tabs.Count == 0)
+            return;
+
+        if (ActiveTab == null)
+        {
+            SetActiveTab(Tabs[Tabs.Count - 1]);
+            return;
+        }
+
+        var currentIndex = Tabs.IndexOf(ActiveTab);
+        var previousIndex = currentIndex - 1;
+        if (previousIndex < 0)
+            previousIndex = Tabs.Count - 1;
+        
+        SetActiveTab(Tabs[previousIndex]);
+    }
+
+    public void CloseActiveTab()
+    {
+        if (ActiveTab != null)
+        {
+            CloseTab(ActiveTab);
+        }
     }
 }
