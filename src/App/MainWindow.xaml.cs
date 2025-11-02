@@ -930,16 +930,12 @@ public partial class MainWindow : Window
         {
             var currentTheme = _themeManager.CurrentTheme;
             var themeConfig = _themeManager.GetCurrentConfiguration();
-            var colorScheme = currentTheme == ThemeType.Dark 
-                ? themeConfig.DarkColorScheme 
+            var colorScheme = currentTheme == ThemeType.Dark
+                ? themeConfig.DarkColorScheme
                 : themeConfig.LightColorScheme;
-            
+
             // Set default background color BEFORE CoreWebView2 initializes
-            MarkdownView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(
-                colorScheme.Background.A, 
-                colorScheme.Background.R, 
-                colorScheme.Background.G, 
-                colorScheme.Background.B);
+            MarkdownView.DefaultBackgroundColor = colorScheme.Background;
             
             System.Diagnostics.Debug.WriteLine($"Set initial WebView background to: #{colorScheme.Background.R:X2}{colorScheme.Background.G:X2}{colorScheme.Background.B:X2}");
         }
@@ -957,11 +953,7 @@ public partial class MainWindow : Window
         try
         {
             // Set default background color (works even before CoreWebView2 is initialized)
-            MarkdownView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(
-                backgroundColor.A, 
-                backgroundColor.R, 
-                backgroundColor.G, 
-                backgroundColor.B);
+            MarkdownView.DefaultBackgroundColor = backgroundColor;
             
             // If CoreWebView2 is available, also set the preferred color scheme
             if (MarkdownView?.CoreWebView2 is not null)
