@@ -1,0 +1,13 @@
+{
+  "name": "markread-screenshots",
+  "version": "1.0.0",
+  "description": "Automated screenshot capture for MarkRead documentation",
+  "type": "module",
+  "scripts": {
+    "capture": "playwright test",
+    "install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

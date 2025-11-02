@@ -26,6 +26,10 @@ public partial class TabsView : WpfUserControl
     {
         InitializeComponent();
         Tabs = new ObservableCollection<TabItem>();
+        
+        // Monitor scroll viewer to show/hide scroll buttons
+        Loaded += (s, e) => UpdateScrollButtonVisibility();
+        TabsContainer.SizeChanged += (s, e) => UpdateScrollButtonVisibility();
     }
 
     public ObservableCollection<TabItem> Tabs
@@ -126,6 +130,38 @@ public partial class TabsView : WpfUserControl
             ActiveTab = tab;
             TabActivated?.Invoke(this, new TabEventArgs(tab));
         }
+    }
+
+    private void OnScrollLeftClicked(object sender, RoutedEventArgs e)
+    {
+        // Scroll left by 200 pixels
+        TabScrollViewer.ScrollToHorizontalOffset(TabScrollViewer.HorizontalOffset - 200);
+        UpdateScrollButtonVisibility();
+    }
+
+    private void OnScrollRightClicked(object sender, RoutedEventArgs e)
+    {
+        // Scroll right by 200 pixels
+        TabScrollViewer.ScrollToHorizontalOffset(TabScrollViewer.HorizontalOffset + 200);
+        UpdateScrollButtonVisibility();
+    }
+
+    private void UpdateScrollButtonVisibility()
+    {
+        if (TabScrollViewer == null)
+            return;
+
+        // Show scroll buttons if content is wider than viewport
+        var showScrollButtons = TabScrollViewer.ScrollableWidth > 0;
+        
+        ScrollLeftButton.Visibility = showScrollButtons ? Visibility.Visible : Visibility.Collapsed;
+        ScrollRightButton.Visibility = showScrollButtons ? Visibility.Visible : Visibility.Collapsed;
+
+        // Disable left button if at start
+        ScrollLeftButton.IsEnabled = TabScrollViewer.HorizontalOffset > 0;
+        
+        // Disable right button if at end
+        ScrollRightButton.IsEnabled = TabScrollViewer.HorizontalOffset < TabScrollViewer.ScrollableWidth;
     }
 }
 

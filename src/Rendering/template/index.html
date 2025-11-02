@@ -1,21 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="background: transparent;">
 <head>
     <meta charset="utf-8" />
     <base href="<!--BASE_URL-->" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MarkRead Viewer</title>
+    <!--THEME_STYLE-->
+    <link rel="stylesheet" href="https://appassets/styles/theme-variables.css" />
     <link rel="stylesheet" href="https://appassets/styles/base.css" />
-    <link rel="stylesheet" href="https://appassets/highlight/styles/default.css" />
-    <script defer src="https://appassets/highlight/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://appassets/prism/themes/theme-aware.css" />
+    <script defer src="https://appassets/prism/prism-core.min.js"></script>
+    <script defer src="https://appassets/prism/prism-autoloader.min.js"></script>
+    <script defer src="https://appassets/prism/prism-config.js"></script>
+    <script defer src="https://appassets/prism/prism-line-numbers.min.js"></script>
+    <script defer src="https://appassets/prism/prism-toolbar.min.js"></script>
+    <script defer src="https://appassets/prism/prism-copy-to-clipboard.min.js"></script>
     <script defer src="https://appassets/mermaid/mermaid.min.js"></script>
     <script defer src="https://appassets/scripts/render.js"></script>
     <script defer src="https://appassets/scripts/find.js"></script>
 </head>
-<body class="theme-system">
+<body class="theme-system" data-theme="<!--DATA_THEME-->" style="background: transparent;">
     <div id="app">
-        <main id="content" role="main"><!--CONTENT--></main>
+        <main id="content" role="main" class="content-container"><!--CONTENT--></main>
     </div>
     <script>
         window.__MARKREAD_INITIAL_STATE = __STATE_JSON__;

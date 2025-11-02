@@ -1,10 +1,12 @@
-# markread Development Guidelines
+﻿# markread Development Guidelines
 
 Auto-generated from all feature plans. Last updated: 2025-10-25
 
 ## Active Technologies
 - Local filesystem only (no DB) (001-markdown-viewer)
 - .NET 8 (C#) + WPF + WebView2; Markdig (optional if server‑side rendering), Prism/Highlight.js + Mermaid (front-end assets) (001-markdown-viewer)
+- C# .NET 8 + WPF, WebView2, Markdig (for markdown processing) (003-mockup-ui)
+- Local application settings file (JSON/XML) for theme preferences and UI state (003-mockup-ui)
 - .NET 8 (C#) + WPF TreeView control, System.IO.FileSystemWatcher for real-time monitoring (002-folder-treeview)
 - Local filesystem only (settings persisted via existing SettingsService) (002-folder-treeview)
 
@@ -32,6 +34,7 @@ tests/
 .NET 8 (C#): Follow standard conventions
 
 ## Recent Changes
+- 003-mockup-ui: Added C# .NET 8 + WPF, WebView2, Markdig (for markdown processing)
 - 002-folder-treeview: Added .NET 8 (C#) + WPF TreeView control, System.IO.FileSystemWatcher for real-time monitoring
 - 001-markdown-viewer: Added .NET 8 (C#) + WPF + WebView2; Markdig (optional if server‑side rendering), Prism/Highlight.js + Mermaid (front-end assets)
 

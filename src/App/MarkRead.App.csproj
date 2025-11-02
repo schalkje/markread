@@ -27,7 +27,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\Rendering\assets\**\*" Link="Rendering\assets\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- XAML resources need to be Page items for pack URIs -->
+    <Page Include="..\Rendering\assets\icons\*.xaml" Link="Rendering\assets\icons\%(Filename)%(Extension)" />
+    
+    <!-- Other rendering assets as content -->
+    <Content Include="..\Rendering\assets\**\*" Exclude="..\Rendering\assets\icons\*.xaml" Link="Rendering\assets\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\Rendering\template\**\*" Link="Rendering\template\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

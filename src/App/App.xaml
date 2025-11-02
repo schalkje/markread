@@ -1,13 +1,27 @@
 ﻿<Application x:Class="MarkRead.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:MarkRead.App"
-             xmlns:converters="clr-namespace:MarkRead.App.UI.Converters"
-             StartupUri="MainWindow.xaml">
+             xmlns:local="clr-namespace:MarkRead.App">
     <Application.Resources>
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
-        <converters:NodeTypeToIconConverter x:Key="NodeTypeToIconConverter"/>
-        <converters:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
-        <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Theme Resource Dictionaries - Start with Light theme -->
+                <ResourceDictionary Source="Themes/LightTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Default style aliases that dynamically reference theme styles -->
+            <!-- These use DynamicResource to automatically update when theme changes -->
+            <Style x:Key="DefaultWindow" TargetType="{x:Type Window}" BasedOn="{DynamicResource LightThemeWindow}"/>
+            <Style x:Key="DefaultButton" TargetType="{x:Type Button}" BasedOn="{DynamicResource LightThemeButton}"/>
+            <Style x:Key="DefaultTextBox" TargetType="{x:Type TextBox}" BasedOn="{DynamicResource LightThemeTextBox}"/>
+            <Style x:Key="DefaultListBox" TargetType="{x:Type ListBox}" BasedOn="{DynamicResource LightThemeListBox}"/>
+            <Style x:Key="DefaultListBoxItem" TargetType="{x:Type ListBoxItem}" BasedOn="{DynamicResource LightThemeListBoxItem}"/>
+            <Style x:Key="DefaultTreeView" TargetType="{x:Type TreeView}" BasedOn="{DynamicResource LightThemeTreeView}"/>
+            <Style x:Key="DefaultTreeViewItem" TargetType="{x:Type TreeViewItem}" BasedOn="{DynamicResource LightThemeTreeViewItem}"/>
+            <Style x:Key="DefaultTabControl" TargetType="{x:Type TabControl}" BasedOn="{DynamicResource LightThemeTabControl}"/>
+            <Style x:Key="DefaultTabItem" TargetType="{x:Type TabItem}" BasedOn="{DynamicResource LightThemeTabItem}"/>
+            <Style x:Key="DefaultMenu" TargetType="{x:Type Menu}" BasedOn="{DynamicResource LightThemeMenu}"/>
+            <Style x:Key="DefaultMenuItem" TargetType="{x:Type MenuItem}" BasedOn="{DynamicResource LightThemeMenuItem}"/>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

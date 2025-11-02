@@ -97,33 +97,65 @@
 
     function convertMermaidBlocks() {
         const nodes = [];
-        const blocks = document.querySelectorAll("pre code.language-mermaid");
-        blocks.forEach(block => {
-            const wrapper = document.createElement("div");
-            wrapper.className = "mermaid";
-            wrapper.textContent = block.textContent;
-
-            const pre = block.parentElement;
-            if (pre && pre.parentElement) {
-                pre.parentElement.replaceChild(wrapper, pre);
-                nodes.push(wrapper);
-            }
+        console.log('convertMermaidBlocks: Looking for div.mermaid elements');
+        
+        // Markdig already converts mermaid blocks to <div class="mermaid">
+        const mermaidDivs = document.querySelectorAll("div.mermaid");
+        console.log('convertMermaidBlocks: Found div.mermaid:', mermaidDivs.length);
+        
+        mermaidDivs.forEach(div => {
+            // Store original source for re-rendering on theme change
+            const source = div.textContent;
+            div.setAttribute('data-mermaid-source', source);
+            nodes.push(div);
         });
+        
+        console.log('convertMermaidBlocks: Prepared', nodes.length, 'mermaid blocks');
         return nodes;
+    }
+
+    function getMermaidTheme() {
+        // Check data-theme attribute (should be 'light' or 'dark')
+        const theme = document.body.getAttribute('data-theme');
+        console.log('getMermaidTheme: data-theme attribute is:', theme);
+        
+        // Match against 'dark' or theme names containing 'dark'
+        if (theme && (theme === 'dark' || theme.toLowerCase().includes('dark'))) {
+            console.log('Using Mermaid dark theme');
+            return 'dark';
+        }
+        
+        console.log('Using Mermaid default (light) theme');
+        return 'default';
     }
 
     function renderMermaidGraphs() {
         if (!window.mermaid) {
+            console.log('renderMermaidGraphs: window.mermaid not available');
             return Promise.resolve();
         }
 
         const nodes = convertMermaidBlocks();
         if (nodes.length === 0) {
+            console.log('renderMermaidGraphs: no mermaid blocks found');
             return Promise.resolve();
         }
 
-        window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+        // Use built-in themes that match our color scheme
+        const theme = getMermaidTheme();
+        console.log('renderMermaidGraphs: initializing Mermaid with theme:', theme);
+        
+        // Configure Mermaid with theme-specific settings
+        const config = { 
+            startOnLoad: false, 
+            securityLevel: "strict",
+            theme: theme === 'dark' ? 'dark' : 'default'
+        };
+        
+        console.log('renderMermaidGraphs: config =', JSON.stringify(config));
+        window.mermaid.initialize(config);
         try {
+            console.log('renderMermaidGraphs: running Mermaid on', nodes.length, 'nodes');
             return window.mermaid.run({ nodes });
         } catch (error) {
             console.warn("Mermaid failed to render", error);
@@ -131,14 +163,67 @@
         }
     }
 
+    function reRenderMermaidGraphs() {
+        if (!window.mermaid) {
+            return Promise.resolve();
+        }
+
+        // Find all existing mermaid diagrams
+        const mermaidElements = document.querySelectorAll('.mermaid[data-mermaid-source]');
+        if (mermaidElements.length === 0) {
+            return Promise.resolve();
+        }
+
+        // Get the new theme
+        const theme = getMermaidTheme();
+        
+        // Re-initialize with new theme
+        const config = { 
+            startOnLoad: false, 
+            securityLevel: "strict",
+            theme: theme === 'dark' ? 'dark' : 'default'
+        };
+        
+        window.mermaid.initialize(config);
+
+        // Restore original source and clear SVG
+        const nodes = [];
+        mermaidElements.forEach(element => {
+            const source = element.getAttribute('data-mermaid-source');
+            if (source) {
+                // Clear the rendered SVG
+                element.innerHTML = '';
+                element.textContent = source;
+                element.removeAttribute('data-processed');
+                nodes.push(element);
+            }
+        });
+
+        if (nodes.length === 0) {
+            return Promise.resolve();
+        }
+
+        // Re-render with new theme
+        try {
+            return window.mermaid.run({ nodes });
+        } catch (error) {
+            console.warn("Mermaid failed to re-render", error);
+            return Promise.resolve();
+        }
+    }
+
     function highlightCodeBlocks() {
-        if (!window.hljs) {
+        if (!window.Prism) {
             return;
         }
 
-        document.querySelectorAll("pre code").forEach(block => {
-            window.hljs.highlightElement(block);
+        // Add line-numbers class to all pre elements
+        document.querySelectorAll("pre[class*='language-']").forEach(pre => {
+            pre.classList.add("line-numbers");
         });
+
+        // Highlight all code blocks
+        window.Prism.highlightAll();
     }
 
     function handleLinkClicks() {
@@ -211,11 +296,25 @@
         });
     }
 
+    function listenForThemeChanges() {
+        // Listen for theme changes dispatched by WebViewHost.InjectThemeAsync
+        document.addEventListener('themeChanged', (event) => {
+            console.log('Theme changed, re-rendering Mermaid diagrams');
+            reRenderMermaidGraphs().catch(error => {
+                console.warn('Failed to re-render Mermaid diagrams:', error);
+            });
+        });
+    }
+
     function initialise() {
+    console.log('Initialise: state.theme =', state.theme);
+    console.log('Initialise: initial data-theme =', document.body.getAttribute('data-theme'));
     applyTheme(state.theme);
+    console.log('Initialise: after applyTheme, data-theme =', document.body.getAttribute('data-theme'));
     ensureSafeLinks();
     handleLinkClicks();
     listenForBridgeMessages();
+    listenForThemeChanges();
 
     const mermaidPromise = renderMermaidGraphs();
     highlightCodeBlocks();

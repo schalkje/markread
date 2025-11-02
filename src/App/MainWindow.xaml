@@ -9,151 +9,304 @@
         xmlns:start="clr-namespace:MarkRead.App.UI.Start"
         xmlns:tabs="clr-namespace:MarkRead.App.UI.Tabs"
         xmlns:find="clr-namespace:MarkRead.App.UI.Find"
-        xmlns:treeview="clr-namespace:MarkRead.App.UI.Sidebar.TreeView"
+        xmlns:sidebar="clr-namespace:MarkRead.App.UI.Sidebar"
         mc:Ignorable="d"
         Title="MarkRead" Height="720" Width="1080"
+        MinHeight="400" MinWidth="600"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        ResizeMode="CanResize"
+        Style="{DynamicResource DefaultWindow}"
         Loaded="Window_Loaded">
-    <!-- T068: Keyboard shortcuts for refresh -->
-    <Window.InputBindings>
-        <KeyBinding Key="R" Modifiers="Control" Command="{Binding ElementName=TreeViewControl, Path=DataContext.RefreshTreeViewCommand}"/>
-        <KeyBinding Key="F5" Command="{Binding ElementName=TreeViewControl, Path=DataContext.RefreshTreeViewCommand}"/>
-    </Window.InputBindings>
     
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="48"
+                      ResizeBorderThickness="8"
+                      CornerRadius="0"
+                      GlassFrameThickness="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+    
+    <Window.Resources>
+        <!-- Enhanced styles for mockup compliance -->
+        <Style x:Key="HeaderButton" TargetType="Button" BasedOn="{StaticResource DefaultButton}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="32"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
 
-        <!-- Menu Bar -->
-        <Menu Grid.Row="0">
-            <MenuItem Header="_File">
-                <MenuItem Header="_Open Folder..." Command="{x:Static local:App.OpenFolderCommand}" InputGestureText="Ctrl+O"/>
-                <MenuItem Header="Open F_ile..." Command="{x:Static local:App.OpenFileCommand}" InputGestureText="Ctrl+Shift+O"/>
-                <Separator/>
-                <MenuItem Header="E_xit" Click="Exit_Click" InputGestureText="Alt+F4"/>
-            </MenuItem>
-            <MenuItem Header="_Edit">
-                <MenuItem Header="_Find..." Command="{x:Static local:App.FindInDocumentCommand}" InputGestureText="Ctrl+F"/>
-            </MenuItem>
-            <MenuItem Header="_Navigate">
-                <MenuItem Header="_Back" Command="{x:Static shell:NavigationCommands.GoBack}" InputGestureText="Alt+Left"/>
-                <MenuItem Header="_Forward" Command="{x:Static shell:NavigationCommands.GoForward}" InputGestureText="Alt+Right"/>
-            </MenuItem>
-        </Menu>
+        <Style x:Key="HeaderTextBlock" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+        </Style>
 
-        <!-- Tab Control (just for tab headers, not content) -->
-        <TabControl x:Name="TabControl"
-                    Grid.Row="1"
-                    Visibility="Collapsed"
-                    SelectionChanged="TabControl_SelectionChanged"
-                    BorderThickness="0"
-                    Background="Transparent"
-                    Padding="0">
-            <TabControl.Resources>
-                <Style TargetType="TabItem">
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="TabItem">
-                                <Border Name="Border" BorderThickness="1,1,1,0" BorderBrush="#CCCCCC" Background="White" Padding="12,6" Margin="0,0,2,0">
-                                    <ContentPresenter ContentSource="Header"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Border" Property="Background" Value="White"/>
-                                        <Setter TargetName="Border" Property="BorderBrush" Value="#999999"/>
-                                    </Trigger>
-                                    <Trigger Property="IsSelected" Value="False">
-                                        <Setter TargetName="Border" Property="Background" Value="#F0F0F0"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </TabControl.Resources>
-            <TabControl.ItemTemplate>
-                <DataTemplate DataType="{x:Type tabs:TabItem}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding Title}" 
-                                   Margin="0,0,8,0"
-                                   VerticalAlignment="Center"/>
-                        <Button Content="×"
-                                FontSize="14"
-                                FontWeight="Bold"
-                                Width="16"
-                                Height="16"
-                                Padding="0"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Cursor="Hand"
-                                ToolTip="Close tab"
-                                Click="CloseTab_Click"
-                                Tag="{Binding Id}"/>
-                    </StackPanel>
-                </DataTemplate>
-            </TabControl.ItemTemplate>
-            <TabControl.ContentTemplate>
-                <DataTemplate>
-                    <!-- Empty - content is shown in MarkdownView below -->
-                </DataTemplate>
-            </TabControl.ContentTemplate>
-        </TabControl>
+        <Style x:Key="SidebarToggleButton" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Content" Value="☰"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
 
-        <!-- Content Area -->
+        <!-- Window Control Button Styles -->
+        <Style x:Key="WindowControlButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="48"/>
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="WindowControlCloseButton" TargetType="Button" BasedOn="{StaticResource WindowControlButton}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E81123"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <!-- Main Application Layout -->
+    <Border BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <!-- Unified Title/Navigation Bar -->
+                <RowDefinition Height="48"/>
+                <!-- Tab Bar -->
+                <RowDefinition Height="Auto"/>
+                <!-- Main Content Area (includes FindBar at top) -->
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+        <!-- Unified Title/Navigation Bar (48px height to match mockup) -->
+        <!-- Navigation Bar with integrated back/forward, file path, search, export, and window controls -->
+        <shell:NavigationBar x:Name="NavigationBar" 
+                             Grid.Row="0"
+                             MenuRequested="NavigationBar_MenuRequested"
+                             SearchRequested="NavigationBar_SearchRequested"
+                             ExportRequested="NavigationBar_ExportRequested"/>
+
+        <!-- Enhanced Tab Bar -->
+        <Border Grid.Row="1"
+                x:Name="TabBarContainer"
+                Background="{DynamicResource ThemeBackgroundBrush}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                BorderThickness="0,0,0,1"
+                Visibility="Collapsed">
+            
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                          VerticalScrollBarVisibility="Hidden"
+                          CanContentScroll="True">
+                <TabControl x:Name="TabControl"
+                            SelectionChanged="TabControl_SelectionChanged"
+                            BorderThickness="0"
+                            Background="Transparent"
+                            Style="{DynamicResource DefaultTabControl}"
+                            ItemContainerStyle="{DynamicResource DefaultTabItem}">
+                    
+                    <!-- Tab Header Template with Close Button -->
+                    <TabControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type tabs:TabItem}">
+                            <Grid x:Name="TabHeaderGrid" Background="Transparent">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding Title}" 
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center"
+                                           MaxWidth="150"
+                                           TextTrimming="CharacterEllipsis"/>
+                                
+                                <Button x:Name="CloseButton"
+                                        Grid.Column="1"
+                                        Content="×"
+                                        FontSize="18"
+                                        FontWeight="Normal"
+                                        Width="20"
+                                        Height="20"
+                                        Padding="0"
+                                        Margin="4,0,0,0"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Foreground="{DynamicResource ThemeTextSecondaryBrush}"
+                                        Cursor="Hand"
+                                        ToolTip="Close tab"
+                                        VerticalAlignment="Center"
+                                        Opacity="0"
+                                        Click="CloseTab_Click"
+                                        Tag="{Binding Id}">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="border"
+                                                                Background="{TemplateBinding Background}"
+                                                                CornerRadius="3"
+                                                                Padding="0">
+                                                            <TextBlock Text="{TemplateBinding Content}"
+                                                                       FontSize="{TemplateBinding FontSize}"
+                                                                       FontWeight="{TemplateBinding FontWeight}"
+                                                                       Foreground="{TemplateBinding Foreground}"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Margin="0,-1,0,0"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </Grid>
+                            <DataTemplate.Triggers>
+                                <!-- Show close button on mouse over entire tab header -->
+                                <Trigger SourceName="TabHeaderGrid" Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="CloseButton" Property="Opacity" Value="0.6"/>
+                                </Trigger>
+                                <!-- Show close button on active tab -->
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=IsSelected}" Value="True">
+                                    <Setter TargetName="CloseButton" Property="Opacity" Value="0.6"/>
+                                </DataTrigger>
+                                <!-- Full opacity when hovering the button itself -->
+                                <Trigger SourceName="CloseButton" Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="CloseButton" Property="Opacity" Value="1"/>
+                                </Trigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </TabControl.ItemTemplate>
+                    
+                    <TabControl.ContentTemplate>
+                        <DataTemplate>
+                            <!-- Empty - content is shown in MarkdownView below -->
+                        </DataTemplate>
+                    </TabControl.ContentTemplate>
+                </TabControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Main Content Area with Sidebar -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <!-- T049: Bind column width to IsTreeViewVisible -->
-                <ColumnDefinition x:Name="SidebarColumn" 
-                                  Width="{Binding ElementName=TreeViewControl, Path=DataContext.IsTreeViewVisible, Converter={StaticResource BoolToGridLengthConverter}}" 
-                                  MinWidth="0"/>
-                <ColumnDefinition Width="Auto"/>
+                <!-- Sidebar (280px width to match mockup) -->
+                <ColumnDefinition x:Name="SidebarColumn" Width="280" MinWidth="0"/>
+                <!-- Main Content -->
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Sidebar with TreeView -->
+            <!-- Sidebar Panel -->
             <Border Grid.Column="0"
-                    x:Name="SidebarBorder"
-                    BorderBrush="#CCCCCC"
-                    BorderThickness="0,0,1,0"
-                    Background="White"
-                    Visibility="{Binding ElementName=TreeViewControl, Path=DataContext.IsTreeViewVisible, Converter={StaticResource BoolToVisibilityConverter}}">
-                <treeview:TreeViewView x:Name="TreeViewControl"/>
+                    x:Name="SidebarPanel"
+                    Background="{DynamicResource ThemeSidebarBackgroundBrush}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="0,0,1,0">
+                
+                <!-- Sidebar Content -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- File Tree -->
+                    <sidebar:SidebarView Grid.Row="0" x:Name="SidebarContent"/>
+                </Grid>
             </Border>
 
-            <!-- GridSplitter for resizing -->
-            <GridSplitter Grid.Column="1"
-                          x:Name="SidebarSplitter"
-                          Width="5"
-                          HorizontalAlignment="Stretch"
-                          VerticalAlignment="Stretch"
-                          Background="Transparent"
-                          ShowsPreview="False"
-                          Visibility="{Binding ElementName=TreeViewControl, Path=DataContext.IsTreeViewVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <!-- Main Content Panel -->
+            <Grid Grid.Column="1" Background="{DynamicResource ThemeBackgroundBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Find Bar at top of content area -->
+                <find:FindBar x:Name="FindBar" Grid.Row="0"/>
+                
+                <!-- Content area -->
+                <Grid Grid.Row="1">
+                    <!-- WebView2 for markdown content -->
+                    <wv2:WebView2 x:Name="MarkdownView"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch"
+                                  Margin="0"
+                                  Visibility="Collapsed" />
 
-            <!-- Main content area -->
-            <Grid Grid.Column="2">
-                <!-- Single WebView2 for all tabs -->
-                <wv2:WebView2 x:Name="MarkdownView"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch"
-                              Margin="0"
-                              DefaultBackgroundColor="Transparent"
-                              Visibility="Collapsed" />
+                    <!-- Start Screen (shown when no folder loaded) -->
+                    <start:StartView x:Name="StartScreen"
+                                     Visibility="Visible" />
 
-                <!-- Start Overlay -->
-                <Border x:Name="StartOverlay"
-                        Background="#F0F3F8"
-                        Visibility="Visible">
-                    <start:StartView />
-                </Border>
+                    <!-- Welcome Screen (shown when folder loaded but no file selected) -->
+                    <Border x:Name="WelcomeOverlay"
+                            Background="{DynamicResource ThemeBackgroundBrush}"
+                            Visibility="Collapsed">
+                        <StackPanel HorizontalAlignment="Center" 
+                                    VerticalAlignment="Center"
+                                    TextBlock.Foreground="{DynamicResource ThemeTextSecondaryBrush}">
+                            <TextBlock Text="📄" 
+                                       FontSize="64" 
+                                       HorizontalAlignment="Center" 
+                                       Opacity="0.2"
+                                       Margin="0,0,0,16"/>
+                            <TextBlock Text="Please select a markdown document to view" 
+                                       FontSize="16"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,8"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Loading Indicator -->
+                    <Border x:Name="LoadingOverlay"
+                            Background="{DynamicResource ThemeBackgroundBrush}"
+                            Visibility="Collapsed">
+                        <StackPanel HorizontalAlignment="Center" 
+                                    VerticalAlignment="Center">
+                            <ProgressBar IsIndeterminate="True" 
+                                         Width="200" 
+                                         Height="4" 
+                                         Margin="0,0,0,16"/>
+                            <TextBlock Text="Loading..." 
+                                       Style="{StaticResource HeaderTextBlock}"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </Grid>
         </Grid>
-
-        <!-- Find Bar -->
-        <find:FindBar x:Name="FindBar"
-                      Grid.Row="3"/>
     </Grid>
+</Border>
 </Window>

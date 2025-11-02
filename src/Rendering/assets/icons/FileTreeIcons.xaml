@@ -1,0 +1,67 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- File Tree Icons as Path Geometries -->
+    
+    <!-- Folder Icon (Closed) -->
+    <Geometry x:Key="FolderClosedIcon">M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z</Geometry>
+
+    <!-- Folder Icon (Open) -->
+    <Geometry x:Key="FolderOpenIcon">M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z</Geometry>
+
+    <!-- Markdown File Icon -->
+    <Geometry x:Key="MarkdownFileIcon">M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z</Geometry>
+
+    <!-- Document Icon (Generic) -->
+    <Geometry x:Key="DocumentIcon">M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z</Geometry>
+
+    <!-- Chevron Right (Collapsed Folder) -->
+    <Geometry x:Key="ChevronRightIcon">M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z</Geometry>
+
+    <!-- Chevron Down (Expanded Folder) -->
+    <Geometry x:Key="ChevronDownIcon">M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z</Geometry>
+
+    <!-- File Icon (Small, 16x16 viewbox) -->
+    <Geometry x:Key="FileIconSmall">M6 2c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6l-4-4H6zm0 2h5v3h3v9H6V4z</Geometry>
+
+    <!-- Folder Icon (Small, 16x16 viewbox) -->
+    <Geometry x:Key="FolderIconSmall">M4 2c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V5c0-.55-.45-1-1-1H7L6 2H4z</Geometry>
+
+    <!-- Styles for icon display -->
+    
+    <!-- Base icon style -->
+    <Style x:Key="TreeIconBase" TargetType="Path">
+        <Setter Property="Width" Value="16"/>
+        <Setter Property="Height" Value="16"/>
+        <Setter Property="Stretch" Value="Uniform"/>
+        <Setter Property="Margin" Value="0,0,4,0"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Folder icon style -->
+    <Style x:Key="FolderIconStyle" TargetType="Path" BasedOn="{StaticResource TreeIconBase}">
+        <Setter Property="Fill" Value="#FFA066"/>
+        <Setter Property="Data" Value="{StaticResource FolderClosedIcon}"/>
+    </Style>
+
+    <!-- Folder icon style (expanded) -->
+    <Style x:Key="FolderOpenIconStyle" TargetType="Path" BasedOn="{StaticResource TreeIconBase}">
+        <Setter Property="Fill" Value="#FFA066"/>
+        <Setter Property="Data" Value="{StaticResource FolderOpenIcon}"/>
+    </Style>
+
+    <!-- File icon style -->
+    <Style x:Key="FileIconStyle" TargetType="Path" BasedOn="{StaticResource TreeIconBase}">
+        <Setter Property="Fill" Value="#64B5F6"/>
+        <Setter Property="Data" Value="{StaticResource MarkdownFileIcon}"/>
+    </Style>
+
+    <!-- Chevron icon style -->
+    <Style x:Key="ChevronIconStyle" TargetType="Path" BasedOn="{StaticResource TreeIconBase}">
+        <Setter Property="Width" Value="12"/>
+        <Setter Property="Height" Value="12"/>
+        <Setter Property="Fill" Value="#666666"/>
+        <Setter Property="Data" Value="{StaticResource ChevronRightIcon}"/>
+    </Style>
+
+</ResourceDictionary>

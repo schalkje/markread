@@ -1,5 +1,6 @@
 using Markdig;
 using Markdig.Syntax;
+using Markdig.Extensions.CustomContainers;
 
 namespace MarkRead.App.Services;
 
@@ -14,7 +15,8 @@ public sealed class MarkdownService
             .UsePipeTables()
             .UseTaskLists()
             .UseEmojiAndSmiley()
-            .UseYamlFrontMatter();
+            .UseYamlFrontMatter()
+            .UseGenericAttributes(); // Enables language attributes on code blocks
 
         builder.DocumentProcessed += document =>
         {

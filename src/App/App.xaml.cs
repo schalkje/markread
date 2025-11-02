@@ -1,6 +1,8 @@
 using System.Windows.Input;
 
 using MarkRead.Cli;
+using MarkRead.Services;
+using MarkRead.App.Services;
 
 namespace MarkRead.App;
 
@@ -9,6 +11,12 @@ namespace MarkRead.App;
 /// </summary>
 public partial class App : System.Windows.Application
 {
+    public SettingsService SettingsService { get; private set; } = null!;
+
+    public ThemeManager ThemeManager { get; private set; } = null!;
+
+    public IThemeService ThemeService => ThemeManager;
+
     public static readonly RoutedUICommand OpenFolderCommand = new(
         "Open Folder",
         nameof(OpenFolderCommand),
@@ -54,12 +62,25 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(System.Windows.StartupEventArgs e)
     {
         base.OnStartup(e);
+        
+        // T083: Start monitoring startup performance
+        var perfMonitor = StartupPerformanceMonitor.Instance;
+        perfMonitor.StartPhase("Application Initialization");
 
-        if (Current.MainWindow is not MainWindow window)
-        {
-            return;
-        }
+        // Initialize shared application services prior to UI creation
+        SettingsService = new SettingsService();
+        ThemeManager = new ThemeManager(SettingsService);
 
+        // Apply default theme BEFORE creating MainWindow to avoid resource warnings
+        // This ensures all theme resources exist when XAML is parsed
+        Resources["ThemeService"] = ThemeManager;
+        await ThemeManager.InitializeAsync();
+
+        // Create the main window (but don't show yet)
+        var window = new MainWindow();
+        MainWindow = window;
+
+        perfMonitor.StartPhase("Input Bindings Setup");
         AddInputBinding(window, OpenFolderCommand);
         AddInputBinding(window, OpenFileCommand);
         AddInputBinding(window, NewTabCommand);
@@ -68,8 +89,15 @@ public partial class App : System.Windows.Application
         AddInputBinding(window, NavigateBackCommand);
         AddInputBinding(window, NavigateForwardCommand);
 
+        perfMonitor.StartPhase("Shell Initialization");
         var startupArgs = StartupArguments.Parse(e.Args);
         await window.InitializeShellAsync(startupArgs);
+        
+        // Show the window after initialization is complete
+        window.Show();
+
+        perfMonitor.StartPhase("Startup Complete");
+        perfMonitor.CompleteStartup();
     }
 
     private static void AddInputBinding(System.Windows.Window window, RoutedUICommand command)

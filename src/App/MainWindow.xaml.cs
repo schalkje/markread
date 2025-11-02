@@ -7,13 +7,17 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+
+using Microsoft.Web.WebView2.Core;
 
 using MarkRead.App.Rendering;
 using MarkRead.App.Services;
 using MarkRead.App.UI.Shell;
 using MarkRead.App.UI.Start;
 using MarkRead.Cli;
+using MarkRead.Services;
 
 using AppNavigationCommands = MarkRead.App.UI.Shell.NavigationCommands;
 using TabItemModel = MarkRead.App.UI.Tabs.TabItem;
@@ -30,19 +34,20 @@ public partial class MainWindow : Window
     private readonly FolderService _folderService = new();
     private readonly MarkdownService _markdownService = new();
     private readonly HtmlSanitizerService _sanitizer = new();
-    private readonly SettingsService _settingsService = new();
+    private readonly SettingsService _settingsService;
     private readonly HistoryService _historyService = new();
     private readonly FileWatcherService _fileWatcherService = new();
-    private readonly TreeViewService _treeViewService;
+    private readonly TabService _tabService = new();
+    private readonly INavigationService _navigationService = new NavigationService();
     private readonly Renderer _renderer;
     private readonly LinkResolver _linkResolver;
     private readonly OpenFolderCommand _openFolderCommand;
+    private readonly ThemeManager _themeManager;
 
     private FolderRoot? _currentRoot;
     private IDisposable? _documentWatcher;
     private StartupArguments _startupArguments = StartupArguments.Empty;
     private ViewerSettings _currentSettings = ViewerSettings.Default();
-    private ObservableCollection<TabItemModel> _tabs = new();
     private WebViewHost? _webViewHost;
     private bool _isInitialized;
 
@@ -50,24 +55,45 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        _treeViewService = new TreeViewService(_historyService, _settingsService);
+        if (System.Windows.Application.Current is not App app)
+        {
+            throw new InvalidOperationException("Application services are not available.");
+        }
+
+        _settingsService = app.SettingsService;
+        _themeManager = app.ThemeManager;
+
         _renderer = new Renderer(_markdownService, _sanitizer);
         _linkResolver = new LinkResolver(_folderService);
         _openFolderCommand = new OpenFolderCommand(_folderService);
         _webViewHost = new WebViewHost(MarkdownView, Path.Combine("Rendering", "assets"));
 
-        // Initialize TreeView ViewModel
-        var treeViewViewModel = new UI.Sidebar.TreeView.TreeViewViewModel(_treeViewService, _fileWatcherService);
-        treeViewViewModel.NavigateToFileRequested += OnTreeViewFileNavigationRequested;
-        TreeViewControl.DataContext = treeViewViewModel;
+        // Set initial WebView2 background color based on current theme (before initialization)
+        SetInitialWebViewBackground();
 
-        this.TabControl.ItemsSource = _tabs;
+        // Subscribe to theme change events for WebView2 coordination
+        _themeManager.ThemeChanged += OnThemeChanged;
+        _themeManager.ThemeLoadFailed += OnThemeLoadFailed;
+
+        // Subscribe to TabService events
+        _tabService.ActiveTabChanged += OnActiveTabChanged;
+        _tabService.TabClosed += OnTabClosed;
+
+        this.TabControl.ItemsSource = _tabService.Tabs;
+
+        // Wire up NavigationBar ThemeService (icon will update after theme initialization)
+        this.NavigationBar.ThemeService = _themeManager;
+        this.NavigationBar.NavigationService = _navigationService;
+        _navigationService.ClearCurrentFile();
 
         // Wire up FindBar events
         FindBar.SearchRequested += OnSearchRequested;
         FindBar.NextRequested += OnFindNextRequested;
         FindBar.PreviousRequested += OnFindPreviousRequested;
         FindBar.CloseRequested += OnFindCloseRequested;
+
+        // Wire up Sidebar events
+        SidebarContent.FileSelected += OnSidebarFileSelected;
 
         CommandBindings.Add(new CommandBinding(App.OpenFolderCommand, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
         CommandBindings.Add(new CommandBinding(App.OpenFileCommand, async (_, _) => await ExecuteOpenFileAsync(), CanExecuteWhenInteractive));
@@ -76,6 +102,9 @@ public partial class MainWindow : Window
         CommandBindings.Add(new CommandBinding(AppNavigationCommands.GoBack, async (_, _) => await ExecuteGoBackAsync(), CanExecuteGoBack));
         CommandBindings.Add(new CommandBinding(AppNavigationCommands.GoForward, async (_, _) => await ExecuteGoForwardAsync(), CanExecuteGoForward));
         CommandBindings.Add(new CommandBinding(App.FindInDocumentCommand, (_, _) => ExecuteFind(), CanExecuteWhenInteractive));
+
+        // Add keyboard event handler for tab shortcuts
+        this.PreviewKeyDown += Window_PreviewKeyDown;
     }
 
     internal void InitializeShell(StartupArguments startupArguments)
@@ -89,21 +118,41 @@ public partial class MainWindow : Window
         
         // Load settings from disk
         _currentSettings = await _settingsService.LoadAsync();
-        
-        // Apply saved theme
-        var theme = _currentSettings.Theme.ToLowerInvariant() switch
-        {
-            "dark" => ThemeManager.AppTheme.Dark,
-            "light" => ThemeManager.AppTheme.Light,
-            _ => ThemeManager.AppTheme.System
-        };
-        ThemeManager.ApplyTheme(theme);
+
+        // Theme manager is initialized during application startup
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
         await EnsureWebViewAsync();
         await InitializeFromStartupAsync();
+    }
+
+    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        // Handle tab navigation shortcuts
+        if (e.Key == Key.Tab && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+            {
+                // Ctrl+Shift+Tab - Previous tab
+                _tabService.ActivatePreviousTab();
+                e.Handled = true;
+            }
+            else
+            {
+                // Ctrl+Tab - Next tab
+                _tabService.ActivateNextTab();
+                e.Handled = true;
+            }
+        }
+        // Handle close tab shortcut
+        else if (e.Key == Key.F4 && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            // Ctrl+F4 - Close active tab
+            _tabService.CloseActiveTab();
+            e.Handled = true;
+        }
     }
 
     private async Task EnsureWebViewAsync()
@@ -118,6 +167,26 @@ public partial class MainWindow : Window
         _webViewHost.LinkClicked += OnLinkClicked;
         _webViewHost.AnchorClicked += OnAnchorClicked;
         _isInitialized = true;
+        
+        // Inject initial theme into WebView after initialization
+        var currentTheme = _themeManager.CurrentTheme;
+        var themeName = currentTheme.ToString().ToLowerInvariant();
+        var themeConfig = _themeManager.GetCurrentConfiguration();
+        var colorScheme = currentTheme == ThemeType.Dark 
+            ? themeConfig.DarkColorScheme 
+            : themeConfig.LightColorScheme;
+        
+        // Set WebView2 default background color to match theme
+        UpdateWebViewBackgroundColor(colorScheme.Background);
+        
+        try
+        {
+            await _webViewHost.InjectThemeFromColorSchemeAsync(themeName, colorScheme);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to inject initial theme into WebView: {ex.Message}");
+        }
     }
 
     private async Task InitializeFromStartupAsync()
@@ -226,13 +295,12 @@ public partial class MainWindow : Window
     private async Task ExecuteOpenFolderAsync()
     {
         System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: Starting");
-        ShowStartOverlay(false);
         var result = _openFolderCommand.Execute(this);
         System.Diagnostics.Debug.WriteLine($"ExecuteOpenFolderAsync: result = {result}");
         if (result is null)
         {
             System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: result is null, showing overlay");
-            if (_tabs.Count == 0)
+            if (_tabService.Tabs.Count == 0)
             {
                 ShowStartOverlay(true);
             }
@@ -254,7 +322,7 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog(this) != true)
         {
-            if (_tabs.Count == 0)
+            if (_tabService.Tabs.Count == 0)
             {
                 ShowStartOverlay(true);
             }
@@ -302,28 +370,28 @@ public partial class MainWindow : Window
         _renderer.SetRootPath(result.Root.Path);
         Title = $"MarkRead - {result.Root.DisplayName}";
 
-        // Load TreeView in background
-        if (TreeViewControl.DataContext is UI.Sidebar.TreeView.TreeViewViewModel treeViewModel)
-        {
-            _ = treeViewModel.LoadTreeAsync(result.Root.Path);
-        }
+        _navigationService.ClearCurrentFile();
+        _navigationService.UpdateHistoryState(false, false);
+
+        // Initialize sidebar with folder root
+        SidebarContent.SetRootFolder(result.Root.Path);
 
         // Create initial tab if no tabs exist
-        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: _tabs.Count = {_tabs.Count}");
-        if (_tabs.Count == 0)
+        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: _tabService.Tabs.Count = {_tabService.Tabs.Count}");
+        if (_tabService.Tabs.Count == 0)
         {
             System.Diagnostics.Debug.WriteLine("LoadRootAsync: Creating initial tab");
             var initialTab = new TabItemModel(Guid.NewGuid(), result.Root.DisplayName);
             await AddTabAsync(initialTab);
-            System.Diagnostics.Debug.WriteLine($"LoadRootAsync: Tab created, _tabs.Count = {_tabs.Count}");
+            System.Diagnostics.Debug.WriteLine($"LoadRootAsync: Tab created, _tabService.Tabs.Count = {_tabService.Tabs.Count}");
         }
 
         // Show tabs and load document
         System.Diagnostics.Debug.WriteLine("LoadRootAsync: Hiding overlay and showing TabControl");
         ShowStartOverlay(false);
-        this.TabControl.Visibility = Visibility.Visible;
+        TabBarContainer.Visibility = Visibility.Visible;
         MarkdownView.Visibility = Visibility.Visible;
-        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: TabControl.Visibility = {this.TabControl.Visibility}");
+        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: TabControl.Visibility = {TabBarContainer.Visibility}");
 
         if (result.DefaultDocument is DocumentInfo doc)
         {
@@ -346,12 +414,8 @@ public partial class MainWindow : Window
 
     private Task AddTabAsync(TabItemModel tab)
     {
-        System.Diagnostics.Debug.WriteLine($"AddTabAsync: Creating tab '{tab.Title}'");
-        _tabs.Add(tab);
-        System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab added to collection, _tabs.Count={_tabs.Count}");
-        this.TabControl.SelectedItem = tab;
-        System.Diagnostics.Debug.WriteLine($"AddTabAsync: Tab selected, TabControl.SelectedItem={this.TabControl.SelectedItem}");
-        System.Diagnostics.Debug.WriteLine("AddTabAsync: Completed");
+        _tabService.AddTab(tab);
+        UpdateNavigationHistoryState();
         return Task.CompletedTask;
     }
 
@@ -395,6 +459,8 @@ public partial class MainWindow : Window
             history.Push(entry);
         }
 
+        _navigationService.UpdateCurrentFile(document.FullPath, _currentRoot?.Path);
+
         string markdown;
         try
         {
@@ -415,16 +481,20 @@ public partial class MainWindow : Window
         }
         catch (IOException ex)
         {
+            _navigationService.ClearCurrentFile();
             System.Windows.MessageBox.Show(this, $"Unable to read document: {ex.Message}", "MarkRead", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
+
+        var resolvedTheme = _themeManager.GetResolvedTheme().ToString().ToLowerInvariant();
+        System.Diagnostics.Debug.WriteLine($"LoadDocumentInTabAsync: CurrentTheme={_themeManager.CurrentTheme}, ResolvedTheme={resolvedTheme}");
 
         var request = new RenderRequest(
             markdown,
             document.FullPath,
             document.RelativePath,
             anchor,
-            ThemeManager.Current.ToString().ToLowerInvariant());
+            resolvedTheme);
 
         var renderResult = await _renderer.RenderAsync(request);
 
@@ -456,6 +526,8 @@ public partial class MainWindow : Window
         {
             _webViewHost.PostMessage("scroll-to", new { anchor });
         }
+
+        UpdateNavigationHistoryState();
     }
 
     private void SubscribeToDocumentChanges(TabItemModel tab, DocumentInfo document)
@@ -631,6 +703,7 @@ public partial class MainWindow : Window
                 var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
                 var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
                 await AddTabAsync(newTab);
+                _tabService.SetActiveTab(newTab);
                 
                 // Load document in new tab
                 await LoadDocumentInTabAsync(newTab, doc, result.Anchor);
@@ -695,47 +768,45 @@ public partial class MainWindow : Window
 
     private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // When tab changes, reload the document for the selected tab
-        var tab = GetCurrentTab();
-        if (tab is not null && !string.IsNullOrEmpty(tab.DocumentPath))
+        // Sync manual tab selection to TabService
+        if (e.AddedItems.Count > 0 && e.AddedItems[0] is TabItemModel tab)
         {
-            var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
-            _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+            if (_tabService.ActiveTab != tab)
+            {
+                _tabService.SetActiveTab(tab);
+            }
         }
-        CommandManager.InvalidateRequerySuggested();
     }
 
     private void CloseTab_Click(object sender, RoutedEventArgs e)
     {
         if (sender is System.Windows.Controls.Button button && button.Tag is Guid tabId)
         {
-            var tab = _tabs.FirstOrDefault(t => t.Id == tabId);
+            var tab = _tabService.FindTab(tabId);
             if (tab is not null)
             {
-                // Remove from collection
-                var index = _tabs.IndexOf(tab);
-                _tabs.Remove(tab);
-
-                // If this was the last tab, show start overlay
-                if (_tabs.Count == 0)
-                {
-                    ShowStartOverlay(true);
-                    this.TabControl.Visibility = Visibility.Collapsed;
-                    MarkdownView.Visibility = Visibility.Collapsed;
-                }
-                else if (index >= 0)
-                {
-                    // Select adjacent tab
-                    var newIndex = Math.Min(index, _tabs.Count - 1);
-                    this.TabControl.SelectedItem = _tabs[newIndex];
-                }
+                _tabService.CloseTab(tabId);
+                // TabClosed event handler will manage UI visibility
             }
         }
     }
 
     private TabItemModel? GetCurrentTab()
     {
-        return this.TabControl.SelectedItem as TabItemModel;
+        return _tabService.ActiveTab;
+    }
+
+    private void UpdateNavigationHistoryState()
+    {
+        var currentTab = GetCurrentTab();
+        if (currentTab is null)
+        {
+            _navigationService.UpdateHistoryState(false, false);
+            return;
+        }
+
+        var history = _historyService.GetOrCreate(currentTab.Id);
+        _navigationService.UpdateHistoryState(history.CanGoBack, history.CanGoForward);
     }
 
     private void ShowStartOverlay(bool visible)
@@ -746,10 +817,39 @@ public partial class MainWindow : Window
             return;
         }
 
-        StartOverlay.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        // Determine which overlay to show based on whether a folder is loaded
+        bool hasFolderLoaded = _currentRoot is not null;
+
         if (visible)
         {
-            this.TabControl.Visibility = Visibility.Collapsed;
+            _navigationService.ClearCurrentFile();
+            _navigationService.UpdateHistoryState(false, false);
+            if (hasFolderLoaded)
+            {
+                // Folder loaded but no file selected - show welcome overlay
+                StartScreen.Visibility = Visibility.Collapsed;
+                WelcomeOverlay.Visibility = Visibility.Visible;
+                SidebarPanel.Visibility = Visibility.Visible;
+                SidebarColumn.Width = new GridLength(280); // Restore sidebar when folder is loaded
+            }
+            else
+            {
+                // No folder loaded - show start screen and hide sidebar
+                StartScreen.Visibility = Visibility.Visible;
+                WelcomeOverlay.Visibility = Visibility.Collapsed;
+                SidebarPanel.Visibility = Visibility.Collapsed;
+                SidebarColumn.Width = new GridLength(0);
+            }
+            TabBarContainer.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            // Hide all overlays, show content and sidebar
+            StartScreen.Visibility = Visibility.Collapsed;
+            WelcomeOverlay.Visibility = Visibility.Collapsed;
+            SidebarPanel.Visibility = Visibility.Visible;
+            SidebarColumn.Width = new GridLength(280); // Restore to mockup width
+            UpdateNavigationHistoryState();
         }
     }
 
@@ -757,13 +857,300 @@ public partial class MainWindow : Window
     {
         base.OnClosed(e);
 
+        // Unsubscribe from theme events
+        _themeManager.ThemeChanged -= OnThemeChanged;
+        _themeManager.ThemeLoadFailed -= OnThemeLoadFailed;
+
+        // Unsubscribe from TabService events
+        _tabService.ActiveTabChanged -= OnActiveTabChanged;
+        _tabService.TabClosed -= OnTabClosed;
+
         _documentWatcher?.Dispose();
         _fileWatcherService.Dispose();
         _webViewHost?.Dispose();
     }
 
+    private void OnActiveTabChanged(object? sender, TabItemModel? e)
+    {
+        // Sync TabService.ActiveTab to TabControl.SelectedItem
+        var tab = e ?? _tabService.ActiveTab;
+        if (tab is not null)
+        {
+            if (this.TabControl.SelectedItem != tab)
+            {
+                this.TabControl.SelectedItem = tab;
+            }
+            
+            if (!string.IsNullOrEmpty(tab.DocumentPath))
+            {
+                var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
+                _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+            }
+            else
+            {
+                _navigationService.ClearCurrentFile();
+            }
+        }
+        else
+        {
+            _navigationService.ClearCurrentFile();
+        }
+        
+        UpdateNavigationHistoryState();
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void OnTabClosed(object? sender, TabItemModel e)
+    {
+        // If no tabs left, show start overlay
+        if (_tabService.Tabs.Count == 0)
+        {
+            ShowStartOverlay(true);
+            this.TabBarContainer.Visibility = Visibility.Collapsed;
+            this.MarkdownView.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            UpdateNavigationHistoryState();
+        }
+    }
+
+    private async void OnThemeChanged(object? sender, ThemeChangedEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine($"OnThemeChanged: OldTheme={e.OldTheme}, NewTheme={e.NewTheme}");
+        
+        // Get the color scheme for the theme
+        var themeConfig = _themeManager.GetCurrentConfiguration();
+        var colorScheme = e.NewTheme == ThemeType.Dark 
+            ? themeConfig.DarkColorScheme 
+            : themeConfig.LightColorScheme;
+        
+        System.Diagnostics.Debug.WriteLine($"OnThemeChanged: colorScheme.Background={colorScheme.Background}");
+        
+        // Update WebView2 default background color to prevent white flash
+        UpdateWebViewBackgroundColor(colorScheme.Background);
+        
+        // Apply theme to WebView2 content if available and initialized
+        // Do NOT reload the document - just update the theme styling
+        if (_webViewHost != null && _webViewHost.IsInitialized)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnThemeChanged: WebViewHost is initialized, injecting theme");
+            var themeName = e.NewTheme.ToString().ToLowerInvariant();
+            
+            // Inject theme CSS variables into the WebView
+            try
+            {
+                await _webViewHost.InjectThemeFromColorSchemeAsync(themeName, colorScheme);
+                System.Diagnostics.Debug.WriteLine($"OnThemeChanged: Theme injection completed successfully");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to inject theme into WebView: {ex.Message}");
+            }
+            
+            // Also send apply-theme message to update the data-theme attribute on body
+            // This ensures both the CSS variables and data-theme attribute are updated
+            _webViewHost.PostMessage("apply-theme", new { theme = themeName });
+            System.Diagnostics.Debug.WriteLine($"OnThemeChanged: Posted apply-theme message");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"OnThemeChanged: WebViewHost not available or not initialized");
+        }
+    }
+
+    private void OnThemeLoadFailed(object? sender, ThemeErrorEventArgs e)
+    {
+        // Log or handle theme loading errors
+        System.Diagnostics.Debug.WriteLine($"Theme load failed for {e.AttemptedTheme}: {e.Error.Message}");
+    }
+
+    /// <summary>
+    /// Sets initial WebView2 background color before CoreWebView2 initialization
+    /// </summary>
+    private void SetInitialWebViewBackground()
+    {
+        try
+        {
+            var currentTheme = _themeManager.CurrentTheme;
+            var themeConfig = _themeManager.GetCurrentConfiguration();
+            var colorScheme = currentTheme == ThemeType.Dark
+                ? themeConfig.DarkColorScheme
+                : themeConfig.LightColorScheme;
+
+            // Set default background color BEFORE CoreWebView2 initializes
+            MarkdownView.DefaultBackgroundColor = colorScheme.Background;
+            
+            System.Diagnostics.Debug.WriteLine($"Set initial WebView background to: #{colorScheme.Background.R:X2}{colorScheme.Background.G:X2}{colorScheme.Background.B:X2}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to set initial WebView background: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Updates the WebView2 default background color to prevent white flash during navigation
+    /// </summary>
+    private void UpdateWebViewBackgroundColor(System.Drawing.Color backgroundColor)
+    {
+        try
+        {
+            // Set default background color (works even before CoreWebView2 is initialized)
+            MarkdownView.DefaultBackgroundColor = backgroundColor;
+            
+            // If CoreWebView2 is available, also set the preferred color scheme
+            if (MarkdownView?.CoreWebView2 is not null)
+            {
+                MarkdownView.CoreWebView2.Profile.PreferredColorScheme = 
+                    backgroundColor.GetBrightness() < 0.5 
+                        ? CoreWebView2PreferredColorScheme.Dark 
+                        : CoreWebView2PreferredColorScheme.Light;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"Updated WebView background to: #{backgroundColor.R:X2}{backgroundColor.G:X2}{backgroundColor.B:X2}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to update WebView background color: {ex.Message}");
+        }
+    }
+
     private void Exit_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    // New UI event handlers
+    private void SidebarToggle_Click(object sender, RoutedEventArgs e)
+    {
+        var toggle = sender as ToggleButton;
+        if (toggle is not null && SidebarPanel is not null && SidebarColumn is not null)
+        {
+            if (toggle.IsChecked == true)
+            {
+                SidebarPanel.Visibility = Visibility.Visible;
+                SidebarColumn.Width = new GridLength(300);
+            }
+            else
+            {
+                SidebarPanel.Visibility = Visibility.Collapsed;
+                SidebarColumn.Width = new GridLength(0);
+            }
+        }
+    }
+
+    private async void ThemeToggle_Click(object sender, RoutedEventArgs e)
+    {
+        var currentTheme = _themeManager.CurrentTheme;
+        var newTheme = currentTheme == ThemeType.Dark ? ThemeType.Light : ThemeType.Dark;
+
+        await _themeManager.ApplyTheme(newTheme);
+    }
+
+    private void ExportButton_Click(object sender, RoutedEventArgs e)
+    {
+        var button = sender as System.Windows.Controls.Button;
+        if (button?.ContextMenu is not null)
+        {
+            button.ContextMenu.PlacementTarget = button;
+            button.ContextMenu.Placement = PlacementMode.Bottom;
+            button.ContextMenu.IsOpen = true;
+        }
+    }
+
+    private void Minimize_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void Maximize_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized 
+            ? WindowState.Normal 
+            : WindowState.Maximized;
+    }
+
+    private void Close_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
+    private void HistoryButton_Click(object sender, RoutedEventArgs e)
+    {
+        // TODO: Implement history dropdown functionality
+        // This will show a dropdown with navigation history similar to the mockup
+    }
+
+    // UI Helper methods - file path display now handled by NavigationBar
+
+    // Sidebar integration
+    private void OnSidebarFileSelected(object? sender, string filePath)
+    {
+        if (_currentRoot is null || string.IsNullOrEmpty(filePath))
+        {
+            return;
+        }
+
+        // Resolve the document from the file path
+        var document = _folderService.TryResolveDocument(_currentRoot, filePath);
+        if (document is DocumentInfo doc)
+        {
+            // Check if the file is already open in a tab
+            var existingTab = _tabService.Tabs.FirstOrDefault(t => t.DocumentPath == filePath);
+            if (existingTab is not null)
+            {
+                // Just activate the existing tab
+                _tabService.SetActiveTab(existingTab);
+                return;
+            }
+
+            // Ensure tab bar and content are visible
+            ShowStartOverlay(false);
+            TabBarContainer.Visibility = Visibility.Visible;
+            MarkdownView.Visibility = Visibility.Visible;
+
+            // Create a new tab for the file
+            var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
+            var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+            
+            _ = Task.Run(async () =>
+            {
+                await Dispatcher.InvokeAsync(async () =>
+                {
+                    await AddTabAsync(newTab);
+                    _tabService.SetActiveTab(newTab);
+                    await LoadDocumentInTabAsync(newTab, doc);
+                });
+            });
+        }
+    }
+
+    // NavigationBar event handlers
+    private void NavigationBar_MenuRequested(object? sender, EventArgs e)
+    {
+        // Toggle sidebar visibility
+        if (SidebarPanel.Visibility == Visibility.Visible)
+        {
+            SidebarPanel.Visibility = Visibility.Collapsed;
+            SidebarColumn.Width = new GridLength(0);
+        }
+        else
+        {
+            SidebarPanel.Visibility = Visibility.Visible;
+            SidebarColumn.Width = new GridLength(280);
+        }
+    }
+
+    private void NavigationBar_SearchRequested(object? sender, EventArgs e)
+    {
+        FindBar?.Show();
+    }
+
+    private void NavigationBar_ExportRequested(object? sender, EventArgs e)
+    {
+        // TODO: Show export dropdown menu
+        // For now, just show a placeholder message
+        WpfMessageBox.Show("Export functionality coming soon", "Export", MessageBoxButton.OK);
     }
 }

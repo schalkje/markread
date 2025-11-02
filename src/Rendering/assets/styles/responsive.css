@@ -1,0 +1,305 @@
+/*
+ * Responsive Design CSS
+ * Provides responsive layout behaviors for the markdown viewer
+ * Includes sidebar auto-collapse and adaptive layouts
+ */
+
+/* Base responsive container */
+.responsive-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  transition: all var(--theme-transition-normal);
+}
+
+/* Layout breakpoints */
+:root {
+  --breakpoint-mobile: 768px;
+  --breakpoint-tablet: 1024px;
+  --breakpoint-desktop: 1200px;
+  
+  --sidebar-width: 300px;
+  --sidebar-width-collapsed: 0px;
+  --content-padding: 20px;
+  --content-padding-mobile: 16px;
+}
+
+/* Main layout grid */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--theme-background);
+  transition: background-color var(--theme-transition-normal);
+}
+
+/* Sidebar responsive behavior */
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background-color: var(--theme-sidebar-background);
+  border-right: 1px solid var(--theme-border);
+  transition: width var(--theme-transition-slow),
+              min-width var(--theme-transition-slow),
+              background-color var(--theme-transition-normal),
+              border-color var(--theme-transition-normal);
+  overflow-x: hidden;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-width-collapsed);
+  min-width: var(--sidebar-width-collapsed);
+  border-right: none;
+}
+
+/* Main content area */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Prevent flex item from overflowing */
+  background-color: var(--theme-background);
+  transition: background-color var(--theme-transition-normal);
+}
+
+/* Header/navigation bar */
+.header-bar {
+  height: 60px;
+  background-color: var(--theme-background);
+  border-bottom: 1px solid var(--theme-border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  transition: background-color var(--theme-transition-normal),
+              border-color var(--theme-transition-normal);
+}
+
+/* Tab bar */
+.tab-bar {
+  background-color: var(--theme-background);
+  border-bottom: 1px solid var(--theme-border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  transition: background-color var(--theme-transition-normal),
+              border-color var(--theme-transition-normal);
+}
+
+.tab-bar::-webkit-scrollbar {
+  height: 3px;
+}
+
+.tab-bar::-webkit-scrollbar-track {
+  background: var(--theme-background);
+}
+
+.tab-bar::-webkit-scrollbar-thumb {
+  background: var(--theme-border);
+  border-radius: 3px;
+}
+
+.tab-bar::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-text-secondary);
+}
+
+/* Content wrapper */
+.content-wrapper {
+  flex: 1;
+  padding: var(--content-padding);
+  overflow-y: auto;
+  background-color: var(--theme-background);
+  transition: background-color var(--theme-transition-normal);
+}
+
+/* Responsive breakpoints */
+
+/* Tablet and below (1024px and down) */
+@media (max-width: 1024px) {
+  .content-wrapper {
+    padding: 16px;
+  }
+  
+  .header-bar {
+    padding: 0 12px;
+  }
+  
+  /* Adjust sidebar width for tablets */
+  :root {
+    --sidebar-width: 280px;
+  }
+}
+
+/* Mobile breakpoint (768px and down) - Auto-collapse sidebar */
+@media (max-width: 768px) {
+  /* Force sidebar collapse on mobile */
+  .sidebar:not(.sidebar-force-open) {
+    width: var(--sidebar-width-collapsed) !important;
+    min-width: var(--sidebar-width-collapsed) !important;
+    border-right: none !important;
+  }
+  
+  /* Add overlay when sidebar is forced open on mobile */
+  .sidebar.sidebar-force-open {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: var(--z-modal);
+    box-shadow: var(--theme-shadow-large);
+  }
+  
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: calc(var(--z-modal) - 1);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--theme-transition-normal),
+                visibility var(--theme-transition-normal);
+  }
+  
+  .sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  /* Adjust content for mobile */
+  .content-wrapper {
+    padding: var(--content-padding-mobile);
+  }
+  
+  .header-bar {
+    height: 56px;
+    padding: 0 8px;
+  }
+  
+  /* Hide less important header elements on mobile */
+  .header-secondary {
+    display: none;
+  }
+  
+  /* Stack navigation elements vertically if needed */
+  .header-nav {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+/* Small mobile (480px and down) */
+@media (max-width: 480px) {
+  .content-wrapper {
+    padding: 12px;
+  }
+  
+  .header-bar {
+    height: 52px;
+    padding: 0 6px;
+  }
+  
+  /* Further simplify header on very small screens */
+  .header-title {
+    font-size: 0.9rem;
+  }
+  
+  /* Reduce tab bar height */
+  .tab-bar {
+    min-height: 40px;
+  }
+}
+
+/* Large screens (1200px and up) */
+@media (min-width: 1200px) {
+  .content-wrapper {
+    padding: 24px;
+    max-width: 1000px; /* Limit content width for readability */
+    margin: 0 auto;
+  }
+  
+  :root {
+    --sidebar-width: 320px;
+  }
+}
+
+/* Ultra-wide screens (1600px and up) */
+@media (min-width: 1600px) {
+  .content-wrapper {
+    max-width: 1200px;
+    padding: 32px;
+  }
+  
+  :root {
+    --sidebar-width: 350px;
+  }
+}
+
+/* High DPI / Retina display adjustments */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Ensure borders remain crisp on high DPI screens */
+  .sidebar,
+  .header-bar,
+  .tab-bar {
+    border-width: 0.5px;
+  }
+}
+
+/* Print-specific responsive styles */
+@media print {
+  .sidebar,
+  .header-bar,
+  .tab-bar {
+    display: none !important;
+  }
+  
+  .main-content {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  .content-wrapper {
+    padding: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .main-content,
+  .content-wrapper,
+  .header-bar,
+  .tab-bar,
+  .sidebar-overlay {
+    transition: none !important;
+  }
+}
+
+/* Dark mode specific responsive adjustments */
+@media (prefers-color-scheme: dark) {
+  /* Enhance contrast for mobile dark mode */
+  @media (max-width: 768px) {
+    .sidebar {
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .sidebar-overlay {
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+  }
+}
+
+/* Container queries (future enhancement when widely supported) */
+@supports (container-type: inline-size) {
+  .responsive-container {
+    container-type: inline-size;
+  }
+  
+  @container (max-width: 768px) {
+    .sidebar {
+      width: 0;
+    }
+  }
+}

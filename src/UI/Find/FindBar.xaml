@@ -5,12 +5,120 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:MarkRead.App.UI.Find"
              mc:Ignorable="d" 
-             d:DesignHeight="40" d:DesignWidth="400"
+             d:DesignHeight="48" d:DesignWidth="500"
+             x:Name="FindBarControl"
              Visibility="Collapsed">
-    <Border Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"
-            BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
-            BorderThickness="1"
-            Padding="8,4">
+    
+    <UserControl.Resources>
+        <!-- Show animation (T074) -->
+        <Storyboard x:Key="ShowAnimation">
+            <DoubleAnimation Storyboard.TargetName="FindBarBorder"
+                           Storyboard.TargetProperty="Height"
+                           From="0"
+                           To="48"
+                           Duration="0:0:0.2">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="FindBarBorder"
+                           Storyboard.TargetProperty="Opacity"
+                           From="0"
+                           To="1"
+                           Duration="0:0:0.2">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+
+        <!-- Hide animation (T074) -->
+        <Storyboard x:Key="HideAnimation" Completed="OnHideAnimationCompleted">
+            <DoubleAnimation Storyboard.TargetName="FindBarBorder"
+                           Storyboard.TargetProperty="Height"
+                           To="0"
+                           Duration="0:0:0.15">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseIn"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="FindBarBorder"
+                           Storyboard.TargetProperty="Opacity"
+                           To="0"
+                           Duration="0:0:0.15">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseIn"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+
+        <!-- Modern input field style (T071) - with dynamic theme support -->
+        <Style x:Key="ModernSearchInput" TargetType="TextBox">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="{DynamicResource ThemeInputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource ThemeForegroundBrush}"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+            <Setter Property="SelectionOpacity" Value="0.4"/>
+        </Style>
+
+        <!-- Modern navigation button style (T071) -->
+        <Style x:Key="NavigationButton" TargetType="Button">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="4">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Close button style (T071) -->
+        <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource NavigationButton}">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+        </Style>
+
+        <!-- Result counter style (T071) -->
+        <Style x:Key="ResultCounter" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeSecondaryForegroundBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="12,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Border x:Name="FindBarBorder"
+            Background="{DynamicResource ThemeBackgroundBrush}"
+            BorderBrush="{DynamicResource ThemeBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="16,8"
+            Height="48">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
@@ -21,50 +129,55 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
+            <!-- Find label -->
             <TextBlock Grid.Column="0"
                       Text="Find:"
+                      FontSize="13"
+                      Foreground="{DynamicResource ThemeForegroundBrush}"
                       VerticalAlignment="Center"
                       Margin="0,0,8,0"/>
 
+            <!-- Modern search input (T071) - fills available space -->
             <TextBox x:Name="SearchTextBox"
                     Grid.Column="1"
+                    Style="{StaticResource ModernSearchInput}"
                     MinWidth="200"
+                    MaxWidth="600"
                     VerticalAlignment="Center"
                     TextChanged="OnSearchTextChanged"
                     KeyDown="OnSearchKeyDown"/>
 
+            <!-- Result counter (T071) - smaller, secondary color -->
             <TextBlock x:Name="MatchCountText"
                       Grid.Column="2"
-                      Text="0/0"
+                      Text="0 of 0"
+                      FontSize="12"
+                      Foreground="{DynamicResource ThemeTextSecondaryBrush}"
                       VerticalAlignment="Center"
-                      Margin="8,0"/>
+                      MinWidth="60"
+                      Margin="12,0,4,0"/>
 
+            <!-- Previous button (T071) -->
             <Button Grid.Column="3"
                    Content="▲"
-                   Width="30"
-                   Height="24"
-                   Margin="4,0,0,0"
+                   Style="{StaticResource NavigationButton}"
+                   Margin="4,0"
                    ToolTip="Previous match (Shift+F3)"
                    Click="OnPreviousClicked"/>
 
+            <!-- Next button (T071) -->
             <Button Grid.Column="4"
                    Content="▼"
-                   Width="30"
-                   Height="24"
-                   Margin="4,0,0,0"
+                   Style="{StaticResource NavigationButton}"
+                   Margin="4,0"
                    ToolTip="Next match (F3)"
                    Click="OnNextClicked"/>
 
+            <!-- Close button (T071) -->
             <Button Grid.Column="5"
                    Content="×"
-                   FontSize="16"
-                   FontWeight="Bold"
-                   Width="24"
-                   Height="24"
+                   Style="{StaticResource CloseButton}"
                    Margin="8,0,0,0"
-                   Background="Transparent"
-                   BorderThickness="0"
-                   Cursor="Hand"
                    ToolTip="Close (Esc)"
                    Click="OnCloseClicked"/>
         </Grid>
