@@ -659,6 +659,7 @@ public partial class MainWindow : Window
                 var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
                 var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
                 await AddTabAsync(newTab);
+                _tabService.SetActiveTab(newTab);
                 
                 // Load document in new tab
                 await LoadDocumentInTabAsync(newTab, doc, result.Anchor);
@@ -1082,6 +1083,7 @@ public partial class MainWindow : Window
                 await Dispatcher.InvokeAsync(async () =>
                 {
                     await AddTabAsync(newTab);
+                    _tabService.SetActiveTab(newTab);
                     await LoadDocumentInTabAsync(newTab, doc);
                 });
             });
