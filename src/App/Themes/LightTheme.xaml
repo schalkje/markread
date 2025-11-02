@@ -6,7 +6,7 @@
     <SolidColorBrush x:Key="ThemeBackgroundBrush" Color="#FFFFFF"/>          <!-- 255,255,255 -->
     <SolidColorBrush x:Key="ThemeSecondaryBackgroundBrush" Color="#F8F9FA"/>  <!-- Secondary bg for code blocks, etc -->
     <SolidColorBrush x:Key="ThemeForegroundBrush" Color="#212529"/>           <!-- 33,37,41 -->
-    <SolidColorBrush x:Key="ThemeAccentBrush" Color="#0066CC"/>               <!-- 0,102,204 -->
+    <SolidColorBrush x:Key="ThemeAccentBrush" Color="#66B3FF"/>               <!-- 0,102,204 -->
     <SolidColorBrush x:Key="ThemeBorderBrush" Color="#DEE2E6"/>               <!-- 222,226,230 -->
     <SolidColorBrush x:Key="ThemeButtonBackgroundBrush" Color="#F8F9FA"/>     <!-- 248,249,250 -->
     <SolidColorBrush x:Key="ThemeButtonHoverBrush" Color="#E9ECEF"/>          <!-- 233,236,239 -->
@@ -18,12 +18,12 @@
     <SolidColorBrush x:Key="ThemeTextPrimaryBrush" Color="#212529"/>          <!-- Matches Foreground -->
     <SolidColorBrush x:Key="ThemeTextSecondaryBrush" Color="#6B7280"/>
     <SolidColorBrush x:Key="ThemeTextMutedBrush" Color="#9CA3AF"/>
-    <SolidColorBrush x:Key="ThemeTextLinkBrush" Color="#0066CC"/>             <!-- Matches Accent -->
+    <SolidColorBrush x:Key="ThemeTextLinkBrush" Color="#66B3FF"/>             <!-- Matches Accent -->
 
     <!-- Light Theme Input Controls -->
     <SolidColorBrush x:Key="ThemeInputBackgroundBrush" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ThemeInputBorderBrush" Color="#DEE2E6"/>          <!-- Matches Border -->
-    <SolidColorBrush x:Key="ThemeInputFocusBrush" Color="#0066CC"/>           <!-- Matches Accent -->
+    <SolidColorBrush x:Key="ThemeInputFocusBrush" Color="#66B3FF"/>           <!-- Matches Accent -->
     
     <!-- Additional theme brushes for consistency -->
     <SolidColorBrush x:Key="ThemeSecondaryForegroundBrush" Color="#6B7280"/>
@@ -42,8 +42,8 @@
     <SolidColorBrush x:Key="ThemeInfoBrush" Color="#0EA5E9"/>
     
     <!-- Light Theme File Tree Icon Colors -->
-    <SolidColorBrush x:Key="ThemeFolderIconBrush" Color="#2563EB"/>
-    <SolidColorBrush x:Key="ThemeFileIconBrush" Color="#6B7280"/>
+    <SolidColorBrush x:Key="ThemeFolderIconBrush" Color="#60A5FA"/>
+    <SolidColorBrush x:Key="ThemeFileIconBrush" Color="#9CA3AF"/>
 
     <!-- Typography System -->
     
