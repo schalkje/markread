@@ -183,9 +183,9 @@ public partial class MainWindow : Window
         {
             await _webViewHost.InjectThemeFromColorSchemeAsync(themeName, colorScheme);
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to inject initial theme into WebView: {ex.Message}");
+            // Theme injection failed, but application can continue
         }
     }
 
@@ -294,12 +294,9 @@ public partial class MainWindow : Window
 
     private async Task ExecuteOpenFolderAsync()
     {
-        System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: Starting");
         var result = _openFolderCommand.Execute(this);
-        System.Diagnostics.Debug.WriteLine($"ExecuteOpenFolderAsync: result = {result}");
         if (result is null)
         {
-            System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: result is null, showing overlay");
             if (_tabService.Tabs.Count == 0)
             {
                 ShowStartOverlay(true);
@@ -307,9 +304,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: Calling LoadRootAsync");
         await LoadRootAsync(result.Value);
-        System.Diagnostics.Debug.WriteLine("ExecuteOpenFolderAsync: LoadRootAsync completed");
     }
 
     private async Task ExecuteOpenFileAsync()
@@ -365,7 +360,6 @@ public partial class MainWindow : Window
 
     private async Task LoadRootAsync(FolderOpenResult result)
     {
-        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: Starting with root={result.Root.DisplayName}");
         _currentRoot = result.Root;
         _renderer.SetRootPath(result.Root.Path);
         Title = $"MarkRead - {result.Root.DisplayName}";
@@ -377,27 +371,20 @@ public partial class MainWindow : Window
         SidebarContent.SetRootFolder(result.Root.Path);
 
         // Create initial tab if no tabs exist
-        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: _tabService.Tabs.Count = {_tabService.Tabs.Count}");
         if (_tabService.Tabs.Count == 0)
         {
-            System.Diagnostics.Debug.WriteLine("LoadRootAsync: Creating initial tab");
             var initialTab = new TabItemModel(Guid.NewGuid(), result.Root.DisplayName);
             await AddTabAsync(initialTab);
-            System.Diagnostics.Debug.WriteLine($"LoadRootAsync: Tab created, _tabService.Tabs.Count = {_tabService.Tabs.Count}");
         }
 
         // Show tabs and load document
-        System.Diagnostics.Debug.WriteLine("LoadRootAsync: Hiding overlay and showing TabControl");
         ShowStartOverlay(false);
         TabBarContainer.Visibility = Visibility.Visible;
         MarkdownView.Visibility = Visibility.Visible;
-        System.Diagnostics.Debug.WriteLine($"LoadRootAsync: TabControl.Visibility = {TabBarContainer.Visibility}");
 
         if (result.DefaultDocument is DocumentInfo doc)
         {
-            System.Diagnostics.Debug.WriteLine($"LoadRootAsync: Loading document {doc.FullPath}");
             var currentTab = GetCurrentTab();
-            System.Diagnostics.Debug.WriteLine($"LoadRootAsync: currentTab = {currentTab?.Title}");
             if (currentTab is not null)
             {
                 await LoadDocumentInTabAsync(currentTab, doc);
@@ -405,11 +392,9 @@ public partial class MainWindow : Window
         }
         else
         {
-            System.Diagnostics.Debug.WriteLine("LoadRootAsync: No default document found");
             ShowStartOverlay(true);
             System.Windows.MessageBox.Show(this, "No Markdown files were found in the selected folder.", "MarkRead", MessageBoxButton.OK, MessageBoxImage.Information);
         }
-        System.Diagnostics.Debug.WriteLine("LoadRootAsync: Completed");
     }
 
     private Task AddTabAsync(TabItemModel tab)
@@ -473,7 +458,6 @@ public partial class MainWindow : Window
         }
 
         var resolvedTheme = _themeManager.GetResolvedTheme().ToString().ToLowerInvariant();
-        System.Diagnostics.Debug.WriteLine($"LoadDocumentInTabAsync: CurrentTheme={_themeManager.CurrentTheme}, ResolvedTheme={resolvedTheme}");
 
         var request = new RenderRequest(
             markdown,
@@ -903,15 +887,11 @@ public partial class MainWindow : Window
 
     private async void OnThemeChanged(object? sender, ThemeChangedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"OnThemeChanged: OldTheme={e.OldTheme}, NewTheme={e.NewTheme}");
-        
         // Get the color scheme for the theme
         var themeConfig = _themeManager.GetCurrentConfiguration();
         var colorScheme = e.NewTheme == ThemeType.Dark 
             ? themeConfig.DarkColorScheme 
             : themeConfig.LightColorScheme;
-        
-        System.Diagnostics.Debug.WriteLine($"OnThemeChanged: colorScheme.Background={colorScheme.Background}");
         
         // Update WebView2 default background color to prevent white flash
         UpdateWebViewBackgroundColor(colorScheme.Background);
@@ -920,35 +900,27 @@ public partial class MainWindow : Window
         // Do NOT reload the document - just update the theme styling
         if (_webViewHost != null && _webViewHost.IsInitialized)
         {
-            System.Diagnostics.Debug.WriteLine($"OnThemeChanged: WebViewHost is initialized, injecting theme");
             var themeName = e.NewTheme.ToString().ToLowerInvariant();
             
             // Inject theme CSS variables into the WebView
             try
             {
                 await _webViewHost.InjectThemeFromColorSchemeAsync(themeName, colorScheme);
-                System.Diagnostics.Debug.WriteLine($"OnThemeChanged: Theme injection completed successfully");
             }
-            catch (Exception ex)
+            catch
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to inject theme into WebView: {ex.Message}");
+                // Theme injection failed, but application can continue
             }
             
             // Also send apply-theme message to update the data-theme attribute on body
             // This ensures both the CSS variables and data-theme attribute are updated
             _webViewHost.PostMessage("apply-theme", new { theme = themeName });
-            System.Diagnostics.Debug.WriteLine($"OnThemeChanged: Posted apply-theme message");
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine($"OnThemeChanged: WebViewHost not available or not initialized");
         }
     }
 
     private void OnThemeLoadFailed(object? sender, ThemeErrorEventArgs e)
     {
         // Log or handle theme loading errors
-        System.Diagnostics.Debug.WriteLine($"Theme load failed for {e.AttemptedTheme}: {e.Error.Message}");
     }
 
     /// <summary>
@@ -966,12 +938,10 @@ public partial class MainWindow : Window
 
             // Set default background color BEFORE CoreWebView2 initializes
             MarkdownView.DefaultBackgroundColor = colorScheme.Background;
-            
-            System.Diagnostics.Debug.WriteLine($"Set initial WebView background to: #{colorScheme.Background.R:X2}{colorScheme.Background.G:X2}{colorScheme.Background.B:X2}");
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to set initial WebView background: {ex.Message}");
+            // Background color setting failed, but application can continue
         }
     }
 
@@ -993,12 +963,10 @@ public partial class MainWindow : Window
                         ? CoreWebView2PreferredColorScheme.Dark 
                         : CoreWebView2PreferredColorScheme.Light;
             }
-            
-            System.Diagnostics.Debug.WriteLine($"Updated WebView background to: #{backgroundColor.R:X2}{backgroundColor.G:X2}{backgroundColor.B:X2}");
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to update WebView background color: {ex.Message}");
+            // Background color update failed, but application can continue
         }
     }
 

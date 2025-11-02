@@ -22,8 +22,6 @@ public partial class TabContentControl : System.Windows.Controls.UserControl, ID
 
     private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine("TabContentControl.OnLoaded: Control loaded into visual tree");
-        
         // Initialize WebView2 now that we're in the visual tree
         if (_webViewHost is null)
         {
@@ -35,12 +33,9 @@ public partial class TabContentControl : System.Windows.Controls.UserControl, ID
 
     public async System.Threading.Tasks.Task InitializeAsync()
     {
-        System.Diagnostics.Debug.WriteLine("TabContentControl.InitializeAsync: Waiting for initialization");
-        
         // If already initialized, return immediately
         if (_webViewHost is not null)
         {
-            System.Diagnostics.Debug.WriteLine("TabContentControl.InitializeAsync: Already initialized");
             return;
         }
 
@@ -58,29 +53,21 @@ public partial class TabContentControl : System.Windows.Controls.UserControl, ID
 
     private async System.Threading.Tasks.Task InitializeWebViewAsync()
     {
-        System.Diagnostics.Debug.WriteLine("TabContentControl.InitializeWebViewAsync: Starting");
-        
         if (_webViewHost is not null)
         {
-            System.Diagnostics.Debug.WriteLine("TabContentControl.InitializeWebViewAsync: Already initialized");
             return;
         }
 
         try
         {
-            System.Diagnostics.Debug.WriteLine("TabContentControl.InitializeWebViewAsync: Creating WebViewHost");
             _webViewHost = new WebViewHost(WebView, Path.Combine("Rendering", "assets"));
-            System.Diagnostics.Debug.WriteLine("TabContentControl.InitializeWebViewAsync: Calling WebViewHost.InitializeAsync");
             await _webViewHost.InitializeAsync();
-            System.Diagnostics.Debug.WriteLine("TabContentControl.InitializeWebViewAsync: WebViewHost initialized successfully");
             
             // Signal that initialization is complete
             _initializationTcs?.TrySetResult(true);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"TabContentControl.InitializeWebViewAsync: EXCEPTION - {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"TabContentControl.InitializeWebViewAsync: Stack trace - {ex.StackTrace}");
             _initializationTcs?.TrySetException(ex);
             throw;
         }

@@ -353,13 +353,9 @@ public sealed class WebViewHost : IDisposable
     /// </summary>
     private static string ColorToCssHex(System.Drawing.Color color)
     {
-        // Debug output
-        // System.Diagnostics.Debug.WriteLine($"ColorToCssHex: A={color.A}, R={color.R}, G={color.G}, B={color.B}, IsEmpty={color.IsEmpty}");
-        
         // Handle empty/default color (should not happen, but guard against it)
         if (color.IsEmpty || color.A == 0)
         {
-            System.Diagnostics.Debug.WriteLine($"WARNING: Empty or transparent color detected: {color}");
             // Return a visible default instead of transparent
             return "#000000"; // Black as fallback
         }
