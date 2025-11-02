@@ -326,9 +326,9 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
                 app.Resources[aliasKey] = newStyle;
             }
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"  Failed to update {aliasKey}: {ex.Message}");
+            // Style alias update failed, continue with other updates
         }
     }
 

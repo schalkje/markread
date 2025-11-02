@@ -456,9 +456,9 @@ public sealed class WebViewHost : IDisposable
                 _lastInjectedTheme = null;
                 await InjectThemeAsync(_pendingThemeName, _pendingThemeProperties);
             }
-            catch (Exception ex)
+            catch
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to re-inject theme after navigation: {ex.Message}");
+                // Theme re-injection failed, but navigation can continue
             }
         }
 
