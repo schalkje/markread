@@ -35,6 +35,7 @@ public class SettingsService
     private UIState? _uiState;
     private AnimationSettings? _animationSettings;
     private bool _isLoaded;
+    private bool _isTreeViewSettingsLoaded;
 
     public SettingsService()
     {

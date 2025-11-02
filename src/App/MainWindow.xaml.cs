@@ -404,6 +404,20 @@ public partial class MainWindow : Window
         return Task.CompletedTask;
     }
 
+    private async void OnTreeViewFileNavigationRequested(object? sender, UI.Sidebar.TreeView.FileNavigationEventArgs e)
+    {
+        if (_currentRoot == null) return;
+
+        var document = _folderService.TryResolveDocument(_currentRoot, e.FilePath) 
+            ?? new DocumentInfo(e.FilePath, Path.GetFileName(e.FilePath), 0, DateTime.UtcNow);
+
+        var currentTab = GetCurrentTab();
+        if (currentTab != null)
+        {
+            await LoadDocumentInTabAsync(currentTab, document);
+        }
+    }
+
     private async Task LoadDocumentInTabAsync(TabItemModel tab, DocumentInfo document, string? anchor = null, bool pushHistory = true)
     {
         if (_currentRoot is null || _webViewHost is null)

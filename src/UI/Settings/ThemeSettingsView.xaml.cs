@@ -30,7 +30,7 @@ public partial class ThemeSettingsView : Window
         LoadCurrentSettings();
     }
 
-    private void LoadCurrentSettings()
+    private async void LoadCurrentSettings()
     {
         // Set theme radio buttons
         switch (_currentSettings.Theme.ToLowerInvariant())
@@ -49,6 +49,10 @@ public partial class ThemeSettingsView : Window
         // Set other checkboxes
         AutoReloadCheckBox.IsChecked = _currentSettings.AutoReload;
         ShowFileTreeCheckBox.IsChecked = _currentSettings.ShowFileTree;
+
+        // T055: Load TreeView settings
+        _currentTreeViewSettings = await _settingsService.LoadTreeViewSettingsAsync();
+        TreeViewDefaultVisibleCheckBox.IsChecked = _currentTreeViewSettings.DefaultVisible;
     }
 
     private async void ThemeRadio_Checked(object sender, RoutedEventArgs e)
@@ -84,6 +88,14 @@ public partial class ThemeSettingsView : Window
 
             // Persist to disk
             await _settingsService.SaveAsync(updatedSettings);
+
+            // T055: Save TreeView settings
+            var updatedTreeViewSettings = new TreeViewSettings
+            {
+                DefaultVisible = TreeViewDefaultVisibleCheckBox.IsChecked == true,
+                PerFolderSettings = _currentTreeViewSettings.PerFolderSettings // Preserve per-folder settings
+            };
+            await _settingsService.SaveTreeViewSettingsAsync(updatedTreeViewSettings);
 
             DialogResult = true;
             Close();
