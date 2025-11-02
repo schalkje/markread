@@ -35,6 +35,10 @@
         <StackPanel Grid.Row="4" Margin="0,0,0,15">
             <CheckBox x:Name="AutoReloadCheckBox" Content="Auto-reload files on change" Margin="0,5,0,5"/>
             <CheckBox x:Name="ShowFileTreeCheckBox" Content="Show file tree sidebar" Margin="0,5,0,5"/>
+            <CheckBox x:Name="TreeViewDefaultVisibleCheckBox" 
+                      Content="Show file tree by default in new folders" 
+                      Margin="0,5,0,5"
+                      ToolTip="Controls whether the file tree is visible when opening a new folder for the first time"/>
         </StackPanel>
 
         <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">
