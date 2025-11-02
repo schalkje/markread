@@ -12,15 +12,9 @@ public partial class StartView : WpfUserControl
 
     private void OnOpenFolderClicked(object sender, RoutedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine("OnOpenFolderClicked fired!");
         if (Window.GetWindow(this) is MainWindow mainWindow)
         {
-            System.Diagnostics.Debug.WriteLine($"Found MainWindow: {mainWindow}");
             mainWindow.ExecuteOpenFolder();
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine("MainWindow not found!");
         }
     }
 

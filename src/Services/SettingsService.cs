@@ -174,10 +174,9 @@ public class SettingsService
                 return _themeConfiguration;
             }
 
-            // T080: Check for corruption before loading
+            // Check for corruption before loading
             if (IsFileCorrupted(_themeSettingsFile))
             {
-                System.Diagnostics.Debug.WriteLine("Theme settings corrupted, attempting restore from backup");
                 await RestoreFromBackupAsync();
                 
                 // If still corrupted or doesn't exist, use default

@@ -193,10 +193,9 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
             {
                 await _settingsService.SaveThemeConfigurationAsync(_themeConfiguration);
             }
-            catch (Exception saveEx)
+            catch
             {
-                // T079: Non-fatal - theme is applied but not persisted
-                System.Diagnostics.Debug.WriteLine($"Failed to save theme preference: {saveEx.Message}");
+                // Non-fatal - theme is applied but not persisted
                 // Continue execution - theme is still applied in memory
             }
             
@@ -205,8 +204,7 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            // T079: Graceful degradation on theme application failure
-            System.Diagnostics.Debug.WriteLine($"Theme application failed: {ex.Message}");
+            // Graceful degradation on theme application failure
             OnThemeLoadFailed(theme, ex);
             
             // Attempt fallback to light theme if not already light
@@ -272,8 +270,6 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
         var app = WpfApplication.Current;
         if (app?.Resources?.MergedDictionaries == null) return;
 
-        System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Switching to {theme} theme");
-
         // Determine theme resource URI
         var themeUri = theme == ThemeType.Dark 
             ? new Uri("Themes/DarkTheme.xaml", UriKind.Relative)
@@ -284,17 +280,14 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
             // Load the new theme dictionary FIRST (before removing old one)
             var newThemeDict = new ResourceDictionary { Source = themeUri };
             app.Resources.MergedDictionaries.Add(newThemeDict);
-            System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Added {themeUri}");
 
             // Now safely remove existing theme dictionaries (except the one we just added)
             var existingThemes = app.Resources.MergedDictionaries
                 .Where(d => d.Source?.OriginalString?.Contains("Theme.xaml") == true && d != newThemeDict)
                 .ToList();
 
-            System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Removing {existingThemes.Count} old theme dictionaries");
             foreach (var existingTheme in existingThemes)
             {
-                System.Diagnostics.Debug.WriteLine($"  Removing: {existingTheme.Source}");
                 app.Resources.MergedDictionaries.Remove(existingTheme);
             }
 
@@ -311,13 +304,10 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
             UpdateStyleAlias(app, "DefaultTabItem", $"{themePrefix}TabItem");
             UpdateStyleAlias(app, "DefaultMenu", $"{themePrefix}Menu");
             UpdateStyleAlias(app, "DefaultMenuItem", $"{themePrefix}MenuItem");
-            
-            System.Diagnostics.Debug.WriteLine($"SwitchResourceDictionary: Theme switch complete");
         }
-        catch (Exception ex)
+        catch
         {
             // Fallback to manual resource updates if ResourceDictionary loading fails
-            System.Diagnostics.Debug.WriteLine($"ResourceDictionary switching failed: {ex.Message}");
             // The existing UpdateDynamicColorResources call will handle fallback
         }
     }
@@ -334,12 +324,11 @@ public class ThemeManager : IThemeService, INotifyPropertyChanged
                 var targetType = baseStyle.TargetType;
                 var newStyle = new Style(targetType, baseStyle);
                 app.Resources[aliasKey] = newStyle;
-                System.Diagnostics.Debug.WriteLine($"  Updated {aliasKey} -> {baseStyleKey}");
             }
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"  Failed to update {aliasKey}: {ex.Message}");
+            // Style alias update failed, continue with other updates
         }
     }
 
