@@ -213,13 +213,17 @@
     }
 
     function highlightCodeBlocks() {
-        if (!window.hljs) {
+        if (!window.Prism) {
             return;
         }
 
-        document.querySelectorAll("pre code").forEach(block => {
-            window.hljs.highlightElement(block);
+        // Add line-numbers class to all pre elements
+        document.querySelectorAll("pre[class*='language-']").forEach(pre => {
+            pre.classList.add("line-numbers");
         });
+
+        // Highlight all code blocks
+        window.Prism.highlightAll();
     }
 
     function handleLinkClicks() {
