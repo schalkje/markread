@@ -15,6 +15,7 @@ public sealed class Renderer
     private const string StateToken = "__STATE_JSON__";
     private const string BaseUrlToken = "<!--BASE_URL-->";
     private const string ThemeStyleToken = "<!--THEME_STYLE-->";
+    private const string DataThemeToken = "<!--DATA_THEME-->";
 
     private readonly MarkdownService _markdownService;
     private readonly HtmlSanitizerService _sanitizer;
@@ -58,7 +59,31 @@ public sealed class Renderer
 
         try
         {
+            // Debug: Check if markdown contains mermaid blocks
+            if (markdown.Contains("```mermaid", StringComparison.OrdinalIgnoreCase))
+            {
+                System.Diagnostics.Debug.WriteLine($"Renderer: Found ```mermaid in markdown input");
+                var mermaidIndex = markdown.IndexOf("```mermaid", StringComparison.OrdinalIgnoreCase);
+                var snippet = markdown.Substring(mermaidIndex, Math.Min(100, markdown.Length - mermaidIndex));
+                System.Diagnostics.Debug.WriteLine($"Renderer: Markdown snippet: {snippet}");
+            }
+            
             var html = _markdownService.RenderToHtml(markdown);
+            
+            // Debug: Check if mermaid blocks are being rendered correctly
+            if (html.Contains("mermaid", StringComparison.OrdinalIgnoreCase))
+            {
+                var mermaidIndex = html.IndexOf("mermaid", StringComparison.OrdinalIgnoreCase);
+                var snippet = html.Substring(Math.Max(0, mermaidIndex - 50), Math.Min(200, html.Length - Math.Max(0, mermaidIndex - 50)));
+                System.Diagnostics.Debug.WriteLine($"Renderer: Found 'mermaid' in HTML: ...{snippet}...");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"Renderer: NO 'mermaid' found in HTML output!");
+                // Show first 500 chars of HTML
+                var htmlSnippet = html.Length > 500 ? html.Substring(0, 500) : html;
+                System.Diagnostics.Debug.WriteLine($"Renderer: HTML starts with: {htmlSnippet}");
+            }
 
             Uri? baseUri = null;
             try
@@ -71,6 +96,14 @@ public sealed class Renderer
             }
 
             sanitized = _sanitizer.Sanitize(html, baseUri);
+            
+            // Debug: Check if mermaid blocks survived sanitization
+            if (sanitized.Contains("mermaid", StringComparison.OrdinalIgnoreCase))
+            {
+                var mermaidIndex = sanitized.IndexOf("mermaid", StringComparison.OrdinalIgnoreCase);
+                var snippet = sanitized.Substring(Math.Max(0, mermaidIndex - 50), Math.Min(200, sanitized.Length - Math.Max(0, mermaidIndex - 50)));
+                System.Diagnostics.Debug.WriteLine($"Renderer: After sanitization: ...{snippet}...");
+            }
         }
         catch (Exception ex)
         {
@@ -89,12 +122,17 @@ public sealed class Renderer
         System.Diagnostics.Debug.WriteLine($"Renderer.RenderAsync: PreferredTheme = '{request.PreferredTheme}'");
         var themeStyle = GenerateThemeInlineStyle(request.PreferredTheme);
         System.Diagnostics.Debug.WriteLine($"Renderer.RenderAsync: Generated inline style for theme");
+        
+        // Determine resolved theme name for data-theme attribute (use 'light' or 'dark' only)
+        var dataTheme = request.PreferredTheme.Contains("dark", StringComparison.OrdinalIgnoreCase) ? "dark" : "light";
+        System.Diagnostics.Debug.WriteLine($"Renderer.RenderAsync: dataTheme = '{dataTheme}'");
 
         var output = template
             .Replace(ContentToken, sanitized, StringComparison.Ordinal)
             .Replace(StateToken, stateJson, StringComparison.Ordinal)
             .Replace(BaseUrlToken, baseUrl, StringComparison.Ordinal)
-            .Replace(ThemeStyleToken, themeStyle, StringComparison.Ordinal);
+            .Replace(ThemeStyleToken, themeStyle, StringComparison.Ordinal)
+            .Replace(DataThemeToken, dataTheme, StringComparison.Ordinal);
 
         var title = DetermineTitle(markdown, request.DocumentPath);
         if (isFallback)
