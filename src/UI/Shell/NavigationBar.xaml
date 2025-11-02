@@ -35,16 +35,10 @@
                       Width="16" Height="16"/>
             </Button>
 
-            <!-- Application Title -->
-            <TextBlock Text="Markdown Viewer"
-                       FontSize="14"
-                       Foreground="{DynamicResource ThemeTextPrimaryBrush}"
-                       VerticalAlignment="Center"
-                       Margin="12,0,8,0"/>
-
             <!-- Menu Bar -->
             <Menu Background="Transparent"
                   VerticalAlignment="Center"
+                  Margin="8,0,0,0"
                   WindowChrome.IsHitTestVisibleInChrome="True">
                 <Menu.Resources>
                     <Style TargetType="MenuItem">
@@ -63,9 +57,6 @@
                               Command="{x:Static start:StartCommands.OpenFile}"
                               InputGestureText="Ctrl+Shift+O"/>
                     <Separator/>
-                    <MenuItem Header="_New Tab" 
-                              InputGestureText="Ctrl+T"
-                              IsEnabled="False"/>
                     <MenuItem Header="_Close Tab" 
                               InputGestureText="Ctrl+W"
                               IsEnabled="False"/>
@@ -141,12 +132,12 @@
             </Button>
         </StackPanel>
 
-        <!-- Middle Section: File Path Display -->
-        <Border Grid.Column="1" 
-                Margin="12,0"
-                Padding="0"
-                Background="Transparent"
-                VerticalAlignment="Center">
+        <!-- Middle Section: File Path Display or Application Title -->
+        <Grid Grid.Column="1" 
+              Margin="12,0"
+              Background="Transparent"
+              VerticalAlignment="Center">
+            <!-- File Path (shown when file is selected) -->
             <TextBlock x:Name="FilePathText"
                        Text="{Binding CurrentFilePath, FallbackValue=''}"
                        Foreground="{DynamicResource ThemeTextSecondaryBrush}"
@@ -171,7 +162,30 @@
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
-        </Border>
+            
+            <!-- Application Title (shown when no file is selected) -->
+            <TextBlock Text="MarkRead - Markdown Viewer"
+                       FontSize="14"
+                       Foreground="{DynamicResource ThemeTextPrimaryBrush}"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentFilePath}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentFilePath}" Value="">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </Grid>
+
 
         <!-- Right Section: Actions and Window Controls -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,0" VerticalAlignment="Center">
