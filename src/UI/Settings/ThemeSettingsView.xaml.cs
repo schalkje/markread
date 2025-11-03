@@ -13,6 +13,7 @@ public partial class ThemeSettingsView : Window
 {
     private readonly SettingsService _settingsService;
     private ViewerSettings _currentSettings;
+    private TreeViewSettings? _currentTreeViewSettings;
     private readonly IThemeService _themeService;
 
     public ThemeSettingsView(SettingsService settingsService, ViewerSettings currentSettings)
@@ -52,7 +53,7 @@ public partial class ThemeSettingsView : Window
 
         // T055: Load TreeView settings
         _currentTreeViewSettings = await _settingsService.LoadTreeViewSettingsAsync();
-        TreeViewDefaultVisibleCheckBox.IsChecked = _currentTreeViewSettings.DefaultVisible;
+        TreeViewDefaultVisibleCheckBox.IsChecked = _currentTreeViewSettings?.DefaultVisible ?? true;
     }
 
     private async void ThemeRadio_Checked(object sender, RoutedEventArgs e)
@@ -93,7 +94,7 @@ public partial class ThemeSettingsView : Window
             var updatedTreeViewSettings = new TreeViewSettings
             {
                 DefaultVisible = TreeViewDefaultVisibleCheckBox.IsChecked == true,
-                PerFolderSettings = _currentTreeViewSettings.PerFolderSettings // Preserve per-folder settings
+                PerFolderSettings = _currentTreeViewSettings?.PerFolderSettings ?? new Dictionary<string, FolderTreeSettings>() // Preserve per-folder settings
             };
             await _settingsService.SaveTreeViewSettingsAsync(updatedTreeViewSettings);
 
