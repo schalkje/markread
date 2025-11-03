@@ -29,13 +29,14 @@ public class SettingsService
     private readonly string _themeSettingsFile;
     private readonly string _uiStateFile;
     private readonly string _animationSettingsFile;
+    private readonly string _treeViewSettingsFile;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private ViewerSettings _currentSettings = ViewerSettings.Default();
     private ThemeConfiguration? _themeConfiguration;
     private UIState? _uiState;
     private AnimationSettings? _animationSettings;
+    private TreeViewSettings? _treeViewSettings;
     private bool _isLoaded;
-    private bool _isTreeViewSettingsLoaded;
 
     public SettingsService()
     {
@@ -45,6 +46,7 @@ public class SettingsService
         _themeSettingsFile = Path.Combine(root, "theme-settings.json");
         _uiStateFile = Path.Combine(root, "ui-state.json");
         _animationSettingsFile = Path.Combine(root, "animation-settings.json");
+        _treeViewSettingsFile = Path.Combine(root, "treeview-settings.json");
     }
 
     public async Task<ViewerSettings> LoadAsync()
@@ -438,6 +440,119 @@ public class SettingsService
         }
     }
 
+    // TreeView Settings Management
+
+    /// <summary>
+    /// Loads TreeView settings from disk
+    /// </summary>
+    public async Task<TreeViewSettings> LoadTreeViewSettingsAsync()
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_treeViewSettings != null)
+                return _treeViewSettings;
+
+            if (!File.Exists(_treeViewSettingsFile))
+            {
+                _treeViewSettings = new TreeViewSettings();
+                return _treeViewSettings;
+            }
+
+            await using FileStream stream = File.OpenRead(_treeViewSettingsFile);
+            var loaded = await JsonSerializer.DeserializeAsync<TreeViewSettings>(stream).ConfigureAwait(false);
+            _treeViewSettings = loaded ?? new TreeViewSettings();
+            return _treeViewSettings;
+        }
+        catch (JsonException)
+        {
+            _treeViewSettings = new TreeViewSettings();
+            return _treeViewSettings;
+        }
+        catch (IOException)
+        {
+            return _treeViewSettings ?? new TreeViewSettings();
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Saves TreeView settings to disk
+    /// </summary>
+    public async Task SaveTreeViewSettingsAsync(TreeViewSettings treeViewSettings)
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await PersistTreeViewSettingsAsync(treeViewSettings).ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Updates TreeView settings using an updater function
+    /// </summary>
+    public async Task<TreeViewSettings> UpdateTreeViewSettingsAsync(Func<TreeViewSettings, TreeViewSettings> updater)
+    {
+        if (updater is null)
+        {
+            throw new ArgumentNullException(nameof(updater));
+        }
+
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_treeViewSettings == null)
+            {
+                await LoadTreeViewSettingsAsync().ConfigureAwait(false);
+            }
+
+            var updated = updater(_treeViewSettings!);
+            await PersistTreeViewSettingsAsync(updated).ConfigureAwait(false);
+            return _treeViewSettings!;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private async Task PersistTreeViewSettingsAsync(TreeViewSettings treeViewSettings)
+    {
+        var tempFile = _treeViewSettingsFile + ".tmp";
+
+        try
+        {
+            await using (FileStream stream = File.Create(tempFile))
+            {
+                await JsonSerializer.SerializeAsync(stream, treeViewSettings, SerializerOptions).ConfigureAwait(false);
+            }
+
+            File.Copy(tempFile, _treeViewSettingsFile, overwrite: true);
+            _treeViewSettings = treeViewSettings;
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                try
+                {
+                    File.Delete(tempFile);
+                }
+                catch
+                {
+                    // Ignored: temp file cleanup best effort.
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// Creates backup copies of all settings files (T080: Enhanced backup system)
     /// </summary>
@@ -459,6 +574,9 @@ public class SettingsService
             
             if (File.Exists(_animationSettingsFile))
                 File.Copy(_animationSettingsFile, $"{_animationSettingsFile}.backup-{timestamp}", overwrite: true);
+            
+            if (File.Exists(_treeViewSettingsFile))
+                File.Copy(_treeViewSettingsFile, $"{_treeViewSettingsFile}.backup-{timestamp}", overwrite: true);
             
             // Clean up old backups (keep last 5)
             CleanupOldBackups();
@@ -493,12 +611,14 @@ public class SettingsService
             RestoreFile($"{_themeSettingsFile}.backup-{timestamp}", _themeSettingsFile);
             RestoreFile($"{_uiStateFile}.backup-{timestamp}", _uiStateFile);
             RestoreFile($"{_animationSettingsFile}.backup-{timestamp}", _animationSettingsFile);
+            RestoreFile($"{_treeViewSettingsFile}.backup-{timestamp}", _treeViewSettingsFile);
 
             // Clear cached settings to force reload
             _isLoaded = false;
             _themeConfiguration = null;
             _uiState = null;
             _animationSettings = null;
+            _treeViewSettings = null;
 
             return true;
         }
@@ -528,12 +648,14 @@ public class SettingsService
             if (File.Exists(_themeSettingsFile)) File.Delete(_themeSettingsFile);
             if (File.Exists(_uiStateFile)) File.Delete(_uiStateFile);
             if (File.Exists(_animationSettingsFile)) File.Delete(_animationSettingsFile);
+            if (File.Exists(_treeViewSettingsFile)) File.Delete(_treeViewSettingsFile);
 
             // Reset in-memory state
             _currentSettings = ViewerSettings.Default();
             _themeConfiguration = new ThemeConfiguration();
             _uiState = UIState.CreateDefault();
             _animationSettings = AnimationSettings.CreateDefault();
+            _treeViewSettings = new TreeViewSettings();
             _isLoaded = false;
 
             // Save factory defaults
@@ -541,6 +663,7 @@ public class SettingsService
             await PersistThemeConfigurationAsync(_themeConfiguration);
             await PersistUIStateAsync(_uiState);
             await PersistAnimationSettingsAsync(_animationSettings);
+            await PersistTreeViewSettingsAsync(_treeViewSettings);
         }
         finally
         {
