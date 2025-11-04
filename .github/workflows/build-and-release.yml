@@ -30,13 +30,13 @@ jobs:
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v2
 
-    # Restore dependencies
+    # Restore dependencies with runtime identifier
     - name: Restore dependencies
-      run: dotnet restore $env:Solution_Name
+      run: dotnet restore $env:Solution_Name -r win-x64
 
     # Build the application in Release mode
     - name: Build application
-      run: dotnet build $env:Solution_Name --configuration Release --no-restore
+      run: dotnet build $env:Solution_Name --configuration Release --runtime win-x64 --no-restore
 
     # Run tests if they exist
     - name: Run tests
