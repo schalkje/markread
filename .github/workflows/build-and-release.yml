@@ -50,8 +50,8 @@ jobs:
         }
       shell: pwsh
 
-    # Restore dependencies
-    - name: Restore dependencies
+    # Restore solution dependencies
+    - name: Restore solution dependencies
       run: dotnet restore $env:Solution_Name
 
     # Build the application in Release mode
@@ -63,19 +63,24 @@ jobs:
       run: dotnet test $env:Solution_Name --configuration Release --no-build --verbosity normal
       continue-on-error: true  # Don't fail if no tests exist yet
 
-    # Restore project with runtime identifier for publish
-    - name: Restore project with RID
+    # Restore project with runtime identifier (needed for both publish and MSIX)
+    - name: Restore project with runtime identifier
       run: dotnet restore $env:Project_Path -r win-x64
 
-    # Publish the application (creates self-contained deployment)
+    # Publish the application for ZIP distribution
     - name: Publish application
       run: dotnet publish $env:Project_Path --configuration Release --output publish --self-contained false --runtime win-x64 --no-restore
 
     # Create a zip archive of the published application
-    - name: Create release archive
+    - name: Create ZIP package
       run: |
         $version = "${{ github.ref_name }}"
         Compress-Archive -Path publish\* -DestinationPath "MarkRead-$version-win-x64.zip"
+      shell: pwsh
+
+    # Restore WAP project dependencies
+    - name: Restore MSIX packaging project
+      run: msbuild installer\MarkRead.Package.wapproj /t:Restore /p:Configuration=Release /p:Platform=x64
       shell: pwsh
 
     # Build MSIX package
@@ -84,7 +89,15 @@ jobs:
         $version = "${{ github.ref_name }}".TrimStart('v')
         $sdkVersion = "${{ steps.sdk-version.outputs.SDK_VERSION }}"
         Write-Host "Building MSIX with SDK version: $sdkVersion"
-        msbuild installer\MarkRead.Package.wapproj /p:Configuration=Release /p:Platform=x64 /p:AppxPackageDir="..\AppPackages\" /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxPackageSigningEnabled=false /p:AppVersion=$version /p:TargetPlatformVersion=$sdkVersion
+        msbuild installer\MarkRead.Package.wapproj `
+          /p:Configuration=Release `
+          /p:Platform=x64 `
+          /p:AppxPackageDir="..\AppPackages\" `
+          /p:AppxBundle=Never `
+          /p:UapAppxPackageBuildMode=SideloadOnly `
+          /p:AppxPackageSigningEnabled=false `
+          /p:AppVersion=$version `
+          /p:TargetPlatformVersion=$sdkVersion
       shell: pwsh
 
     # Upload build artifacts
