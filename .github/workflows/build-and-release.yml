@@ -30,21 +30,24 @@ jobs:
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v2
 
-    # Check available Windows SDK versions
-    - name: Check Windows SDK versions
+    # Check available Windows SDK versions and use the latest
+    - name: Check and select Windows SDK version
+      id: sdk-version
       run: |
         Write-Host "Checking installed Windows SDK versions..."
         $sdkPath = "C:\Program Files (x86)\Windows Kits\10\Include"
         if (Test-Path $sdkPath) {
-          Get-ChildItem $sdkPath -Directory | ForEach-Object { Write-Host "Found SDK: $($_.Name)" }
+          $sdks = Get-ChildItem $sdkPath -Directory | Sort-Object Name -Descending
+          $sdks | ForEach-Object { Write-Host "Found SDK: $($_.Name)" }
+          
+          # Use the latest SDK version available
+          $latestSdk = $sdks[0].Name
+          Write-Host "Using SDK version: $latestSdk"
+          echo "SDK_VERSION=$latestSdk" >> $env:GITHUB_OUTPUT
+        } else {
+          Write-Error "No Windows SDK found!"
+          exit 1
         }
-      shell: pwsh
-
-    # Install Windows SDK 10.0.22621.0
-    - name: Install Windows SDK
-      run: |
-        Write-Host "Installing Windows SDK 10.0.22621.0..."
-        choco install windows-sdk-10-version-2262-all -y
       shell: pwsh
 
     # Restore dependencies
@@ -79,7 +82,9 @@ jobs:
     - name: Build MSIX package
       run: |
         $version = "${{ github.ref_name }}".TrimStart('v')
-        msbuild installer\MarkRead.Package.wapproj /p:Configuration=Release /p:Platform=x64 /p:AppxPackageDir="..\AppPackages\" /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxPackageSigningEnabled=false /p:AppVersion=$version
+        $sdkVersion = "${{ steps.sdk-version.outputs.SDK_VERSION }}"
+        Write-Host "Building MSIX with SDK version: $sdkVersion"
+        msbuild installer\MarkRead.Package.wapproj /p:Configuration=Release /p:Platform=x64 /p:AppxPackageDir="..\AppPackages\" /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxPackageSigningEnabled=false /p:AppVersion=$version /p:TargetPlatformVersion=$sdkVersion
       shell: pwsh
 
     # Upload build artifacts
