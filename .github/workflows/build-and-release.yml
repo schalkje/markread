@@ -78,9 +78,9 @@ jobs:
         Compress-Archive -Path publish\* -DestinationPath "MarkRead-$version-win-x64.zip"
       shell: pwsh
 
-    # Restore WAP project dependencies
+    # Restore WAP project dependencies with RuntimeIdentifier
     - name: Restore MSIX packaging project
-      run: msbuild installer\MarkRead.Package.wapproj /t:Restore /p:Configuration=Release /p:Platform=x64
+      run: msbuild installer\MarkRead.Package.wapproj /t:Restore /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64
       shell: pwsh
 
     # Build MSIX package
@@ -92,6 +92,7 @@ jobs:
         msbuild installer\MarkRead.Package.wapproj `
           /p:Configuration=Release `
           /p:Platform=x64 `
+          /p:RuntimeIdentifier=win-x64 `
           /p:AppxPackageDir="..\AppPackages\" `
           /p:AppxBundle=Never `
           /p:UapAppxPackageBuildMode=SideloadOnly `
