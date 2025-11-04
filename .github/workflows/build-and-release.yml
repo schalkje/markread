@@ -58,6 +58,10 @@ jobs:
     - name: Restore solution (RID any)
       run: dotnet restore $env:Solution_Name -r any -p:EnableWindowsTargeting=true
 
+    # Extra guard: restore app project with RID any and no cache to force SDK ref download
+    - name: Restore app (RID any, no-cache)
+      run: dotnet restore $env:Project_Path -r any -p:EnableWindowsTargeting=true -p:TargetPlatformVersion=$env:SDK_VERSION --no-cache
+
     # Build the application in Release mode
     - name: Build application
       run: dotnet build $env:Solution_Name --configuration Release --no-restore
