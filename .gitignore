@@ -35,3 +35,9 @@ Thumbs.db
 *.appx
 AppPackages/
 BundleArtifacts/
+
+# Code signing certificates (NEVER commit these!)
+*.pfx
+*.cer
+*_TemporaryKey.*
+certificate-info.txt

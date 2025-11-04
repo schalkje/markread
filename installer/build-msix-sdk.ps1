@@ -167,15 +167,21 @@ $certPath = Join-Path $PSScriptRoot "MarkRead_TemporaryKey.pfx"
 
 if (Test-Path $certPath) {
     Write-Host "Signing package..." -ForegroundColor Yellow
-    & $signtool sign /fd SHA256 /f $certPath /p "" $msixPath
+    
+    # Sign with minimal password (space character - effectively no password)
+    & $signtool sign /fd SHA256 /a /f $certPath /p " " $msixPath
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Package signed successfully" -ForegroundColor Green
+        $signed = $true
     } else {
         Write-Warning "Failed to sign package. It can still be installed in Developer Mode."
+        $signed = $false
     }
 } else {
     Write-Host "No certificate found - package is unsigned" -ForegroundColor Yellow
+    Write-Host "Run .\create-test-certificate.ps1 to create a test certificate" -ForegroundColor Cyan
+    $signed = $false
 }
 
 # Step 7: Calculate file size
@@ -188,10 +194,21 @@ Write-Host "==================================" -ForegroundColor Cyan
 Write-Host "Build Completed Successfully!" -ForegroundColor Green
 Write-Host "==================================" -ForegroundColor Cyan
 Write-Host "Package: $msixPath" -ForegroundColor Yellow
+Write-Host "Signed: $(if ($signed) { "Yes" } else { "No" })" -ForegroundColor $(if ($signed) { "Green" } else { "Yellow" })
 Write-Host ""
-Write-Host "To install the unsigned package:" -ForegroundColor White
-Write-Host "1. Enable Developer Mode in Windows Settings" -ForegroundColor White
-Write-Host "2. Right-click the .msix file and select 'Install'" -ForegroundColor White
+
+if ($signed) {
+    Write-Host "To install the signed package:" -ForegroundColor White
+    Write-Host "1. If certificate is not trusted, install MarkRead_TemporaryKey.cer first" -ForegroundColor White
+    Write-Host "2. Double-click the .msix file to install" -ForegroundColor White
+} else {
+    Write-Host "To install the unsigned package:" -ForegroundColor White
+    Write-Host "1. Enable Developer Mode in Windows Settings" -ForegroundColor White
+    Write-Host "2. Right-click the .msix file and select 'Install'" -ForegroundColor White
+    Write-Host ""
+    Write-Host "To create a test certificate for signing:" -ForegroundColor Yellow
+    Write-Host "  .\create-test-certificate.ps1" -ForegroundColor Cyan
+}
 Write-Host ""
 
 # Create a summary file
@@ -207,15 +224,26 @@ Build Date: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 
 Package: $msixPath
 Size: $($fileSize.ToString('N2')) MB
-Signed: $(if (Test-Path $certPath) { "Yes" } else { "No" })
+Signed: $(if ($signed) { "Yes" } else { "No" })
 
 Windows SDK: $($sdkPath.Name)
 .NET SDK: $(dotnet --version)
 
 Installation Instructions:
-1. Enable Developer Mode (Settings > Privacy & Security > For developers)
+$(if ($signed) {
+"1. If certificate is not trusted, install MarkRead_TemporaryKey.cer first:
+   - Right-click the .cer file > Install Certificate
+   - Store Location: Local Machine (requires admin)
+   - Store: Trusted Root Certification Authorities
+2. Double-click the .msix file to install
+3. The app will appear in the Start menu as `"MarkRead`""
+} else {
+"1. Enable Developer Mode (Settings > Privacy & Security > For developers)
 2. Double-click the .msix file or right-click and select Install
-3. The app will appear in the Start menu as "MarkRead"
+3. The app will appear in the Start menu as `"MarkRead`"
+
+Note: Package is unsigned. Run .\create-test-certificate.ps1 to create a test certificate."
+})
 
 To uninstall:
 - Right-click MarkRead in Start menu > Uninstall
