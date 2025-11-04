@@ -86,9 +86,9 @@ jobs:
         Compress-Archive -Path publish\* -DestinationPath "MarkRead-$version-win-x64.zip"
       shell: pwsh
 
-    # Restore WAP project dependencies (use dotnet msbuild to pick .NET 8 SDK)
+    # Restore WAP project dependencies using Visual Studio MSBuild (DesktopBridge)
     - name: Restore MSIX packaging project
-      run: dotnet msbuild installer\MarkRead.Package.wapproj /t:Restore /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64
+      run: msbuild installer\MarkRead.Package.wapproj /t:Restore /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64
       shell: pwsh
 
     # Build MSIX package
@@ -97,7 +97,7 @@ jobs:
         $version = "${{ github.ref_name }}".TrimStart('v')
         $sdkVersion = "${{ steps.sdk-version.outputs.SDK_VERSION }}"
         Write-Host "Building MSIX with SDK version: $sdkVersion"
-        dotnet msbuild installer\MarkRead.Package.wapproj `
+        msbuild installer\MarkRead.Package.wapproj `
           /p:Configuration=Release `
           /p:Platform=x64 `
           /p:RuntimeIdentifier=win-x64 `
