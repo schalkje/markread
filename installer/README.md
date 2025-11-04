@@ -4,24 +4,56 @@ This directory contains the Windows Application Packaging (WAP) project for buil
 
 ## Prerequisites
 
-To build the MSIX package locally, you need:
+### For SDK-based Build (Recommended)
+
+1. **.NET 8 SDK** - for building the application
+2. **Windows 10 SDK (10.0.19041.0 or later)** - for MSIX packaging tools
+
+Install Windows SDK via:
+```powershell
+# Option 1: Using winget
+winget install Microsoft.WindowsSDK.10.0.22621
+
+# Option 2: Visual Studio Installer
+# Modify installation > Individual Components > 
+# SDKs, libraries, and frameworks > Windows 10 SDK
+
+# Option 3: Standalone installer
+# Download from: https://developer.microsoft.com/windows/downloads/windows-sdk/
+```
+
+### For WAP Project Build
 
 1. **.NET 8 SDK** - for building the application
 2. **Visual Studio 2019 or later** - with the following workloads:
    - .NET desktop development
    - Universal Windows Platform development
 
-Alternatively, you can install just the Windows SDK (10.0.19041.0 or later).
-
 ## Building the Package Locally
 
-### Using the Build Script (Recommended)
+### Method 1: Windows SDK Build Script (Recommended)
+
+**Requirements:** Only .NET 8 SDK and Windows 10 SDK (no Visual Studio workloads needed)
+
+```powershell
+.\build-msix-sdk.ps1 -Version "1.0.0.0"
+```
+
+This method uses `makeappx.exe` from the Windows SDK directly, avoiding the need for Visual Studio's Universal Windows Platform workload.
+
+### Method 2: WAP Project Build Script
+
+**Requirements:** Visual Studio with Universal Windows Platform development workload
 
 ```powershell
 .\build-installer.ps1 -Version "1.0.0.0"
 ```
 
-Options:
+**Note:** This requires the `Microsoft.DesktopBridge` MSBuild SDK which comes with the UWP workload in Visual Studio.
+
+### Common Options
+
+Both scripts support:
 - `-Version` - Package version (must be in format X.Y.Z.W)
 - `-Configuration` - Build configuration (Release or Debug)
 - `-Platform` - Target platform (x64 or x86)
@@ -143,9 +175,26 @@ Add certificate as secrets:
 
 ## Troubleshooting
 
-### MSBuild Not Found
+### Windows SDK Not Found (SDK Build)
 
-Install Visual Studio with required workloads, or install Windows SDK separately.
+If `build-msix-sdk.ps1` fails with "Windows SDK not found":
+
+```powershell
+# Quick install via winget
+winget install Microsoft.WindowsSDK.10.0.22621
+```
+
+Or install via Visual Studio Installer:
+1. Open Visual Studio Installer
+2. Modify your VS installation
+3. Individual Components tab
+4. Search for "Windows 10 SDK"
+5. Check the latest version (10.0.22621 or newer)
+6. Click Modify to install
+
+### MSBuild Not Found (WAP Build)
+
+Install Visual Studio with required workloads, or use the SDK build method instead.
 
 ### Package Validation Errors
 
