@@ -54,6 +54,10 @@ jobs:
     - name: Restore solution dependencies
       run: dotnet restore $env:Solution_Name
 
+    # Restore solution with RID=any to ensure Windows SDK ref packs are downloaded
+    - name: Restore solution (RID any)
+      run: dotnet restore $env:Solution_Name -r any -p:EnableWindowsTargeting=true
+
     # Build the application in Release mode
     - name: Build application
       run: dotnet build $env:Solution_Name --configuration Release --no-restore
@@ -92,7 +96,7 @@ jobs:
       shell: pwsh
 
     # Build MSIX package
-    - name: Build MSIX package
+    - name: Build MSIX package (no project reference build)
       run: |
         $version = "${{ github.ref_name }}".TrimStart('v')
         $sdkVersion = "${{ steps.sdk-version.outputs.SDK_VERSION }}"
@@ -101,6 +105,8 @@ jobs:
           /p:Configuration=Release `
           /p:Platform=x64 `
           /p:RuntimeIdentifier=win-x64 `
+          /p:BuildProjectReferences=false `
+          /p:RestorePackages=false `
           /p:AppxPackageDir="..\AppPackages\" `
           /p:AppxBundle=Never `
           /p:UapAppxPackageBuildMode=SideloadOnly `
