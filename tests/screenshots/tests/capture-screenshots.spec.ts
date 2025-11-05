@@ -6,12 +6,12 @@ import fs from 'fs';
 /**
  * Screenshot automation for MarkRead WPF application
  * 
- * This test launches the actual MarkRead.App.exe and captures screenshots
+ * This test launches the actual MarkRead.exe and captures screenshots
  * for documentation purposes.
  */
 
 const REPO_ROOT = path.resolve(__dirname, '../../..');
-const APP_PATH = path.join(REPO_ROOT, 'src/App/bin/Debug/net8.0-windows/MarkRead.App.exe');
+const APP_PATH = path.join(REPO_ROOT, 'src/App/bin/Debug/net8.0-windows/MarkRead.exe');
 const DOCS_PATH = path.join(REPO_ROOT, 'documentation');
 const SCREENSHOTS_DIR = path.join(REPO_ROOT, 'documentation/images/screenshots');
 

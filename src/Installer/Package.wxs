@@ -4,7 +4,7 @@
   
   <Package Name="MarkRead"
            Manufacturer="MarkRead Project"
-           Version="!(bind.FileVersion.MarkRead.App.exe)"
+           Version="!(bind.FileVersion.MarkRead.exe)"
            UpgradeCode="8E5A9C7B-3D2E-4F1A-9B6D-1C8E5A7F9D3B"
            Language="1033"
            Codepage="1252">
@@ -57,9 +57,9 @@
   <Fragment>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       <!-- Main executable -->
-      <Component Id="MarkRead.App.exe" Guid="A1B2C3D4-E5F6-4A5B-8C7D-1E2F3A4B5C6D">
-        <File Id="MarkRead.App.exe" 
-              Source="$(var.MarkRead.App.TargetPath)" 
+      <Component Id="MarkRead.exe" Guid="A1B2C3D4-E5F6-4A5B-8C7D-1E2F3A4B5C6D">
+        <File Id="MarkRead.exe" 
+              Source="$(var.MarkRead.App.TargetDir)MarkRead.exe" 
               KeyPath="yes">
           <Shortcut Id="DesktopShortcut"
                     Directory="DesktopFolder"
@@ -70,19 +70,37 @@
         </File>
         
         <!-- File association for .md files -->
-        <ProgId Id="MarkRead.MarkdownFile" Description="Markdown Document" Icon="MarkRead.App.exe">
+        <ProgId Id="MarkRead.MarkdownFile" Description="Markdown Document" Icon="MarkRead.exe">
           <Extension Id="md" ContentType="text/markdown">
-            <Verb Id="open" Command="Open with MarkRead" TargetFile="MarkRead.App.exe" Argument='"%1"' />
+            <Verb Id="open" Command="Open with MarkRead" TargetFile="MarkRead.exe" Argument='"%1"' />
           </Extension>
         </ProgId>
-        <ProgId Id="MarkRead.MarkdownFile2" Description="Markdown Document" Icon="MarkRead.App.exe">
+        <ProgId Id="MarkRead.MarkdownFile2" Description="Markdown Document" Icon="MarkRead.exe">
           <Extension Id="markdown" ContentType="text/markdown">
-            <Verb Id="open" Command="Open with MarkRead" TargetFile="MarkRead.App.exe" Argument='"%1"' />
+            <Verb Id="open" Command="Open with MarkRead" TargetFile="MarkRead.exe" Argument='"%1"' />
           </Extension>
         </ProgId>
       </Component>
 
-      <!-- Dependencies will be harvested automatically by project reference -->
+      <!-- Application DLL and dependencies -->
+      <Component Id="MarkRead.dll" Guid="B2C3D4E5-F6A7-4B5C-8D7E-2F3A4B5C6D7E">
+        <File Id="MarkRead.dll" Source="$(var.MarkRead.App.TargetDir)MarkRead.dll" />
+      </Component>
+      
+      <Component Id="Config" Guid="C3D4E5F6-A7B8-4C5D-8E7F-3A4B5C6D7E8F">
+        <File Id="MarkRead.deps.json" Source="$(var.MarkRead.App.TargetDir)MarkRead.deps.json" />
+        <File Id="MarkRead.runtimeconfig.json" Source="$(var.MarkRead.App.TargetDir)MarkRead.runtimeconfig.json" />
+      </Component>
+
+      <Component Id="Dependencies" Guid="D4E5F6A7-B8C9-4D5E-8F7A-4B5C6D7E8F9A">
+        <File Id="Markdig.dll" Source="$(var.MarkRead.App.TargetDir)Markdig.dll" />
+        <File Id="HtmlSanitizer.dll" Source="$(var.MarkRead.App.TargetDir)HtmlSanitizer.dll" />
+        <File Id="AngleSharp.dll" Source="$(var.MarkRead.App.TargetDir)AngleSharp.dll" />
+        <File Id="AngleSharp.Css.dll" Source="$(var.MarkRead.App.TargetDir)AngleSharp.Css.dll" />
+        <File Id="Microsoft.Web.WebView2.Core.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.Core.dll" />
+        <File Id="Microsoft.Web.WebView2.WinForms.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.WinForms.dll" />
+        <File Id="Microsoft.Web.WebView2.Wpf.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.Wpf.dll" />
+      </Component>
     </ComponentGroup>
   </Fragment>
 
@@ -93,7 +111,7 @@
         <Shortcut Id="ApplicationStartMenuShortcut"
                   Name="MarkRead"
                   Description="Markdown Viewer for Windows"
-                  Target="[INSTALLFOLDER]MarkRead.App.exe"
+                  Target="[INSTALLFOLDER]MarkRead.exe"
                   WorkingDirectory="INSTALLFOLDER" />
         <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall" />
         <RegistryValue Root="HKCU" 
