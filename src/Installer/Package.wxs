@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  
+  <Package Name="MarkRead"
+           Manufacturer="MarkRead Project"
+           Version="!(bind.FileVersion.MarkRead.App.exe)"
+           UpgradeCode="8E5A9C7B-3D2E-4F1A-9B6D-1C8E5A7F9D3B"
+           Language="1033"
+           Codepage="1252">
+    
+    <SummaryInformation Description="MarkRead - Markdown Viewer for Windows"
+                       Manufacturer="MarkRead Project"
+                       Keywords="Markdown,Viewer,Documentation,Windows" />
+
+    <!-- Require Windows 10 1809 or later -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of MarkRead is already installed." />
+    
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Custom properties -->
+    <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/schalkje/markread" />
+    <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <!-- Icon -->
+    <Icon Id="ProductIcon" SourceFile="..\..\assets\icon.ico" />
+
+    <!-- Directory structure -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="MarkRead" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="MarkRead" />
+    </StandardDirectory>
+
+    <!-- Features -->
+    <Feature Id="MainApplication" Title="MarkRead Application" Level="1"
+             Description="The main MarkRead application and required files."
+             ConfigurableDirectory="INSTALLFOLDER">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="StartMenuShortcuts" />
+    </Feature>
+
+    <!-- UI -->
+    <ui:WixUI Id="WixUI_InstallDir" />
+    <WixVariable Id="WixUILicenseRtf" Value="..\..\assets\License.rtf" />
+    <!-- Optional: Create custom images for professional installer branding -->
+    <WixVariable Id="WixUIBannerBmp" Value="..\..\assets\installer-banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="..\..\assets\installer-dialog.bmp" />
+
+  </Package>
+
+  <!-- Component Groups -->
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <!-- Main executable -->
+      <Component Id="MarkRead.App.exe" Guid="A1B2C3D4-E5F6-4A5B-8C7D-1E2F3A4B5C6D">
+        <File Id="MarkRead.App.exe" 
+              Source="$(var.MarkRead.App.TargetPath)" 
+              KeyPath="yes">
+          <Shortcut Id="DesktopShortcut"
+                    Directory="DesktopFolder"
+                    Name="MarkRead"
+                    Description="Markdown Viewer for Windows"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Advertise="yes" />
+        </File>
+        
+        <!-- File association for .md files -->
+        <ProgId Id="MarkRead.MarkdownFile" Description="Markdown Document" Icon="MarkRead.App.exe">
+          <Extension Id="md" ContentType="text/markdown">
+            <Verb Id="open" Command="Open with MarkRead" TargetFile="MarkRead.App.exe" Argument='"%1"' />
+          </Extension>
+        </ProgId>
+        <ProgId Id="MarkRead.MarkdownFile2" Description="Markdown Document" Icon="MarkRead.App.exe">
+          <Extension Id="markdown" ContentType="text/markdown">
+            <Verb Id="open" Command="Open with MarkRead" TargetFile="MarkRead.App.exe" Argument='"%1"' />
+          </Extension>
+        </ProgId>
+      </Component>
+
+      <!-- Dependencies will be harvested automatically by project reference -->
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- Start Menu Shortcuts -->
+  <Fragment>
+    <ComponentGroup Id="StartMenuShortcuts" Directory="ApplicationProgramsFolder">
+      <Component Id="StartMenuShortcut" Guid="D4E5F6A7-B8C9-4D5E-AF9B-4A5B6C7D8E9F">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="MarkRead"
+                  Description="Markdown Viewer for Windows"
+                  Target="[INSTALLFOLDER]MarkRead.App.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" 
+                      Key="Software\MarkRead" 
+                      Name="installed" 
+                      Type="integer" 
+                      Value="1" 
+                      KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- Desktop folder reference -->
+  <Fragment>
+    <StandardDirectory Id="DesktopFolder" />
+  </Fragment>
+
+</Wix>

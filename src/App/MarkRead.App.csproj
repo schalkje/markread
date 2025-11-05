@@ -7,6 +7,30 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    
+    <!-- Version Information -->
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    
+    <!-- Application Metadata -->
+    <Product>MarkRead</Product>
+    <Title>MarkRead - Markdown Viewer</Title>
+    <Description>Fast, modern desktop application for viewing and navigating Markdown files on Windows</Description>
+    <Authors>schalkje</Authors>
+    <Company>MarkRead Project</Company>
+    <Copyright>Copyright © 2025 MarkRead Project</Copyright>
+    
+    <!-- Package Metadata -->
+    <PackageId>MarkRead</PackageId>
+    <PackageProjectUrl>https://github.com/schalkje/markread</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/schalkje/markread</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>markdown;viewer;documentation;windows;wpf</PackageTags>
+    
+    <!-- Application Icon -->
+    <ApplicationIcon>..\..\assets\icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
