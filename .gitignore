@@ -26,3 +26,19 @@ _ReSharper*/
 __pycache__/
 Thumbs.db
 .DS_Store
+
+
+# Installer artifacts
+*.msi
+*.wixpdb
+*.zip
+*.msix
+*.appx
+AppPackages/
+BundleArtifacts/
+
+# Code signing certificates (NEVER commit these!)
+*.pfx
+*.cer
+*_TemporaryKey.*
+certificate-info.txt
