@@ -58,13 +58,13 @@ jobs:
         (Get-Content $installerProj) -replace '<Version>[\d\.]+</Version>', "<Version>$version</Version>" `
           | Set-Content $installerProj
 
-    - name: Build solution
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
+    - name: Build App
+      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
 
     - name: Build MSI installer
       shell: pwsh
       run: |
-        dotnet build installer\MarkRead.Installer.wixproj --configuration Release -p:Version=${{ steps.version.outputs.VERSION }}
+        dotnet build installer\MarkRead.Installer.wixproj --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
 
     - name: Locate MSI file
       id: locate_msi
