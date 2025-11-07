@@ -54,7 +54,7 @@ jobs:
           | Set-Content $appCsproj
         
         # Update Installer wixproj
-        $installerProj = "src\Installer\MarkRead.Installer.wixproj"
+        $installerProj = "installer\MarkRead.Installer.wixproj"
         (Get-Content $installerProj) -replace '<Version>[\d\.]+</Version>', "<Version>$version</Version>" `
           | Set-Content $installerProj
 
@@ -68,14 +68,14 @@ jobs:
     - name: Build MSI installer
       shell: pwsh
       run: |
-        dotnet build src\Installer\MarkRead.Installer.wixproj --configuration Release -p:Version=${{ steps.version.outputs.VERSION }}
+        dotnet build installer\MarkRead.Installer.wixproj --configuration Release -p:Version=${{ steps.version.outputs.VERSION }}
 
     - name: Locate MSI file
       id: locate_msi
       shell: pwsh
       run: |
         $version = "${{ steps.version.outputs.VERSION }}"
-        $msiPath = Get-ChildItem -Path "src\Installer\bin\Release" -Filter "MarkRead-*.msi" -Recurse | Select-Object -First 1
+        $msiPath = Get-ChildItem -Path "installer\bin\Release" -Filter "MarkRead-*.msi" -Recurse | Select-Object -First 1
         
         if ($msiPath) {
           $fullPath = $msiPath.FullName
