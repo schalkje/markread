@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <!-- Reference the main application project to ensure build order -->
-    <ProjectReference Include="..\App\MarkRead.App.csproj">
+    <ProjectReference Include="..\src\MarkRead.App.csproj">
       <Name>MarkRead.App</Name>
       <DoNotHarvest>True</DoNotHarvest>
       <SetTargetFramework>TargetFramework=net8.0-windows</SetTargetFramework>
