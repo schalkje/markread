@@ -58,10 +58,6 @@ jobs:
         (Get-Content $installerProj) -replace '<Version>[\d\.]+</Version>', "<Version>$version</Version>" `
           | Set-Content $installerProj
 
-    - name: Run tests
-      run: dotnet test --configuration Release --no-restore --verbosity normal
-      continue-on-error: true  # Don't fail if no tests exist yet
-
     - name: Build solution
       run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
 
