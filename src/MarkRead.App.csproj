@@ -8,6 +8,9 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     
+    <!-- Disable WPF temporary assembly generation to prevent duplicate builds -->
+    <GenerateTemporaryTargetAssembly>false</GenerateTemporaryTargetAssembly>
+    
     <!-- Assembly Name -->
     <AssemblyName>MarkRead</AssemblyName>
     
