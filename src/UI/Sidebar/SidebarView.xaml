@@ -10,7 +10,7 @@
         <!-- Merge icon resources -->
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/MarkRead.App;component/Rendering/assets/icons/FileTreeIcons.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MarkRead;component/Rendering/assets/icons/FileTreeIcons.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Collapse/Expand Animation -->

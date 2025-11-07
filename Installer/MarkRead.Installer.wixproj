@@ -1,0 +1,27 @@
+<Project Sdk="WixToolset.Sdk/4.0.5">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputName>MarkRead-$(Version)-x64</OutputName>
+    <InstallerPlatform>x64</InstallerPlatform>
+    
+    <!-- Version (should match App project) -->
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WiX extensions -->
+    <PackageReference Include="WixToolset.UI.wixext" Version="4.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference the main application project to ensure build order -->
+    <ProjectReference Include="..\src\MarkRead.App.csproj">
+      <Name>MarkRead.App</Name>
+      <DoNotHarvest>True</DoNotHarvest>
+      <SetTargetFramework>TargetFramework=net8.0-windows</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!-- WiX SDK automatically includes *.wxs files, so we don't need to explicitly add them -->
+</Project>

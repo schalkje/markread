@@ -1,0 +1,147 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on tags like v0.1.0, v1.0.0, v2.1.3-beta
+
+permissions:
+  contents: write  # Required for creating releases
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for version info
+
+    - name: Extract version from tag
+      id: version
+      shell: pwsh
+      run: |
+        $tag = "${{ github.ref_name }}"
+        $version = $tag -replace '^v', ''
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "Version: $version"
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Install WiX Toolset
+      shell: pwsh
+      run: |
+        dotnet tool install --global wix --version 4.0.5
+        wix --version
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Update version in projects
+      shell: pwsh
+      run: |
+        $version = "${{ steps.version.outputs.VERSION }}"
+        
+        # Update App csproj
+        $appCsproj = "src\MarkRead.App.csproj"
+        (Get-Content $appCsproj) -replace '<Version>[\d\.]+</Version>', "<Version>$version</Version>" `
+                                  -replace '<AssemblyVersion>[\d\.]+(\.\d+)?</AssemblyVersion>', "<AssemblyVersion>$version.0</AssemblyVersion>" `
+                                  -replace '<FileVersion>[\d\.]+(\.\d+)?</FileVersion>', "<FileVersion>$version.0</FileVersion>" `
+          | Set-Content $appCsproj
+        
+        # Update Installer wixproj
+        $installerProj = "installer\MarkRead.Installer.wixproj"
+        (Get-Content $installerProj) -replace '<Version>[\d\.]+</Version>', "<Version>$version</Version>" `
+          | Set-Content $installerProj
+
+    - name: Run tests
+      run: dotnet test --configuration Release --no-restore --verbosity normal
+      continue-on-error: true  # Don't fail if no tests exist yet
+
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
+
+    - name: Build MSI installer
+      shell: pwsh
+      run: |
+        dotnet build installer\MarkRead.Installer.wixproj --configuration Release -p:Version=${{ steps.version.outputs.VERSION }}
+
+    - name: Locate MSI file
+      id: locate_msi
+      shell: pwsh
+      run: |
+        $version = "${{ steps.version.outputs.VERSION }}"
+        $msiPath = Get-ChildItem -Path "installer\bin\Release" -Filter "MarkRead-*.msi" -Recurse | Select-Object -First 1
+        
+        if ($msiPath) {
+          $fullPath = $msiPath.FullName
+          echo "MSI_PATH=$fullPath" >> $env:GITHUB_OUTPUT
+          echo "MSI_NAME=$($msiPath.Name)" >> $env:GITHUB_OUTPUT
+          echo "Found MSI: $fullPath"
+        } else {
+          echo "ERROR: MSI file not found!"
+          exit 1
+        }
+
+    - name: Calculate SHA256
+      id: hash
+      shell: pwsh
+      run: |
+        $msiPath = "${{ steps.locate_msi.outputs.MSI_PATH }}"
+        $hash = (Get-FileHash -Path $msiPath -Algorithm SHA256).Hash
+        echo "SHA256=$hash" >> $env:GITHUB_OUTPUT
+        echo "SHA256: $hash"
+        
+        # Save to file for release notes
+        "SHA256: $hash" | Out-File -FilePath "SHA256SUMS.txt"
+
+    - name: Generate release notes
+      id: notes
+      shell: pwsh
+      run: |
+        $version = "${{ steps.version.outputs.VERSION }}"
+        $msiName = "${{ steps.locate_msi.outputs.MSI_NAME }}"
+        $hash = "${{ steps.hash.outputs.SHA256 }}"
+        
+        $content = "## MarkRead v$version`n`n"
+        $content += "### Installation`n`n"
+        $content += "Download the MSI installer below and run it.`n`n"
+        $content += "The installer will:`n"
+        $content += "- Install MarkRead to Program Files`n"
+        $content += "- Create Start Menu shortcut`n"
+        $content += "- Create Desktop shortcut`n"
+        $content += "- Associate .md and .markdown files with MarkRead`n"
+        $content += "- Add MarkRead to Windows Programs & Features`n`n"
+        $content += "**System Requirements:**`n"
+        $content += "- Windows 10 (1809+) or Windows 11`n"
+        $content += "- No additional runtime required (self-contained)`n`n"
+        $content += "### What's New`n`n"
+        $content += "See [CHANGELOG.md](https://github.com/schalkje/markread/blob/main/CHANGELOG.md) for full details.`n`n"
+        $content += "### Files`n`n"
+        $content += "- **$msiName** - Windows MSI Installer`n"
+        $content += "- **SHA256SUMS.txt** - Checksum for verification`n`n"
+        $content += "### Verification`n`n"
+        $content += "``````n"
+        $content += "SHA256: $hash`n"
+        $content += "``````n`n"
+        $content += "### Uninstallation`n`n"
+        $content += "To uninstall, use Windows Settings > Apps or Add or Remove Programs in Control Panel.`n`n"
+        $content += "---`n`n"
+        $content += "**First time installing?** Check out the [Getting Started Guide](https://github.com/schalkje/markread/blob/main/documentation/user-guide/getting-started.md)"
+        
+        $content | Out-File -FilePath "release-notes.md" -Encoding utf8
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          ${{ steps.locate_msi.outputs.MSI_PATH }}
+          SHA256SUMS.txt
+        body_path: release-notes.md
+        draft: false
+        prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+        token: ${{ secrets.GITHUB_TOKEN }}

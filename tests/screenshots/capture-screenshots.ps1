@@ -2,14 +2,14 @@
 # Captures screenshots of the MarkRead application for documentation
 
 param(
-    [string]$AppPath = "..\..\src\App\bin\Debug\net8.0-windows\MarkRead.App.exe",
+    [string]$AppPath = "..\..\src\App\bin\Debug\net8.0-windows\MarkRead.exe",
     [string]$DocsPath = "..\..\documentation",
     [string]$OutputDir = "..\..\documentation\images\screenshots"
 )
 
 # Resolve paths
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-$AppPath = Join-Path $RepoRoot "src\App\bin\Debug\net8.0-windows\MarkRead.App.exe"
+$AppPath = Join-Path $RepoRoot "src\App\bin\Debug\net8.0-windows\MarkRead.exe"
 $DocsPath = Join-Path $RepoRoot "documentation"
 $OutputDir = Join-Path $RepoRoot "documentation\images\screenshots"
 
@@ -19,7 +19,7 @@ Write-Host ""
 
 # Verify app exists
 if (-not (Test-Path $AppPath)) {
-    Write-Error "MarkRead.App.exe not found at: $AppPath"
+    Write-Error "MarkRead.exe not found at: $AppPath"
     Write-Host "Please build the application first with: dotnet build" -ForegroundColor Yellow
     exit 1
 }

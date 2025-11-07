@@ -63,6 +63,10 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
         
+        // Add global exception handler
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        
         // T083: Start monitoring startup performance
         var perfMonitor = StartupPerformanceMonitor.Instance;
         perfMonitor.StartPhase("Application Initialization");
@@ -109,5 +113,44 @@ public partial class App : System.Windows.Application
                 window.InputBindings.Add(new KeyBinding(command, keyGesture));
             }
         }
+    }
+
+    private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception ex)
+        {
+            ShowFatalError("Unhandled Exception", ex);
+        }
+    }
+
+    private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+    {
+        ShowFatalError("Application Error", e.Exception);
+        e.Handled = true; // Prevent default crash dialog
+    }
+
+    private void ShowFatalError(string title, Exception ex)
+    {
+        var message = $"{ex.GetType().Name}: {ex.Message}{Environment.NewLine}{Environment.NewLine}" +
+                     $"Stack Trace:{Environment.NewLine}{ex.StackTrace}";
+        
+        // Log to file
+        try
+        {
+            var logPath = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "MarkRead",
+                "crash.log");
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath)!);
+            System.IO.File.WriteAllText(logPath, 
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {title}{Environment.NewLine}{message}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch
+        {
+            // If we can't log, at least show the error
+        }
+
+        System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        Shutdown(1);
     }
 }

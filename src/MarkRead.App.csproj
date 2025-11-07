@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    
+    <!-- Assembly Name -->
+    <AssemblyName>MarkRead</AssemblyName>
+    
+    <!-- Version Information -->
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    
+    <!-- Application Metadata -->
+    <Product>MarkRead</Product>
+    <Title>MarkRead - Markdown Viewer</Title>
+    <Description>Fast, modern desktop application for viewing and navigating Markdown files on Windows</Description>
+    <Authors>schalkje</Authors>
+    <Company>schalken.net</Company>
+    <Copyright>Copyright © 2025 schalken.net</Copyright>
+    
+    <!-- Package Metadata -->
+    <PackageId>MarkRead</PackageId>
+    <PackageProjectUrl>https://github.com/schalkje/markread</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/schalkje/markread</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>markdown;viewer;documentation;windows;wpf</PackageTags>
+    
+    <!-- Application Icon -->
+    <ApplicationIcon>..\assets\icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2420.47" />
+    <PackageReference Include="Markdig" Version="0.34.0" />
+    <PackageReference Include="HtmlSanitizer" Version="9.0.886" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Rendering assets as content -->
+    <Content Include="Rendering\assets\**\*" Exclude="Rendering\assets\icons\*.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Rendering\template\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

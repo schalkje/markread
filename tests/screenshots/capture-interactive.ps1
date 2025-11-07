@@ -6,7 +6,7 @@ param(
 )
 
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-$AppPath = Join-Path $RepoRoot "src\App\bin\Debug\net8.0-windows\MarkRead.App.exe"
+$AppPath = Join-Path $RepoRoot "src\App\bin\Debug\net8.0-windows\MarkRead.exe"
 $DocsPath = Join-Path $RepoRoot "documentation"
 $OutputDir = Join-Path $RepoRoot "documentation\images\screenshots"
 

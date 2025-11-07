@@ -18,17 +18,43 @@
 - ⚡ **Fast & Offline** - Instant startup, no internet required, fully local operation
 - 🎯 **Developer-Focused** - Perfect for documentation in Git repositories and project folders
 
-## 🚀 Quick Start
+## � Installation
+
+### Via MSI Installer (Recommended)
+
+1. Download the latest MSI installer from [GitHub Releases](https://github.com/schalkje/markread/releases/latest)
+2. Run the installer
+3. Follow the installation wizard
+
+The installer will:
+- Install MarkRead to `C:\Program Files\MarkRead`
+- Create Start Menu and Desktop shortcuts
+- Associate `.md` and `.markdown` files with MarkRead
+- Add MarkRead to Windows Programs & Features for easy uninstallation
+
+### System Requirements
+
+- **OS:** Windows 10 (1809+) or Windows 11
+- **Runtime:** None required (self-contained)
+- **Disk Space:** ~50 MB
+- **Memory:** Minimal (WPF + WebView2)
+
+## �🚀 Quick Start
 
 ```powershell
 # Launch MarkRead and open a folder
-.\MarkRead.exe "C:\path\to\your\docs"
+MarkRead.exe "C:\path\to\your\docs"
 
 # Or open a specific file
-.\MarkRead.exe "C:\path\to\your\docs\README.md"
+MarkRead.exe "C:\path\to\your\docs\README.md"
+
+# After installation, you can also:
+# - Double-click any .md file
+# - Right-click a folder and "Open with MarkRead"
+# - Launch from Start Menu
 ```
 
-For detailed installation and usage instructions, see the [Getting Started Guide](documentation/user-guide/getting-started.md).
+For detailed usage instructions, see the [Getting Started Guide](documentation/user-guide/getting-started.md).
 
 ## 📚 Documentation
 
@@ -84,11 +110,30 @@ We welcome contributions! Please see our [Contributing Guide](documentation/deve
 - Coding standards
 - Pull request process
 
-## 📋 Requirements
+## � Building from Source
 
-- **OS**: Windows 10 (1809+) or Windows 11
-- **Runtime**: .NET 8 Desktop Runtime (included in installer)
-- **WebView2**: Automatically installed if not present
+For developers who want to build MarkRead:
+
+```powershell
+# Clone the repository
+git clone https://github.com/schalkje/markread.git
+cd markread
+
+# Restore dependencies
+dotnet restore
+
+# Build the application
+dotnet build --configuration Release
+
+# Build the MSI installer (requires WiX Toolset v4)
+dotnet tool install --global wix --version 4.0.5
+dotnet build src\Installer\MarkRead.Installer.wixproj --configuration Release
+
+# Run from source
+.\src\App\bin\Release\net8.0-windows\MarkRead.App.exe
+```
+
+See the [Developer Guide](documentation/developer/getting-started.md) for detailed setup instructions.
 
 ## 📄 License
 
