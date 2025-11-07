@@ -47,10 +47,10 @@ jobs:
         $version = "${{ steps.version.outputs.VERSION }}"
         
         # Update App csproj
-        $appCsproj = "src\App\MarkRead.App.csproj"
+        $appCsproj = "src\MarkRead.App.csproj"
         (Get-Content $appCsproj) -replace '<Version>[\d\.]+</Version>', "<Version>$version</Version>" `
-                                  -replace '<AssemblyVersion>[\d\.]+</AssemblyVersion>', "<AssemblyVersion>$version.0</AssemblyVersion>" `
-                                  -replace '<FileVersion>[\d\.]+</FileVersion>', "<FileVersion>$version.0</FileVersion>" `
+                                  -replace '<AssemblyVersion>[\d\.]+(\.\d+)?</AssemblyVersion>', "<AssemblyVersion>$version.0</AssemblyVersion>" `
+                                  -replace '<FileVersion>[\d\.]+(\.\d+)?</FileVersion>', "<FileVersion>$version.0</FileVersion>" `
           | Set-Content $appCsproj
         
         # Update Installer wixproj
