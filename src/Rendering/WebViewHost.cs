@@ -423,24 +423,28 @@ public sealed class WebViewHost : IDisposable
             return;
         }
 
-        // Specify a user-writable location for WebView2 user data folder
-        // This prevents "Access Denied" errors when installed in Program Files
-        var userDataFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "MarkRead",
-            "WebView2");
-        
-        // Ensure the directory exists
-        Directory.CreateDirectory(userDataFolder);
+        // Try to create user data folder in LocalApplicationData first
+        var userDataFolder = TryCreateUserDataFolder();
 
-        // Create WebView2 environment with explicit user data folder
-        var environment = await CoreWebView2Environment.CreateAsync(
-            browserExecutableFolder: null, // Use default Edge installation
-            userDataFolder: userDataFolder,
-            options: null);
+        try
+        {
+            // Create WebView2 environment with explicit user data folder
+            var environment = await CoreWebView2Environment.CreateAsync(
+                browserExecutableFolder: null, // Use default Edge installation
+                userDataFolder: userDataFolder,
+                options: null);
 
-        await _webView.EnsureCoreWebView2Async(environment);
-        _core = _webView.CoreWebView2 ?? throw new InvalidOperationException("Unable to acquire CoreWebView2 instance.");
+            await _webView.EnsureCoreWebView2Async(environment);
+            _core = _webView.CoreWebView2 ?? throw new InvalidOperationException("Unable to acquire CoreWebView2 instance.");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new UnauthorizedAccessException(
+                $"WebView2 initialization failed due to access denied. " +
+                $"User data folder: {userDataFolder}. " +
+                $"This may occur if the application is running with restricted permissions. " +
+                $"Please try running the application as a regular user (not administrator).", ex);
+        }
 
         _core.Settings.AreDefaultContextMenusEnabled = false;
         _core.Settings.AreDevToolsEnabled = true;
@@ -598,6 +602,90 @@ public sealed class WebViewHost : IDisposable
         if (_disposed)
         {
             throw new ObjectDisposedException(nameof(WebViewHost));
+        }
+    }
+
+    private static string TryCreateUserDataFolder()
+    {
+        var diagnosticInfo = new System.Text.StringBuilder();
+        diagnosticInfo.AppendLine($"Current User: {Environment.UserName}");
+        diagnosticInfo.AppendLine($"Is Admin: {IsRunningAsAdministrator()}");
+        diagnosticInfo.AppendLine($"App Domain: {AppDomain.CurrentDomain.FriendlyName}");
+        
+        // Try multiple locations in order of preference
+        var locations = new[]
+        {
+            // 1. LocalApplicationData (preferred)
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "MarkRead", "WebView2"),
+            
+            // 2. User's Temp folder (fallback)
+            Path.Combine(
+                Path.GetTempPath(),
+                "MarkRead", "WebView2"),
+            
+            // 3. Current user profile folder (last resort)
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".markread", "WebView2")
+        };
+
+        foreach (var location in locations)
+        {
+            diagnosticInfo.AppendLine($"\nTrying: {location}");
+            try
+            {
+                // Try to create directory
+                if (!Directory.Exists(location))
+                {
+                    Directory.CreateDirectory(location);
+                    diagnosticInfo.AppendLine("  ✓ Directory created");
+                }
+                else
+                {
+                    diagnosticInfo.AppendLine("  ✓ Directory exists");
+                }
+
+                // Verify write access with a test file
+                var testFile = Path.Combine(location, ".access-test");
+                File.WriteAllText(testFile, "test");
+                diagnosticInfo.AppendLine("  ✓ Write test passed");
+                File.Delete(testFile);
+                diagnosticInfo.AppendLine("  ✓ Delete test passed");
+
+                // Success! Use this location
+                diagnosticInfo.AppendLine($"  ✓ Using this location");
+                System.Diagnostics.Debug.WriteLine($"WebView2 User Data Folder: {location}");
+                return location;
+            }
+            catch (Exception ex)
+            {
+                diagnosticInfo.AppendLine($"  ✗ Failed: {ex.GetType().Name} - {ex.Message}");
+                // This location doesn't work, try next one
+                continue;
+            }
+        }
+
+        // All locations failed - include diagnostic info in error
+        var errorMessage = "Cannot create WebView2 user data folder.\n\n" +
+                          diagnosticInfo.ToString() +
+                          "\n\nPlease ensure the application has write permissions to at least one of these locations.";
+        
+        throw new UnauthorizedAccessException(errorMessage);
+    }
+
+    private static bool IsRunningAsAdministrator()
+    {
+        try
+        {
+            var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            var principal = new System.Security.Principal.WindowsPrincipal(identity);
+            return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            return false;
         }
     }
 
