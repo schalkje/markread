@@ -3,14 +3,14 @@
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   
   <Package Name="MarkRead"
-           Manufacturer="MarkRead Project"
+           Manufacturer="schalken.net"
            Version="!(bind.FileVersion.MarkRead.exe)"
            UpgradeCode="8E5A9C7B-3D2E-4F1A-9B6D-1C8E5A7F9D3B"
            Language="1033"
            Codepage="1252">
     
     <SummaryInformation Description="MarkRead - Markdown Viewer for Windows"
-                       Manufacturer="MarkRead Project"
+                       Manufacturer="schalken.net"
                        Keywords="Markdown,Viewer,Documentation,Windows" />
 
     <!-- Require Windows 10 1809 or later -->
@@ -29,7 +29,22 @@
 
     <!-- Directory structure -->
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="MarkRead" />
+      <Directory Id="INSTALLFOLDER" Name="MarkRead">
+        <Directory Id="RenderingFolder" Name="Rendering">
+          <Directory Id="AssetsFolder" Name="assets">
+            <Directory Id="HighlightFolder" Name="highlight" />
+            <Directory Id="IconsFolder" Name="icons" />
+            <Directory Id="MermaidFolder" Name="mermaid" />
+            <Directory Id="PrismFolder" Name="prism">
+              <Directory Id="PrismComponentsFolder" Name="components" />
+              <Directory Id="PrismThemesFolder" Name="themes" />
+            </Directory>
+            <Directory Id="ScriptsFolder" Name="scripts" />
+            <Directory Id="StylesFolder" Name="styles" />
+          </Directory>
+          <Directory Id="HtmlTemplateFolder" Name="template" />
+        </Directory>
+      </Directory>
     </StandardDirectory>
 
     <StandardDirectory Id="ProgramMenuFolder">
@@ -41,6 +56,7 @@
              Description="The main MarkRead application and required files."
              ConfigurableDirectory="INSTALLFOLDER">
       <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="RenderingAssets" />
       <ComponentGroupRef Id="StartMenuShortcuts" />
     </Feature>
 
@@ -100,6 +116,72 @@
         <File Id="Microsoft.Web.WebView2.Core.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.Core.dll" />
         <File Id="Microsoft.Web.WebView2.WinForms.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.WinForms.dll" />
         <File Id="Microsoft.Web.WebView2.Wpf.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.Wpf.dll" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- Rendering Assets -->
+  <Fragment>
+    <ComponentGroup Id="RenderingAssets">
+      <!-- Template -->
+      <Component Id="Template" Directory="HtmlTemplateFolder" Guid="E5F6A7B8-C9D0-4E5F-9A8B-5C6D7E8F9A0B">
+        <File Id="index.html" Source="$(var.MarkRead.App.TargetDir)Rendering\template\index.html" KeyPath="yes" />
+      </Component>
+      
+      <!-- Highlight.js assets -->
+      <Component Id="HighlightAssets" Directory="HighlightFolder" Guid="F6A7B8C9-D0E1-4F5A-AB8C-6D7E8F9A0B1C">
+        <File Id="highlight.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\highlight\highlight.min.js" />
+      </Component>
+      
+      <!-- Mermaid assets -->
+      <Component Id="MermaidAssets" Directory="MermaidFolder" Guid="A7B8C9D0-E1F2-4A5B-BC8D-7E8F9A0B1C2D">
+        <File Id="mermaid.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\mermaid\mermaid.min.js" />
+      </Component>
+      
+      <!-- Prism components -->
+      <Component Id="PrismComponents" Directory="PrismComponentsFolder" Guid="B8C9D0E1-F2A3-4B5C-CD8E-8F9A0B1C2D3E">
+        <File Id="prism_core.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-core.min.js" />
+        <File Id="prism_clike.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-clike.min.js" KeyPath="yes" />
+        <File Id="prism_javascript.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-javascript.min.js" />
+        <File Id="prism_markup.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-markup.min.js" />
+        <File Id="prism_css.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-css.min.js" />
+        <File Id="prism_csharp.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-csharp.min.js" />
+        <File Id="prism_python.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-python.min.js" />
+        <File Id="prism_java.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-java.min.js" />
+        <File Id="prism_json.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-json.min.js" />
+        <File Id="prism_yaml.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-yaml.min.js" />
+        <File Id="prism_markdown.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-markdown.min.js" />
+        <File Id="prism_bash.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-bash.min.js" />
+        <File Id="prism_powershell.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-powershell.min.js" />
+        <File Id="prism_sql.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-sql.min.js" />
+        <File Id="prism_typescript.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-typescript.min.js" />
+        <File Id="prism_autoloader.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-autoloader.min.js" />
+        <File Id="prism_line_numbers.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-line-numbers.min.js" />
+        <File Id="prism_toolbar.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-toolbar.min.js" />
+        <File Id="prism_copy_to_clipboard.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-copy-to-clipboard.min.js" />
+      </Component>
+      
+      <!-- Prism themes -->
+      <Component Id="PrismThemes" Directory="PrismThemesFolder" Guid="C9D0E1F2-A3B4-4C5D-DE8F-9A0B1C2D3E4F">
+        <File Id="prism.min.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\themes\prism.min.css" KeyPath="yes" />
+        <File Id="prism_tomorrow.min.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\themes\prism-tomorrow.min.css" />
+        <File Id="prism_line_numbers.min.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\themes\prism-line-numbers.min.css" />
+        <File Id="prism_toolbar.min.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\themes\prism-toolbar.min.css" />
+      </Component>
+      
+      <!-- Scripts -->
+      <Component Id="Scripts" Directory="ScriptsFolder" Guid="D0E1F2A3-B4C5-4D5E-EF9A-0B1C2D3E4F5A">
+        <File Id="render.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\scripts\render.js" KeyPath="yes" />
+        <File Id="find.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\scripts\find.js" />
+        <File Id="theme_bridge.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\scripts\theme-bridge.js" />
+      </Component>
+      
+      <!-- Styles -->
+      <Component Id="Styles" Directory="StylesFolder" Guid="E1F2A3B4-C5D6-4E5F-FA0B-1C2D3E4F5A6B">
+        <File Id="base.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\styles\base.css" KeyPath="yes" />
+        <File Id="markdown_base.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\styles\markdown-base.css" />
+        <File Id="responsive.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\styles\responsive.css" />
+        <File Id="theme_variables.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\styles\theme-variables.css" />
       </Component>
     </ComponentGroup>
   </Fragment>

@@ -211,7 +211,13 @@ public sealed class Renderer
         var candidate = Path.GetFullPath(Path.Combine(baseDirectory, "Rendering", "template", "index.html"));
         if (!File.Exists(candidate))
         {
-            throw new FileNotFoundException("Renderer template not found.", candidate);
+            // Enhanced error message with diagnostic information
+            var errorDetails = $"Renderer template not found.{Environment.NewLine}" +
+                             $"Expected path: {candidate}{Environment.NewLine}" +
+                             $"AppContext.BaseDirectory: {baseDirectory}{Environment.NewLine}" +
+                             $"Working Directory: {Environment.CurrentDirectory}{Environment.NewLine}" +
+                             $"Entry Assembly Location: {System.Reflection.Assembly.GetEntryAssembly()?.Location ?? "N/A"}";
+            throw new FileNotFoundException(errorDetails, candidate);
         }
 
         return candidate;

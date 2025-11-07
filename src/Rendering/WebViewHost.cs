@@ -423,7 +423,23 @@ public sealed class WebViewHost : IDisposable
             return;
         }
 
-        await _webView.EnsureCoreWebView2Async();
+        // Specify a user-writable location for WebView2 user data folder
+        // This prevents "Access Denied" errors when installed in Program Files
+        var userDataFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MarkRead",
+            "WebView2");
+        
+        // Ensure the directory exists
+        Directory.CreateDirectory(userDataFolder);
+
+        // Create WebView2 environment with explicit user data folder
+        var environment = await CoreWebView2Environment.CreateAsync(
+            browserExecutableFolder: null, // Use default Edge installation
+            userDataFolder: userDataFolder,
+            options: null);
+
+        await _webView.EnsureCoreWebView2Async(environment);
         _core = _webView.CoreWebView2 ?? throw new InvalidOperationException("Unable to acquire CoreWebView2 instance.");
 
         _core.Settings.AreDefaultContextMenusEnabled = false;
@@ -537,7 +553,20 @@ public sealed class WebViewHost : IDisposable
         }
 
         var baseDirectory = AppContext.BaseDirectory;
-        return Path.GetFullPath(Path.Combine(baseDirectory, assetRootRelativePath));
+        var resolvedPath = Path.GetFullPath(Path.Combine(baseDirectory, assetRootRelativePath));
+        
+        // Verify the resolved path exists
+        if (!Directory.Exists(resolvedPath))
+        {
+            var errorDetails = $"Asset root directory not found.{Environment.NewLine}" +
+                             $"Expected path: {resolvedPath}{Environment.NewLine}" +
+                             $"AppContext.BaseDirectory: {baseDirectory}{Environment.NewLine}" +
+                             $"Working Directory: {Environment.CurrentDirectory}{Environment.NewLine}" +
+                             $"Entry Assembly Location: {System.Reflection.Assembly.GetEntryAssembly()?.Location ?? "N/A"}";
+            throw new DirectoryNotFoundException(errorDetails);
+        }
+        
+        return resolvedPath;
     }
 
     private static string? ExtractPayloadString(object? payload, string key)

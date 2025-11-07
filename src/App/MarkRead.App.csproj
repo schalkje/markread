@@ -8,6 +8,9 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     
+    <!-- Prevent duplicate builds from WPF temporary assembly generation -->
+    <GenerateTemporaryTargetAssembly>false</GenerateTemporaryTargetAssembly>
+    
     <!-- Assembly Name -->
     <AssemblyName>MarkRead</AssemblyName>
     
@@ -21,8 +24,8 @@
     <Title>MarkRead - Markdown Viewer</Title>
     <Description>Fast, modern desktop application for viewing and navigating Markdown files on Windows</Description>
     <Authors>schalkje</Authors>
-    <Company>MarkRead Project</Company>
-    <Copyright>Copyright © 2025 MarkRead Project</Copyright>
+    <Company>schalken.net</Company>
+    <Copyright>Copyright © 2025 schalken.net</Copyright>
     
     <!-- Package Metadata -->
     <PackageId>MarkRead</PackageId>
@@ -43,14 +46,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- C# files are linked -->
     <Compile Include="..\Cli\**\*.cs" Link="Cli\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\Services\**\*.cs" Link="Services\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\Rendering\**\*.cs" Link="Rendering\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\UI\**\*.cs" Link="UI\%(RecursiveDir)%(Filename)%(Extension)" />
+    
+    <!-- UI C# files compiled directly from source location -->
+    <Compile Include="..\UI\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Page Include="..\UI\**\*.xaml" Link="UI\%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- XAML files must be compiled from their source location (not linked) for WPF to work -->
+    <Page Include="..\UI\**\*.xaml" />
   </ItemGroup>
 
   <ItemGroup>
