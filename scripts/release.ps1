@@ -605,9 +605,11 @@ if (-not $DryRun) {
     git status --short
     Write-Host ""
     
-    Write-Host "${Bold}Diff:${Reset}"
-    git diff Directory.Build.props
+    Write-Host "${Bold}Changes:${Reset}"
+    Write-Success "Updated Directory.Build.props to version $Version"
     if ($changelogExists) {
+        Write-Host ""
+        Write-Host "${Bold}CHANGELOG.md preview (first 50 lines):${Reset}"
         git diff CHANGELOG.md | Select-Object -First 50
     }
     Write-Host ""
