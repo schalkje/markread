@@ -562,10 +562,20 @@ Write-Step "Building release version..."
 
 if (-not $DryRun) {
     dotnet clean | Out-Null
-    $buildResult = dotnet build --configuration Release
+    
+    # First build attempt (may fail due to WPF timing issues)
+    Write-Info "Building... (first attempt)"
+    $buildResult = dotnet build --configuration Release 2>&1
+    
+    # If first build fails, try again (common WPF issue with generated files)
     if ($LASTEXITCODE -ne 0) {
-        Exit-WithError "Build failed!"
+        Write-Info "First build failed (WPF timing issue), retrying..."
+        $buildResult = dotnet build --configuration Release
+        if ($LASTEXITCODE -ne 0) {
+            Exit-WithError "Build failed after retry!"
+        }
     }
+    
     Write-Success "Build completed successfully"
     
     # Verify version in built executable
