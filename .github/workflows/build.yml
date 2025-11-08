@@ -22,10 +22,10 @@ jobs:
       run: dotnet restore
     
     - name: Build App
-      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore
+      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore -maxcpucount:1
     
     - name: Build Tests
-      run: dotnet build tests\unit\MarkRead.UnitTests.csproj --configuration Release --no-restore
+      run: dotnet build tests\unit\MarkRead.UnitTests.csproj --configuration Release --no-restore -maxcpucount:1
       continue-on-error: true
     
     - name: Test

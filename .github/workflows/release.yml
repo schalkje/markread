@@ -59,12 +59,12 @@ jobs:
           | Set-Content $installerProj
 
     - name: Build App
-      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
+      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore -maxcpucount:1 -p:Version=${{ steps.version.outputs.VERSION }}
 
     - name: Build MSI installer
       shell: pwsh
       run: |
-        dotnet build installer\MarkRead.Installer.wixproj --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
+        dotnet build installer\MarkRead.Installer.wixproj --configuration Release --no-restore -maxcpucount:1 -p:Version=${{ steps.version.outputs.VERSION }}
 
     - name: Locate MSI file
       id: locate_msi
