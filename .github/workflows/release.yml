@@ -59,12 +59,14 @@ jobs:
           | Set-Content $installerProj
 
     - name: Build App
-      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore -maxcpucount:1 -p:Version=${{ steps.version.outputs.VERSION }}
+      # Use /maxcpucount:1 to prevent WPF XAML parallel compilation race conditions
+      # This is a known issue with WPF projects: https://github.com/dotnet/wpf/issues/4814
+      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore /p:Version=${{ steps.version.outputs.VERSION }} /maxcpucount:1
 
     - name: Build MSI installer
       shell: pwsh
       run: |
-        dotnet build installer\MarkRead.Installer.wixproj --configuration Release --no-restore -maxcpucount:1 -p:Version=${{ steps.version.outputs.VERSION }}
+        dotnet build installer\MarkRead.Installer.wixproj --configuration Release --no-restore /p:Version=${{ steps.version.outputs.VERSION }} /maxcpucount:1
 
     - name: Locate MSI file
       id: locate_msi

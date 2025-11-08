@@ -21,13 +21,15 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     
+    - name: Restore test dependencies
+      run: dotnet restore tests\unit\MarkRead.UnitTests.csproj
+    
     - name: Build App
-      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore -maxcpucount:1
+      # Use /maxcpucount:1 to prevent WPF XAML parallel compilation race conditions
+      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore /maxcpucount:1
     
     - name: Build Tests
-      run: dotnet build tests\unit\MarkRead.UnitTests.csproj --configuration Release --no-restore -maxcpucount:1
-      continue-on-error: true
+      run: dotnet build tests\unit\MarkRead.UnitTests.csproj --configuration Release --no-restore /maxcpucount:1
     
     - name: Test
       run: dotnet test --configuration Release --no-build --verbosity normal
-      continue-on-error: true  # Don't fail if no tests exist yet
