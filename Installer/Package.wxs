@@ -30,6 +30,11 @@
     <!-- Directory structure -->
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="MarkRead">
+        <Directory Id="RuntimesFolder" Name="runtimes">
+          <Directory Id="WinX64Folder" Name="win-x64">
+            <Directory Id="NativeFolder" Name="native" />
+          </Directory>
+        </Directory>
         <Directory Id="RenderingFolder" Name="Rendering">
           <Directory Id="AssetsFolder" Name="assets">
             <Directory Id="HighlightFolder" Name="highlight" />
@@ -56,6 +61,7 @@
              Description="The main MarkRead application and required files."
              ConfigurableDirectory="INSTALLFOLDER">
       <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="NativeRuntimes" />
       <ComponentGroupRef Id="RenderingAssets" />
       <ComponentGroupRef Id="StartMenuShortcuts" />
     </Feature>
@@ -116,6 +122,17 @@
         <File Id="Microsoft.Web.WebView2.Core.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.Core.dll" />
         <File Id="Microsoft.Web.WebView2.WinForms.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.WinForms.dll" />
         <File Id="Microsoft.Web.WebView2.Wpf.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.Wpf.dll" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- Native Runtimes -->
+  <Fragment>
+    <ComponentGroup Id="NativeRuntimes">
+      <Component Id="WebView2LoaderX64" Directory="NativeFolder" Guid="F2A3B4C5-D6E7-4F5A-AB8C-6D7E8F9A0B1C">
+        <File Id="WebView2Loader.dll" 
+              Source="$(var.MarkRead.App.TargetDir)runtimes\win-x64\native\WebView2Loader.dll" 
+              KeyPath="yes" />
       </Component>
     </ComponentGroup>
   </Fragment>
