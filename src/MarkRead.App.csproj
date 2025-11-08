@@ -15,25 +15,18 @@
     <!-- Assembly Name -->
     <AssemblyName>MarkRead</AssemblyName>
     
-    <!-- Version Information -->
-    <Version>0.1.0</Version>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
-    <FileVersion>0.1.0.0</FileVersion>
+    <!-- Version Information inherited from Directory.Build.props -->
     
     <!-- Application Metadata -->
-    <Product>MarkRead</Product>
+    <!-- Product inherited from Directory.Build.props -->
     <Title>MarkRead - Markdown Viewer</Title>
     <Description>Fast, modern desktop application for viewing and navigating Markdown files on Windows</Description>
-    <Authors>schalkje</Authors>
-    <Company>schalken.net</Company>
-    <Copyright>Copyright © 2025 schalken.net</Copyright>
+    <!-- Authors, Company, Copyright inherited from Directory.Build.props -->
     
     <!-- Package Metadata -->
     <PackageId>MarkRead</PackageId>
     <PackageProjectUrl>https://github.com/schalkje/markread</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/schalkje/markread</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- RepositoryUrl, RepositoryType, PackageLicenseExpression inherited from Directory.Build.props -->
     <PackageTags>markdown;viewer;documentation;windows;wpf</PackageTags>
     
     <!-- Application Icon -->

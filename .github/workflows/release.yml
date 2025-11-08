@@ -25,7 +25,30 @@ jobs:
         $tag = "${{ github.ref_name }}"
         $version = $tag -replace '^v', ''
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-        echo "Version: $version"
+        echo "Version from tag: $version"
+
+    - name: Validate version matches Directory.Build.props
+      shell: pwsh
+      run: |
+        $tagVersion = "${{ steps.version.outputs.VERSION }}"
+        
+        # Read version from Directory.Build.props
+        [xml]$props = Get-Content "Directory.Build.props"
+        $propsVersion = $props.Project.PropertyGroup.Version
+        
+        Write-Host "Tag version: $tagVersion"
+        Write-Host "Directory.Build.props version: $propsVersion"
+        
+        if ($tagVersion -ne $propsVersion) {
+          Write-Error "❌ Version mismatch!"
+          Write-Error "Git tag: v$tagVersion"
+          Write-Error "Directory.Build.props: $propsVersion"
+          Write-Error ""
+          Write-Error "Please update Directory.Build.props to version $tagVersion and push before tagging."
+          exit 1
+        }
+        
+        Write-Host "✅ Version validation passed: $tagVersion"
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -41,32 +64,17 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
 
-    - name: Update version in projects
-      shell: pwsh
-      run: |
-        $version = "${{ steps.version.outputs.VERSION }}"
-        
-        # Update App csproj
-        $appCsproj = "src\MarkRead.App.csproj"
-        (Get-Content $appCsproj) -replace '<Version>[\d\.]+</Version>', "<Version>$version</Version>" `
-                                  -replace '<AssemblyVersion>[\d\.]+(\.\d+)?</AssemblyVersion>', "<AssemblyVersion>$version.0</AssemblyVersion>" `
-                                  -replace '<FileVersion>[\d\.]+(\.\d+)?</FileVersion>', "<FileVersion>$version.0</FileVersion>" `
-          | Set-Content $appCsproj
-        
-        # Update Installer wixproj
-        $installerProj = "installer\MarkRead.Installer.wixproj"
-        (Get-Content $installerProj) -replace '<Version>[\d\.]+</Version>', "<Version>$version</Version>" `
-          | Set-Content $installerProj
-
     - name: Build App
+      # Version is inherited from Directory.Build.props
       # Use /maxcpucount:1 to prevent WPF XAML parallel compilation race conditions
       # This is a known issue with WPF projects: https://github.com/dotnet/wpf/issues/4814
-      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore /p:Version=${{ steps.version.outputs.VERSION }} /maxcpucount:1
+      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore /maxcpucount:1
 
     - name: Build MSI installer
+      # Version is inherited from Directory.Build.props
       shell: pwsh
       run: |
-        dotnet build installer\MarkRead.Installer.wixproj --configuration Release --no-restore /p:Version=${{ steps.version.outputs.VERSION }} /maxcpucount:1
+        dotnet build installer\MarkRead.Installer.wixproj --configuration Release --no-restore /maxcpucount:1
 
     - name: Locate MSI file
       id: locate_msi

@@ -5,8 +5,7 @@
     <OutputName>MarkRead-$(Version)-x64</OutputName>
     <InstallerPlatform>x64</InstallerPlatform>
     
-    <!-- Version (should match App project) -->
-    <Version>0.1.0</Version>
+    <!-- Version inherited from Directory.Build.props -->
   </PropertyGroup>
 
   <ItemGroup>

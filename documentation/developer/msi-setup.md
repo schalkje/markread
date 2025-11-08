@@ -170,13 +170,24 @@ Test on a clean Windows installation:
 
 ### 1. Update Version
 
+MarkRead uses centralized version management via `Directory.Build.props`.
+
 ```powershell
-# Update version in both projects:
-# - src\App\MarkRead.App.csproj
-# - src\Installer\MarkRead.Installer.wixproj
+# Update version in ONE place only:
+# Edit: Directory.Build.props (at repository root)
+
+# Change the <Version> property:
+# <Version>0.1.0</Version>  →  <Version>0.2.0</Version>
+
+# This automatically updates:
+# - Application assembly version
+# - MSI installer version
+# - Output filename (MarkRead-{version}-x64.msi)
 
 # Version format: Major.Minor.Patch (e.g., 0.1.0, 1.0.0, 1.2.3)
 ```
+
+**See `documentation/developer/version-management.md` for detailed version management guide.**
 
 ### 2. Update CHANGELOG.md
 
