@@ -392,8 +392,11 @@ public partial class MainWindow : Window
         }
         else
         {
-            ShowStartOverlay(true);
-            System.Windows.MessageBox.Show(this, "No Markdown files were found in the selected folder.", "MarkRead", MessageBoxButton.OK, MessageBoxImage.Information);
+            var currentTab = GetCurrentTab();
+            if (currentTab is not null)
+            {
+                await ShowNoMarkdownFilesMessageAsync(currentTab, result.Root.Path);
+            }
         }
     }
 
@@ -535,6 +538,69 @@ public partial class MainWindow : Window
         {
             await LoadDocumentInTabAsync(tab, doc, pushHistory: false);
         }
+    }
+
+    private async Task ShowNoMarkdownFilesMessageAsync(TabItemModel tab, string folderPath)
+    {
+        if (_webViewHost is null)
+        {
+            return;
+        }
+
+        tab.DocumentPath = string.Empty;
+        tab.Title = "No Files";
+
+        _navigationService.ClearCurrentFile();
+
+        var folderName = Path.GetFileName(folderPath);
+        if (string.IsNullOrEmpty(folderName))
+        {
+            folderName = folderPath;
+        }
+
+        var resolvedTheme = _themeManager.GetResolvedTheme().ToString().ToLowerInvariant();
+        
+        // Create a friendly message in markdown format
+        var markdown = $@"# No Markdown Files Found
+
+The folder **{folderName}** does not contain any Markdown files.
+
+## What you can do:
+
+- **Open a different folder** using `Ctrl+O` or the File menu
+- **Open a specific file** using `Ctrl+Shift+O`
+- Add `.md`, `.markdown`, or `.mdx` files to this folder
+
+---
+
+**Folder path:** `{folderPath}`
+";
+
+        var request = new RenderRequest(
+            markdown,
+            folderPath,
+            null,
+            null,
+            resolvedTheme);
+
+        var renderResult = await _renderer.RenderAsync(request);
+
+        await Dispatcher.InvokeAsync(() =>
+        {
+            if (!string.IsNullOrEmpty(renderResult.TempFilePath) && File.Exists(renderResult.TempFilePath))
+            {
+                _webViewHost.NavigateToFile(renderResult.TempFilePath);
+            }
+            else
+            {
+                _webViewHost.NavigateToString(renderResult.Html);
+            }
+            
+            Title = "MarkRead - No Markdown Files";
+        });
+
+        await _webViewHost.WaitForReadyAsync();
+        UpdateNavigationHistoryState();
     }
 
     private void OnBridgeMessageReceived(object? sender, WebViewBridgeEventArgs e)
