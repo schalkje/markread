@@ -270,7 +270,7 @@ public partial class SidebarView : System.Windows.Controls.UserControl
         try
         {
             directories = Directory.EnumerateDirectories(path)
-                .Where(d => !IsHiddenOrSystem(d))
+                .Where(d => !IsHiddenOrSystem(d) && ContainsMarkdownFiles(d))
                 .OrderBy(d => Path.GetFileName(d));
         }
         catch
@@ -281,6 +281,39 @@ public partial class SidebarView : System.Windows.Controls.UserControl
         foreach (var directory in directories)
         {
             yield return directory;
+        }
+    }
+
+    private bool ContainsMarkdownFiles(string path)
+    {
+        try
+        {
+            // Quick check: any .md files directly in this folder?
+            if (Directory.EnumerateFiles(path, "*.md", SearchOption.TopDirectoryOnly).Any())
+            {
+                return true;
+            }
+
+            // Check subdirectories recursively
+            foreach (var subdir in Directory.EnumerateDirectories(path))
+            {
+                if (IsHiddenOrSystem(subdir))
+                {
+                    continue;
+                }
+
+                if (ContainsMarkdownFiles(subdir))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        catch
+        {
+            // If we can't access the directory, assume it doesn't contain markdown files
+            return false;
         }
     }
 
