@@ -367,9 +367,6 @@ public partial class MainWindow : Window
         _navigationService.ClearCurrentFile();
         _navigationService.UpdateHistoryState(false, false);
 
-        // Initialize sidebar with folder root
-        SidebarContent.SetRootFolder(result.Root.Path);
-
         // Create initial tab if no tabs exist
         if (_tabService.Tabs.Count == 0)
         {
@@ -377,11 +374,12 @@ public partial class MainWindow : Window
             await AddTabAsync(initialTab);
         }
 
-        // Show tabs and load document
+        // Show tabs and main content immediately
         ShowStartOverlay(false);
         TabBarContainer.Visibility = Visibility.Visible;
         MarkdownView.Visibility = Visibility.Visible;
 
+        // Quick check: if there's a default document in root, show it immediately
         if (result.DefaultDocument is DocumentInfo doc)
         {
             var currentTab = GetCurrentTab();
@@ -390,14 +388,35 @@ public partial class MainWindow : Window
                 await LoadDocumentInTabAsync(currentTab, doc);
             }
         }
+        // If no default document in root, do a quick check for ANY markdown files
         else
         {
+            // Quick check for any markdown files in entire tree (returns on first match)
+            bool hasAnyMarkdownFiles = await Task.Run(() => _folderService.HasAnyMarkdownFiles(result.Root));
+            
             var currentTab = GetCurrentTab();
             if (currentTab is not null)
             {
-                await ShowNoMarkdownFilesMessageAsync(currentTab, result.Root.Path);
+                if (hasAnyMarkdownFiles)
+                {
+                    // There are markdown files in subdirectories, show a friendly message
+                    // while the tree loads to allow navigation
+                    await ShowMarkdownFilesInSubfoldersMessageAsync(currentTab, result.Root.Path);
+                }
+                else
+                {
+                    // No markdown files anywhere, show the "no files" message immediately
+                    await ShowNoMarkdownFilesMessageAsync(currentTab, result.Root.Path);
+                }
             }
         }
+
+        // Load sidebar tree in background (non-blocking)
+        // User can interact with the document while tree loads
+        _ = Task.Run(async () =>
+        {
+            await Dispatcher.InvokeAsync(() => SidebarContent.SetRootFolder(result.Root.Path));
+        });
     }
 
     private Task AddTabAsync(TabItemModel tab)
@@ -597,6 +616,69 @@ The folder **{folderName}** does not contain any Markdown files.
             }
             
             Title = "MarkRead - No Markdown Files";
+        });
+
+        await _webViewHost.WaitForReadyAsync();
+        UpdateNavigationHistoryState();
+    }
+
+    private async Task ShowMarkdownFilesInSubfoldersMessageAsync(TabItemModel tab, string folderPath)
+    {
+        if (_webViewHost is null)
+        {
+            return;
+        }
+
+        tab.DocumentPath = string.Empty;
+        tab.Title = "Loading...";
+
+        _navigationService.ClearCurrentFile();
+
+        var folderName = Path.GetFileName(folderPath);
+        if (string.IsNullOrEmpty(folderName))
+        {
+            folderName = folderPath;
+        }
+
+        var resolvedTheme = _themeManager.GetResolvedTheme().ToString().ToLowerInvariant();
+        
+        // Create a friendly message in markdown format
+        var markdown = $@"# Welcome to {folderName}
+
+This folder contains Markdown files in subdirectories.
+
+## Getting started:
+
+- **Browse the file tree** on the left to find documents
+- **Click any file** in the tree to view it
+- The tree is loading in the background...
+
+---
+
+**Folder path:** `{folderPath}`
+";
+
+        var request = new RenderRequest(
+            markdown,
+            folderPath,
+            null,
+            null,
+            resolvedTheme);
+
+        var renderResult = await _renderer.RenderAsync(request);
+
+        await Dispatcher.InvokeAsync(() =>
+        {
+            if (!string.IsNullOrEmpty(renderResult.TempFilePath) && File.Exists(renderResult.TempFilePath))
+            {
+                _webViewHost.NavigateToFile(renderResult.TempFilePath);
+            }
+            else
+            {
+                _webViewHost.NavigateToString(renderResult.Html);
+            }
+            
+            Title = $"MarkRead - {folderName}";
         });
 
         await _webViewHost.WaitForReadyAsync();

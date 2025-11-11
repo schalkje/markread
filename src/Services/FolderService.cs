@@ -71,6 +71,34 @@ public sealed class FolderService
         return new FolderRoot(validation.NormalizedPath, validation.DisplayName ?? Path.GetFileName(validation.NormalizedPath), DateTimeOffset.UtcNow);
     }
 
+    /// <summary>
+    /// Quickly checks if the root folder contains any markdown files (in root or subdirectories).
+    /// This is a fast check that returns as soon as the first file is found.
+    /// </summary>
+    public bool HasAnyMarkdownFiles(FolderRoot root)
+    {
+        try
+        {
+            // Check for any .md, .markdown, or .mdx files recursively
+            var extensions = new[] { "*.md", "*.markdown", "*.mdx" };
+            foreach (var extension in extensions)
+            {
+                var firstFile = Directory.EnumerateFiles(root.Path, extension, SearchOption.AllDirectories)
+                    .FirstOrDefault();
+                if (firstFile != null)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        catch
+        {
+            // If we can't access the directory, assume no files
+            return false;
+        }
+    }
+
     public DocumentInfo? ResolveDefaultDocument(FolderRoot root)
     {
         var candidates = new[]
