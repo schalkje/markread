@@ -76,7 +76,7 @@ jobs:
       run: |
         dotnet build installer\MarkRead.Installer.wixproj --configuration Release --no-restore /maxcpucount:1
 
-    - name: Locate MSI file
+    - name: Locate unsigned MSI file
       id: locate_msi
       shell: pwsh
       run: |
@@ -85,19 +85,70 @@ jobs:
         
         if ($msiPath) {
           $fullPath = $msiPath.FullName
-          echo "MSI_PATH=$fullPath" >> $env:GITHUB_OUTPUT
+          echo "UNSIGNED_MSI_PATH=$fullPath" >> $env:GITHUB_OUTPUT
           echo "MSI_NAME=$($msiPath.Name)" >> $env:GITHUB_OUTPUT
-          echo "Found MSI: $fullPath"
+          echo "Found unsigned MSI: $fullPath"
         } else {
           echo "ERROR: MSI file not found!"
           exit 1
+        }
+    
+    - name: Upload unsigned MSI as artifact (for SignPath)
+      uses: actions/upload-artifact@v4
+      with:
+        name: unsigned-msi
+        path: ${{ steps.locate_msi.outputs.UNSIGNED_MSI_PATH }}
+        retention-days: 5
+
+    - name: Submit to SignPath.io for signing
+      if: vars.SIGNPATH_ENABLED == 'true'
+      uses: signpath/github-action-submit-signing-request@v1
+      with:
+        api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+        organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+        project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+        signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY }}
+        github-artifact-id: 'unsigned-msi'
+        wait-for-completion: true
+        output-artifact-directory: 'signed'
+
+    - name: Determine final MSI path
+      id: final_msi
+      shell: pwsh
+      run: |
+        $signPathEnabled = "${{ vars.SIGNPATH_ENABLED }}" -eq "true"
+        
+        if ($signPathEnabled) {
+          # Use signed MSI if SignPath is enabled
+          $signedMsi = Get-ChildItem -Path "signed" -Filter "MarkRead-*.msi" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          
+          if ($signedMsi) {
+            $finalPath = $signedMsi.FullName
+            echo "MSI_PATH=$finalPath" >> $env:GITHUB_OUTPUT
+            echo "MSI_NAME=$($signedMsi.Name)" >> $env:GITHUB_OUTPUT
+            echo "✅ Using signed MSI: $finalPath"
+            echo "SIGNED=true" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Warning "⚠️ SignPath signing was enabled but no signed MSI found. Using unsigned MSI."
+            $unsignedPath = "${{ steps.locate_msi.outputs.UNSIGNED_MSI_PATH }}"
+            echo "MSI_PATH=$unsignedPath" >> $env:GITHUB_OUTPUT
+            echo "MSI_NAME=${{ steps.locate_msi.outputs.MSI_NAME }}" >> $env:GITHUB_OUTPUT
+            echo "SIGNED=false" >> $env:GITHUB_OUTPUT
+          }
+        } else {
+          # Use unsigned MSI
+          $unsignedPath = "${{ steps.locate_msi.outputs.UNSIGNED_MSI_PATH }}"
+          echo "MSI_PATH=$unsignedPath" >> $env:GITHUB_OUTPUT
+          echo "MSI_NAME=${{ steps.locate_msi.outputs.MSI_NAME }}" >> $env:GITHUB_OUTPUT
+          echo "⚠️ SignPath.io signing disabled - using unsigned MSI"
+          echo "SIGNED=false" >> $env:GITHUB_OUTPUT
         }
 
     - name: Calculate SHA256
       id: hash
       shell: pwsh
       run: |
-        $msiPath = "${{ steps.locate_msi.outputs.MSI_PATH }}"
+        $msiPath = "${{ steps.final_msi.outputs.MSI_PATH }}"
         $hash = (Get-FileHash -Path $msiPath -Algorithm SHA256).Hash
         echo "SHA256=$hash" >> $env:GITHUB_OUTPUT
         echo "SHA256: $hash"
@@ -110,12 +161,20 @@ jobs:
       shell: pwsh
       run: |
         $version = "${{ steps.version.outputs.VERSION }}"
-        $msiName = "${{ steps.locate_msi.outputs.MSI_NAME }}"
+        $msiName = "${{ steps.final_msi.outputs.MSI_NAME }}"
         $hash = "${{ steps.hash.outputs.SHA256 }}"
+        $isSigned = "${{ steps.final_msi.outputs.SIGNED }}" -eq "true"
         
         $content = "## MarkRead v$version`n`n"
         $content += "### Installation`n`n"
         $content += "Download the MSI installer below and run it.`n`n"
+        
+        if ($isSigned) {
+          $content += "🔒 **This installer is digitally signed** via [SignPath.io](https://signpath.io) for your security.`n`n"
+        } else {
+          $content += "⚠️ **Note:** This installer is currently unsigned. Windows may show a SmartScreen warning.`n`n"
+        }
+        
         $content += "The installer will:`n"
         $content += "- Install MarkRead to Program Files`n"
         $content += "- Create Start Menu shortcut`n"
@@ -128,7 +187,11 @@ jobs:
         $content += "### What's New`n`n"
         $content += "See [CHANGELOG.md](https://github.com/schalkje/markread/blob/main/CHANGELOG.md) for full details.`n`n"
         $content += "### Files`n`n"
-        $content += "- **$msiName** - Windows MSI Installer`n"
+        $content += "- **$msiName** - Windows MSI Installer"
+        if ($isSigned) {
+          $content += " (Digitally Signed)"
+        }
+        $content += "`n"
         $content += "- **SHA256SUMS.txt** - Checksum for verification`n`n"
         $content += "### Verification`n`n"
         $content += "``````n"
@@ -145,7 +208,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          ${{ steps.locate_msi.outputs.MSI_PATH }}
+          ${{ steps.final_msi.outputs.MSI_PATH }}
           SHA256SUMS.txt
         body_path: release-notes.md
         draft: false

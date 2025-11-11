@@ -225,11 +225,50 @@ git push origin v0.1.0
 3. Test installation on clean system
 4. Verify all functionality works
 
-## Signing the Installer (Future)
+## Signing the Installer (Production)
 
-For production releases, you'll want to code sign the MSI:
+For production releases, code signing is highly recommended to avoid "Unknown Publisher" warnings.
 
-### Option 1: Self-Signed Certificate (Testing Only)
+MarkRead uses [SignPath.io](https://signpath.io)'s free Foundation Edition for open-source projects.
+
+### ✅ Recommended: SignPath.io (Free for Open Source)
+
+**See the complete setup guide:** [SignPath.io Setup Guide](./signpath-setup.md)
+
+**Benefits:**
+- ✅ Free for open-source projects
+- ✅ Extended Validation (EV) certificate
+- ✅ Integrated with GitHub Actions
+- ✅ Automatic signing on release
+
+**Quick Start:**
+1. Apply at [SignPath.io Foundation Edition](https://about.signpath.io/product/editions)
+2. Configure GitHub secrets (see setup guide)
+3. Push a release tag - signing happens automatically!
+
+The GitHub Actions workflow (`.github/workflows/release.yml`) handles signing automatically when configured.
+
+### Alternative: Commercial Certificate
+
+If you need your company name on the certificate:
+
+1. **Purchase code signing certificate** ($100-400/year)
+   - Certum, Sectigo, DigiCert, SSL.com, etc.
+2. **Install certificate** to build machine
+3. **Sign manually** or integrate with CI/CD:
+
+```powershell
+# Sign MSI after building
+signtool sign /a /t http://timestamp.digicert.com /fd SHA256 `
+  "installer\bin\Release\MarkRead-1.0.0-x64.msi"
+
+# Verify signature
+signtool verify /pa /v "installer\bin\Release\MarkRead-1.0.0-x64.msi"
+```
+
+### ⚠️ Development Only: Self-Signed Certificate
+
+**Not recommended for distribution** - only for local testing:
 
 ```powershell
 # Create test certificate
@@ -238,23 +277,27 @@ New-SelfSignedCertificate -Type CodeSigningCert `
   -CertStoreLocation Cert:\CurrentUser\My
 
 # Sign MSI (after building)
-signtool sign /a /t http://timestamp.digicert.com `
-  "src\Installer\bin\Release\MarkRead-0.1.0-x64.msi"
+Set-AuthenticodeSignature -FilePath "installer\bin\Release\MarkRead-1.0.0-x64.msi" `
+  -Certificate (Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert)[0] `
+  -TimestampServer http://timestamp.digicert.com
 ```
 
-### Option 2: Commercial Certificate (Production)
+⚠️ Self-signed certificates are not trusted by Windows and provide no security benefit for users.
 
-1. Purchase code signing certificate ($100-400/year)
-   - Certum, Sectigo, DigiCert, etc.
-2. Install certificate
-3. Update GitHub Actions workflow to sign MSI
-4. Users won't see "Unknown Publisher" warning
+## Verification Commands
 
-### Option 3: Free for Open Source
+```powershell
+# Check if MSI is signed
+Get-AuthenticodeSignature .\MarkRead-1.0.0-x64.msi
 
-- [SignPath.io](https://about.signpath.io/) offers free signing for OSS projects
-- Requires application and approval
-- Integrates with GitHub Actions
+# Detailed verification
+signtool verify /pa /v .\MarkRead-1.0.0-x64.msi
+
+# View certificate details
+Get-AuthenticodeSignature .\MarkRead-1.0.0-x64.msi | 
+  Select-Object -ExpandProperty SignerCertificate | 
+  Format-List
+```
 
 ## Advanced: Custom Actions
 

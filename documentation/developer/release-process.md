@@ -416,8 +416,76 @@ git tag -a 0.2.0 -m "Release"
 
 - [Version Management Guide](version-management.md) - How versioning works
 - [MSI Setup Guide](msi-setup.md) - Building MSI locally
+- [Code Signing Setup](signpath-setup.md) - SignPath.io integration (full guide)
+- [Code Signing Quick Start](signpath-quickstart.md) - SignPath.io setup (quick reference)
 - [Version Update Checklist](VERSION-UPDATE-CHECKLIST.md) - Quick reference
 - [GitHub Actions Workflow](../../.github/workflows/release.yml) - Workflow definition
+
+## Code Signing
+
+MarkRead releases are automatically code-signed using [SignPath.io](https://signpath.io)'s free Foundation Edition for open-source projects.
+
+**Status:** 
+- 🔒 **Enabled:** Releases are digitally signed (reduces Windows warnings)
+- ⏳ **Pending:** Application submitted, awaiting approval
+- ⚠️ **Disabled:** Using unsigned installers
+
+### Benefits of Code Signing
+
+- ✅ **Trust:** Shows verified publisher instead of "Unknown Publisher"
+- ✅ **Security:** Prevents tampering after release
+- ✅ **SmartScreen:** Fewer Windows Defender warnings over time
+- ✅ **Professional:** Demonstrates commitment to security
+
+### Setup
+
+If code signing is not yet configured, see:
+- **[SignPath.io Quick Start](signpath-quickstart.md)** - 20 minute setup guide
+- **[SignPath.io Setup Guide](signpath-setup.md)** - Complete documentation
+
+### During Release
+
+The GitHub Actions workflow automatically:
+1. Builds unsigned MSI
+2. Submits to SignPath.io for signing
+3. Waits for signed MSI
+4. Publishes signed MSI to release
+
+**No manual steps required!** Signing happens automatically when you push a tag.
+
+### Verification
+
+After release, verify the MSI is signed:
+
+```powershell
+# Download MSI from GitHub Release
+Get-AuthenticodeSignature .\MarkRead-1.0.0-x64.msi
+
+# Should show:
+# Status: Valid
+# SignerCertificate: CN=SignPath Foundation
+```
+
+### Troubleshooting Signing
+
+If a release fails at the signing step:
+
+1. **Check GitHub Actions logs** for error messages
+2. **Check SignPath.io dashboard** for request status
+3. **Verify GitHub secrets/variables** are configured:
+   - `SIGNPATH_API_TOKEN` (secret)
+   - `SIGNPATH_ENABLED=true` (variable)
+   - `SIGNPATH_ORGANIZATION_ID` (variable)
+   - `SIGNPATH_PROJECT_SLUG=markread` (variable)
+   - `SIGNPATH_SIGNING_POLICY=release-signing` (variable)
+
+4. **Temporarily disable signing** if blocking a release:
+   ```
+   Set GitHub Variable: SIGNPATH_ENABLED = false
+   ```
+   Re-push the tag to trigger a new release with unsigned MSI.
+
+See [signpath-setup.md](signpath-setup.md) for detailed troubleshooting.
 
 ---
 
