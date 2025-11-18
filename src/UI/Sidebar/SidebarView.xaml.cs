@@ -20,6 +20,17 @@ public partial class SidebarView : System.Windows.Controls.UserControl
     private bool _isCollapsed;
     private readonly Style? _treeViewItemStyle;
 
+    // Folders to exclude from tree view (common build/dependency folders)
+    private static readonly HashSet<string> ExcludedFolderNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".venv",
+        ".env",
+        "venv",
+        "bin",
+        "obj",
+        "node_modules"
+    };
+
     public event EventHandler<string>? FileSelected;
     public event EventHandler<bool>? CollapsedChanged;
     public event EventHandler<double>? WidthChanged;
@@ -270,7 +281,7 @@ public partial class SidebarView : System.Windows.Controls.UserControl
         try
         {
             directories = Directory.EnumerateDirectories(path)
-                .Where(d => !IsHiddenOrSystem(d) && ContainsMarkdownFiles(d))
+                .Where(d => !IsHiddenOrSystem(d) && !IsExcludedFolder(d) && ContainsMarkdownFiles(d))
                 .OrderBy(d => Path.GetFileName(d));
         }
         catch
@@ -281,6 +292,19 @@ public partial class SidebarView : System.Windows.Controls.UserControl
         foreach (var directory in directories)
         {
             yield return directory;
+        }
+    }
+
+    private bool IsExcludedFolder(string path)
+    {
+        try
+        {
+            var folderName = Path.GetFileName(path);
+            return !string.IsNullOrEmpty(folderName) && ExcludedFolderNames.Contains(folderName);
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -297,7 +321,7 @@ public partial class SidebarView : System.Windows.Controls.UserControl
             // Check subdirectories recursively
             foreach (var subdir in Directory.EnumerateDirectories(path))
             {
-                if (IsHiddenOrSystem(subdir))
+                if (IsHiddenOrSystem(subdir) || IsExcludedFolder(subdir))
                 {
                     continue;
                 }
