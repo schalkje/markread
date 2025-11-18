@@ -61,6 +61,10 @@
                               InputGestureText="Ctrl+W"
                               IsEnabled="False"/>
                     <Separator/>
+                    <MenuItem Header="_Settings..." 
+                              Click="SettingsMenuItem_Click"
+                              InputGestureText="Ctrl+,"/>
+                    <Separator/>
                     <MenuItem Header="E_xit" 
                               Click="ExitMenuItem_Click"
                               InputGestureText="Alt+F4"/>

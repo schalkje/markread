@@ -124,12 +124,26 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        // Initialize sidebar with SettingsService for configurable exclusions
+        if (SidebarContent != null)
+        {
+            SidebarContent.SetSettingsService(_settingsService);
+        }
+        
         await EnsureWebViewAsync();
         await InitializeFromStartupAsync();
     }
 
     private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        // Handle Ctrl+, for Settings
+        if (e.Key == Key.OemComma && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            OpenSettingsWindow();
+            e.Handled = true;
+            return;
+        }
+        
         // Handle tab navigation shortcuts
         if (e.Key == Key.Tab && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
@@ -1268,5 +1282,37 @@ This folder contains Markdown files in subdirectories.
         // TODO: Show export dropdown menu
         // For now, just show a placeholder message
         WpfMessageBox.Show("Export functionality coming soon", "Export", MessageBoxButton.OK);
+    }
+
+    private void NavigationBar_SettingsRequested(object? sender, EventArgs e)
+    {
+        OpenSettingsWindow();
+    }
+
+    private void OpenSettingsWindow()
+    {
+        try
+        {
+            var settingsWindow = new UI.Settings.SettingsWindow(_settingsService)
+            {
+                Owner = this
+            };
+
+            settingsWindow.SettingsSaved += async (s, e) =>
+            {
+                // Refresh sidebar with new exclusion settings
+                await SidebarContent.RefreshExclusionSettingsAsync();
+            };
+
+            settingsWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            WpfMessageBox.Show(
+                $"Failed to open settings: {ex.Message}",
+                "Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 }

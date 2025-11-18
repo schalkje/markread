@@ -30,12 +30,14 @@ public class SettingsService
     private readonly string _uiStateFile;
     private readonly string _animationSettingsFile;
     private readonly string _treeViewSettingsFile;
+    private readonly string _folderExclusionSettingsFile;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private ViewerSettings _currentSettings = ViewerSettings.Default();
     private ThemeConfiguration? _themeConfiguration;
     private UIState? _uiState;
     private AnimationSettings? _animationSettings;
     private TreeViewSettings? _treeViewSettings;
+    private FolderExclusionSettings? _folderExclusionSettings;
     private bool _isLoaded;
 
     public SettingsService()
@@ -47,6 +49,7 @@ public class SettingsService
         _uiStateFile = Path.Combine(root, "ui-state.json");
         _animationSettingsFile = Path.Combine(root, "animation-settings.json");
         _treeViewSettingsFile = Path.Combine(root, "treeview-settings.json");
+        _folderExclusionSettingsFile = Path.Combine(root, "folder-exclusion-settings.json");
     }
 
     public async Task<ViewerSettings> LoadAsync()
@@ -578,6 +581,9 @@ public class SettingsService
             if (File.Exists(_treeViewSettingsFile))
                 File.Copy(_treeViewSettingsFile, $"{_treeViewSettingsFile}.backup-{timestamp}", overwrite: true);
             
+            if (File.Exists(_folderExclusionSettingsFile))
+                File.Copy(_folderExclusionSettingsFile, $"{_folderExclusionSettingsFile}.backup-{timestamp}", overwrite: true);
+            
             // Clean up old backups (keep last 5)
             CleanupOldBackups();
         }
@@ -612,6 +618,7 @@ public class SettingsService
             RestoreFile($"{_uiStateFile}.backup-{timestamp}", _uiStateFile);
             RestoreFile($"{_animationSettingsFile}.backup-{timestamp}", _animationSettingsFile);
             RestoreFile($"{_treeViewSettingsFile}.backup-{timestamp}", _treeViewSettingsFile);
+            RestoreFile($"{_folderExclusionSettingsFile}.backup-{timestamp}", _folderExclusionSettingsFile);
 
             // Clear cached settings to force reload
             _isLoaded = false;
@@ -619,6 +626,7 @@ public class SettingsService
             _uiState = null;
             _animationSettings = null;
             _treeViewSettings = null;
+            _folderExclusionSettings = null;
 
             return true;
         }
@@ -649,6 +657,7 @@ public class SettingsService
             if (File.Exists(_uiStateFile)) File.Delete(_uiStateFile);
             if (File.Exists(_animationSettingsFile)) File.Delete(_animationSettingsFile);
             if (File.Exists(_treeViewSettingsFile)) File.Delete(_treeViewSettingsFile);
+            if (File.Exists(_folderExclusionSettingsFile)) File.Delete(_folderExclusionSettingsFile);
 
             // Reset in-memory state
             _currentSettings = ViewerSettings.Default();
@@ -656,6 +665,7 @@ public class SettingsService
             _uiState = UIState.CreateDefault();
             _animationSettings = AnimationSettings.CreateDefault();
             _treeViewSettings = new TreeViewSettings();
+            _folderExclusionSettings = FolderExclusionSettings.CreateDefault();
             _isLoaded = false;
 
             // Save factory defaults
@@ -664,6 +674,7 @@ public class SettingsService
             await PersistUIStateAsync(_uiState);
             await PersistAnimationSettingsAsync(_animationSettings);
             await PersistTreeViewSettingsAsync(_treeViewSettings);
+            await PersistFolderExclusionSettingsAsync(_folderExclusionSettings);
         }
         finally
         {
@@ -738,6 +749,119 @@ public class SettingsService
         if (File.Exists(backupPath))
         {
             File.Copy(backupPath, targetPath, overwrite: true);
+        }
+    }
+
+    // Folder Exclusion Settings Management
+
+    /// <summary>
+    /// Loads folder exclusion settings from disk.
+    /// </summary>
+    public async Task<FolderExclusionSettings> LoadFolderExclusionSettingsAsync()
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_folderExclusionSettings != null)
+                return _folderExclusionSettings;
+
+            if (!File.Exists(_folderExclusionSettingsFile))
+            {
+                _folderExclusionSettings = FolderExclusionSettings.CreateDefault();
+                return _folderExclusionSettings;
+            }
+
+            await using FileStream stream = File.OpenRead(_folderExclusionSettingsFile);
+            var loaded = await JsonSerializer.DeserializeAsync<FolderExclusionSettings>(stream).ConfigureAwait(false);
+            _folderExclusionSettings = loaded ?? FolderExclusionSettings.CreateDefault();
+            return _folderExclusionSettings;
+        }
+        catch (JsonException)
+        {
+            _folderExclusionSettings = FolderExclusionSettings.CreateDefault();
+            return _folderExclusionSettings;
+        }
+        catch (IOException)
+        {
+            return _folderExclusionSettings ?? FolderExclusionSettings.CreateDefault();
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Saves folder exclusion settings to disk.
+    /// </summary>
+    public async Task SaveFolderExclusionSettingsAsync(FolderExclusionSettings folderExclusionSettings)
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await PersistFolderExclusionSettingsAsync(folderExclusionSettings).ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Updates folder exclusion settings using an updater function.
+    /// </summary>
+    public async Task<FolderExclusionSettings> UpdateFolderExclusionSettingsAsync(Func<FolderExclusionSettings, FolderExclusionSettings> updater)
+    {
+        if (updater is null)
+        {
+            throw new ArgumentNullException(nameof(updater));
+        }
+
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_folderExclusionSettings == null)
+            {
+                await LoadFolderExclusionSettingsAsync().ConfigureAwait(false);
+            }
+
+            var updated = updater(_folderExclusionSettings!);
+            await PersistFolderExclusionSettingsAsync(updated).ConfigureAwait(false);
+            return _folderExclusionSettings!;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private async Task PersistFolderExclusionSettingsAsync(FolderExclusionSettings folderExclusionSettings)
+    {
+        var tempFile = _folderExclusionSettingsFile + ".tmp";
+
+        try
+        {
+            await using (FileStream stream = File.Create(tempFile))
+            {
+                await JsonSerializer.SerializeAsync(stream, folderExclusionSettings, SerializerOptions).ConfigureAwait(false);
+            }
+
+            File.Copy(tempFile, _folderExclusionSettingsFile, overwrite: true);
+            _folderExclusionSettings = folderExclusionSettings;
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                try
+                {
+                    File.Delete(tempFile);
+                }
+                catch
+                {
+                    // Ignored: temp file cleanup best effort.
+                }
+            }
         }
     }
 }

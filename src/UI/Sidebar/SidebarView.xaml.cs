@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
+using MarkRead.App.Services;
 
 namespace MarkRead.App.UI.Sidebar;
 
@@ -19,17 +20,8 @@ public partial class SidebarView : System.Windows.Controls.UserControl
     private double _width = 300;
     private bool _isCollapsed;
     private readonly Style? _treeViewItemStyle;
-
-    // Folders to exclude from tree view (common build/dependency folders)
-    private static readonly HashSet<string> ExcludedFolderNames = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".venv",
-        ".env",
-        "venv",
-        "bin",
-        "obj",
-        "node_modules"
-    };
+    private FolderExclusionSettings? _exclusionSettings;
+    private SettingsService? _settingsService;
 
     public event EventHandler<string>? FileSelected;
     public event EventHandler<bool>? CollapsedChanged;
@@ -75,6 +67,42 @@ public partial class SidebarView : System.Windows.Controls.UserControl
         InitializeComponent();
         SidebarGrid.Width = _width;
         _treeViewItemStyle = TryFindResource("TreeViewItemStyle") as Style;
+    }
+
+    public SidebarView(SettingsService settingsService) : this()
+    {
+        _settingsService = settingsService;
+        _ = LoadExclusionSettingsAsync();
+    }
+
+    /// <summary>
+    /// Sets the SettingsService for this sidebar (for use when created from XAML).
+    /// </summary>
+    public void SetSettingsService(SettingsService settingsService)
+    {
+        if (settingsService != null && _settingsService == null)
+        {
+            _settingsService = settingsService;
+            _ = LoadExclusionSettingsAsync();
+        }
+    }
+
+    private async System.Threading.Tasks.Task LoadExclusionSettingsAsync()
+    {
+        if (_settingsService != null)
+        {
+            _exclusionSettings = await _settingsService.LoadFolderExclusionSettingsAsync();
+        }
+        else
+        {
+            _exclusionSettings = FolderExclusionSettings.CreateDefault();
+        }
+    }
+
+    public async System.Threading.Tasks.Task RefreshExclusionSettingsAsync()
+    {
+        await LoadExclusionSettingsAsync();
+        await RefreshTreeAsync();
     }
 
     public void SetRootFolder(string? folderPath)
@@ -300,7 +328,18 @@ public partial class SidebarView : System.Windows.Controls.UserControl
         try
         {
             var folderName = Path.GetFileName(path);
-            return !string.IsNullOrEmpty(folderName) && ExcludedFolderNames.Contains(folderName);
+            if (string.IsNullOrEmpty(folderName))
+                return false;
+
+            // Use configurable exclusion settings
+            if (_exclusionSettings != null)
+            {
+                return _exclusionSettings.IsExcluded(folderName);
+            }
+
+            // Fallback to defaults if settings not loaded yet
+            var defaultSettings = FolderExclusionSettings.CreateDefault();
+            return defaultSettings.IsExcluded(folderName);
         }
         catch
         {

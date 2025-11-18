@@ -111,7 +111,8 @@
                              Grid.Row="0"
                              MenuRequested="NavigationBar_MenuRequested"
                              SearchRequested="NavigationBar_SearchRequested"
-                             ExportRequested="NavigationBar_ExportRequested"/>
+                             ExportRequested="NavigationBar_ExportRequested"
+                             SettingsRequested="NavigationBar_SettingsRequested"/>
 
         <!-- Enhanced Tab Bar -->
         <Border Grid.Row="1"
