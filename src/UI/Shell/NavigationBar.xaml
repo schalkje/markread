@@ -9,6 +9,253 @@
              d:DesignHeight="48" Height="48"
              Background="{DynamicResource ThemeSecondaryBackgroundBrush}">
     
+    <!-- Local Resources for Menu Styling -->
+    <UserControl.Resources>
+        <!-- Implicit style for all MenuItems in this control that dynamically updates with theme -->
+        <Style TargetType="{x:Type MenuItem}">
+            <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type MenuItem}">
+                        <Border x:Name="templateRoot"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <Grid>
+                                <!-- Simple content presenter for top-level items -->
+                                <ContentPresenter x:Name="simpleHeaderContainer"
+                                                  ContentSource="Header"
+                                                  RecognizesAccessKey="True"
+                                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Visibility="Collapsed"/>
+                                
+                                <!-- Complex grid for submenu items -->
+                                <Grid x:Name="complexGrid" Margin="-1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIconColumnGroup"/>
+                                        <ColumnDefinition Width="13"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="30"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIGTColumnGroup"/>
+                                        <ColumnDefinition Width="20"/>
+                                    </Grid.ColumnDefinitions>
+                                
+                                <!-- Icon placeholder -->
+                                <ContentPresenter x:Name="Icon"
+                                                  Grid.Column="0"
+                                                  Width="16" Height="16"
+                                                  Margin="3"
+                                                  VerticalAlignment="Center"
+                                                  ContentSource="Icon"
+                                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                
+                                <!-- Checkmark (for checkable items) -->
+                                <Border x:Name="GlyphPanel"
+                                        Grid.Column="0"
+                                        Width="16" Height="16"
+                                        Margin="3"
+                                        Background="Transparent"
+                                        BorderBrush="Transparent"
+                                        BorderThickness="1"
+                                        VerticalAlignment="Center"
+                                        Visibility="Hidden">
+                                    <Path x:Name="Glyph"
+                                          Data="M0,5.1 L1.7,3.4 L5.2,7 L14.3,0 L16,1.7 L5.2,12.6 z"
+                                          Fill="{DynamicResource ThemeTextPrimaryBrush}"
+                                          FlowDirection="LeftToRight"
+                                          Width="12" Height="12"/>
+                                </Border>
+                                
+                                <!-- Header text -->
+                                <ContentPresenter x:Name="menuHeaderContainer"
+                                                  Grid.Column="2"
+                                                  HorizontalAlignment="Left"
+                                                  VerticalAlignment="Center"
+                                                  ContentSource="Header"
+                                                  RecognizesAccessKey="True"
+                                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                
+                                <!-- Input gesture text (e.g., "Ctrl+O") -->
+                                <TextBlock x:Name="menuGestureText"
+                                           Grid.Column="4"
+                                           Margin="5,2,2,2"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ThemeTextSecondaryBrush}"
+                                           Text="{TemplateBinding InputGestureText}"
+                                           Opacity="0.7"/>
+                                
+                                <!-- Submenu arrow -->
+                                <Path x:Name="RightArrow"
+                                      Grid.Column="5"
+                                      Margin="10,0,0,0"
+                                      VerticalAlignment="Center"
+                                      Data="M0,0 L4,3.5 L0,7 Z"
+                                      Fill="{DynamicResource ThemeTextPrimaryBrush}"/>
+                                
+                                <!-- Submenu popup -->
+                                <Popup x:Name="PART_Popup"
+                                       AllowsTransparency="True"
+                                       Focusable="False"
+                                       IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                       Placement="Bottom"
+                                       PopupAnimation="Fade"
+                                       HorizontalOffset="0"
+                                       VerticalOffset="0"
+                                       PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}">
+                                    <Border x:Name="SubMenuBorder"
+                                            Background="{DynamicResource ThemeBackgroundBrush}"
+                                            BorderBrush="{DynamicResource ThemeBorderBrush}"
+                                            BorderThickness="1"
+                                            Padding="4"
+                                            CornerRadius="4"
+                                            MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                            Effect="{DynamicResource MenuDropShadow}">
+                                        <ScrollViewer x:Name="SubMenuScrollViewer"
+                                                      Style="{DynamicResource {ComponentResourceKey ResourceId=MenuScrollViewer, TypeInTargetAssembly={x:Type FrameworkElement}}}">
+                                            <Grid RenderOptions.ClearTypeHint="Enabled">
+                                                <ItemsPresenter x:Name="ItemsPresenter"
+                                                                KeyboardNavigation.DirectionalNavigation="Cycle"
+                                                                Grid.IsSharedSizeScope="True"
+                                                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                                                KeyboardNavigation.TabNavigation="Cycle"/>
+                                            </Grid>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- Top-level item (no role) -->
+                            <Trigger Property="Role" Value="TopLevelHeader">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
+                                <Setter Property="Padding" Value="8,4"/>
+                                <Setter TargetName="templateRoot" Property="CornerRadius" Value="4"/>
+                                <Setter TargetName="simpleHeaderContainer" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="complexGrid" Property="Visibility" Value="Collapsed"/>
+                                <Setter TargetName="PART_Popup" Property="Placement" Value="Bottom"/>
+                                <Setter TargetName="PART_Popup" Property="HorizontalOffset" Value="0"/>
+                                <Setter TargetName="PART_Popup" Property="VerticalOffset" Value="2"/>
+                            </Trigger>
+                            
+                            <!-- Top-level item (no children) -->
+                            <Trigger Property="Role" Value="TopLevelItem">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
+                                <Setter Property="Padding" Value="8,4"/>
+                                <Setter TargetName="templateRoot" Property="CornerRadius" Value="4"/>
+                                <Setter TargetName="simpleHeaderContainer" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="complexGrid" Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                            
+                            <!-- Submenu header (has children) -->
+                            <Trigger Property="Role" Value="SubmenuHeader">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Padding" Value="8,6,40,6"/>
+                                <Setter TargetName="RightArrow" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="PART_Popup" Property="Placement" Value="Right"/>
+                                <Setter TargetName="PART_Popup" Property="HorizontalOffset" Value="-2"/>
+                                <Setter TargetName="PART_Popup" Property="VerticalOffset" Value="-3"/>
+                            </Trigger>
+                            
+                            <!-- Submenu item (no children) -->
+                            <Trigger Property="Role" Value="SubmenuItem">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Padding" Value="8,6,40,6"/>
+                                <Setter TargetName="RightArrow" Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                            
+                            <!-- Hover effect for top-level items -->
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="Role" Value="TopLevelHeader"/>
+                                    <Condition Property="IsHighlighted" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
+                            </MultiTrigger>
+                            
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="Role" Value="TopLevelItem"/>
+                                    <Condition Property="IsHighlighted" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
+                            </MultiTrigger>
+                            
+                            <!-- Hover effect for submenu items -->
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="Role" Value="SubmenuHeader"/>
+                                    <Condition Property="IsHighlighted" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
+                            </MultiTrigger>
+                            
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="Role" Value="SubmenuItem"/>
+                                    <Condition Property="IsHighlighted" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
+                            </MultiTrigger>
+                            
+                            <!-- Open submenu styling -->
+                            <Trigger Property="IsSubmenuOpen" Value="True">
+                                <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
+                            </Trigger>
+                            
+                            <!-- Disabled state -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="templateRoot" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                            
+                            <!-- Checkable item -->
+                            <Trigger Property="Icon" Value="{x:Null}">
+                                <Setter TargetName="Icon" Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                            
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="GlyphPanel" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="Icon" Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Separator style -->
+        <Style TargetType="{x:Type Separator}">
+            <Setter Property="Background" Value="{DynamicResource ThemeBorderBrush}"/>
+            <Setter Property="Height" Value="1"/>
+            <Setter Property="Margin" Value="8,4,4,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Separator}">
+                        <Border Background="{TemplateBinding Background}"
+                                Height="{TemplateBinding Height}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Drop shadow effect for menu popups -->
+        <DropShadowEffect x:Key="MenuDropShadow" 
+                          BlurRadius="8" 
+                          ShadowDepth="2" 
+                          Direction="270" 
+                          Color="#40000000" 
+                          Opacity="0.3"/>
+    </UserControl.Resources>
+    
     <Grid>
         <Grid.ColumnDefinitions>
             <!-- Left section: Navigation controls -->
@@ -40,13 +287,6 @@
                   VerticalAlignment="Center"
                   Margin="8,0,0,0"
                   WindowChrome.IsHitTestVisibleInChrome="True">
-                <Menu.Resources>
-                    <Style TargetType="MenuItem">
-                        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
-                        <Setter Property="FontSize" Value="14"/>
-                        <Setter Property="Padding" Value="8,6"/>
-                    </Style>
-                </Menu.Resources>
                 
                 <!-- File Menu -->
                 <MenuItem Header="_File">
