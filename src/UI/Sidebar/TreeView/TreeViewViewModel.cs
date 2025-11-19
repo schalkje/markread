@@ -31,6 +31,7 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly TreeViewService _treeViewService;
     private readonly FileWatcherService _fileWatcherService;
+    private readonly TreeViewContextMenuService _contextMenuService;
     private CancellationTokenSource? _currentLoadCancellation;
     private Services.TreeNode? _previouslySelectedNode;
     private IDisposable? _fileWatcherSubscription;
@@ -41,10 +42,11 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
     private System.Windows.Threading.DispatcherTimer? _typeAheadClearTimer;
     private List<Services.TreeNode> _autoExpandedNodes = new();
 
-    public TreeViewViewModel(TreeViewService treeViewService, FileWatcherService fileWatcherService)
+    public TreeViewViewModel(TreeViewService treeViewService, FileWatcherService fileWatcherService, TreeViewContextMenuService contextMenuService)
     {
         _treeViewService = treeViewService;
         _fileWatcherService = fileWatcherService;
+        _contextMenuService = contextMenuService;
         SelectTreeNodeCommand = new RelayCommand<Services.TreeNode>(ExecuteSelectTreeNode, CanSelectTreeNode);
         ToggleTreeViewVisibilityCommand = new RelayCommand(ExecuteToggleTreeViewVisibility);
         
@@ -90,6 +92,11 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
     /// Event raised when a file node is selected and should be navigated to.
     /// </summary>
     public event EventHandler<FileNavigationEventArgs>? NavigateToFileRequested;
+
+    /// <summary>
+    /// Event raised when a file should be opened in a new tab.
+    /// </summary>
+    public event EventHandler<FileNavigationEventArgs>? NavigateToFileInNewTabRequested;
 
     /// <summary>
     /// Command for selecting a tree node.
@@ -589,6 +596,17 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
     }
 
     #endregion
+
+    /// <summary>
+    /// Opens a file in a new tab (called from TreeViewItemBehavior on Ctrl+Click).
+    /// </summary>
+    public void OpenFileInNewTab(Services.TreeNode fileNode)
+    {
+        if (fileNode.Type != Services.NodeType.File)
+            return;
+
+        NavigateToFileInNewTabRequested?.Invoke(this, new FileNavigationEventArgs(fileNode.FullPath));
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

@@ -3,9 +3,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:local="clr-namespace:MarkRead.App.UI.Sidebar.TreeView"
+             xmlns:services="clr-namespace:MarkRead.App.Services"
+             xmlns:converters="clr-namespace:MarkRead.App.UI.Converters"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="300">
+    
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:NodeTypeToIconConverter x:Key="NodeTypeToIconConverter"/>
+        <converters:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
+        <converters:ExpandedToTextConverter x:Key="ExpandedToTextConverter"/>
+    </UserControl.Resources>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -72,6 +83,7 @@
                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
                     <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    <!-- Context Menu will be added programmatically in code-behind -->
                 </Style>
             </TreeView.ItemContainerStyle>
             <TreeView.ItemTemplate>

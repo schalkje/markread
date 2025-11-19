@@ -37,6 +37,8 @@ public partial class MainWindow : Window
     private readonly SettingsService _settingsService;
     private readonly HistoryService _historyService = new();
     private readonly FileWatcherService _fileWatcherService = new();
+    private readonly TreeViewService _treeViewService;
+    private readonly TreeViewContextMenuService _treeViewContextMenuService = new();
     private readonly TabService _tabService = new();
     private readonly INavigationService _navigationService = new NavigationService();
     private readonly Renderer _renderer;
@@ -44,6 +46,7 @@ public partial class MainWindow : Window
     private readonly OpenFolderCommand _openFolderCommand;
     private readonly ThemeManager _themeManager;
 
+    private UI.Sidebar.TreeView.TreeViewViewModel? _treeViewViewModel;
     private FolderRoot? _currentRoot;
     private IDisposable? _documentWatcher;
     private StartupArguments _startupArguments = StartupArguments.Empty;
@@ -63,6 +66,7 @@ public partial class MainWindow : Window
         _settingsService = app.SettingsService;
         _themeManager = app.ThemeManager;
 
+        _treeViewService = new TreeViewService(_historyService, _settingsService);
         _renderer = new Renderer(_markdownService, _sanitizer);
         _linkResolver = new LinkResolver(_folderService);
         _openFolderCommand = new OpenFolderCommand(_folderService);
@@ -92,8 +96,17 @@ public partial class MainWindow : Window
         FindBar.PreviousRequested += OnFindPreviousRequested;
         FindBar.CloseRequested += OnFindCloseRequested;
 
-        // Wire up Sidebar events
-        SidebarContent.FileSelected += OnSidebarFileSelected;
+        // Initialize TreeView ViewModel
+        _treeViewViewModel = new UI.Sidebar.TreeView.TreeViewViewModel(
+            _treeViewService, 
+            _fileWatcherService,
+            _treeViewContextMenuService);
+        
+        TreeViewContent.DataContext = _treeViewViewModel;
+        
+        // Wire up TreeView events
+        _treeViewViewModel.NavigateToFileRequested += OnTreeViewFileSelected;
+        _treeViewViewModel.NavigateToFileInNewTabRequested += OnTreeViewFileSelectedInNewTab;
 
         CommandBindings.Add(new CommandBinding(App.OpenFolderCommand, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
         CommandBindings.Add(new CommandBinding(App.OpenFileCommand, async (_, _) => await ExecuteOpenFileAsync(), CanExecuteWhenInteractive));
@@ -124,11 +137,7 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        // Initialize sidebar with SettingsService for configurable exclusions
-        if (SidebarContent != null)
-        {
-            SidebarContent.SetSettingsService(_settingsService);
-        }
+        // TreeView ViewModel is already initialized in constructor
         
         await EnsureWebViewAsync();
         await InitializeFromStartupAsync();
@@ -425,12 +434,17 @@ public partial class MainWindow : Window
             }
         }
 
-        // Load sidebar tree in background (non-blocking)
-        // User can interact with the document while tree loads
-        _ = Task.Run(async () =>
+        // Load tree view in background
+        if (_treeViewViewModel != null && !string.IsNullOrEmpty(result.Root.Path))
         {
-            await Dispatcher.InvokeAsync(() => SidebarContent.SetRootFolder(result.Root.Path));
-        });
+            _ = Task.Run(async () =>
+            {
+                await Dispatcher.InvokeAsync(async () => 
+                {
+                    await _treeViewViewModel.LoadTreeAsync(result.Root.Path);
+                });
+            });
+        }
     }
 
     private Task AddTabAsync(TabItemModel tab)
@@ -1214,20 +1228,20 @@ This folder contains Markdown files in subdirectories.
 
     // UI Helper methods - file path display now handled by NavigationBar
 
-    // Sidebar integration
-    private void OnSidebarFileSelected(object? sender, string filePath)
+    // TreeView integration
+    private void OnTreeViewFileSelected(object? sender, UI.Sidebar.TreeView.FileNavigationEventArgs e)
     {
-        if (_currentRoot is null || string.IsNullOrEmpty(filePath))
+        if (_currentRoot is null || string.IsNullOrEmpty(e.FilePath))
         {
             return;
         }
 
         // Resolve the document from the file path
-        var document = _folderService.TryResolveDocument(_currentRoot, filePath);
+        var document = _folderService.TryResolveDocument(_currentRoot, e.FilePath);
         if (document is DocumentInfo doc)
         {
             // Check if the file is already open in a tab
-            var existingTab = _tabService.Tabs.FirstOrDefault(t => t.DocumentPath == filePath);
+            var existingTab = _tabService.Tabs.FirstOrDefault(t => t.DocumentPath == e.FilePath);
             if (existingTab is not null)
             {
                 // Just activate the existing tab
@@ -1241,6 +1255,39 @@ This folder contains Markdown files in subdirectories.
             MarkdownView.Visibility = Visibility.Visible;
 
             // Create a new tab for the file
+            var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
+            var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+            
+            _ = Task.Run(async () =>
+            {
+                await Dispatcher.InvokeAsync(async () =>
+                {
+                    await AddTabAsync(newTab);
+                    _tabService.SetActiveTab(newTab);
+                    await LoadDocumentInTabAsync(newTab, doc);
+                });
+            });
+        }
+    }
+
+    /// <summary>
+    /// Handles Ctrl+Click on tree view items to open in new tab
+    /// </summary>
+    private void OnTreeViewFileSelectedInNewTab(object? sender, UI.Sidebar.TreeView.FileNavigationEventArgs e)
+    {
+        if (_currentRoot is null || string.IsNullOrEmpty(e.FilePath))
+        {
+            return;
+        }
+
+        var document = _folderService.TryResolveDocument(_currentRoot, e.FilePath);
+        if (document is DocumentInfo doc)
+        {
+            // Always create a new tab (even if file is already open)
+            ShowStartOverlay(false);
+            TabBarContainer.Visibility = Visibility.Visible;
+            MarkdownView.Visibility = Visibility.Visible;
+
             var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
             var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
             
@@ -1300,8 +1347,11 @@ This folder contains Markdown files in subdirectories.
 
             settingsWindow.SettingsSaved += async (s, e) =>
             {
-                // Refresh sidebar with new exclusion settings
-                await SidebarContent.RefreshExclusionSettingsAsync();
+                // Refresh tree view with new exclusion settings
+                if (_treeViewViewModel != null && _currentRoot != null)
+                {
+                    await _treeViewViewModel.LoadTreeAsync(_currentRoot.Path);
+                }
             };
 
             settingsWindow.ShowDialog();

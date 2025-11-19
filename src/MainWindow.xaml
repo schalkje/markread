@@ -9,7 +9,7 @@
         xmlns:start="clr-namespace:MarkRead.App.UI.Start"
         xmlns:tabs="clr-namespace:MarkRead.App.UI.Tabs"
         xmlns:find="clr-namespace:MarkRead.App.UI.Find"
-        xmlns:sidebar="clr-namespace:MarkRead.App.UI.Sidebar"
+        xmlns:treeview="clr-namespace:MarkRead.App.UI.Sidebar.TreeView"
         mc:Ignorable="d"
         Title="MarkRead" Height="720" Width="1080"
         MinHeight="400" MinWidth="600"
@@ -244,7 +244,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- File Tree -->
-                    <sidebar:SidebarView Grid.Row="0" x:Name="SidebarContent"/>
+                    <treeview:TreeViewView Grid.Row="0" x:Name="TreeViewContent"/>
                 </Grid>
             </Border>
 
