@@ -792,6 +792,26 @@ public class SettingsService
     }
 
     /// <summary>
+    /// Forces a reload of folder exclusion settings from disk, bypassing cache.
+    /// </summary>
+    public async Task<FolderExclusionSettings> ReloadFolderExclusionSettingsAsync()
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            // Clear cache to force reload
+            _folderExclusionSettings = null;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+
+        // Now load fresh from disk
+        return await LoadFolderExclusionSettingsAsync();
+    }
+
+    /// <summary>
     /// Saves folder exclusion settings to disk.
     /// </summary>
     public async Task SaveFolderExclusionSettingsAsync(FolderExclusionSettings folderExclusionSettings)

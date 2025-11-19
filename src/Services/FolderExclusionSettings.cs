@@ -60,6 +60,10 @@ public class FolderExclusionSettings
         {
             ExclusionRules = new List<ExclusionRule>
             {
+                new(".git", isBuiltIn: true, description: "Git repository metadata"),
+                new(".github", isBuiltIn: true, description: "GitHub workflows and configuration"),
+                new(".specify", isBuiltIn: true, description: "Project specification files"),
+                new(".vscode", isBuiltIn: true, description: "VS Code workspace settings"),
                 new(".venv", isBuiltIn: true, description: "Python virtual environment"),
                 new(".env", isBuiltIn: true, description: "Environment configuration folder"),
                 new("venv", isBuiltIn: true, description: "Python virtual environment"),

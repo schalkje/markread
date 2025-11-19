@@ -91,7 +91,8 @@ public partial class SidebarView : System.Windows.Controls.UserControl
     {
         if (_settingsService != null)
         {
-            _exclusionSettings = await _settingsService.LoadFolderExclusionSettingsAsync();
+            // Always force reload to get latest settings
+            _exclusionSettings = await _settingsService.ReloadFolderExclusionSettingsAsync();
         }
         else
         {
@@ -109,8 +110,15 @@ public partial class SidebarView : System.Windows.Controls.UserControl
     {
         _rootFolder = folderPath;
         
-        // Start loading immediately in background
-        _ = RefreshTreeAsync();
+        // Ensure exclusion settings are loaded before refreshing tree
+        _ = EnsureSettingsAndRefreshAsync();
+    }
+
+    private async Task EnsureSettingsAndRefreshAsync()
+    {
+        // Always reload settings to ensure we have the latest
+        await LoadExclusionSettingsAsync();
+        await RefreshTreeAsync();
     }
 
     private async Task RefreshTreeAsync()
