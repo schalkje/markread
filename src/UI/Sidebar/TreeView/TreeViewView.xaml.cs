@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using Microsoft.Xaml.Behaviors;
 
 namespace MarkRead.App.UI.Sidebar.TreeView;
@@ -10,6 +11,20 @@ namespace MarkRead.App.UI.Sidebar.TreeView;
 /// </summary>
 public partial class TreeViewView : System.Windows.Controls.UserControl
 {
+    private ContextMenu? _folderContextMenu;
+    private ContextMenu? _fileContextMenu;
+    
+    // Attached property to track if behaviors are attached to a TreeViewItem
+    private static readonly DependencyProperty IsBehaviorAttachedProperty =
+        DependencyProperty.RegisterAttached(
+            "IsBehaviorAttached",
+            typeof(bool),
+            typeof(TreeViewView),
+            new PropertyMetadata(false));
+    
+    private static bool GetIsBehaviorAttached(DependencyObject obj) => (bool)obj.GetValue(IsBehaviorAttachedProperty);
+    private static void SetIsBehaviorAttached(DependencyObject obj, bool value) => obj.SetValue(IsBehaviorAttachedProperty, value);
+    
     public TreeViewView()
     {
         InitializeComponent();
@@ -25,6 +40,10 @@ public partial class TreeViewView : System.Windows.Controls.UserControl
         
         // Attach behaviors to TreeViewItems as they are created
         FileTreeView.ItemContainerGenerator.StatusChanged += OnItemContainerGeneratorStatusChanged;
+        
+        // Create reusable context menus
+        _folderContextMenu = CreateFolderContextMenu();
+        _fileContextMenu = CreateFileContextMenu();
     }
 
     private void OnTreeViewLoaded(object sender, RoutedEventArgs e)
@@ -47,8 +66,8 @@ public partial class TreeViewView : System.Windows.Controls.UserControl
         {
             if (itemsControl.ItemContainerGenerator.ContainerFromItem(item) is TreeViewItem treeViewItem)
             {
-                // Use Tag to track if we've already processed this TreeViewItem
-                if (treeViewItem.Tag is string tag && tag == "BehaviorAttached")
+                // Use attached property to track if we've already processed this TreeViewItem
+                if (GetIsBehaviorAttached(treeViewItem))
                     continue;
                 
                 // Check if behavior is already attached
@@ -58,14 +77,11 @@ public partial class TreeViewView : System.Windows.Controls.UserControl
                     behaviors.Add(new TreeViewItemBehavior());
                 }
                 
-                // Attach context menu if not already present
-                if (treeViewItem.ContextMenu == null)
-                {
-                    treeViewItem.ContextMenu = CreateContextMenu();
-                }
+                // Always attach context menu opening handler
+                treeViewItem.ContextMenuOpening += OnContextMenuOpening;
                 
                 // Mark as processed
-                treeViewItem.Tag = "BehaviorAttached";
+                SetIsBehaviorAttached(treeViewItem, true);
                 
                 // Handle nested TreeViewItems when they are expanded
                 // Use a local copy to avoid closure issues
@@ -85,7 +101,72 @@ public partial class TreeViewView : System.Windows.Controls.UserControl
         }
     }
     
-    private ContextMenu CreateContextMenu()
+    private void OnContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        // Find the TreeViewItem that was actually right-clicked
+        if (e.OriginalSource is DependencyObject source)
+        {
+            var treeViewItem = FindTreeViewItemFromSource(source);
+            if (treeViewItem != null && treeViewItem.DataContext is Services.TreeNode node)
+            {
+                // Cancel the event on the sender if it's different from the actual clicked item
+                if (sender != treeViewItem)
+                {
+                    e.Handled = true;
+                    return;
+                }
+                
+                // Use the appropriate reusable context menu based on node type
+                ContextMenu? menu = node.Type == Services.NodeType.Folder 
+                    ? _folderContextMenu 
+                    : _fileContextMenu;
+                
+                if (menu != null)
+                {
+                    // Update all menu item tags to the current node
+                    UpdateMenuItemTags(menu, node);
+                    
+                    // Set the placement target and open manually
+                    menu.PlacementTarget = treeViewItem;
+                    menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+                    menu.IsOpen = true;
+                    
+                    // Prevent default context menu behavior
+                    e.Handled = true;
+                }
+            }
+            else
+            {
+                e.Handled = true;
+            }
+        }
+    }
+    
+    private void UpdateMenuItemTags(ContextMenu menu, Services.TreeNode node)
+    {
+        foreach (var item in menu.Items)
+        {
+            if (item is MenuItem menuItem)
+            {
+                menuItem.Tag = node;
+            }
+        }
+    }
+    
+    private TreeViewItem? FindTreeViewItemFromSource(DependencyObject source)
+    {
+        DependencyObject current = source;
+        while (current != null)
+        {
+            if (current is TreeViewItem item)
+                return item;
+            
+            current = VisualTreeHelper.GetParent(current);
+        }
+        return null;
+    }
+    
+    private ContextMenu CreateFolderContextMenu()
     {
         var contextMenu = new ContextMenu();
         
@@ -114,16 +195,66 @@ public partial class TreeViewView : System.Windows.Controls.UserControl
         
         return contextMenu;
     }
+    
+    private ContextMenu CreateFileContextMenu()
+    {
+        var contextMenu = new ContextMenu();
+        
+        // Open
+        var openItem = new MenuItem { Header = "Open" };
+        openItem.Click += ContextMenu_Open;
+        contextMenu.Items.Add(openItem);
+        
+        // Open in New Tab
+        var openInNewTabItem = new MenuItem { Header = "Open in New Tab" };
+        openInNewTabItem.Click += ContextMenu_OpenInNewTab;
+        contextMenu.Items.Add(openInNewTabItem);
+        
+        // Separator
+        contextMenu.Items.Add(new Separator());
+        
+        // Copy Path
+        var copyPathItem = new MenuItem { Header = "Copy Path" };
+        copyPathItem.Click += ContextMenu_CopyPath;
+        contextMenu.Items.Add(copyPathItem);
+        
+        return contextMenu;
+    }
+
+    /// <summary>
+    /// Context menu handler for opening a file
+    /// </summary>
+    private void ContextMenu_Open(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem && 
+            menuItem.Tag is Services.TreeNode node &&
+            node.Type == Services.NodeType.File &&
+            DataContext is TreeViewViewModel viewModel)
+        {
+            viewModel.SelectTreeNodeCommand.Execute(node);
+        }
+    }
+
+    /// <summary>
+    /// Context menu handler for opening a file in a new tab
+    /// </summary>
+    private void ContextMenu_OpenInNewTab(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem && 
+            menuItem.Tag is Services.TreeNode node &&
+            node.Type == Services.NodeType.File &&
+            DataContext is TreeViewViewModel viewModel)
+        {
+            viewModel.OpenFileInNewTab(node);
+        }
+    }
 
     /// <summary>
     /// Context menu handler for toggling folder expand/collapse
     /// </summary>
     private void ContextMenu_ToggleExpand(object sender, RoutedEventArgs e)
     {
-        if (sender is MenuItem menuItem && 
-            menuItem.Parent is ContextMenu contextMenu &&
-            contextMenu.PlacementTarget is TreeViewItem treeViewItem &&
-            treeViewItem.DataContext is Services.TreeNode node)
+        if (sender is MenuItem menuItem && menuItem.Tag is Services.TreeNode node)
         {
             if (node.Type == Services.NodeType.Folder)
             {
@@ -138,9 +269,7 @@ public partial class TreeViewView : System.Windows.Controls.UserControl
     private void ContextMenu_Refresh(object sender, RoutedEventArgs e)
     {
         if (sender is MenuItem menuItem && 
-            menuItem.Parent is ContextMenu contextMenu &&
-            contextMenu.PlacementTarget is TreeViewItem treeViewItem &&
-            treeViewItem.DataContext is Services.TreeNode node && 
+            menuItem.Tag is Services.TreeNode node && 
             DataContext is TreeViewViewModel viewModel)
         {
             // Trigger refresh command
@@ -153,10 +282,7 @@ public partial class TreeViewView : System.Windows.Controls.UserControl
     /// </summary>
     private void ContextMenu_CopyPath(object sender, RoutedEventArgs e)
     {
-        if (sender is MenuItem menuItem && 
-            menuItem.Parent is ContextMenu contextMenu &&
-            contextMenu.PlacementTarget is TreeViewItem treeViewItem &&
-            treeViewItem.DataContext is Services.TreeNode node)
+        if (sender is MenuItem menuItem && menuItem.Tag is Services.TreeNode node)
         {
             try
             {
@@ -174,10 +300,7 @@ public partial class TreeViewView : System.Windows.Controls.UserControl
     /// </summary>
     private void ContextMenu_ShowInExplorer(object sender, RoutedEventArgs e)
     {
-        if (sender is MenuItem menuItem && 
-            menuItem.Parent is ContextMenu contextMenu &&
-            contextMenu.PlacementTarget is TreeViewItem treeViewItem &&
-            treeViewItem.DataContext is Services.TreeNode node)
+        if (sender is MenuItem menuItem && menuItem.Tag is Services.TreeNode node)
         {
             try
             {
