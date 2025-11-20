@@ -32,7 +32,7 @@ public class BoolToVisibilityConverter : IValueConverter
 }
 
 /// <summary>
-/// Converts NodeType enum to icon character.
+/// Converts NodeType enum to icon character using Segoe Fluent Icons.
 /// </summary>
 public class NodeTypeToIconConverter : IValueConverter
 {
@@ -40,9 +40,12 @@ public class NodeTypeToIconConverter : IValueConverter
     {
         if (value is NodeType nodeType)
         {
-            return nodeType == NodeType.Folder ? "📁" : "📄";
+            // Using Segoe Fluent Icons / Segoe UI Symbol
+            // Folder: \uE8B7 (closed folder icon)
+            // File: \uE8A5 (document icon)
+            return nodeType == NodeType.Folder ? "\uE8B7" : "\uE8A5";
         }
-        return "📄";
+        return "\uE8A5";
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

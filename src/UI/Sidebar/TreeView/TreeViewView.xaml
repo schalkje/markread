@@ -8,7 +8,8 @@
              xmlns:services="clr-namespace:MarkRead.App.Services"
              xmlns:converters="clr-namespace:MarkRead.App.UI.Converters"
              mc:Ignorable="d"
-             d:DesignHeight="450" d:DesignWidth="300">
+             d:DesignHeight="450" d:DesignWidth="300"
+             Background="{DynamicResource ThemeSidebarBackgroundBrush}">
     
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
@@ -37,6 +38,7 @@
                        Text="Files" 
                        FontWeight="SemiBold" 
                        FontSize="14"
+                       Foreground="{DynamicResource ThemeForegroundBrush}"
                        VerticalAlignment="Center"/>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -44,12 +46,12 @@
                 <TextBlock Text="Loading..." 
                            Margin="0,0,8,0"
                            FontSize="11"
-                           Foreground="Gray"
+                           Foreground="{DynamicResource ThemeTextSecondaryBrush}"
                            Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
                 <!-- File count -->
                 <TextBlock FontSize="11" 
-                           Foreground="Gray"
+                           Foreground="{DynamicResource ThemeTextSecondaryBrush}"
                            Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
                     <Run Text="{Binding FileCount, Mode=OneWay}"/>
                     <Run Text=" files"/>
@@ -66,13 +68,18 @@
                     Margin="4,0,0,0"
                     FontSize="12"
                     Padding="2"
-                    BorderThickness="1"/>
+                    BorderThickness="1"
+                    Background="{DynamicResource ThemeButtonBackgroundBrush}"
+                    Foreground="{DynamicResource ThemeForegroundBrush}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"/>
         </Grid>
 
         <!-- TreeView -->
         <TreeView Grid.Row="1" 
                   x:Name="FileTreeView"
                   ItemsSource="{Binding TreeRoot.Children}"
+                  Background="{DynamicResource ThemeSidebarBackgroundBrush}"
+                  Foreground="{DynamicResource ThemeForegroundBrush}"
                   BorderThickness="0"
                   Padding="4"
                   VirtualizingPanel.IsVirtualizing="True"
@@ -83,21 +90,36 @@
                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
                     <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
                     <!-- Context Menu will be added programmatically in code-behind -->
                 </Style>
             </TreeView.ItemContainerStyle>
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                     <StackPanel Orientation="Horizontal" Margin="2">
-                        <!-- Icon (folder or file) -->
+                        <!-- Icon (folder or file) using theme-aware Segoe Fluent Icons -->
                         <TextBlock Text="{Binding Type, Converter={StaticResource NodeTypeToIconConverter}}" 
-                                   FontFamily="Segoe UI Symbol"
+                                   FontFamily="Segoe Fluent Icons,Segoe UI Symbol"
                                    FontSize="14"
                                    Margin="0,0,6,0"
-                                   VerticalAlignment="Center"/>
+                                   VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Type}" Value="{x:Static services:NodeType.Folder}">
+                                            <Setter Property="Foreground" Value="{DynamicResource ThemeFolderIconBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="{x:Static services:NodeType.File}">
+                                            <Setter Property="Foreground" Value="{DynamicResource ThemeFolderIconBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         
                         <!-- File/folder name -->
                         <TextBlock Text="{Binding Name}" 
+                                   Foreground="{DynamicResource ThemeForegroundBrush}"
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
@@ -108,7 +130,7 @@
         <!-- Empty state message -->
         <TextBlock Grid.Row="1"
                    Text="No markdown files found in this folder"
-                   Foreground="Gray"
+                   Foreground="{DynamicResource ThemeTextSecondaryBrush}"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"
                    TextWrapping="Wrap"
