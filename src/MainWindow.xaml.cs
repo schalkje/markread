@@ -1240,33 +1240,40 @@ This folder contains Markdown files in subdirectories.
         var document = _folderService.TryResolveDocument(_currentRoot, e.FilePath);
         if (document is DocumentInfo doc)
         {
-            // Check if the file is already open in a tab
-            var existingTab = _tabService.Tabs.FirstOrDefault(t => t.DocumentPath == e.FilePath);
-            if (existingTab is not null)
-            {
-                // Just activate the existing tab
-                _tabService.SetActiveTab(existingTab);
-                return;
-            }
-
             // Ensure tab bar and content are visible
             ShowStartOverlay(false);
             TabBarContainer.Visibility = Visibility.Visible;
             MarkdownView.Visibility = Visibility.Visible;
 
-            // Create a new tab for the file
-            var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
-            var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
-            
-            _ = Task.Run(async () =>
+            // Get or create current tab
+            var currentTab = GetCurrentTab();
+            if (currentTab is null)
             {
-                await Dispatcher.InvokeAsync(async () =>
+                // No tabs exist, create first tab
+                var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
+                currentTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+                
+                _ = Task.Run(async () =>
                 {
-                    await AddTabAsync(newTab);
-                    _tabService.SetActiveTab(newTab);
-                    await LoadDocumentInTabAsync(newTab, doc);
+                    await Dispatcher.InvokeAsync(async () =>
+                    {
+                        await AddTabAsync(currentTab);
+                        _tabService.SetActiveTab(currentTab);
+                        await LoadDocumentInTabAsync(currentTab, doc);
+                    });
                 });
-            });
+            }
+            else
+            {
+                // Load document in current tab
+                _ = Task.Run(async () =>
+                {
+                    await Dispatcher.InvokeAsync(async () =>
+                    {
+                        await LoadDocumentInTabAsync(currentTab, doc);
+                    });
+                });
+            }
         }
     }
 
