@@ -44,6 +44,45 @@ public partial class TreeViewView : System.Windows.Controls.UserControl
         // Create reusable context menus
         _folderContextMenu = CreateFolderContextMenu();
         _fileContextMenu = CreateFileContextMenu();
+
+        // Subscribe to ViewModel events when DataContext changes
+        this.DataContextChanged += OnDataContextChanged;
+    }
+
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        // Unsubscribe from old ViewModel
+        if (e.OldValue is TreeViewViewModel oldViewModel)
+        {
+            oldViewModel.ScrollNodeIntoViewRequested -= OnScrollNodeIntoViewRequested;
+        }
+
+        // Subscribe to new ViewModel
+        if (e.NewValue is TreeViewViewModel newViewModel)
+        {
+            newViewModel.ScrollNodeIntoViewRequested += OnScrollNodeIntoViewRequested;
+        }
+    }
+
+    private void OnScrollNodeIntoViewRequested(object? sender, Services.TreeNode node)
+    {
+        // Find the TreeViewItem for this node and scroll it into view
+        if (FileTreeView.ItemContainerGenerator.ContainerFromItem(node) is TreeViewItem treeViewItem)
+        {
+            treeViewItem.BringIntoView();
+        }
+        else
+        {
+            // If the container isn't generated yet, try after a short delay
+            Dispatcher.InvokeAsync(async () =>
+            {
+                await Task.Delay(100);
+                if (FileTreeView.ItemContainerGenerator.ContainerFromItem(node) is TreeViewItem delayedItem)
+                {
+                    delayedItem.BringIntoView();
+                }
+            }, System.Windows.Threading.DispatcherPriority.Background);
+        }
     }
 
     private void OnTreeViewLoaded(object sender, RoutedEventArgs e)

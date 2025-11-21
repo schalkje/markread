@@ -45,6 +45,10 @@
     <SolidColorBrush x:Key="ThemeFolderIconBrush" Color="#60A5FA"/>
     <SolidColorBrush x:Key="ThemeFileIconBrush" Color="#9CA3AF"/>
 
+    <!-- Light Theme TreeView Selection Colors -->
+    <SolidColorBrush x:Key="ThemeTreeViewSelectionBrush" Color="#DBEAFE"/>    <!-- Very light blue -->
+    <SolidColorBrush x:Key="ThemeTreeViewSelectionForegroundBrush" Color="#1E40AF"/>  <!-- Dark blue text -->
+
     <!-- Typography System -->
     
     <!-- Font Families -->

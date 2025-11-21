@@ -547,6 +547,12 @@ public partial class MainWindow : Window
             
             Title = $"MarkRead - {renderResult.Title}";
             SubscribeToDocumentChanges(tab, document);
+
+            // Sync tree view with the current document
+            if (_treeViewViewModel is not null)
+            {
+                _treeViewViewModel.SyncTreeWithDocument(document.FullPath);
+            }
         });
 
         await _webViewHost.WaitForReadyAsync();
@@ -1045,6 +1051,12 @@ This folder contains Markdown files in subdirectories.
             {
                 var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
                 _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+
+                // Sync tree view with the active tab's document
+                if (_treeViewViewModel is not null)
+                {
+                    _treeViewViewModel.SyncTreeWithDocument(tab.DocumentPath);
+                }
             }
             else
             {

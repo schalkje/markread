@@ -35,6 +35,7 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
     private CancellationTokenSource? _currentLoadCancellation;
     private Services.TreeNode? _previouslySelectedNode;
     private IDisposable? _fileWatcherSubscription;
+    private bool _isSyncingSelection = false; // Flag to prevent navigation during programmatic sync
     
     // T069-T074: Type-ahead search
     private string _typeAheadBuffer = string.Empty;
@@ -97,6 +98,11 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
     /// Event raised when a file should be opened in a new tab.
     /// </summary>
     public event EventHandler<FileNavigationEventArgs>? NavigateToFileInNewTabRequested;
+
+    /// <summary>
+    /// Event raised when a tree node should be scrolled into view.
+    /// </summary>
+    public event EventHandler<Services.TreeNode>? ScrollNodeIntoViewRequested;
 
     /// <summary>
     /// Command for selecting a tree node.
@@ -342,6 +348,12 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
         // Select the new node
         node.IsSelected = true;
         _previouslySelectedNode = node;
+
+        // If we're syncing programmatically, don't trigger navigation
+        if (_isSyncingSelection)
+        {
+            return;
+        }
 
         // If it's a file node, raise navigation event
         if (node.Type == Services.NodeType.File)
@@ -606,6 +618,89 @@ public class TreeViewViewModel : INotifyPropertyChanged, IDisposable
             return;
 
         NavigateToFileInNewTabRequested?.Invoke(this, new FileNavigationEventArgs(fileNode.FullPath));
+    }
+
+    /// <summary>
+    /// Synchronizes the tree view selection with the specified file path.
+    /// Expands parent folders as needed and selects the node.
+    /// </summary>
+    public void SyncTreeWithDocument(string filePath)
+    {
+        if (string.IsNullOrEmpty(filePath) || TreeRoot is null)
+            return;
+
+        // Normalize the file path for comparison
+        var normalizedPath = System.IO.Path.GetFullPath(filePath);
+
+        // Find the node
+        var node = FindNodeByPath(TreeRoot, normalizedPath);
+        if (node is null)
+            return;
+
+        // Set flag to prevent navigation event during sync
+        _isSyncingSelection = true;
+
+        try
+        {
+            // Deselect previously selected node
+            if (_previouslySelectedNode is not null && _previouslySelectedNode != node)
+            {
+                _previouslySelectedNode.IsSelected = false;
+            }
+
+            // Expand all parent folders
+            ExpandParentNodes(node);
+
+            // Select the node
+            node.IsSelected = true;
+            _previouslySelectedNode = node;
+
+            // Request scroll into view
+            ScrollNodeIntoViewRequested?.Invoke(this, node);
+        }
+        finally
+        {
+            // Reset flag
+            _isSyncingSelection = false;
+        }
+    }
+
+    /// <summary>
+    /// Recursively finds a tree node by its full path.
+    /// </summary>
+    private Services.TreeNode? FindNodeByPath(Services.TreeNode root, string normalizedPath)
+    {
+        // Check if this is the node we're looking for
+        var rootNormalizedPath = System.IO.Path.GetFullPath(root.FullPath);
+        if (string.Equals(rootNormalizedPath, normalizedPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return root;
+        }
+
+        // Search in children
+        foreach (var child in root.Children)
+        {
+            var result = FindNodeByPath(child, normalizedPath);
+            if (result is not null)
+            {
+                return result;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Expands all parent nodes up to the root to make the target node visible.
+    /// </summary>
+    private void ExpandParentNodes(Services.TreeNode node)
+    {
+        var parent = node.Parent;
+        while (parent is not null)
+        {
+            parent.IsExpanded = true;
+            parent = parent.Parent;
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
