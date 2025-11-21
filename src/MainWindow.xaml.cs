@@ -37,6 +37,8 @@ public partial class MainWindow : Window
     private readonly SettingsService _settingsService;
     private readonly HistoryService _historyService = new();
     private readonly FileWatcherService _fileWatcherService = new();
+    private readonly TreeViewService _treeViewService;
+    private readonly TreeViewContextMenuService _treeViewContextMenuService = new();
     private readonly TabService _tabService = new();
     private readonly INavigationService _navigationService = new NavigationService();
     private readonly Renderer _renderer;
@@ -44,6 +46,7 @@ public partial class MainWindow : Window
     private readonly OpenFolderCommand _openFolderCommand;
     private readonly ThemeManager _themeManager;
 
+    private UI.Sidebar.TreeView.TreeViewViewModel? _treeViewViewModel;
     private FolderRoot? _currentRoot;
     private IDisposable? _documentWatcher;
     private StartupArguments _startupArguments = StartupArguments.Empty;
@@ -63,6 +66,7 @@ public partial class MainWindow : Window
         _settingsService = app.SettingsService;
         _themeManager = app.ThemeManager;
 
+        _treeViewService = new TreeViewService(_historyService, _settingsService);
         _renderer = new Renderer(_markdownService, _sanitizer);
         _linkResolver = new LinkResolver(_folderService);
         _openFolderCommand = new OpenFolderCommand(_folderService);
@@ -92,8 +96,17 @@ public partial class MainWindow : Window
         FindBar.PreviousRequested += OnFindPreviousRequested;
         FindBar.CloseRequested += OnFindCloseRequested;
 
-        // Wire up Sidebar events
-        SidebarContent.FileSelected += OnSidebarFileSelected;
+        // Initialize TreeView ViewModel
+        _treeViewViewModel = new UI.Sidebar.TreeView.TreeViewViewModel(
+            _treeViewService, 
+            _fileWatcherService,
+            _treeViewContextMenuService);
+        
+        TreeViewContent.DataContext = _treeViewViewModel;
+        
+        // Wire up TreeView events
+        _treeViewViewModel.NavigateToFileRequested += OnTreeViewFileSelected;
+        _treeViewViewModel.NavigateToFileInNewTabRequested += OnTreeViewFileSelectedInNewTab;
 
         CommandBindings.Add(new CommandBinding(App.OpenFolderCommand, async (_, _) => await ExecuteOpenFolderAsync(), CanExecuteWhenInteractive));
         CommandBindings.Add(new CommandBinding(App.OpenFileCommand, async (_, _) => await ExecuteOpenFileAsync(), CanExecuteWhenInteractive));
@@ -124,12 +137,22 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        // TreeView ViewModel is already initialized in constructor
+        
         await EnsureWebViewAsync();
         await InitializeFromStartupAsync();
     }
 
     private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        // Handle Ctrl+, for Settings
+        if (e.Key == Key.OemComma && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            OpenSettingsWindow();
+            e.Handled = true;
+            return;
+        }
+        
         // Handle tab navigation shortcuts
         if (e.Key == Key.Tab && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
@@ -367,9 +390,6 @@ public partial class MainWindow : Window
         _navigationService.ClearCurrentFile();
         _navigationService.UpdateHistoryState(false, false);
 
-        // Initialize sidebar with folder root
-        SidebarContent.SetRootFolder(result.Root.Path);
-
         // Create initial tab if no tabs exist
         if (_tabService.Tabs.Count == 0)
         {
@@ -377,11 +397,12 @@ public partial class MainWindow : Window
             await AddTabAsync(initialTab);
         }
 
-        // Show tabs and load document
+        // Show tabs and main content immediately
         ShowStartOverlay(false);
         TabBarContainer.Visibility = Visibility.Visible;
         MarkdownView.Visibility = Visibility.Visible;
 
+        // Quick check: if there's a default document in root, show it immediately
         if (result.DefaultDocument is DocumentInfo doc)
         {
             var currentTab = GetCurrentTab();
@@ -390,10 +411,39 @@ public partial class MainWindow : Window
                 await LoadDocumentInTabAsync(currentTab, doc);
             }
         }
+        // If no default document in root, do a quick check for ANY markdown files
         else
         {
-            ShowStartOverlay(true);
-            System.Windows.MessageBox.Show(this, "No Markdown files were found in the selected folder.", "MarkRead", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Quick check for any markdown files in entire tree (returns on first match)
+            bool hasAnyMarkdownFiles = await Task.Run(() => _folderService.HasAnyMarkdownFiles(result.Root));
+            
+            var currentTab = GetCurrentTab();
+            if (currentTab is not null)
+            {
+                if (hasAnyMarkdownFiles)
+                {
+                    // There are markdown files in subdirectories, show a friendly message
+                    // while the tree loads to allow navigation
+                    await ShowMarkdownFilesInSubfoldersMessageAsync(currentTab, result.Root.Path);
+                }
+                else
+                {
+                    // No markdown files anywhere, show the "no files" message immediately
+                    await ShowNoMarkdownFilesMessageAsync(currentTab, result.Root.Path);
+                }
+            }
+        }
+
+        // Load tree view in background
+        if (_treeViewViewModel != null && !string.IsNullOrEmpty(result.Root.Path))
+        {
+            _ = Task.Run(async () =>
+            {
+                await Dispatcher.InvokeAsync(async () => 
+                {
+                    await _treeViewViewModel.LoadTreeAsync(result.Root.Path);
+                });
+            });
         }
     }
 
@@ -497,6 +547,12 @@ public partial class MainWindow : Window
             
             Title = $"MarkRead - {renderResult.Title}";
             SubscribeToDocumentChanges(tab, document);
+
+            // Sync tree view with the current document
+            if (_treeViewViewModel is not null)
+            {
+                _treeViewViewModel.SyncTreeWithDocument(document.FullPath);
+            }
         });
 
         await _webViewHost.WaitForReadyAsync();
@@ -535,6 +591,132 @@ public partial class MainWindow : Window
         {
             await LoadDocumentInTabAsync(tab, doc, pushHistory: false);
         }
+    }
+
+    private async Task ShowNoMarkdownFilesMessageAsync(TabItemModel tab, string folderPath)
+    {
+        if (_webViewHost is null)
+        {
+            return;
+        }
+
+        tab.DocumentPath = string.Empty;
+        tab.Title = "No Files";
+
+        _navigationService.ClearCurrentFile();
+
+        var folderName = Path.GetFileName(folderPath);
+        if (string.IsNullOrEmpty(folderName))
+        {
+            folderName = folderPath;
+        }
+
+        var resolvedTheme = _themeManager.GetResolvedTheme().ToString().ToLowerInvariant();
+        
+        // Create a friendly message in markdown format
+        var markdown = $@"# No Markdown Files Found
+
+The folder **{folderName}** does not contain any Markdown files.
+
+## What you can do:
+
+- **Open a different folder** using `Ctrl+O` or the File menu
+- **Open a specific file** using `Ctrl+Shift+O`
+- Add `.md`, `.markdown`, or `.mdx` files to this folder
+
+---
+
+**Folder path:** `{folderPath}`
+";
+
+        var request = new RenderRequest(
+            markdown,
+            folderPath,
+            null,
+            null,
+            resolvedTheme);
+
+        var renderResult = await _renderer.RenderAsync(request);
+
+        await Dispatcher.InvokeAsync(() =>
+        {
+            if (!string.IsNullOrEmpty(renderResult.TempFilePath) && File.Exists(renderResult.TempFilePath))
+            {
+                _webViewHost.NavigateToFile(renderResult.TempFilePath);
+            }
+            else
+            {
+                _webViewHost.NavigateToString(renderResult.Html);
+            }
+            
+            Title = "MarkRead - No Markdown Files";
+        });
+
+        await _webViewHost.WaitForReadyAsync();
+        UpdateNavigationHistoryState();
+    }
+
+    private async Task ShowMarkdownFilesInSubfoldersMessageAsync(TabItemModel tab, string folderPath)
+    {
+        if (_webViewHost is null)
+        {
+            return;
+        }
+
+        tab.DocumentPath = string.Empty;
+        tab.Title = "Loading...";
+
+        _navigationService.ClearCurrentFile();
+
+        var folderName = Path.GetFileName(folderPath);
+        if (string.IsNullOrEmpty(folderName))
+        {
+            folderName = folderPath;
+        }
+
+        var resolvedTheme = _themeManager.GetResolvedTheme().ToString().ToLowerInvariant();
+        
+        // Create a friendly message in markdown format
+        var markdown = $@"# Welcome to {folderName}
+
+This folder contains Markdown files in subdirectories.
+
+## Getting started:
+
+- **Browse the file tree** on the left to find documents
+- **Click any file** in the tree to view it
+- The tree is loading in the background...
+
+---
+
+**Folder path:** `{folderPath}`
+";
+
+        var request = new RenderRequest(
+            markdown,
+            folderPath,
+            null,
+            null,
+            resolvedTheme);
+
+        var renderResult = await _renderer.RenderAsync(request);
+
+        await Dispatcher.InvokeAsync(() =>
+        {
+            if (!string.IsNullOrEmpty(renderResult.TempFilePath) && File.Exists(renderResult.TempFilePath))
+            {
+                _webViewHost.NavigateToFile(renderResult.TempFilePath);
+            }
+            else
+            {
+                _webViewHost.NavigateToString(renderResult.Html);
+            }
+            
+            Title = $"MarkRead - {folderName}";
+        });
+
+        await _webViewHost.WaitForReadyAsync();
+        UpdateNavigationHistoryState();
     }
 
     private void OnBridgeMessageReceived(object? sender, WebViewBridgeEventArgs e)
@@ -869,6 +1051,12 @@ public partial class MainWindow : Window
             {
                 var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
                 _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+
+                // Sync tree view with the active tab's document
+                if (_treeViewViewModel is not null)
+                {
+                    _treeViewViewModel.SyncTreeWithDocument(tab.DocumentPath);
+                }
             }
             else
             {
@@ -1052,33 +1240,73 @@ public partial class MainWindow : Window
 
     // UI Helper methods - file path display now handled by NavigationBar
 
-    // Sidebar integration
-    private void OnSidebarFileSelected(object? sender, string filePath)
+    // TreeView integration
+    private void OnTreeViewFileSelected(object? sender, UI.Sidebar.TreeView.FileNavigationEventArgs e)
     {
-        if (_currentRoot is null || string.IsNullOrEmpty(filePath))
+        if (_currentRoot is null || string.IsNullOrEmpty(e.FilePath))
         {
             return;
         }
 
         // Resolve the document from the file path
-        var document = _folderService.TryResolveDocument(_currentRoot, filePath);
+        var document = _folderService.TryResolveDocument(_currentRoot, e.FilePath);
         if (document is DocumentInfo doc)
         {
-            // Check if the file is already open in a tab
-            var existingTab = _tabService.Tabs.FirstOrDefault(t => t.DocumentPath == filePath);
-            if (existingTab is not null)
-            {
-                // Just activate the existing tab
-                _tabService.SetActiveTab(existingTab);
-                return;
-            }
-
             // Ensure tab bar and content are visible
             ShowStartOverlay(false);
             TabBarContainer.Visibility = Visibility.Visible;
             MarkdownView.Visibility = Visibility.Visible;
 
-            // Create a new tab for the file
+            // Get or create current tab
+            var currentTab = GetCurrentTab();
+            if (currentTab is null)
+            {
+                // No tabs exist, create first tab
+                var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
+                currentTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+                
+                _ = Task.Run(async () =>
+                {
+                    await Dispatcher.InvokeAsync(async () =>
+                    {
+                        await AddTabAsync(currentTab);
+                        _tabService.SetActiveTab(currentTab);
+                        await LoadDocumentInTabAsync(currentTab, doc);
+                    });
+                });
+            }
+            else
+            {
+                // Load document in current tab
+                _ = Task.Run(async () =>
+                {
+                    await Dispatcher.InvokeAsync(async () =>
+                    {
+                        await LoadDocumentInTabAsync(currentTab, doc);
+                    });
+                });
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handles Ctrl+Click on tree view items to open in new tab
+    /// </summary>
+    private void OnTreeViewFileSelectedInNewTab(object? sender, UI.Sidebar.TreeView.FileNavigationEventArgs e)
+    {
+        if (_currentRoot is null || string.IsNullOrEmpty(e.FilePath))
+        {
+            return;
+        }
+
+        var document = _folderService.TryResolveDocument(_currentRoot, e.FilePath);
+        if (document is DocumentInfo doc)
+        {
+            // Always create a new tab (even if file is already open)
+            ShowStartOverlay(false);
+            TabBarContainer.Visibility = Visibility.Visible;
+            MarkdownView.Visibility = Visibility.Visible;
+
             var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
             var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
             
@@ -1120,5 +1348,40 @@ public partial class MainWindow : Window
         // TODO: Show export dropdown menu
         // For now, just show a placeholder message
         WpfMessageBox.Show("Export functionality coming soon", "Export", MessageBoxButton.OK);
+    }
+
+    private void NavigationBar_SettingsRequested(object? sender, EventArgs e)
+    {
+        OpenSettingsWindow();
+    }
+
+    private void OpenSettingsWindow()
+    {
+        try
+        {
+            var settingsWindow = new UI.Settings.SettingsWindow(_settingsService)
+            {
+                Owner = this
+            };
+
+            settingsWindow.SettingsSaved += async (s, e) =>
+            {
+                // Refresh tree view with new exclusion settings
+                if (_treeViewViewModel != null && _currentRoot != null)
+                {
+                    await _treeViewViewModel.LoadTreeAsync(_currentRoot.Path);
+                }
+            };
+
+            settingsWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            WpfMessageBox.Show(
+                $"Failed to open settings: {ex.Message}",
+                "Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 }

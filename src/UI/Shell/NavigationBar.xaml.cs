@@ -170,6 +170,12 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
         Window.GetWindow(this)?.Close();
     }
 
+    private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        // Raise event for settings menu item click
+        SettingsRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>
     /// Event raised when menu button is clicked (toggle sidebar)
     /// </summary>
@@ -184,4 +190,9 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
     /// Event raised when export button is clicked
     /// </summary>
     public event EventHandler? ExportRequested;
+
+    /// <summary>
+    /// Event raised when settings menu item is clicked
+    /// </summary>
+    public event EventHandler? SettingsRequested;
 }
