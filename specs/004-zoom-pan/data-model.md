@@ -14,7 +14,7 @@ This document defines the data structures and entities required for implementing
 
 Represents the zoom and pan state for a single tab.
 
-**Location**: `TabViewModel` properties (WPF)
+**Location**: `TabItem` properties (WPF) in `src/UI/Tabs/TabItem.cs`
 
 **Properties**:
 
@@ -44,7 +44,7 @@ Initial State: (100.0, 0.0, 0.0)
 **Lifetime**: Session-only (not persisted to disk)
 
 **Related Entities**: 
-- `TabViewModel` (owner)
+- `TabItem` (owner)
 - `AppSettings.DefaultZoomPercent` (initialization source)
 
 ---
@@ -69,7 +69,7 @@ Extended application settings to include default zoom preference.
 **Lifetime**: Persisted across application sessions
 
 **Related Entities**:
-- `TabViewModel.ZoomPercent` (initialized from this value)
+- `TabItem.ZoomPercent` (initialized from this value)
 
 ---
 
@@ -165,7 +165,7 @@ Represents the current zoom/pan state sent from JavaScript back to WPF.
 }
 ```
 
-**Usage**: Update `TabViewModel` properties after zoom/pan operations complete in JavaScript
+**Usage**: Update `TabItem` properties after zoom/pan operations complete in JavaScript
 
 ---
 
@@ -193,7 +193,7 @@ Apply CSS transform: scale()
     ↓
 Send ZoomPanResponse back to WPF
     ↓
-Update TabViewModel.ZoomPercent
+Update TabItem.ZoomPercent
 ```
 
 ### Pan Operation Flow
@@ -217,7 +217,7 @@ Apply CSS transform: matrix(scale, 0, 0, scale, panX, panY)
     ↓
 Send ZoomPanResponse back to WPF
     ↓
-Update TabViewModel.PanOffsetX, PanOffsetY
+Update TabItem.PanOffsetX, PanOffsetY
 ```
 
 ### Tab Switch Flow
@@ -225,9 +225,9 @@ Update TabViewModel.PanOffsetX, PanOffsetY
 ```
 User Action (Switch Tab)
     ↓
-TabViewModel.OnActivated()
+TabItem.OnActivated() or Tab Selection Changed
     ↓
-Read ZoomPercent, PanOffsetX, PanOffsetY from TabViewModel
+Read ZoomPercent, PanOffsetX, PanOffsetY from TabItem
     ↓
 Create ZoomCommand JSON with action="restore"
     ↓
@@ -245,13 +245,13 @@ Apply CSS transform with saved zoom/pan state
 ```
 User Action (Open New Tab)
     ↓
-Create new TabViewModel instance
+Create new TabItem instance
     ↓
 Read AppSettings.DefaultZoomPercent
     ↓
-Initialize TabViewModel.ZoomPercent = DefaultZoomPercent
-Initialize TabViewModel.PanOffsetX = 0.0
-Initialize TabViewModel.PanOffsetY = 0.0
+Initialize TabItem.ZoomPercent = DefaultZoomPercent
+Initialize TabItem.PanOffsetX = 0.0
+Initialize TabItem.PanOffsetY = 0.0
     ↓
 (Zoom/pan applied when tab activated via Tab Switch Flow)
 ```
@@ -309,7 +309,7 @@ panY = clamp(panY, 0, maxPanY)
 AppSettings
     └── DefaultZoomPercent (1:1)
             ↓ initializes
-TabViewModel (1:N)
+TabItem (1:N)
     ├── ZoomPercent
     ├── PanOffsetX
     └── PanOffsetY
@@ -320,7 +320,7 @@ JavaScript Zoom/Pan Controller
             ↓ sends responses
 ZoomPanResponse (ephemeral)
             ↓ updates
-TabViewModel (closes loop)
+TabItem (closes loop)
 ```
 
 ---
@@ -329,9 +329,9 @@ TabViewModel (closes loop)
 
 ### C# Side (WPF)
 
-1. **TabViewModel.cs**:
+1. **TabItem.cs** (`src/UI/Tabs/TabItem.cs`):
    ```csharp
-   public class TabViewModel : INotifyPropertyChanged
+   public class TabItem : INotifyPropertyChanged
    {
        private double _zoomPercent = 100.0;
        private double _panOffsetX = 0.0;
@@ -376,7 +376,7 @@ TabViewModel (closes loop)
    }
    ```
 
-2. **SettingsService.cs**:
+2. **SettingsService.cs** (`src/Services/SettingsService.cs`):
    ```csharp
    public class AppSettings
    {
@@ -461,11 +461,11 @@ class ZoomPanController {
 
 ### Integration Tests
 
-1. **Command Flow**:
+2. **Command Flow**:
    - Send zoom command → verify JavaScript receives correct values
-   - JavaScript sends response → verify TabViewModel updated
+   - JavaScript sends response → verify TabItem updated
 
-2. **Tab Switching**:
+3. **Tab Switching**:
    - Set zoom in Tab A → switch to Tab B → switch back → verify Tab A zoom preserved
 
 ---

@@ -19,7 +19,7 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
 
 ### Phase 1: Data Model (30 minutes)
 
-**Goal**: Add zoom/pan properties to TabViewModel and settings
+**Goal**: Add zoom/pan properties to TabItem and settings
 
 **Steps**:
 
@@ -40,9 +40,9 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
    }
    ```
 
-2. **Add ZoomPanState to TabViewModel** (`src/UI/ViewModels/TabViewModel.cs`):
+2. **Add ZoomPanState to TabItem** (`src/UI/Tabs/TabItem.cs`):
    ```csharp
-   public class TabViewModel : INotifyPropertyChanged
+   public class TabItem : INotifyPropertyChanged
    {
        // ... existing properties
        
@@ -80,7 +80,7 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
            }
        }
        
-       public TabViewModel(AppSettings settings)
+       public TabItem(AppSettings settings)
        {
            // Initialize with default from settings
            _zoomPercent = settings.DefaultZoomPercent;
@@ -97,7 +97,7 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
    }
    ```
 
-**Checkpoint**: Compile and run. Verify no errors. TabViewModel now has zoom/pan state.
+**Checkpoint**: Compile and run. Verify no errors. TabItem now has zoom/pan state.
 
 ---
 
@@ -253,7 +253,7 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
 
 **Steps**:
 
-1. **Add event handlers to MainWindow or WebView host** (`src/MainWindow.xaml.cs` or `src/Rendering/WebViewHost.cs`):
+1. **Add event handlers to WebViewHost or MainWindow** (`src/Rendering/WebViewHost.cs` or `src/MainWindow.xaml.cs`):
    ```csharp
    using System.Text.Json;
    using System.Windows.Input;
@@ -416,8 +416,8 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
            
            if (message?.Type == "zoomPanState")
            {
-               // Update active tab's ViewModel
-               var activeTab = GetActiveTabViewModel();
+               // Update active tab's state
+               var activeTab = GetActiveTabItem();
                if (activeTab != null)
                {
                    activeTab.ZoomPercent = message.Zoom;
@@ -499,13 +499,13 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
 
 **Steps**:
 
-1. **Hook tab activation event** (in tab control or main window):
+1. **Hook tab activation event** (in TabsView or TabService):
    ```csharp
    private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
    {
        if (e.AddedItems.Count > 0)
        {
-           var tab = e.AddedItems[0] as TabViewModel;
+           var tab = e.AddedItems[0] as TabItem;
            if (tab != null)
            {
                RestoreTabZoomPanAsync(tab).ConfigureAwait(false);
@@ -513,7 +513,7 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
        }
    }
    
-   private async Task RestoreTabZoomPanAsync(TabViewModel tab)
+   private async Task RestoreTabZoomPanAsync(TabItem tab)
    {
        if (webView?.CoreWebView2 == null) return;
        
@@ -532,13 +532,12 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
 
 2. **Initialize new tabs with default zoom**:
    ```csharp
-   private TabViewModel CreateNewTab(string filePath)
+   private TabItem CreateNewTab(string filePath)
    {
        var settings = _settingsService.Load();
-       var tab = new TabViewModel(settings)
+       var tab = new TabItem(Guid.NewGuid(), Path.GetFileName(filePath), filePath)
        {
-           FilePath = filePath,
-           // ZoomPercent already initialized from settings in constructor
+           // Initialize zoom from settings (or add to constructor)
        };
        
        return tab;
@@ -555,7 +554,7 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
 
 **Steps**:
 
-1. **Add to settings UI** (`src/UI/Views/SettingsWindow.xaml`):
+1. **Add to settings UI** (`src/UI/Settings/SettingsWindow.xaml` or similar):
    ```xml
    <StackPanel>
        <!-- ... existing settings -->
@@ -581,7 +580,7 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
    </StackPanel>
    ```
 
-2. **Bind to settings model** (update SettingsViewModel or use existing pattern)
+2. **Bind to settings model** (update Settings ViewModel or use existing pattern)
 
 **Checkpoint**: Open settings. Change default zoom. Open new tab. Verify new tab uses new default zoom.
 
@@ -721,15 +720,15 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
 
 **Steps**:
 
-1. **Unit tests** (`tests/unit/ViewModels/TabViewModelTests.cs`):
+1. **Unit tests** (`tests/unit/TabItemTests.cs`):
    ```csharp
    [TestClass]
-   public class TabViewModelTests
+   public class TabItemTests
    {
        [TestMethod]
        public void ZoomPercent_ClampsToMinimum()
        {
-           var tab = new TabViewModel(new AppSettings());
+           var tab = new TabItem(Guid.NewGuid(), "Test");
            tab.ZoomPercent = 5.0;
            Assert.AreEqual(10.0, tab.ZoomPercent);
        }
@@ -737,7 +736,7 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
        [TestMethod]
        public void ZoomPercent_ClampsToMaximum()
        {
-           var tab = new TabViewModel(new AppSettings());
+           var tab = new TabItem(Guid.NewGuid(), "Test");
            tab.ZoomPercent = 1500.0;
            Assert.AreEqual(1000.0, tab.ZoomPercent);
        }
@@ -745,7 +744,7 @@ This guide provides step-by-step instructions for implementing zoom and pan cont
        [TestMethod]
        public void ResetZoomPan_ResetsToDefaults()
        {
-           var tab = new TabViewModel(new AppSettings());
+           var tab = new TabItem(Guid.NewGuid(), "Test");
            tab.ZoomPercent = 150.0;
            tab.PanOffsetX = 50.0;
            tab.PanOffsetY = 30.0;

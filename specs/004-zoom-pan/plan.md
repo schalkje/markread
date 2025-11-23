@@ -66,7 +66,7 @@ Add zoom and pan controls to the markdown viewer, allowing users to zoom in/out 
 **Post-Design Re-evaluation** (Phase 1 Complete):
 
 All principles remain satisfied after design phase:
-- **Code Quality**: Design maintains separation of concerns (JavaScript controller, C# event handlers, TabViewModel state)
+- **Code Quality**: Design maintains separation of concerns (JavaScript controller, C# event handlers, TabItem state)
 - **UX Consistency**: Design preserves standard keyboard shortcuts and menu patterns
 - **Documentation**: Research, data model, contracts, and quickstart provide comprehensive documentation
 - **Performance**: Design includes debouncing, boundary clamping, and requestAnimationFrame for smooth operations
@@ -91,37 +91,44 @@ specs/[###-feature]/
 
 ```text
 src/
-├── App/                  # WPF app shell, DI, theming, shortcuts
-│   ├── App.xaml          # Application resources and startup
-│   └── App.xaml.cs       # DI container, service registration
+├── App.xaml              # Application resources and startup
+├── App.xaml.cs           # DI container, service registration
+├── MainWindow.xaml       # Main window (NEW: Add Edit menu zoom items)
+├── MainWindow.xaml.cs    # Main window code-behind
+├── Cli/                  # Entry parsing for folder/file startup
 ├── Rendering/            # WebView2 host, HTML template, assets
-│   ├── WebViewHost.cs    # WebView2 control wrapper
+│   ├── WebViewHost.cs    # WebView2 control wrapper (NEW: Add zoom/pan event handlers)
+│   ├── Renderer.cs       # Markdown to HTML renderer
 │   ├── assets/           # CSS, JS libraries (highlight.js, mermaid)
 │   │   └── zoom-pan.js   # NEW: JavaScript zoom/pan controller
 │   └── template/         # HTML templates for markdown rendering
 ├── Services/             # File system, markdown pipeline, settings
-│   ├── SettingsService.cs # Application settings (default zoom)
-│   └── ZoomPanService.cs  # NEW: Zoom/pan state management
-├── UI/                   # Views, ViewModels
-│   ├── Views/
-│   │   ├── TabControl/   # Multi-tab document view
-│   │   │   └── TabViewModel.cs # NEW: Add zoom/pan state properties
-│   │   └── MainWindow.xaml # NEW: Add Edit menu items
-│   └── ViewModels/
-└── Cli/                  # Entry parsing for folder/file startup
+│   ├── SettingsService.cs # Application settings (NEW: Add DefaultZoomPercent)
+│   ├── TabService.cs     # Tab management
+│   └── [other services]
+├── UI/                   # Views and components
+│   ├── Tabs/             # Tab management UI
+│   │   ├── TabItem.cs    # Tab model (NEW: Add zoom/pan state properties)
+│   │   ├── TabsView.xaml # Tabs view
+│   │   └── TabContentControl.xaml # Tab content with WebView2
+│   ├── Shell/            # Navigation, commands
+│   ├── Sidebar/          # Folder tree sidebar
+│   ├── Find/             # Find in page functionality
+│   ├── Search/           # Search interface
+│   └── Settings/         # Settings UI (NEW: Add default zoom setting)
+└── Themes/               # Theme resources
 
 tests/
-├── unit/                 # Service tests
-│   ├── Services/
-│   │   └── ZoomPanServiceTests.cs # NEW: Test zoom/pan logic
-│   └── UI/
-│       └── TabViewModelTests.cs # NEW: Test zoom/pan state
-└── integration/          # Startup + render smoke tests
+├── unit/                 # Unit tests
+│   ├── TabItemTests.cs   # NEW: Test zoom/pan state on TabItem
+│   └── SettingsServiceTests.cs # NEW: Test DefaultZoomPercent validation
+└── integration/          # Integration tests
     └── ZoomPanIntegrationTests.cs # NEW: E2E zoom/pan scenarios
 ```
 
-**Structure Decision**: Single WPF desktop application (Option 1). Zoom/pan functionality integrates into existing architecture:
-- **JavaScript layer** (`zoom-pan.js`) handles WebView2 DOM manipulation and coordinate transforms
-- **Service layer** (`ZoomPanService`) manages zoom/pan state per tab and settings persistence
-- **UI layer** (`TabViewModel`) maintains zoom/pan state and coordinates between WPF events and WebView2
-- **Settings** extended to include default zoom preference
+**Structure Decision**: Single WPF desktop application. Zoom/pan functionality integrates into existing architecture:
+- **JavaScript layer** (`Rendering/assets/zoom-pan.js`) handles WebView2 DOM manipulation and coordinate transforms
+- **WPF layer** (`WebViewHost.cs` or `MainWindow.xaml.cs`) captures mouse/keyboard events and sends commands to JavaScript
+- **State layer** (`TabItem.cs`) maintains zoom/pan state per tab (session-only)
+- **Settings** (`SettingsService.cs`) stores default zoom preference
+- **UI** (`MainWindow.xaml`, `Settings/`) provides menu items and settings interface
