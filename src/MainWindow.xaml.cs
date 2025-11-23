@@ -118,6 +118,9 @@ public partial class MainWindow : Window
 
         // Add keyboard event handler for tab shortcuts
         this.PreviewKeyDown += Window_PreviewKeyDown;
+        
+        // Add mouse wheel handler for zoom control
+        this.PreviewMouseWheel += Window_PreviewMouseWheel;
     }
 
     internal void InitializeShell(StartupArguments startupArguments)
@@ -724,7 +727,24 @@ This folder contains Markdown files in subdirectories.
         var tab = GetCurrentTab();
         if (tab is null) return;
 
-        if (e.Name.Equals("link-click", StringComparison.OrdinalIgnoreCase))
+        if (e.Name.Equals("zoomPanState", StringComparison.OrdinalIgnoreCase))
+        {
+            if (e.Payload is JsonElement element)
+            {
+                var zoom = element.TryGetProperty("zoom", out var zoomProp) ? zoomProp.GetDouble() : 100.0;
+                var panX = element.TryGetProperty("panX", out var panXProp) ? panXProp.GetDouble() : 0.0;
+                var panY = element.TryGetProperty("panY", out var panYProp) ? panYProp.GetDouble() : 0.0;
+
+                _ = Dispatcher.InvokeAsync(() =>
+                {
+                    tab.ZoomPercent = zoom;
+                    tab.PanOffsetX = panX;
+                    tab.PanOffsetY = panY;
+                    Debug.WriteLine($"Zoom state updated: {zoom}%, pan=({panX}, {panY})");
+                });
+            }
+        }
+        else if (e.Name.Equals("link-click", StringComparison.OrdinalIgnoreCase))
         {
             if (e.Payload is JsonElement element && element.TryGetProperty("href", out var hrefElement))
             {
@@ -1384,4 +1404,73 @@ This folder contains Markdown files in subdirectories.
                 MessageBoxImage.Error);
         }
     }
+
+    #region Zoom/Pan Event Handlers
+
+    /// <summary>
+    /// Handles mouse wheel events for zoom control (CTRL + scroll).
+    /// </summary>
+    private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        Debug.WriteLine($"Window_PreviewMouseWheel: Delta={e.Delta}, Modifiers={Keyboard.Modifiers}");
+
+        // Only handle if CTRL key is pressed
+        if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control)
+        {
+            return;
+        }
+
+        // Only handle if MarkdownView is visible
+        if (MarkdownView.Visibility != Visibility.Visible)
+        {
+            Debug.WriteLine("MarkdownView not visible");
+            return;
+        }
+
+        Debug.WriteLine("CTRL+Scroll detected, MarkdownView visible");
+
+        if (_webViewHost?.Core is null)
+        {
+            Debug.WriteLine("WebViewHost.Core is null");
+            return;
+        }
+
+        var activeTab = _tabService.ActiveTab;
+        if (activeTab is null)
+        {
+            return;
+        }
+
+        try
+        {
+            // Calculate zoom delta (+10 for scroll up, -10 for scroll down)
+            var delta = e.Delta > 0 ? 10 : -10;
+
+            // Get mouse position relative to WebView
+            var position = e.GetPosition(MarkdownView);
+
+            // Create zoom command JSON
+            var zoomCommand = new
+            {
+                action = "zoom",
+                delta,
+                cursorX = position.X,
+                cursorY = position.Y
+            };
+
+            // Send command to JavaScript
+            var json = JsonSerializer.Serialize(zoomCommand);
+            Debug.WriteLine($"Sending zoom command: {json}");
+            _webViewHost.Core.PostWebMessageAsJson(json);
+
+            // Mark event as handled to prevent default scroll behavior
+            e.Handled = true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Zoom error: {ex.Message}");
+        }
+    }
+
+    #endregion
 }

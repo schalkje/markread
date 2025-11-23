@@ -26,10 +26,10 @@ Single WPF desktop application:
 
 **Purpose**: Project initialization and basic structure for zoom/pan feature
 
-- [ ] T001 Review existing project structure in src/ to understand WebView2 integration
-- [ ] T002 Review existing TabItem class in src/UI/Tabs/TabItem.cs to understand tab state management
-- [ ] T003 Review existing SettingsService in src/Services/SettingsService.cs to understand settings pattern
-- [ ] T004 [P] Review WebView2 message passing patterns in src/Rendering/WebViewHost.cs
+- [X] T001 Review existing project structure in src/ to understand WebView2 integration
+- [X] T002 Review existing TabItem class in src/UI/Tabs/TabItem.cs to understand tab state management
+- [X] T003 Review existing SettingsService in src/Services/SettingsService.cs to understand settings pattern
+- [X] T004 [P] Review WebView2 message passing patterns in src/Rendering/WebViewHost.cs
 
 ---
 
@@ -39,19 +39,19 @@ Single WPF desktop application:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Add ZoomPercent property (double, default 100.0) to TabItem class in src/UI/Tabs/TabItem.cs with INotifyPropertyChanged
-- [ ] T006 [P] Add PanOffsetX property (double, default 0.0) to TabItem class in src/UI/Tabs/TabItem.cs with INotifyPropertyChanged
-- [ ] T007 [P] Add PanOffsetY property (double, default 0.0) to TabItem class in src/UI/Tabs/TabItem.cs with INotifyPropertyChanged
-- [ ] T008 Add property validation in TabItem to clamp ZoomPercent to [10.0, 1000.0] range
-- [ ] T009 Add ResetZoomPan() method to TabItem class to reset zoom to 100% and pan to (0, 0)
-- [ ] T010 Add DefaultZoomPercent property (double, default 100.0) to AppSettings in src/Services/SettingsService.cs
-- [ ] T011 Add validation in AppSettings.Validate() to clamp DefaultZoomPercent to [10.0, 1000.0] range
-- [ ] T012 Create zoom-pan.js file in src/Rendering/assets/zoom-pan.js with ZoomPanController class skeleton
-- [ ] T013 Implement message listener in zoom-pan.js to receive commands from WPF via window.chrome.webview
-- [ ] T014 Implement applyTransform() method in zoom-pan.js to apply CSS matrix transform to content element
-- [ ] T015 Implement sendStateUpdate() method in zoom-pan.js to send zoom/pan state back to WPF
-- [ ] T016 Include zoom-pan.js script in HTML template at src/Rendering/template/template.html
-- [ ] T017 Ensure content container has id="content" in HTML template for JavaScript to target
+- [X] T005 Add ZoomPercent property (double, default 100.0) to TabItem class in src/UI/Tabs/TabItem.cs with INotifyPropertyChanged
+- [X] T006 [P] Add PanOffsetX property (double, default 0.0) to TabItem class in src/UI/Tabs/TabItem.cs with INotifyPropertyChanged
+- [X] T007 [P] Add PanOffsetY property (double, default 0.0) to TabItem class in src/UI/Tabs/TabItem.cs with INotifyPropertyChanged
+- [X] T008 Add property validation in TabItem to clamp ZoomPercent to [10.0, 1000.0] range
+- [X] T009 Add ResetZoomPan() method to TabItem class to reset zoom to 100% and pan to (0, 0)
+- [X] T010 Add DefaultZoomPercent property (double, default 100.0) to AppSettings in src/Services/SettingsService.cs
+- [X] T011 Add validation in AppSettings.Validate() to clamp DefaultZoomPercent to [10.0, 1000.0] range
+- [X] T012 Create zoom-pan.js file in src/Rendering/assets/zoom-pan.js with ZoomPanController class skeleton
+- [X] T013 Implement message listener in zoom-pan.js to receive commands from WPF via window.chrome.webview
+- [X] T014 Implement applyTransform() method in zoom-pan.js to apply CSS matrix transform to content element
+- [X] T015 Implement sendStateUpdate() method in zoom-pan.js to send zoom/pan state back to WPF
+- [X] T016 Include zoom-pan.js script in HTML template at src/Rendering/template/template.html
+- [X] T017 Ensure content container has id="content" in HTML template for JavaScript to target
 
 **Checkpoint**: Foundation ready - TabItem has zoom/pan properties, JavaScript controller exists, message passing infrastructure ready
 
@@ -65,23 +65,23 @@ Single WPF desktop application:
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] Add PreviewMouseWheel event handler to WebViewHost or MainWindow in src/Rendering/WebViewHost.cs
-- [ ] T019 [US1] Detect CTRL key modifier in PreviewMouseWheel handler using Keyboard.Modifiers
-- [ ] T020 [US1] Calculate zoom delta (+10 for scroll up, -10 for scroll down) in mouse wheel handler
-- [ ] T021 [US1] Get mouse cursor position relative to WebView using e.GetPosition(webView)
-- [ ] T022 [US1] Create zoom command JSON with action="zoom", delta, cursorX, cursorY in mouse wheel handler
-- [ ] T023 [US1] Send zoom command to JavaScript using webView.CoreWebView2.PostWebMessageAsJson()
-- [ ] T024 [US1] Set e.Handled = true to prevent default scroll behavior when CTRL is pressed
-- [ ] T025 [US1] Implement zoom() method in zoom-pan.js to handle zoom commands
-- [ ] T026 [US1] Calculate new zoom level in zoom() by adding delta to current zoom percentage
-- [ ] T027 [US1] Clamp new zoom level to [10, 1000] range in zoom()
-- [ ] T028 [US1] Implement cursor-centered zoom math in zoom() to adjust pan offset keeping cursor fixed
-- [ ] T029 [US1] Call applyTransform() to apply zoom via CSS matrix in zoom()
-- [ ] T030 [US1] Call sendStateUpdate() to notify WPF of new zoom level in zoom()
-- [ ] T031 [US1] Add WebMessageReceived event handler in WebViewHost to receive zoom state responses
-- [ ] T032 [US1] Parse ZoomPanResponse JSON in WebMessageReceived handler
-- [ ] T033 [US1] Update active TabItem properties (ZoomPercent, PanOffsetX, PanOffsetY) from response
-- [ ] T034 [US1] Add null check for CoreWebView2 before sending messages in mouse wheel handler
+- [X] T018 [US1] Add PreviewMouseWheel event handler to WebViewHost or MainWindow in src/Rendering/WebViewHost.cs
+- [X] T019 [US1] Detect CTRL key modifier in PreviewMouseWheel handler using Keyboard.Modifiers
+- [X] T020 [US1] Calculate zoom delta (+10 for scroll up, -10 for scroll down) in mouse wheel handler
+- [X] T021 [US1] Get mouse cursor position relative to WebView using e.GetPosition(webView)
+- [X] T022 [US1] Create zoom command JSON with action="zoom", delta, cursorX, cursorY in mouse wheel handler
+- [X] T023 [US1] Send zoom command to JavaScript using webView.CoreWebView2.PostWebMessageAsJson()
+- [X] T024 [US1] Set e.Handled = true to prevent default scroll behavior when CTRL is pressed
+- [X] T025 [US1] Implement zoom() method in zoom-pan.js to handle zoom commands
+- [X] T026 [US1] Calculate new zoom level in zoom() by adding delta to current zoom percentage
+- [X] T027 [US1] Clamp new zoom level to [10, 1000] range in zoom()
+- [X] T028 [US1] Implement cursor-centered zoom math in zoom() to adjust pan offset keeping cursor fixed
+- [X] T029 [US1] Call applyTransform() to apply zoom via CSS matrix in zoom()
+- [X] T030 [US1] Call sendStateUpdate() to notify WPF of new zoom level in zoom()
+- [X] T031 [US1] Add WebMessageReceived event handler in WebViewHost to receive zoom state responses
+- [X] T032 [US1] Parse ZoomPanResponse JSON in WebMessageReceived handler
+- [X] T033 [US1] Update active TabItem properties (ZoomPercent, PanOffsetX, PanOffsetY) from response
+- [X] T034 [US1] Add null check for CoreWebView2 before sending messages in mouse wheel handler
 
 **Checkpoint**: CTRL + mouse wheel zoom works independently. Can zoom from 10% to 1000%. Cursor position stays fixed during zoom.
 
