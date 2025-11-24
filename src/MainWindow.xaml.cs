@@ -90,6 +90,11 @@ public partial class MainWindow : Window
         this.NavigationBar.NavigationService = _navigationService;
         _navigationService.ClearCurrentFile();
 
+        // Wire up NavigationBar zoom events
+        this.NavigationBar.ZoomInRequested += OnZoomInRequested;
+        this.NavigationBar.ZoomOutRequested += OnZoomOutRequested;
+        this.NavigationBar.ResetZoomRequested += OnResetZoomRequested;
+
         // Wire up FindBar events
         FindBar.SearchRequested += OnSearchRequested;
         FindBar.NextRequested += OnFindNextRequested;
@@ -949,6 +954,44 @@ This folder contains Markdown files in subdirectories.
         if (_webViewHost is not null)
         {
             _webViewHost.PostMessage("find-clear", null);
+        }
+    }
+
+    private void OnZoomInRequested(object? sender, EventArgs e)
+    {
+        if (_webViewHost is not null)
+        {
+            // JavaScript will use viewport center - just send zoom command
+            _webViewHost.PostMessage("zoom-pan", new 
+            { 
+                action = "zoom", 
+                delta = 10, 
+                cursorX = 0, 
+                cursorY = 0 
+            });
+        }
+    }
+
+    private void OnZoomOutRequested(object? sender, EventArgs e)
+    {
+        if (_webViewHost is not null)
+        {
+            // JavaScript will use viewport center - just send zoom command
+            _webViewHost.PostMessage("zoom-pan", new 
+            { 
+                action = "zoom", 
+                delta = -10, 
+                cursorX = 0, 
+                cursorY = 0 
+            });
+        }
+    }
+
+    private void OnResetZoomRequested(object? sender, EventArgs e)
+    {
+        if (_webViewHost is not null)
+        {
+            _webViewHost.PostMessage("zoom-pan", new { action = "reset" });
         }
     }
 

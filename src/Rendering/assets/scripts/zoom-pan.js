@@ -39,6 +39,53 @@ class ZoomPanController {
         // Add wheel event listener for CTRL+scroll zoom
         document.addEventListener('wheel', (event) => this.handleWheelEvent(event), { passive: false });
         console.log('ZoomPanController: Wheel event listener attached');
+
+        // Add keyboard event listener for CTRL+/-, CTRL+0
+        document.addEventListener('keydown', (event) => this.handleKeyboardEvent(event), { passive: false });
+        console.log('ZoomPanController: Keyboard event listener attached');
+    }
+
+    /**
+     * Handle keyboard events for zoom control (CTRL+/-, CTRL+0)
+     * @param {KeyboardEvent} event - Keyboard event
+     */
+    handleKeyboardEvent(event) {
+        // Only handle if CTRL key is pressed
+        if (!event.ctrlKey) {
+            return;
+        }
+
+        let handled = false;
+        let delta = 0;
+
+        // CTRL + Plus/Equals (zoom in)
+        if (event.key === '+' || event.key === '=' || event.code === 'Equal' || event.code === 'NumpadAdd') {
+            delta = 10;
+            handled = true;
+        }
+        // CTRL + Minus (zoom out)
+        else if (event.key === '-' || event.code === 'Minus' || event.code === 'NumpadSubtract') {
+            delta = -10;
+            handled = true;
+        }
+        // CTRL + 0 (reset zoom) - handled separately in reset section
+        else if (event.key === '0' || event.code === 'Digit0' || event.code === 'Numpad0') {
+            event.preventDefault();
+            console.log('ZoomPanController: CTRL+0 detected, resetting zoom');
+            this.reset();
+            return;
+        }
+
+        if (handled) {
+            event.preventDefault();
+            console.log('ZoomPanController: Keyboard zoom', { key: event.key, delta });
+
+            // Use viewport center for keyboard zoom
+            const cursorX = window.innerWidth / 2;
+            const cursorY = window.innerHeight / 2;
+
+            this.zoom(delta, cursorX, cursorY);
+        }
     }
 
     /**
@@ -77,31 +124,37 @@ class ZoomPanController {
     handleMessage(event) {
         console.log('ZoomPanController: Raw message received:', event);
         
-        const command = event.data;
-        console.log('ZoomPanController: Parsed command:', command);
+        const message = event.data;
+        console.log('ZoomPanController: Parsed message:', message);
         
-        if (!command || !command.action) {
-            console.warn('ZoomPanController: Invalid command format:', command);
-            return;
-        }
+        // Check if this is a BridgeMessage with name/payload structure
+        if (message && message.name === 'zoom-pan' && message.payload) {
+            const command = message.payload;
+            console.log('ZoomPanController: Extracted command from BridgeMessage:', command);
+            
+            if (!command.action) {
+                console.warn('ZoomPanController: Invalid command format (missing action):', command);
+                return;
+            }
 
-        console.log('ZoomPanController: Processing command:', command.action);
+            console.log('ZoomPanController: Processing command:', command.action);
 
-        switch (command.action) {
-            case 'zoom':
-                this.zoom(command.delta, command.cursorX, command.cursorY);
-                break;
-            case 'reset':
-                this.reset();
-                break;
-            case 'restore':
-                this.restore(command.zoom, command.panX, command.panY);
-                break;
-            case 'pan':
-                this.pan(command.deltaX, command.deltaY);
-                break;
-            default:
-                console.warn('ZoomPanController: Unknown command:', command.action);
+            switch (command.action) {
+                case 'zoom':
+                    this.zoom(command.delta, command.cursorX, command.cursorY);
+                    break;
+                case 'reset':
+                    this.reset();
+                    break;
+                case 'restore':
+                    this.restore(command.zoom, command.panX, command.panY);
+                    break;
+                case 'pan':
+                    this.pan(command.deltaX, command.deltaY);
+                    break;
+                default:
+                    console.warn('ZoomPanController: Unknown command:', command.action);
+            }
         }
     }
 
