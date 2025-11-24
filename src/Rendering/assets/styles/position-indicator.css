@@ -1,0 +1,92 @@
+/**
+ * Position indicator for zoom/pan navigation
+ * Shows user's current position in the document
+ */
+
+.position-indicator {
+    position: fixed;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    background: var(--theme-border, rgba(0, 0, 0, 0.1));
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1000;
+    max-height: 200px;
+    min-height: 60px;
+}
+
+.position-indicator.visible {
+    opacity: 0.6;
+}
+
+.position-indicator:hover {
+    opacity: 0.9;
+}
+
+.position-indicator-thumb {
+    width: 100%;
+    background: var(--theme-accent, #0066cc);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+    min-height: 20px;
+}
+
+/* Horizontal position indicator */
+.position-indicator-horizontal {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 8px;
+    width: 200px;
+    max-width: 200px;
+    min-width: 60px;
+    background: var(--theme-border, rgba(0, 0, 0, 0.1));
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.position-indicator-horizontal.visible {
+    opacity: 0.6;
+}
+
+.position-indicator-horizontal:hover {
+    opacity: 0.9;
+}
+
+.position-indicator-horizontal .position-indicator-thumb {
+    height: 100%;
+    width: auto;
+    min-width: 20px;
+    min-height: auto;
+}
+
+/* Zoom level indicator */
+.zoom-indicator {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    padding: 6px 12px;
+    background: var(--theme-secondary-background, rgba(0, 0, 0, 0.7));
+    color: var(--theme-text-primary, white);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--theme-font-mono, 'Consolas', monospace);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1000;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.zoom-indicator.visible {
+    opacity: 0.8;
+}

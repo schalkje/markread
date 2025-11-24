@@ -9,6 +9,14 @@ class ZoomPanController {
         this.panX = 0.0;
         this.panY = 0.0;
         this.contentElement = null;
+        this.originalContentWidth = 0;
+        this.originalContentHeight = 0;
+        this.positionIndicator = null;
+        this.positionIndicatorHorizontal = null;
+        this.positionThumb = null;
+        this.positionThumbHorizontal = null;
+        this.zoomIndicator = null;
+        this.indicatorTimeout = null;
         
         // Initialize after DOM is ready
         if (document.readyState === 'loading') {
@@ -28,6 +36,15 @@ class ZoomPanController {
             return;
         }
 
+        // Cache original content dimensions after a short delay to ensure full render
+        setTimeout(() => {
+            this.originalContentWidth = this.contentElement.scrollWidth;
+            this.originalContentHeight = this.contentElement.scrollHeight;
+        }, 100);
+
+        // Create position and zoom indicators
+        this.createIndicators();
+
         // Listen for commands from WPF
         if (window.chrome && window.chrome.webview) {
             window.chrome.webview.addEventListener('message', (event) => this.handleMessage(event));
@@ -43,6 +60,126 @@ class ZoomPanController {
         // Add keyboard event listener for CTRL+/-, CTRL+0
         document.addEventListener('keydown', (event) => this.handleKeyboardEvent(event), { passive: false });
         console.log('ZoomPanController: Keyboard event listener attached');
+    }
+
+    /**
+     * Create position and zoom indicators
+     */
+    createIndicators() {
+        // Vertical position indicator (scrollbar replacement)
+        this.positionIndicator = document.createElement('div');
+        this.positionIndicator.className = 'position-indicator';
+        this.positionThumb = document.createElement('div');
+        this.positionThumb.className = 'position-indicator-thumb';
+        this.positionIndicator.appendChild(this.positionThumb);
+        document.body.appendChild(this.positionIndicator);
+
+        // Horizontal position indicator
+        this.positionIndicatorHorizontal = document.createElement('div');
+        this.positionIndicatorHorizontal.className = 'position-indicator-horizontal';
+        this.positionThumbHorizontal = document.createElement('div');
+        this.positionThumbHorizontal.className = 'position-indicator-thumb';
+        this.positionIndicatorHorizontal.appendChild(this.positionThumbHorizontal);
+        document.body.appendChild(this.positionIndicatorHorizontal);
+
+        // Zoom level indicator
+        this.zoomIndicator = document.createElement('div');
+        this.zoomIndicator.className = 'zoom-indicator';
+        this.zoomIndicator.textContent = '100%';
+        document.body.appendChild(this.zoomIndicator);
+    }
+
+    /**
+     * Update position indicator based on current pan offset
+     */
+    updatePositionIndicator() {
+        if (!this.contentElement) {
+            return;
+        }
+
+        const scale = this.zoomPercent / 100.0;
+        const contentWidth = this.originalContentWidth;
+        const contentHeight = this.originalContentHeight;
+        const scaledWidth = contentWidth * scale;
+        const scaledHeight = contentHeight * scale;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Update vertical indicator
+        if (this.positionIndicator && this.positionThumb) {
+            const visibleRatioY = Math.min(1, viewportHeight / scaledHeight);
+            const scrollableHeight = Math.max(0, scaledHeight - viewportHeight);
+            const positionRatioY = scrollableHeight > 0 ? Math.abs(this.panY) / scrollableHeight : 0;
+
+            const indicatorHeight = this.positionIndicator.clientHeight;
+            const thumbHeight = Math.max(20, indicatorHeight * visibleRatioY);
+            const thumbTop = positionRatioY * (indicatorHeight - thumbHeight);
+
+            this.positionThumb.style.height = `${thumbHeight}px`;
+            this.positionThumb.style.transform = `translateY(${thumbTop}px)`;
+        }
+
+        // Update horizontal indicator
+        if (this.positionIndicatorHorizontal && this.positionThumbHorizontal) {
+            const visibleRatioX = Math.min(1, viewportWidth / scaledWidth);
+            const scrollableWidth = Math.max(0, scaledWidth - viewportWidth);
+            const positionRatioX = scrollableWidth > 0 ? Math.abs(this.panX) / scrollableWidth : 0;
+
+            const indicatorWidth = this.positionIndicatorHorizontal.clientWidth;
+            const thumbWidth = Math.max(20, indicatorWidth * visibleRatioX);
+            const thumbLeft = positionRatioX * (indicatorWidth - thumbWidth);
+
+            this.positionThumbHorizontal.style.width = `${thumbWidth}px`;
+            this.positionThumbHorizontal.style.transform = `translateX(${thumbLeft}px)`;
+        }
+
+        // Show indicators temporarily
+        this.showIndicators();
+    }
+
+    /**
+     * Update zoom indicator with current zoom level
+     */
+    updateZoomIndicator() {
+        if (!this.zoomIndicator) {
+            return;
+        }
+
+        this.zoomIndicator.textContent = `${Math.round(this.zoomPercent)}%`;
+        this.showIndicators();
+    }
+
+    /**
+     * Show indicators temporarily (fade out after 1.5s)
+     */
+    showIndicators() {
+        if (this.positionIndicator) {
+            this.positionIndicator.classList.add('visible');
+        }
+        if (this.positionIndicatorHorizontal) {
+            this.positionIndicatorHorizontal.classList.add('visible');
+        }
+        if (this.zoomIndicator) {
+            this.zoomIndicator.classList.add('visible');
+        }
+
+        // Clear existing timeout
+        if (this.indicatorTimeout) {
+            clearTimeout(this.indicatorTimeout);
+        }
+
+        // Hide after 1.5 seconds
+        this.indicatorTimeout = setTimeout(() => {
+            if (this.positionIndicator) {
+                this.positionIndicator.classList.remove('visible');
+            }
+            if (this.positionIndicatorHorizontal) {
+                this.positionIndicatorHorizontal.classList.remove('visible');
+            }
+            if (this.zoomIndicator) {
+                this.zoomIndicator.classList.remove('visible');
+            }
+        }, 1500);
     }
 
     /**
@@ -89,32 +226,42 @@ class ZoomPanController {
     }
 
     /**
-     * Handle wheel events for zoom control (CTRL + scroll)
+     * Handle wheel events for zoom control (CTRL + scroll) or pan (normal scroll)
      * @param {WheelEvent} event - Wheel event
      */
     handleWheelEvent(event) {
-        // Only handle if CTRL key is pressed
-        if (!event.ctrlKey) {
-            return;
+        // CTRL + wheel = zoom
+        if (event.ctrlKey) {
+            console.log('ZoomPanController: CTRL+Wheel detected', event.deltaY);
+
+            // Prevent default zoom behavior
+            event.preventDefault();
+
+            // Calculate zoom delta based on wheel direction
+            // deltaY > 0 means scroll down (zoom out), deltaY < 0 means scroll up (zoom in)
+            const delta = event.deltaY > 0 ? -10 : 10;
+
+            // Get cursor position relative to viewport
+            const cursorX = event.clientX;
+            const cursorY = event.clientY;
+
+            console.log('ZoomPanController: Processing zoom', { delta, cursorX, cursorY });
+
+            // Perform zoom operation
+            this.zoom(delta, cursorX, cursorY);
+        } 
+        // Normal wheel = pan (since we disabled native scrolling)
+        else {
+            event.preventDefault();
+            
+            // Pan in the direction of the wheel
+            // deltaY > 0 = scroll down = pan content up (negative Y)
+            // deltaY < 0 = scroll up = pan content down (positive Y)
+            const panDeltaY = -event.deltaY;
+            const panDeltaX = -event.deltaX; // Support horizontal scroll
+            
+            this.pan(panDeltaX, panDeltaY);
         }
-
-        console.log('ZoomPanController: CTRL+Wheel detected', event.deltaY);
-
-        // Prevent default zoom behavior
-        event.preventDefault();
-
-        // Calculate zoom delta based on wheel direction
-        // deltaY > 0 means scroll down (zoom out), deltaY < 0 means scroll up (zoom in)
-        const delta = event.deltaY > 0 ? -10 : 10;
-
-        // Get cursor position relative to viewport
-        const cursorX = event.clientX;
-        const cursorY = event.clientY;
-
-        console.log('ZoomPanController: Processing zoom', { delta, cursorX, cursorY });
-
-        // Perform zoom operation
-        this.zoom(delta, cursorX, cursorY);
     }
 
     /**
@@ -193,6 +340,8 @@ class ZoomPanController {
         // Apply transform and notify WPF
         this.applyTransform();
         this.sendStateUpdate();
+        this.updatePositionIndicator();
+        this.updateZoomIndicator();
 
         console.log(`ZoomPanController: Zoomed from ${oldZoom}% to ${newZoom}%`);
     }
@@ -212,8 +361,7 @@ class ZoomPanController {
         // Apply transform and notify WPF
         this.applyTransform();
         this.sendStateUpdate();
-
-        console.log(`ZoomPanController: Panned by (${deltaX}, ${deltaY})`);
+        this.updatePositionIndicator();
     }
 
     /**
@@ -226,6 +374,8 @@ class ZoomPanController {
 
         this.applyTransform();
         this.sendStateUpdate();
+        this.updatePositionIndicator();
+        this.updateZoomIndicator();
 
         console.log('ZoomPanController: Reset to 100% zoom');
     }
@@ -243,6 +393,8 @@ class ZoomPanController {
 
         this.clampPanBoundaries();
         this.applyTransform();
+        this.updatePositionIndicator();
+        this.updateZoomIndicator();
 
         console.log(`ZoomPanController: Restored zoom=${this.zoomPercent}%, pan=(${this.panX}, ${this.panY})`);
     }
@@ -276,10 +428,9 @@ class ZoomPanController {
 
         const scale = this.zoomPercent / 100.0;
         
-        // Get content dimensions (at 100% zoom)
-        const contentRect = this.contentElement.getBoundingClientRect();
-        const contentWidth = contentRect.width / scale; // Actual content width before scaling
-        const contentHeight = contentRect.height / scale;
+        // Use cached original dimensions, or fall back to live measurement
+        const contentWidth = this.originalContentWidth || this.contentElement.scrollWidth;
+        const contentHeight = this.originalContentHeight || this.contentElement.scrollHeight;
 
         // Calculate scaled dimensions
         const scaledWidth = contentWidth * scale;
