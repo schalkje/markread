@@ -139,6 +139,45 @@ Each tab remembers its pan position when zoomed, so switching between tabs retur
 
 ---
 
+### User Story 8 - Enhanced Keyboard Navigation (Priority: P2) **[IMPLEMENTED]**
+
+Users can navigate zoomed documents using arrow keys, PageUp/PageDown, Home/End, and Shift+Scroll for efficient document traversal without a mouse.
+
+**Why this priority**: Significantly improves accessibility and power user workflows, especially for keyboard-first users and when working with large zoomed documents.
+
+**Independent Test**: Can be fully tested by zooming document, then using arrow keys for fine movement, PageUp/PageDown for large jumps, Home/End for document boundaries, and Shift+Scroll for horizontal movement.
+
+**Acceptance Scenarios**:
+
+1. **Given** document is zoomed or at default zoom, **When** user presses arrow keys (↑↓←→), **Then** viewport pans in the pressed direction by small increments (~40px)
+2. **Given** document is zoomed or at default zoom, **When** user presses PageUp, **Then** viewport pans up by approximately 80% of viewport height
+3. **Given** document is zoomed or at default zoom, **When** user presses PageDown, **Then** viewport pans down by approximately 80% of viewport height
+4. **Given** document is zoomed or at default zoom, **When** user presses Home, **Then** viewport jumps to top of document
+5. **Given** document is zoomed or at default zoom, **When** user presses End, **Then** viewport jumps to bottom of document
+6. **Given** document extends beyond viewport horizontally, **When** user holds Shift and scrolls mouse wheel, **Then** viewport pans horizontally in direction of scroll
+7. **Given** native scrollbars are disabled, **When** user scrolls mouse wheel (without modifiers), **Then** viewport pans vertically to replace native scrolling
+
+---
+
+### User Story 9 - Position Indicators (Priority: P3) **[IMPLEMENTED]**
+
+Users see visual indicators showing their current position in the document and zoom level, providing spatial awareness when native scrollbars are disabled.
+
+**Why this priority**: Quality of life feature that compensates for disabled native scrollbars, helps users understand their location in long documents.
+
+**Independent Test**: Can be fully tested by zooming and panning document, observing vertical/horizontal position bars and zoom percentage indicator that appear temporarily.
+
+**Acceptance Scenarios**:
+
+1. **Given** user zooms or pans document, **When** operation completes, **Then** position indicators fade in showing current viewport location
+2. **Given** position indicators are visible, **When** 1.5 seconds elapse with no zoom/pan activity, **Then** indicators automatically fade out
+3. **Given** document is longer than viewport, **When** user pans vertically, **Then** vertical position indicator shows relative position with proportional thumb size
+4. **Given** document is wider than viewport, **When** user pans horizontally, **Then** horizontal position indicator shows relative position with proportional thumb size
+5. **Given** user changes zoom level, **When** zoom operation completes, **Then** zoom percentage indicator (bottom-right) displays current zoom level (e.g., "150%")
+6. **Given** document is at bottom with 10vh extra spacing, **When** user scrolls to absolute bottom, **Then** last content is clearly visible without being cut off at viewport edge
+
+---
+
 ### Edge Cases
 
 - What happens when zoom level reaches minimum (10%) or maximum (1000%) limits? System should silently cap at boundaries without error messages.
@@ -170,6 +209,17 @@ Each tab remembers its pan position when zoomed, so switching between tabs retur
 - **FR-015**: Pan positions MUST reset to default when tab is closed and reopened (pan is session-only, not persisted to disk)
 - **FR-016**: System MUST display default zoom setting in application settings interface with ability to modify value
 - **FR-017**: Changes to default zoom setting MUST only affect newly opened tabs, not existing tabs
+- **FR-018**: System MUST support arrow key navigation (Up/Down/Left/Right) for panning with ~40px increments per keypress **[IMPLEMENTED]**
+- **FR-019**: System MUST support PageUp/PageDown keys for panning with ~80% viewport height increments **[IMPLEMENTED]**
+- **FR-020**: System MUST support Home key to jump to top of document **[IMPLEMENTED]**
+- **FR-021**: System MUST support End key to jump to bottom of document **[IMPLEMENTED]**
+- **FR-022**: System MUST support Shift+Scroll for horizontal panning when document is wider than viewport **[IMPLEMENTED]**
+- **FR-023**: System MUST replace native scroll with pan-based navigation (normal scroll wheel = vertical pan) **[IMPLEMENTED]**
+- **FR-024**: System MUST display temporary position indicators (vertical and horizontal) showing viewport location **[IMPLEMENTED]**
+- **FR-025**: System MUST display temporary zoom level indicator showing current zoom percentage **[IMPLEMENTED]**
+- **FR-026**: Position and zoom indicators MUST auto-hide after 1.5 seconds of inactivity **[IMPLEMENTED]**
+- **FR-027**: System MUST disable native scrollbars and use overflow:hidden on body/html elements **[IMPLEMENTED]**
+- **FR-028**: System MUST provide 10vh extra spacing at document bottom for better end-of-document visibility **[IMPLEMENTED]**
 
 ### Key Entities
 
@@ -189,3 +239,7 @@ Each tab remembers its pan position when zoomed, so switching between tabs retur
 - **SC-006**: All zoom and pan operations complete without visual lag or stuttering at zoom levels between 10% and 1000%
 - **SC-007**: Users can configure default zoom setting and have it apply to new tabs within 2 minutes of first attempting to change it
 - **SC-008**: Pan position remains stable when switching between tabs - no unexpected viewport jumps or position drift
+- **SC-009**: Users can navigate through entire document using only keyboard (arrow keys, PageUp/Down, Home/End) within 30 seconds **[IMPLEMENTED]**
+- **SC-010**: Position indicators provide clear visual feedback of location within 100ms of zoom/pan operation **[IMPLEMENTED]**
+- **SC-011**: Shift+Scroll horizontal panning works intuitively in documents wider than viewport **[IMPLEMENTED]**
+- **SC-012**: Users can identify current zoom level via indicator within 1 second of any zoom operation **[IMPLEMENTED]**
