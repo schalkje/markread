@@ -183,50 +183,108 @@ class ZoomPanController {
     }
 
     /**
-     * Handle keyboard events for zoom control (CTRL+/-, CTRL+0)
+     * Handle keyboard events for zoom control (CTRL+/-, CTRL+0) and navigation (arrows, PageUp/Down)
      * @param {KeyboardEvent} event - Keyboard event
      */
     handleKeyboardEvent(event) {
-        // Only handle if CTRL key is pressed
-        if (!event.ctrlKey) {
+        // CTRL + key = zoom controls
+        if (event.ctrlKey) {
+            let handled = false;
+            let delta = 0;
+
+            // CTRL + Plus/Equals (zoom in)
+            if (event.key === '+' || event.key === '=' || event.code === 'Equal' || event.code === 'NumpadAdd') {
+                delta = 10;
+                handled = true;
+            }
+            // CTRL + Minus (zoom out)
+            else if (event.key === '-' || event.code === 'Minus' || event.code === 'NumpadSubtract') {
+                delta = -10;
+                handled = true;
+            }
+            // CTRL + 0 (reset zoom) - handled separately in reset section
+            else if (event.key === '0' || event.code === 'Digit0' || event.code === 'Numpad0') {
+                event.preventDefault();
+                console.log('ZoomPanController: CTRL+0 detected, resetting zoom');
+                this.reset();
+                return;
+            }
+
+            if (handled) {
+                event.preventDefault();
+                console.log('ZoomPanController: Keyboard zoom', { key: event.key, delta });
+
+                // Use viewport center for keyboard zoom
+                const cursorX = window.innerWidth / 2;
+                const cursorY = window.innerHeight / 2;
+
+                this.zoom(delta, cursorX, cursorY);
+            }
             return;
         }
 
+        // Navigation keys (without CTRL)
         let handled = false;
-        let delta = 0;
+        let deltaX = 0;
+        let deltaY = 0;
 
-        // CTRL + Plus/Equals (zoom in)
-        if (event.key === '+' || event.key === '=' || event.code === 'Equal' || event.code === 'NumpadAdd') {
-            delta = 10;
-            handled = true;
-        }
-        // CTRL + Minus (zoom out)
-        else if (event.key === '-' || event.code === 'Minus' || event.code === 'NumpadSubtract') {
-            delta = -10;
-            handled = true;
-        }
-        // CTRL + 0 (reset zoom) - handled separately in reset section
-        else if (event.key === '0' || event.code === 'Digit0' || event.code === 'Numpad0') {
-            event.preventDefault();
-            console.log('ZoomPanController: CTRL+0 detected, resetting zoom');
-            this.reset();
-            return;
+        switch (event.key) {
+            case 'ArrowUp':
+                deltaY = 40; // Pan up (positive = move content down)
+                handled = true;
+                break;
+            case 'ArrowDown':
+                deltaY = -40; // Pan down (negative = move content up)
+                handled = true;
+                break;
+            case 'ArrowLeft':
+                deltaX = 40; // Pan left (positive = move content right)
+                handled = true;
+                break;
+            case 'ArrowRight':
+                deltaX = -40; // Pan right (negative = move content left)
+                handled = true;
+                break;
+            case 'PageUp':
+                deltaY = window.innerHeight * 0.8; // Pan up by ~80% of viewport
+                handled = true;
+                break;
+            case 'PageDown':
+                deltaY = -window.innerHeight * 0.8; // Pan down by ~80% of viewport
+                handled = true;
+                break;
+            case 'Home':
+                // Jump to top
+                this.panY = 0;
+                this.clampPanBoundaries();
+                this.applyTransform();
+                this.sendStateUpdate();
+                this.updatePositionIndicator();
+                event.preventDefault();
+                return;
+            case 'End':
+                // Jump to bottom
+                const scale = this.zoomPercent / 100.0;
+                const contentHeight = this.originalContentHeight || this.contentElement.scrollHeight;
+                const scaledHeight = contentHeight * scale;
+                const maxPanY = Math.max(0, scaledHeight - window.innerHeight);
+                this.panY = -maxPanY;
+                this.clampPanBoundaries();
+                this.applyTransform();
+                this.sendStateUpdate();
+                this.updatePositionIndicator();
+                event.preventDefault();
+                return;
         }
 
         if (handled) {
             event.preventDefault();
-            console.log('ZoomPanController: Keyboard zoom', { key: event.key, delta });
-
-            // Use viewport center for keyboard zoom
-            const cursorX = window.innerWidth / 2;
-            const cursorY = window.innerHeight / 2;
-
-            this.zoom(delta, cursorX, cursorY);
+            this.pan(deltaX, deltaY);
         }
     }
 
     /**
-     * Handle wheel events for zoom control (CTRL + scroll) or pan (normal scroll)
+     * Handle wheel events for zoom control (CTRL + scroll) or pan (normal/shift scroll)
      * @param {WheelEvent} event - Wheel event
      */
     handleWheelEvent(event) {
@@ -250,7 +308,16 @@ class ZoomPanController {
             // Perform zoom operation
             this.zoom(delta, cursorX, cursorY);
         } 
-        // Normal wheel = pan (since we disabled native scrolling)
+        // SHIFT + wheel = horizontal pan
+        else if (event.shiftKey) {
+            event.preventDefault();
+            
+            // Pan horizontally based on wheel direction
+            const panDeltaX = -event.deltaY; // Use deltaY for horizontal pan
+            
+            this.pan(panDeltaX, 0);
+        }
+        // Normal wheel = vertical pan (since we disabled native scrolling)
         else {
             event.preventDefault();
             
@@ -258,7 +325,7 @@ class ZoomPanController {
             // deltaY > 0 = scroll down = pan content up (negative Y)
             // deltaY < 0 = scroll up = pan content down (positive Y)
             const panDeltaY = -event.deltaY;
-            const panDeltaX = -event.deltaX; // Support horizontal scroll
+            const panDeltaX = -event.deltaX; // Support horizontal scroll (trackpad)
             
             this.pan(panDeltaX, panDeltaY);
         }
