@@ -79,6 +79,11 @@
                     Padding="0"
                     ItemContainerStyle="{StaticResource SettingsTabItemStyle}">
             
+            <!-- Viewer Settings Tab -->
+            <TabItem Header="Viewer">
+                <local:ViewerSettingsView x:Name="ViewerSettingsPanel"/>
+            </TabItem>
+            
             <!-- Folder Exclusions Tab -->
             <TabItem Header="Folder Exclusions">
                 <local:FolderExclusionsView x:Name="FolderExclusionsPanel"/>

@@ -54,6 +54,10 @@ public partial class MainWindow : Window
     private WebViewHost? _webViewHost;
     private bool _isInitialized;
     private TabItemModel? _previousActiveTab;
+    
+    // Mouse panning state
+    private bool _isPanning = false;
+    private System.Windows.Point _panStartPoint;
 
     public MainWindow()
     {
@@ -127,6 +131,11 @@ public partial class MainWindow : Window
         
         // Add mouse wheel handler for zoom control
         this.PreviewMouseWheel += Window_PreviewMouseWheel;
+        
+        // Add mouse handlers for middle button pan at window level (tunneling events)
+        this.AddHandler(MouseDownEvent, new MouseButtonEventHandler(Window_PreviewMouseDown), handledEventsToo: true);
+        this.AddHandler(MouseMoveEvent, new System.Windows.Input.MouseEventHandler(Window_PreviewMouseMove), handledEventsToo: true);
+        this.AddHandler(MouseUpEvent, new MouseButtonEventHandler(Window_PreviewMouseUp), handledEventsToo: true);
     }
 
     internal void InitializeShell(StartupArguments startupArguments)
@@ -1477,6 +1486,9 @@ This folder contains Markdown files in subdirectories.
 
             settingsWindow.SettingsSaved += async (s, e) =>
             {
+                // Reload settings
+                _currentSettings = await _settingsService.LoadAsync();
+                
                 // Refresh tree view with new exclusion settings
                 if (_treeViewViewModel != null && _currentRoot != null)
                 {
@@ -1560,6 +1572,84 @@ This folder contains Markdown files in subdirectories.
         catch (Exception ex)
         {
             Debug.WriteLine($"Zoom error: {ex.Message}");
+        }
+    }
+
+    private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // Only handle middle button
+        if (e.MiddleButton != MouseButtonState.Pressed)
+        {
+            return;
+        }
+
+        // Only handle if MarkdownView is visible
+        if (MarkdownView.Visibility != Visibility.Visible || _webViewHost is null)
+        {
+            return;
+        }
+
+        // Start panning
+        _isPanning = true;
+        _panStartPoint = e.GetPosition(MarkdownView);
+        
+        // Capture mouse to receive events even if mouse leaves window
+        MarkdownView.CaptureMouse();
+        
+        // Mark event as handled
+        e.Handled = true;
+        
+        Debug.WriteLine($"Pan started at ({_panStartPoint.X}, {_panStartPoint.Y})");
+    }
+
+    private void Window_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (!_isPanning || _webViewHost is null)
+        {
+            return;
+        }
+
+        var currentTab = GetCurrentTab();
+        if (currentTab is null)
+        {
+            return;
+        }
+
+        // Calculate delta from start point
+        var currentPosition = e.GetPosition(MarkdownView);
+        var deltaX = currentPosition.X - _panStartPoint.X;
+        var deltaY = currentPosition.Y - _panStartPoint.Y;
+
+        // Update start point for continuous dragging
+        _panStartPoint = currentPosition;
+
+        // Send pan command to JavaScript
+        _webViewHost.PostMessage("zoom-pan", new
+        {
+            action = "pan",
+            deltaX,
+            deltaY
+        });
+
+        // Mark event as handled
+        e.Handled = true;
+    }
+
+    private void Window_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        // Only handle middle button release
+        if (e.MiddleButton != MouseButtonState.Released && _isPanning)
+        {
+            return;
+        }
+
+        if (_isPanning)
+        {
+            // Stop panning
+            _isPanning = false;
+            MarkdownView.ReleaseMouseCapture();
+            
+            Debug.WriteLine("Pan stopped");
         }
     }
 

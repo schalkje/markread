@@ -18,6 +18,11 @@ class ZoomPanController {
         this.zoomIndicator = null;
         this.indicatorTimeout = null;
         
+        // Middle mouse button panning state
+        this.isPanning = false;
+        this.panStartX = 0;
+        this.panStartY = 0;
+        
         // Initialize after DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.initialize());
@@ -60,6 +65,12 @@ class ZoomPanController {
         // Add keyboard event listener for CTRL+/-, CTRL+0
         document.addEventListener('keydown', (event) => this.handleKeyboardEvent(event), { passive: false });
         console.log('ZoomPanController: Keyboard event listener attached');
+
+        // Add mouse event listeners for middle button drag panning
+        document.addEventListener('mousedown', (event) => this.handleMouseDown(event));
+        document.addEventListener('mousemove', (event) => this.handleMouseMove(event));
+        document.addEventListener('mouseup', (event) => this.handleMouseUp(event));
+        console.log('ZoomPanController: Mouse event listeners attached for middle button panning');
     }
 
     /**
@@ -180,6 +191,59 @@ class ZoomPanController {
                 this.zoomIndicator.classList.remove('visible');
             }
         }, 1500);
+    }
+
+    /**
+     * Handle mouse down events for middle button drag
+     * @param {MouseEvent} event - Mouse event
+     */
+    handleMouseDown(event) {
+        // Check for middle button (button = 1)
+        if (event.button === 1) {
+            event.preventDefault();
+            this.isPanning = true;
+            this.panStartX = event.clientX;
+            this.panStartY = event.clientY;
+            document.body.style.cursor = 'grabbing';
+            console.log('ZoomPanController: Middle button pan started at', this.panStartX, this.panStartY);
+        }
+    }
+
+    /**
+     * Handle mouse move events for middle button drag
+     * @param {MouseEvent} event - Mouse event
+     */
+    handleMouseMove(event) {
+        if (!this.isPanning) {
+            return;
+        }
+
+        event.preventDefault();
+
+        // Calculate delta from start position
+        const deltaX = event.clientX - this.panStartX;
+        const deltaY = event.clientY - this.panStartY;
+
+        // Update start position for continuous dragging
+        this.panStartX = event.clientX;
+        this.panStartY = event.clientY;
+
+        // Pan the content
+        this.pan(deltaX, deltaY);
+    }
+
+    /**
+     * Handle mouse up events for middle button drag
+     * @param {MouseEvent} event - Mouse event
+     */
+    handleMouseUp(event) {
+        // Check for middle button release (button = 1)
+        if (event.button === 1 && this.isPanning) {
+            event.preventDefault();
+            this.isPanning = false;
+            document.body.style.cursor = 'default';
+            console.log('ZoomPanController: Middle button pan stopped');
+        }
     }
 
     /**
