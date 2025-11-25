@@ -10,6 +10,7 @@ public sealed class TabItem : INotifyPropertyChanged
     private double _zoomPercent = 100.0;
     private double _panOffsetX = 0.0;
     private double _panOffsetY = 0.0;
+    private int _scrollPosition = 0;
 
     public TabItem(Guid id, string title, string? documentPath = null)
     {
@@ -92,6 +93,22 @@ public sealed class TabItem : INotifyPropertyChanged
             if (Math.Abs(_panOffsetY - value) > 0.01)
             {
                 _panOffsetY = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Scroll position in pixels (default 0, session-only).
+    /// </summary>
+    public int ScrollPosition
+    {
+        get => _scrollPosition;
+        set
+        {
+            if (_scrollPosition != value)
+            {
+                _scrollPosition = value;
                 OnPropertyChanged();
             }
         }

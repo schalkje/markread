@@ -53,6 +53,7 @@ public partial class MainWindow : Window
     private ViewerSettings _currentSettings = ViewerSettings.Default();
     private WebViewHost? _webViewHost;
     private bool _isInitialized;
+    private TabItemModel? _previousActiveTab;
 
     public MainWindow()
     {
@@ -401,7 +402,10 @@ public partial class MainWindow : Window
         // Create initial tab if no tabs exist
         if (_tabService.Tabs.Count == 0)
         {
-            var initialTab = new TabItemModel(Guid.NewGuid(), result.Root.DisplayName);
+            var initialTab = new TabItemModel(Guid.NewGuid(), result.Root.DisplayName)
+            {
+                ZoomPercent = _currentSettings.DefaultZoomPercent
+            };
             await AddTabAsync(initialTab);
         }
 
@@ -565,14 +569,24 @@ public partial class MainWindow : Window
 
         await _webViewHost.WaitForReadyAsync();
 
-        // Restore scroll position for reloads, or navigate to anchor
-        if (isReload && scrollPosition > 0 && string.IsNullOrEmpty(anchor))
+        // Wait for JavaScript to fully initialize and cache content dimensions
+        await Task.Delay(150);
+
+        // Restore zoom/pan state for this tab
+        _webViewHost.PostMessage("zoom-pan", new
         {
-            _webViewHost.RestoreScrollPosition(scrollPosition);
-        }
-        else if (!string.IsNullOrEmpty(anchor))
+            action = "restore",
+            zoom = tab.ZoomPercent,
+            panX = tab.PanOffsetX,
+            panY = tab.PanOffsetY
+        });
+        Debug.WriteLine($"Restored zoom/pan for tab '{tab.Title}': zoom={tab.ZoomPercent}%, pan=({tab.PanOffsetX}, {tab.PanOffsetY})");
+
+        // Navigate to anchor if specified (anchor navigation takes precedence over saved state)
+        if (!string.IsNullOrEmpty(anchor))
         {
             _webViewHost.PostMessage("scroll-to", new { anchor });
+            Debug.WriteLine($"Navigated to anchor: {anchor}");
         }
 
         UpdateNavigationHistoryState();
@@ -892,7 +906,10 @@ This folder contains Markdown files in subdirectories.
             {
                 // Create new tab
                 var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
-                var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+                var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath)
+                {
+                    ZoomPercent = _currentSettings.DefaultZoomPercent
+                };
                 await AddTabAsync(newTab);
                 _tabService.SetActiveTab(newTab);
                 
@@ -1099,10 +1116,15 @@ This folder contains Markdown files in subdirectories.
         _webViewHost?.Dispose();
     }
 
-    private void OnActiveTabChanged(object? sender, TabItemModel? e)
+    private async void OnActiveTabChanged(object? sender, TabItemModel? e)
     {
+        // Small delay to ensure any pending bridge messages are processed
+        await Task.Delay(50);
+
         // Sync TabService.ActiveTab to TabControl.SelectedItem
         var tab = e ?? _tabService.ActiveTab;
+        _previousActiveTab = tab; // Track for next switch
+
         if (tab is not null)
         {
             if (this.TabControl.SelectedItem != tab)
@@ -1112,8 +1134,28 @@ This folder contains Markdown files in subdirectories.
             
             if (!string.IsNullOrEmpty(tab.DocumentPath))
             {
-                var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
-                _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+                // Check if we're switching to a tab with a document that's already loaded
+                var currentLoadedPath = _navigationService.CurrentFilePath;
+                if (currentLoadedPath == tab.DocumentPath)
+                {
+                    // Document is already loaded, just restore zoom/pan state
+                    if (_webViewHost is not null)
+                    {
+                        _webViewHost.PostMessage("zoom-pan", new
+                        {
+                            action = "restore",
+                            zoom = tab.ZoomPercent,
+                            panX = tab.PanOffsetX,
+                            panY = tab.PanOffsetY
+                        });
+                    }
+                }
+                else
+                {
+                    // Load the document for this tab
+                    var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
+                    _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+                }
 
                 // Sync tree view with the active tab's document
                 if (_treeViewViewModel is not null)
@@ -1326,7 +1368,10 @@ This folder contains Markdown files in subdirectories.
             {
                 // No tabs exist, create first tab
                 var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
-                currentTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+                currentTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath)
+                {
+                    ZoomPercent = _currentSettings.DefaultZoomPercent
+                };
                 
                 _ = Task.Run(async () =>
                 {
@@ -1371,7 +1416,10 @@ This folder contains Markdown files in subdirectories.
             MarkdownView.Visibility = Visibility.Visible;
 
             var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
-            var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+            var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath)
+            {
+                ZoomPercent = _currentSettings.DefaultZoomPercent
+            };
             
             _ = Task.Run(async () =>
             {

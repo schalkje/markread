@@ -164,7 +164,7 @@ Single WPF desktop application:
 
 ---
 
-## Phase 6: User Story 4 - Per-Tab Zoom Persistence (Priority: P2)
+## Phase 6: User Story 4 - Per-Tab Zoom Persistence (Priority: P2) ✅ COMPLETE
 
 **Goal**: Each tab maintains its own zoom level during session, restored on tab switch
 
@@ -172,18 +172,26 @@ Single WPF desktop application:
 
 ### Implementation for User Story 4
 
-- [ ] T060 [US4] Find or create tab selection changed event handler in TabsView or TabService
-- [ ] T061 [US4] Get newly activated TabItem when tab selection changes
-- [ ] T062 [US4] Read ZoomPercent, PanOffsetX, PanOffsetY from activated TabItem
-- [ ] T063 [US4] Create restore command JSON with action="restore", zoom, panX, panY
-- [ ] T064 [US4] Send restore command to JavaScript using PostWebMessageAsJson when tab activates
-- [ ] T065 [US4] Implement restore() method in zoom-pan.js to handle restore commands
-- [ ] T066 [US4] Set zoomPercent, panX, panY to values from restore command
-- [ ] T067 [US4] Call applyTransform() in restore() to apply saved state
-- [ ] T068 [US4] Initialize new TabItem with DefaultZoomPercent from settings when creating tabs
-- [ ] T069 [US4] Ensure TabItem zoom/pan state is NOT persisted to disk (session-only, verify in TabService)
+- [X] T060 [US4] Find or create tab selection changed event handler in TabsView or TabService
+- [X] T061 [US4] Get newly activated TabItem when tab selection changes
+- [X] T062 [US4] Read ZoomPercent, PanOffsetX, PanOffsetY from activated TabItem
+- [X] T063 [US4] Create restore command JSON with action="restore", zoom, panX, panY
+- [X] T064 [US4] Send restore command to JavaScript using PostWebMessageAsJson when tab activates
+- [X] T065 [US4] Implement restore() method in zoom-pan.js to handle restore commands (already existed)
+- [X] T066 [US4] Set zoomPercent, panX, panY to values from restore command (already existed)
+- [X] T067 [US4] Call applyTransform() in restore() to apply saved state (already existed)
+- [X] T068 [US4] Initialize new TabItem with DefaultZoomPercent from settings when creating tabs
+- [X] T069 [US4] Ensure TabItem zoom/pan state is NOT persisted to disk (session-only, verify in TabService)
 
-**Checkpoint**: Switching between tabs restores each tab's zoom level. New tabs use default zoom from settings. Zoom state is session-only.
+**Implementation Notes**:
+- Added restore command sending in `LoadDocumentInTabAsync` after `WaitForReadyAsync()` (T060-T064)
+- Updated all `new TabItemModel()` calls in MainWindow.xaml.cs to initialize with `_currentSettings.DefaultZoomPercent` (T068)
+- Verified TabItem is plain C# class with no serialization - zoom/pan state is session-only by design (T069)
+- restore() method in zoom-pan.js was already implemented in Phase 2, so T065-T067 were already complete
+- Added 150ms delay after WaitForReadyAsync() to ensure JavaScript fully initializes before sending restore command
+- Pan offsets serve as scroll position - no separate scroll tracking needed since we replaced native scrolling
+
+**Checkpoint**: Switching between tabs restores each tab's zoom level and pan position (including vertical scroll). New tabs use default zoom from settings. Zoom/pan state is session-only and works across different documents.
 
 ---
 
