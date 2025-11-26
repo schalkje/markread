@@ -13,7 +13,8 @@
     border-radius: 4px;
     opacity: 0;
     transition: opacity 0.3s ease;
-    pointer-events: none;
+    pointer-events: auto; /* Enable interaction */
+    cursor: default;
     z-index: 1000;
     max-height: 200px;
     min-height: 60px;
@@ -33,6 +34,15 @@
     border-radius: 4px;
     transition: background 0.2s ease;
     min-height: 20px;
+    cursor: pointer;
+}
+
+.position-indicator-thumb:hover {
+    background: var(--theme-accent-hover, #0052a3);
+}
+
+.position-indicator-thumb:active {
+    background: var(--theme-accent-active, #003d7a);
 }
 
 /* Horizontal position indicator */
@@ -49,7 +59,8 @@
     border-radius: 4px;
     opacity: 0;
     transition: opacity 0.3s ease;
-    pointer-events: none;
+    pointer-events: auto; /* Enable interaction */
+    cursor: default;
     z-index: 1000;
 }
 

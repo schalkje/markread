@@ -23,6 +23,14 @@ class ZoomPanController {
         this.panStartX = 0;
         this.panStartY = 0;
         
+        // Thumb dragging state
+        this.isThumbDragging = false;
+        this.thumbDragAxis = null; // 'vertical' or 'horizontal'
+        this.thumbDragStartY = 0;
+        this.thumbDragStartX = 0;
+        this.thumbDragStartPanY = 0;
+        this.thumbDragStartPanX = 0;
+        
         // Initialize after DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.initialize());
@@ -98,6 +106,38 @@ class ZoomPanController {
         this.zoomIndicator.className = 'zoom-indicator';
         this.zoomIndicator.textContent = '100%';
         document.body.appendChild(this.zoomIndicator);
+
+        // Add event listeners for interactive thumbs
+        this.setupThumbInteraction();
+    }
+
+    /**
+     * Set up interactive thumb dragging and track clicking
+     */
+    setupThumbInteraction() {
+        // Vertical thumb dragging
+        if (this.positionThumb) {
+            this.positionThumb.addEventListener('mousedown', (event) => this.handleThumbMouseDown(event, 'vertical'));
+        }
+
+        // Horizontal thumb dragging
+        if (this.positionThumbHorizontal) {
+            this.positionThumbHorizontal.addEventListener('mousedown', (event) => this.handleThumbMouseDown(event, 'horizontal'));
+        }
+
+        // Track clicking - vertical
+        if (this.positionIndicator) {
+            this.positionIndicator.addEventListener('mousedown', (event) => this.handleTrackClick(event, 'vertical'));
+        }
+
+        // Track clicking - horizontal
+        if (this.positionIndicatorHorizontal) {
+            this.positionIndicatorHorizontal.addEventListener('mousedown', (event) => this.handleTrackClick(event, 'horizontal'));
+        }
+
+        // Global mouse move and up for thumb dragging
+        document.addEventListener('mousemove', (event) => this.handleThumbMouseMove(event));
+        document.addEventListener('mouseup', (event) => this.handleThumbMouseUp(event));
     }
 
     /**
@@ -191,6 +231,221 @@ class ZoomPanController {
                 this.zoomIndicator.classList.remove('visible');
             }
         }, 1500);
+    }
+
+    /**
+     * Handle thumb mousedown - start dragging
+     * @param {MouseEvent} event - Mouse event
+     * @param {string} axis - 'vertical' or 'horizontal'
+     */
+    handleThumbMouseDown(event, axis) {
+        // Only handle left button
+        if (event.button !== 0) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation(); // Prevent track click from firing
+
+        this.isThumbDragging = true;
+        this.thumbDragAxis = axis;
+
+        if (axis === 'vertical') {
+            this.thumbDragStartY = event.clientY;
+            this.thumbDragStartPanY = this.panY;
+        } else {
+            this.thumbDragStartX = event.clientX;
+            this.thumbDragStartPanX = this.panX;
+        }
+
+        // Prevent text selection while dragging
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'grabbing';
+
+        console.log(`ZoomPanController: Thumb drag started (${axis})`);
+    }
+
+    /**
+     * Handle thumb mousemove - drag thumb to pan
+     * @param {MouseEvent} event - Mouse event
+     */
+    handleThumbMouseMove(event) {
+        if (!this.isThumbDragging) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (this.thumbDragAxis === 'vertical') {
+            // Calculate how far the mouse has moved relative to indicator height
+            const indicatorHeight = this.positionIndicator.clientHeight;
+            const mouseDelta = event.clientY - this.thumbDragStartY;
+            
+            // Calculate scrollable height
+            const scale = this.zoomPercent / 100.0;
+            const contentHeight = this.originalContentHeight || this.contentElement.scrollHeight;
+            const scaledHeight = contentHeight * scale;
+            const viewportHeight = window.innerHeight;
+            const scrollableHeight = Math.max(0, scaledHeight - viewportHeight);
+
+            if (scrollableHeight === 0) {
+                return; // No scrolling needed
+            }
+
+            // Calculate thumb height and max thumb position
+            const visibleRatio = Math.min(1, viewportHeight / scaledHeight);
+            const thumbHeight = Math.max(20, indicatorHeight * visibleRatio);
+            const maxThumbPosition = indicatorHeight - thumbHeight;
+
+            // Convert mouse delta to pan delta
+            // mouseDelta / maxThumbPosition = panDelta / scrollableHeight
+            const panDeltaRatio = maxThumbPosition > 0 ? mouseDelta / maxThumbPosition : 0;
+            const panDelta = panDeltaRatio * scrollableHeight;
+
+            // Update pan position
+            this.panY = this.thumbDragStartPanY - panDelta;
+
+        } else if (this.thumbDragAxis === 'horizontal') {
+            // Calculate how far the mouse has moved relative to indicator width
+            const indicatorWidth = this.positionIndicatorHorizontal.clientWidth;
+            const mouseDelta = event.clientX - this.thumbDragStartX;
+            
+            // Calculate scrollable width
+            const scale = this.zoomPercent / 100.0;
+            const contentWidth = this.originalContentWidth || this.contentElement.scrollWidth;
+            const scaledWidth = contentWidth * scale;
+            const viewportWidth = window.innerWidth;
+            const scrollableWidth = Math.max(0, scaledWidth - viewportWidth);
+
+            if (scrollableWidth === 0) {
+                return; // No scrolling needed
+            }
+
+            // Calculate thumb width and max thumb position
+            const visibleRatio = Math.min(1, viewportWidth / scaledWidth);
+            const thumbWidth = Math.max(20, indicatorWidth * visibleRatio);
+            const maxThumbPosition = indicatorWidth - thumbWidth;
+
+            // Convert mouse delta to pan delta
+            const panDeltaRatio = maxThumbPosition > 0 ? mouseDelta / maxThumbPosition : 0;
+            const panDelta = panDeltaRatio * scrollableWidth;
+
+            // Update pan position
+            this.panX = this.thumbDragStartPanX - panDelta;
+        }
+
+        // Apply the pan with clamping
+        this.clampPanBoundaries();
+        this.applyTransform();
+        this.sendStateUpdate();
+        this.updatePositionIndicator();
+    }
+
+    /**
+     * Handle thumb mouseup - stop dragging
+     * @param {MouseEvent} event - Mouse event
+     */
+    handleThumbMouseUp(event) {
+        if (this.isThumbDragging) {
+            event.preventDefault();
+            
+            this.isThumbDragging = false;
+            this.thumbDragAxis = null;
+
+            // Restore normal cursor and text selection
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+
+            console.log('ZoomPanController: Thumb drag stopped');
+        }
+    }
+
+    /**
+     * Handle track click - jump to clicked position
+     * @param {MouseEvent} event - Mouse event
+     * @param {string} axis - 'vertical' or 'horizontal'
+     */
+    handleTrackClick(event, axis) {
+        // Only handle left button
+        if (event.button !== 0) {
+            return;
+        }
+
+        // Don't handle if clicking on thumb (handled by thumb mousedown)
+        if (event.target.classList.contains('position-indicator-thumb')) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (axis === 'vertical') {
+            const indicator = this.positionIndicator;
+            const indicatorRect = indicator.getBoundingClientRect();
+            const clickY = event.clientY - indicatorRect.top;
+            const indicatorHeight = indicator.clientHeight;
+
+            // Calculate scrollable height
+            const scale = this.zoomPercent / 100.0;
+            const contentHeight = this.originalContentHeight || this.contentElement.scrollHeight;
+            const scaledHeight = contentHeight * scale;
+            const viewportHeight = window.innerHeight;
+            const scrollableHeight = Math.max(0, scaledHeight - viewportHeight);
+
+            if (scrollableHeight === 0) {
+                return; // No scrolling needed
+            }
+
+            // Calculate thumb height
+            const visibleRatio = Math.min(1, viewportHeight / scaledHeight);
+            const thumbHeight = Math.max(20, indicatorHeight * visibleRatio);
+
+            // Calculate desired thumb center position
+            const desiredThumbCenter = clickY;
+            const desiredThumbTop = Math.max(0, Math.min(indicatorHeight - thumbHeight, desiredThumbCenter - thumbHeight / 2));
+
+            // Convert to pan position
+            const maxThumbPosition = indicatorHeight - thumbHeight;
+            const positionRatio = maxThumbPosition > 0 ? desiredThumbTop / maxThumbPosition : 0;
+            this.panY = -positionRatio * scrollableHeight;
+
+        } else if (axis === 'horizontal') {
+            const indicator = this.positionIndicatorHorizontal;
+            const indicatorRect = indicator.getBoundingClientRect();
+            const clickX = event.clientX - indicatorRect.left;
+            const indicatorWidth = indicator.clientWidth;
+
+            // Calculate scrollable width
+            const scale = this.zoomPercent / 100.0;
+            const contentWidth = this.originalContentWidth || this.contentElement.scrollWidth;
+            const scaledWidth = contentWidth * scale;
+            const viewportWidth = window.innerWidth;
+            const scrollableWidth = Math.max(0, scaledWidth - viewportWidth);
+
+            if (scrollableWidth === 0) {
+                return; // No scrolling needed
+            }
+
+            // Calculate thumb width
+            const visibleRatio = Math.min(1, viewportWidth / scaledWidth);
+            const thumbWidth = Math.max(20, indicatorWidth * visibleRatio);
+
+            // Calculate desired thumb center position
+            const desiredThumbCenter = clickX;
+            const desiredThumbLeft = Math.max(0, Math.min(indicatorWidth - thumbWidth, desiredThumbCenter - thumbWidth / 2));
+
+            // Convert to pan position
+            const maxThumbPosition = indicatorWidth - thumbWidth;
+            const positionRatio = maxThumbPosition > 0 ? desiredThumbLeft / maxThumbPosition : 0;
+            this.panX = -positionRatio * scrollableWidth;
+        }
+
+        // Apply the pan with clamping
+        this.clampPanBoundaries();
+        this.applyTransform();
+        this.sendStateUpdate();
+        this.updatePositionIndicator();
+
+        console.log(`ZoomPanController: Track clicked (${axis})`);
     }
 
     /**
