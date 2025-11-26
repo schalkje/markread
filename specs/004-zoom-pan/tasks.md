@@ -203,17 +203,25 @@ Single WPF desktop application:
 
 ### Implementation for User Story 5
 
-- [ ] T070 [P] [US5] Locate or create Settings UI file (likely in src/UI/Settings/)
-- [ ] T071 [US5] Add "Zoom Settings" GroupBox to Settings UI XAML
-- [ ] T072 [US5] Add Slider control for DefaultZoomPercent with Minimum=10, Maximum=200 in Settings UI
-- [ ] T073 [US5] Add TextBlock to display current slider value as percentage (e.g., "125%")
-- [ ] T074 [US5] Bind Slider.Value to DefaultZoomPercent from settings (via DataContext or ViewModel)
-- [ ] T075 [US5] Add descriptive text "Applies to newly opened tabs" below slider
-- [ ] T076 [US5] Ensure settings are saved when user closes Settings dialog
-- [ ] T077 [US5] Verify TabItem initialization uses DefaultZoomPercent when creating new tabs (completed in T068)
-- [ ] T078 [US5] Verify existing tabs maintain their zoom level when DefaultZoomPercent changes
+- [X] T070 [P] [US5] Locate or create Settings UI file (likely in src/UI/Settings/)
+- [X] T071 [US5] Add "Zoom Settings" GroupBox to Settings UI XAML
+- [X] T072 [US5] Add Slider control for DefaultZoomPercent with Minimum=10, Maximum=200 in Settings UI
+- [X] T073 [US5] Add TextBlock to display current slider value as percentage (e.g., "125%")
+- [X] T074 [US5] Bind Slider.Value to DefaultZoomPercent from settings (via DataContext or ViewModel)
+- [X] T075 [US5] Add descriptive text "Applies to newly opened tabs" below slider
+- [X] T076 [US5] Ensure settings are saved when user closes Settings dialog
+- [X] T077 [US5] Verify TabItem initialization uses DefaultZoomPercent when creating new tabs (completed in T068)
+- [X] T078 [US5] Verify existing tabs maintain their zoom level when DefaultZoomPercent changes
 
-**Checkpoint**: Settings UI shows default zoom slider. Changing default zoom affects only new tabs. Existing tabs unaffected.
+**Implementation Notes**:
+- Created ViewerSettingsView.xaml with Slider control (Minimum=10, Maximum=200) and live percentage display (T070-T075)
+- Added Viewer tab to SettingsWindow.xaml before Folder Exclusions tab (T071, T076)
+- ViewerSettingsView.xaml.cs implements Initialize(), GetSettings(), and ZoomSlider_ValueChanged event (T074)
+- SettingsWindow loads/saves ViewerSettings alongside FolderExclusionSettings (T076)
+- MainWindow reloads _currentSettings after SettingsSaved event to pick up changes (T078)
+- New TabItems initialized with _currentSettings.DefaultZoomPercent in all TabService.CreateTab calls (T077)
+
+**Checkpoint**: Settings UI shows default zoom slider. Changing default zoom affects only new tabs. Existing tabs unaffected. ✅ COMPLETE
 
 ---
 
@@ -225,30 +233,41 @@ Single WPF desktop application:
 
 ### Implementation for User Story 6
 
-- [ ] T079 [US6] Add PreviewMouseDown event handler to WebViewHost or MainWindow
-- [ ] T080 [US6] Detect middle button press (e.MiddleButton == MouseButtonState.Pressed) in PreviewMouseDown
-- [ ] T081 [US6] Store initial mouse position in _panStartPoint field when middle button pressed
-- [ ] T082 [US6] Set _isPanning flag to true and capture mouse with webView.CaptureMouse()
-- [ ] T083 [US6] Set e.Handled = true when middle button pressed to prevent default behavior
-- [ ] T084 [US6] Add PreviewMouseMove event handler to track mouse movement
-- [ ] T085 [US6] Check _isPanning flag in PreviewMouseMove
-- [ ] T086 [US6] Calculate deltaX and deltaY from current position minus _panStartPoint
-- [ ] T087 [US6] Update _panStartPoint to current position for continuous dragging
-- [ ] T088 [US6] Create pan command JSON with action="pan", deltaX, deltaY
-- [ ] T089 [US6] Send pan command to JavaScript using PostWebMessageAsJson
-- [ ] T090 [US6] Add PreviewMouseUp event handler to detect middle button release
-- [ ] T091 [US6] Clear _isPanning flag and release mouse capture on middle button release
-- [ ] T092 [US6] Implement pan() method in zoom-pan.js to handle pan commands
-- [ ] T093 [US6] Add deltaX to panX and deltaY to panY in pan()
-- [ ] T094 [US6] Implement clampPanBoundaries() method in zoom-pan.js
-- [ ] T095 [US6] Calculate scaled content size and viewport size in clampPanBoundaries()
-- [ ] T096 [US6] Calculate maxPanX and maxPanY based on content overflow
-- [ ] T097 [US6] Clamp panX to [0, maxPanX] and panY to [0, maxPanY] in clampPanBoundaries()
-- [ ] T098 [US6] Call clampPanBoundaries() in pan() before applying transform
-- [ ] T099 [US6] Call applyTransform() in pan()
-- [ ] T100 [US6] Call sendStateUpdate() in pan()
+- [X] T079 [US6] Add PreviewMouseDown event handler to WebViewHost or MainWindow
+- [X] T080 [US6] Detect middle button press (e.MiddleButton == MouseButtonState.Pressed) in PreviewMouseDown
+- [X] T081 [US6] Store initial mouse position in _panStartPoint field when middle button pressed
+- [X] T082 [US6] Set _isPanning flag to true and capture mouse with webView.CaptureMouse()
+- [X] T083 [US6] Set e.Handled = true when middle button pressed to prevent default behavior
+- [X] T084 [US6] Add PreviewMouseMove event handler to track mouse movement
+- [X] T085 [US6] Check _isPanning flag in PreviewMouseMove
+- [X] T086 [US6] Calculate deltaX and deltaY from current position minus _panStartPoint
+- [X] T087 [US6] Update _panStartPoint to current position for continuous dragging
+- [X] T088 [US6] Create pan command JSON with action="pan", deltaX, deltaY
+- [X] T089 [US6] Send pan command to JavaScript using PostWebMessageAsJson
+- [X] T090 [US6] Add PreviewMouseUp event handler to detect middle button release
+- [X] T091 [US6] Clear _isPanning flag and release mouse capture on middle button release
+- [X] T092 [US6] Implement pan() method in zoom-pan.js to handle pan commands
+- [X] T093 [US6] Add deltaX to panX and deltaY to panY in pan()
+- [X] T094 [US6] Implement clampPanBoundaries() method in zoom-pan.js
+- [X] T095 [US6] Calculate scaled content size and viewport size in clampPanBoundaries()
+- [X] T096 [US6] Calculate maxPanX and maxPanY based on content overflow
+- [X] T097 [US6] Clamp panX to [0, maxPanX] and panY to [0, maxPanY] in clampPanBoundaries()
+- [X] T098 [US6] Call clampPanBoundaries() in pan() before applying transform
+- [X] T099 [US6] Call applyTransform() in pan()
+- [X] T100 [US6] Call sendStateUpdate() in pan()
 
-**Checkpoint**: Middle mouse drag pans zoomed documents. Panning stops at boundaries. Panning disabled at 100% zoom.
+**Implementation Notes**:
+- Initially attempted WPF-side mouse handling with Window.PreviewMouseDown/Move/Up (T079-T091)
+- WebView2 browser process intercepts mouse events before WPF receives them
+- Final solution: JavaScript-side mouse handling in zoom-pan.js (T079-T091 completed via JavaScript)
+- Added mousedown/mousemove/mouseup event listeners in zoom-pan.js initialize()
+- handleMouseDown() detects middle button (event.button === 1), sets isPanning flag, changes cursor to "grabbing"
+- handleMouseMove() calculates delta from start position and calls pan() continuously while dragging
+- handleMouseUp() releases panning state and restores cursor
+- pan(), clampPanBoundaries(), applyTransform(), sendStateUpdate() already existed from Phase 2/5.5 (T092-T100)
+- WPF-side handlers with AddHandler(..., handledEventsToo: true) handle panning when drag starts outside WebView
+
+**Checkpoint**: Middle mouse drag pans zoomed documents. Panning stops at boundaries. Works on WebView and sidebar. ✅ COMPLETE
 
 ---
 
@@ -290,7 +309,37 @@ Single WPF desktop application:
 
 ---
 
-## Dependencies & Execution Order
+## Phase 11: Interactive Position Indicators (Scrollbar Functionality)
+
+**Purpose**: Make position indicators interactive - allow click-and-drag like traditional scrollbars
+
+**Goal**: Users can click and drag the position indicator thumbs (vertical/horizontal) to pan the document, just like native scrollbars
+
+**Independent Test**: Zoom document to 150%, click and drag the vertical position indicator thumb (right side). Document should pan accordingly. Release mouse - panning stops. Repeat with horizontal indicator (bottom).
+
+### Implementation for User Story - Interactive Scrollbars
+
+- [ ] T119 [US-Interactive] Add mousedown event listener to position indicator thumbs in zoom-pan.js
+- [ ] T120 [US-Interactive] Detect click on vertical thumb (positionThumb element)
+- [ ] T121 [US-Interactive] Store initial mouse Y position and initial panY when thumb clicked
+- [ ] T122 [US-Interactive] Set isThumbDragging flag and capture mouse events
+- [ ] T123 [US-Interactive] Add mousemove listener to track vertical thumb drag
+- [ ] T124 [US-Interactive] Calculate pan delta based on mouse Y movement relative to indicator height
+- [ ] T125 [US-Interactive] Convert indicator ratio to pan offset (indicatorRatio * scrollableHeight)
+- [ ] T126 [US-Interactive] Update panY based on calculated offset
+- [ ] T127 [US-Interactive] Call clampPanBoundaries(), applyTransform(), sendStateUpdate() during thumb drag
+- [ ] T128 [US-Interactive] Add mouseup listener to stop thumb dragging
+- [ ] T129 [US-Interactive] Implement same logic for horizontal thumb (positionThumbHorizontal)
+- [ ] T130 [US-Interactive] Handle click on indicator track (not thumb) to jump to that position
+- [ ] T131 [US-Interactive] Add CSS cursor: pointer to thumbs and cursor: default to tracks
+- [ ] T132 [US-Interactive] Add visual feedback on thumb hover (slightly lighter background)
+- [ ] T133 [US-Interactive] Prevent text selection while dragging thumbs
+- [ ] T134 [US-Interactive] Test thumb drag at various zoom levels (100%, 150%, 500%)
+- [ ] T135 [US-Interactive] Test edge cases: drag beyond boundaries, rapid drag movements
+
+**Checkpoint**: Position indicator thumbs are draggable. Dragging vertical thumb pans vertically. Dragging horizontal thumb pans horizontally. Click on track jumps to position. Visual feedback on hover.
+
+---
 
 ### Phase Dependencies
 
@@ -305,6 +354,7 @@ Single WPF desktop application:
   - US6 (Pan) depends on US1/US2 for zoom to work (need zoom > 100% to pan)
   - US7 (Pan Persistence) depends on US6 for pan to work
 - **Polish (Phase 10)**: Depends on all user stories being complete
+- **Interactive Scrollbars (Phase 11)**: Depends on Phase 5.5 (position indicators must exist)
 
 ### User Story Dependencies
 
@@ -334,6 +384,7 @@ Single WPF desktop application:
 - T070-T075 (Settings UI) can run in parallel (different XAML file)
 - Within US6: T079-T091 (WPF handlers) can be developed in parallel with T092-T100 (JavaScript pan logic)
 - All Phase 10 polish tasks marked [P] can run in parallel
+- Phase 11 (Interactive scrollbars): T119-T129 (vertical) can run in parallel with T129-T135 (horizontal + polish)
 
 ---
 
@@ -377,6 +428,7 @@ Task: "T020 [US1] Calculate zoom delta (+10/-10)"
 6. Add User Story 6 → Test → Demo (pan) (+3 hours = 13-14 hours)
 7. Add User Story 5, 7 → Test → Demo (settings, pan persistence) (+2 hours = 15-16 hours)
 8. Polish phase → Final testing (+1-2 hours = 16-18 hours total)
+9. Interactive scrollbars → Test → Demo (+2-3 hours = 18-21 hours total)
 
 ### Parallel Team Strategy
 
