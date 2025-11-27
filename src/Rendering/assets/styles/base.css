@@ -77,25 +77,39 @@ body {
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow: hidden; /* Disable native scrolling for zoom/pan */
 }
 
 /* Ensure html also has transparent background to prevent white flash */
 html {
     background: transparent;
+    overflow: hidden; /* Disable native scrolling for zoom/pan */
 }
 
 /* Modern content container with better spacing */
 #app {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start; /* Align to top instead of center for zoom/pan to work */
+    align-items: center; /* Horizontal centering only */
+    flex-direction: column; /* Stack vertically */
     background: inherit;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Disable scrolling, use pan instead */
 }
 
 main#content {
-    width: min(800px, 100%);
+    width: 800px; /* Fixed width */
+    max-width: 100%; /* But don't exceed viewport on small screens */
     padding: var(--space-12) var(--space-8) var(--space-16);
-    background: inherit;
+    background: transparent;
+    padding-bottom: 50px; /* Fixed bottom spacing that doesn't scale with zoom */
 }
+
+/* Remove ::after spacer since we use fixed padding-bottom now */
 
 @media (max-width: 768px) {
     main#content {

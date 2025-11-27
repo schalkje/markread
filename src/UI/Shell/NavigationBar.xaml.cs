@@ -176,6 +176,36 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
         SettingsRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    private void ZoomIn_Click(object sender, RoutedEventArgs e)
+    {
+        // Raise event for zoom in
+        ZoomInRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ZoomOut_Click(object sender, RoutedEventArgs e)
+    {
+        // Raise event for zoom out
+        ZoomOutRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ResetZoom_Click(object sender, RoutedEventArgs e)
+    {
+        // Raise event for reset zoom
+        ResetZoomRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void FitToWidth_Click(object sender, RoutedEventArgs e)
+    {
+        // Raise event for fit to width
+        FitToWidthRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ShowKeyboardShortcuts_Click(object sender, RoutedEventArgs e)
+    {
+        // Raise event for showing keyboard shortcuts
+        ShowKeyboardShortcutsRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>
     /// Event raised when menu button is clicked (toggle sidebar)
     /// </summary>
@@ -195,4 +225,29 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
     /// Event raised when settings menu item is clicked
     /// </summary>
     public event EventHandler? SettingsRequested;
+
+    /// <summary>
+    /// Event raised when zoom in is requested
+    /// </summary>
+    public event EventHandler? ZoomInRequested;
+
+    /// <summary>
+    /// Event raised when zoom out is requested
+    /// </summary>
+    public event EventHandler? ZoomOutRequested;
+
+    /// <summary>
+    /// Event raised when reset zoom is requested
+    /// </summary>
+    public event EventHandler? ResetZoomRequested;
+
+    /// <summary>
+    /// Event raised when fit to width zoom is requested
+    /// </summary>
+    public event EventHandler? FitToWidthRequested;
+
+    /// <summary>
+    /// Event raised when keyboard shortcuts help is requested
+    /// </summary>
+    public event EventHandler? ShowKeyboardShortcutsRequested;
 }

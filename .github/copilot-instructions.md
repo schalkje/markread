@@ -1,4 +1,4 @@
-﻿# markread Development Guidelines
+# markread Development Guidelines
 
 Auto-generated from all feature plans. Last updated: 2025-10-25
 
@@ -9,6 +9,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-25
 - Local application settings file (JSON/XML) for theme preferences and UI state (003-mockup-ui)
 - .NET 8 (C#) + WPF TreeView control, System.IO.FileSystemWatcher for real-time monitoring (002-folder-treeview)
 - Local filesystem only (settings persisted via existing SettingsService) (002-folder-treeview)
+- C# .NET 8 (net8.0-windows) + WPF, Microsoft.Web.WebView2 (1.0.2420.47), Markdig (0.34.0) (004-zoom-pan)
+- Local application settings file (JSON/XML) for default zoom preference (004-zoom-pan)
 
 ## Project Structure
 
@@ -34,9 +36,9 @@ tests/
 .NET 8 (C#): Follow standard conventions
 
 ## Recent Changes
+- 004-zoom-pan: Added C# .NET 8 (net8.0-windows) + WPF, Microsoft.Web.WebView2 (1.0.2420.47), Markdig (0.34.0)
 - 003-mockup-ui: Added C# .NET 8 + WPF, WebView2, Markdig (for markdown processing)
 - 002-folder-treeview: Added .NET 8 (C#) + WPF TreeView control, System.IO.FileSystemWatcher for real-time monitoring
-- 001-markdown-viewer: Added .NET 8 (C#) + WPF + WebView2; Markdig (optional if server‑side rendering), Prism/Highlight.js + Mermaid (front-end assets)
 
 
 <!-- MANUAL ADDITIONS START -->

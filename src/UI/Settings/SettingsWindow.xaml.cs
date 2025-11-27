@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using MarkRead.App.Services;
+using MarkRead.Services;
 
 namespace MarkRead.App.UI.Settings;
 
@@ -10,6 +11,7 @@ namespace MarkRead.App.UI.Settings;
 public partial class SettingsWindow : Window
 {
     private readonly SettingsService _settingsService;
+    private ViewerSettings _viewerSettings;
     private FolderExclusionSettings _folderExclusionSettings;
     private bool _settingsChanged;
 
@@ -18,6 +20,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow(SettingsService settingsService)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+        _viewerSettings = ViewerSettings.Default();
         _folderExclusionSettings = new FolderExclusionSettings();
         
         InitializeComponent();
@@ -29,9 +32,13 @@ public partial class SettingsWindow : Window
         try
         {
             // Load current settings
+            _viewerSettings = await _settingsService.LoadAsync();
             _folderExclusionSettings = await _settingsService.LoadFolderExclusionSettingsAsync();
             
             // Initialize UI with loaded settings
+            ViewerSettingsPanel.Initialize(_viewerSettings);
+            ViewerSettingsPanel.SettingsChanged += OnSettingsChanged;
+            
             FolderExclusionsPanel.Initialize(_folderExclusionSettings);
             FolderExclusionsPanel.SettingsChanged += OnSettingsChanged;
         }
@@ -54,11 +61,13 @@ public partial class SettingsWindow : Window
     {
         try
         {
-            // Get updated settings from the panel
-            var updatedSettings = FolderExclusionsPanel.GetSettings();
+            // Get updated settings from the panels
+            var updatedViewerSettings = ViewerSettingsPanel.GetSettings();
+            var updatedFolderSettings = FolderExclusionsPanel.GetSettings();
             
             // Save to disk
-            await _settingsService.SaveFolderExclusionSettingsAsync(updatedSettings);
+            await _settingsService.SaveAsync(updatedViewerSettings);
+            await _settingsService.SaveFolderExclusionSettingsAsync(updatedFolderSettings);
             
             // Notify listeners
             SettingsSaved?.Invoke(this, EventArgs.Empty);
@@ -106,14 +115,19 @@ public partial class SettingsWindow : Window
         {
             try
             {
-                // Reset to defaults
-                _folderExclusionSettings = FolderExclusionSettings.CreateDefault();
-                
-                // Update UI
-                FolderExclusionsPanel.Initialize(_folderExclusionSettings);
-                
-                // Save immediately
-                await _settingsService.SaveFolderExclusionSettingsAsync(_folderExclusionSettings);
+                // Determine which tab is active and reset accordingly
+                if (SettingsTabControl.SelectedIndex == 0) // Viewer tab
+                {
+                    _viewerSettings = ViewerSettings.Default();
+                    ViewerSettingsPanel.Initialize(_viewerSettings);
+                    await _settingsService.SaveAsync(_viewerSettings);
+                }
+                else if (SettingsTabControl.SelectedIndex == 1) // Folder Exclusions tab
+                {
+                    _folderExclusionSettings = FolderExclusionSettings.CreateDefault();
+                    FolderExclusionsPanel.Initialize(_folderExclusionSettings);
+                    await _settingsService.SaveFolderExclusionSettingsAsync(_folderExclusionSettings);
+                }
                 
                 _settingsChanged = true;
                 

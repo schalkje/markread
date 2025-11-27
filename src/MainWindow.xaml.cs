@@ -53,6 +53,11 @@ public partial class MainWindow : Window
     private ViewerSettings _currentSettings = ViewerSettings.Default();
     private WebViewHost? _webViewHost;
     private bool _isInitialized;
+    private TabItemModel? _previousActiveTab;
+    
+    // Mouse panning state
+    private bool _isPanning = false;
+    private System.Windows.Point _panStartPoint;
 
     public MainWindow()
     {
@@ -90,6 +95,13 @@ public partial class MainWindow : Window
         this.NavigationBar.NavigationService = _navigationService;
         _navigationService.ClearCurrentFile();
 
+        // Wire up NavigationBar zoom events
+        this.NavigationBar.ZoomInRequested += OnZoomInRequested;
+        this.NavigationBar.ZoomOutRequested += OnZoomOutRequested;
+        this.NavigationBar.ResetZoomRequested += OnResetZoomRequested;
+        this.NavigationBar.FitToWidthRequested += OnFitToWidthRequested;
+        this.NavigationBar.ShowKeyboardShortcutsRequested += OnShowKeyboardShortcutsRequested;
+
         // Wire up FindBar events
         FindBar.SearchRequested += OnSearchRequested;
         FindBar.NextRequested += OnFindNextRequested;
@@ -118,6 +130,14 @@ public partial class MainWindow : Window
 
         // Add keyboard event handler for tab shortcuts
         this.PreviewKeyDown += Window_PreviewKeyDown;
+        
+        // Add mouse wheel handler for zoom control
+        this.PreviewMouseWheel += Window_PreviewMouseWheel;
+        
+        // Add mouse handlers for middle button pan at window level (tunneling events)
+        this.AddHandler(MouseDownEvent, new MouseButtonEventHandler(Window_PreviewMouseDown), handledEventsToo: true);
+        this.AddHandler(MouseMoveEvent, new System.Windows.Input.MouseEventHandler(Window_PreviewMouseMove), handledEventsToo: true);
+        this.AddHandler(MouseUpEvent, new MouseButtonEventHandler(Window_PreviewMouseUp), handledEventsToo: true);
     }
 
     internal void InitializeShell(StartupArguments startupArguments)
@@ -145,6 +165,32 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        // Handle F1 for help
+        if (e.Key == Key.F1)
+        {
+            OnShowKeyboardShortcutsRequested(this, EventArgs.Empty);
+            e.Handled = true;
+            return;
+        }
+        
+        // Handle Ctrl+B for toggle sidebar
+        if (e.Key == Key.B && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            // Toggle sidebar visibility
+            if (SidebarPanel.Visibility == Visibility.Visible)
+            {
+                SidebarPanel.Visibility = Visibility.Collapsed;
+                SidebarColumn.Width = new GridLength(0);
+            }
+            else
+            {
+                SidebarPanel.Visibility = Visibility.Visible;
+                SidebarColumn.Width = new GridLength(250);
+            }
+            e.Handled = true;
+            return;
+        }
+        
         // Handle Ctrl+, for Settings
         if (e.Key == Key.OemComma && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
@@ -169,11 +215,36 @@ public partial class MainWindow : Window
                 e.Handled = true;
             }
         }
-        // Handle close tab shortcut
+        // Handle close tab shortcuts
         else if (e.Key == Key.F4 && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
             // Ctrl+F4 - Close active tab
             _tabService.CloseActiveTab();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.W && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            // Ctrl+W - Close active tab
+            _tabService.CloseActiveTab();
+            e.Handled = true;
+        }
+        // Handle navigation shortcuts
+        else if (e.Key == Key.Left && (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
+        {
+            // Alt+Left - Go back
+            if (AppNavigationCommands.GoBack.CanExecute(null, this))
+            {
+                _ = ExecuteGoBackAsync();
+            }
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Right && (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
+        {
+            // Alt+Right - Go forward
+            if (AppNavigationCommands.GoForward.CanExecute(null, this))
+            {
+                _ = ExecuteGoForwardAsync();
+            }
             e.Handled = true;
         }
     }
@@ -393,7 +464,10 @@ public partial class MainWindow : Window
         // Create initial tab if no tabs exist
         if (_tabService.Tabs.Count == 0)
         {
-            var initialTab = new TabItemModel(Guid.NewGuid(), result.Root.DisplayName);
+            var initialTab = new TabItemModel(Guid.NewGuid(), result.Root.DisplayName)
+            {
+                ZoomPercent = _currentSettings.DefaultZoomPercent
+            };
             await AddTabAsync(initialTab);
         }
 
@@ -557,14 +631,34 @@ public partial class MainWindow : Window
 
         await _webViewHost.WaitForReadyAsync();
 
-        // Restore scroll position for reloads, or navigate to anchor
-        if (isReload && scrollPosition > 0 && string.IsNullOrEmpty(anchor))
+        // Wait for JavaScript to fully initialize and cache content dimensions
+        await Task.Delay(150);
+
+        // Apply zoom mode based on settings
+        if (_currentSettings.DefaultZoomMode == "FitToWidth")
         {
-            _webViewHost.RestoreScrollPosition(scrollPosition);
+            // Apply fit-to-width for new tabs
+            _webViewHost.PostMessage("zoom-pan", new { action = "fitToWidth" });
+            Debug.WriteLine($"Applied fit-to-width for tab '{tab.Title}'");
         }
-        else if (!string.IsNullOrEmpty(anchor))
+        else
+        {
+            // Restore zoom/pan state for this tab
+            _webViewHost.PostMessage("zoom-pan", new
+            {
+                action = "restore",
+                zoom = tab.ZoomPercent,
+                panX = tab.PanOffsetX,
+                panY = tab.PanOffsetY
+            });
+            Debug.WriteLine($"Restored zoom/pan for tab '{tab.Title}': zoom={tab.ZoomPercent}%, pan=({tab.PanOffsetX}, {tab.PanOffsetY})");
+        }
+
+        // Navigate to anchor if specified (anchor navigation takes precedence over saved state)
+        if (!string.IsNullOrEmpty(anchor))
         {
             _webViewHost.PostMessage("scroll-to", new { anchor });
+            Debug.WriteLine($"Navigated to anchor: {anchor}");
         }
 
         UpdateNavigationHistoryState();
@@ -724,7 +818,24 @@ This folder contains Markdown files in subdirectories.
         var tab = GetCurrentTab();
         if (tab is null) return;
 
-        if (e.Name.Equals("link-click", StringComparison.OrdinalIgnoreCase))
+        if (e.Name.Equals("zoomPanState", StringComparison.OrdinalIgnoreCase))
+        {
+            if (e.Payload is JsonElement element)
+            {
+                var zoom = element.TryGetProperty("zoom", out var zoomProp) ? zoomProp.GetDouble() : 100.0;
+                var panX = element.TryGetProperty("panX", out var panXProp) ? panXProp.GetDouble() : 0.0;
+                var panY = element.TryGetProperty("panY", out var panYProp) ? panYProp.GetDouble() : 0.0;
+
+                _ = Dispatcher.InvokeAsync(() =>
+                {
+                    tab.ZoomPercent = zoom;
+                    tab.PanOffsetX = panX;
+                    tab.PanOffsetY = panY;
+                    Debug.WriteLine($"Zoom state updated (1): {zoom}%, pan=({panX}, {panY})");
+                });
+            }
+        }
+        else if (e.Name.Equals("link-click", StringComparison.OrdinalIgnoreCase))
         {
             if (e.Payload is JsonElement element && element.TryGetProperty("href", out var hrefElement))
             {
@@ -761,6 +872,17 @@ This folder contains Markdown files in subdirectories.
                     history.SearchCurrentIndex = currentIndex;
                 });
             }
+        }
+        else if (e.Name.Equals("requestDefaultZoom", StringComparison.OrdinalIgnoreCase))
+        {
+            // Handle Ctrl+0 request to reset to default zoom from settings
+            _ = Dispatcher.InvokeAsync(() =>
+            {
+                if (_webViewHost is not null)
+                {
+                    _webViewHost.PostMessage("zoom-pan", new { action = "reset" });
+                }
+            });
         }
     }
 
@@ -867,7 +989,10 @@ This folder contains Markdown files in subdirectories.
             {
                 // Create new tab
                 var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
-                var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+                var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath)
+                {
+                    ZoomPercent = _currentSettings.DefaultZoomPercent
+                };
                 await AddTabAsync(newTab);
                 _tabService.SetActiveTab(newTab);
                 
@@ -929,6 +1054,72 @@ This folder contains Markdown files in subdirectories.
         if (_webViewHost is not null)
         {
             _webViewHost.PostMessage("find-clear", null);
+        }
+    }
+
+    private void OnZoomInRequested(object? sender, EventArgs e)
+    {
+        if (_webViewHost is not null)
+        {
+            // JavaScript will use viewport center - just send zoom command
+            _webViewHost.PostMessage("zoom-pan", new 
+            { 
+                action = "zoom", 
+                delta = 10, 
+                cursorX = 0, 
+                cursorY = 0 
+            });
+        }
+    }
+
+    private void OnZoomOutRequested(object? sender, EventArgs e)
+    {
+        if (_webViewHost is not null)
+        {
+            // JavaScript will use viewport center - just send zoom command
+            _webViewHost.PostMessage("zoom-pan", new 
+            { 
+                action = "zoom", 
+                delta = -10, 
+                cursorX = 0, 
+                cursorY = 0 
+            });
+        }
+    }
+
+    private void OnResetZoomRequested(object? sender, EventArgs e)
+    {
+        if (_webViewHost is not null)
+        {
+            _webViewHost.PostMessage("zoom-pan", new { action = "reset" });
+        }
+    }
+
+    private void OnFitToWidthRequested(object? sender, EventArgs e)
+    {
+        if (_webViewHost is not null)
+        {
+            _webViewHost.PostMessage("zoom-pan", new { action = "fitToWidth" });
+        }
+    }
+
+    private void OnShowKeyboardShortcutsRequested(object? sender, EventArgs e)
+    {
+        try
+        {
+            var helpWindow = new UI.Help.KeyboardShortcutsWindow
+            {
+                Owner = this
+            };
+            helpWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            WpfMessageBox.Show(
+                $"Failed to open keyboard shortcuts help: {ex.Message}",
+                "Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 
@@ -1036,10 +1227,15 @@ This folder contains Markdown files in subdirectories.
         _webViewHost?.Dispose();
     }
 
-    private void OnActiveTabChanged(object? sender, TabItemModel? e)
+    private async void OnActiveTabChanged(object? sender, TabItemModel? e)
     {
+        // Small delay to ensure any pending bridge messages are processed
+        await Task.Delay(50);
+
         // Sync TabService.ActiveTab to TabControl.SelectedItem
         var tab = e ?? _tabService.ActiveTab;
+        _previousActiveTab = tab; // Track for next switch
+
         if (tab is not null)
         {
             if (this.TabControl.SelectedItem != tab)
@@ -1049,8 +1245,28 @@ This folder contains Markdown files in subdirectories.
             
             if (!string.IsNullOrEmpty(tab.DocumentPath))
             {
-                var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
-                _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+                // Check if we're switching to a tab with a document that's already loaded
+                var currentLoadedPath = _navigationService.CurrentFilePath;
+                if (currentLoadedPath == tab.DocumentPath)
+                {
+                    // Document is already loaded, just restore zoom/pan state
+                    if (_webViewHost is not null)
+                    {
+                        _webViewHost.PostMessage("zoom-pan", new
+                        {
+                            action = "restore",
+                            zoom = tab.ZoomPercent,
+                            panX = tab.PanOffsetX,
+                            panY = tab.PanOffsetY
+                        });
+                    }
+                }
+                else
+                {
+                    // Load the document for this tab
+                    var doc = new DocumentInfo(tab.DocumentPath, Path.GetFileName(tab.DocumentPath), 0, DateTime.UtcNow);
+                    _ = LoadDocumentInTabAsync(tab, doc, pushHistory: false);
+                }
 
                 // Sync tree view with the active tab's document
                 if (_treeViewViewModel is not null)
@@ -1263,7 +1479,10 @@ This folder contains Markdown files in subdirectories.
             {
                 // No tabs exist, create first tab
                 var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
-                currentTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+                currentTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath)
+                {
+                    ZoomPercent = _currentSettings.DefaultZoomPercent
+                };
                 
                 _ = Task.Run(async () =>
                 {
@@ -1308,7 +1527,10 @@ This folder contains Markdown files in subdirectories.
             MarkdownView.Visibility = Visibility.Visible;
 
             var tabTitle = Path.GetFileNameWithoutExtension(doc.FullPath);
-            var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath);
+            var newTab = new TabItemModel(Guid.NewGuid(), tabTitle, doc.FullPath)
+            {
+                ZoomPercent = _currentSettings.DefaultZoomPercent
+            };
             
             _ = Task.Run(async () =>
             {
@@ -1366,6 +1588,9 @@ This folder contains Markdown files in subdirectories.
 
             settingsWindow.SettingsSaved += async (s, e) =>
             {
+                // Reload settings
+                _currentSettings = await _settingsService.LoadAsync();
+                
                 // Refresh tree view with new exclusion settings
                 if (_treeViewViewModel != null && _currentRoot != null)
                 {
@@ -1384,4 +1609,176 @@ This folder contains Markdown files in subdirectories.
                 MessageBoxImage.Error);
         }
     }
+
+    #region Zoom/Pan Event Handlers
+
+    /// <summary>
+    /// Handles mouse wheel events for zoom control (CTRL + scroll).
+    /// </summary>
+    private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        Debug.WriteLine($"Window_PreviewMouseWheel: Delta={e.Delta}, Modifiers={Keyboard.Modifiers}");
+
+        // Only handle if MarkdownView is visible
+        if (MarkdownView.Visibility != Visibility.Visible)
+        {
+            Debug.WriteLine("MarkdownView not visible");
+            return;
+        }
+
+        if (_webViewHost?.Core is null)
+        {
+            Debug.WriteLine("WebViewHost.Core is null");
+            return;
+        }
+
+        var activeTab = _tabService.ActiveTab;
+        if (activeTab is null)
+        {
+            return;
+        }
+
+        // Get mouse position relative to WebView
+        var position = e.GetPosition(MarkdownView);
+
+        // Check if mouse is over the WebView2
+        if (position.X < 0 || position.Y < 0 || 
+            position.X > MarkdownView.ActualWidth || position.Y > MarkdownView.ActualHeight)
+        {
+            // Mouse not over WebView2, don't handle
+            return;
+        }
+
+        try
+        {
+            // CTRL + wheel = zoom
+            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                Debug.WriteLine("CTRL+Scroll detected, MarkdownView visible");
+
+                // Calculate zoom delta (+10 for scroll up, -10 for scroll down)
+                var delta = e.Delta > 0 ? 10 : -10;
+
+                // Send zoom command to JavaScript
+                _webViewHost.PostMessage("zoom-pan", new
+                {
+                    action = "zoom",
+                    delta,
+                    cursorX = position.X,
+                    cursorY = position.Y
+                });
+
+                Debug.WriteLine($"Sent zoom command: delta={delta}");
+
+                // Mark event as handled to prevent default scroll behavior
+                e.Handled = true;
+            }
+            // Normal wheel = pan (scroll)
+            else
+            {
+                Debug.WriteLine("Normal scroll detected - sending pan command");
+
+                // Convert wheel delta to pan delta
+                // WPF Delta is in multiples of 120 (one "click" = 120)
+                var panDeltaY = e.Delta; // Positive = scroll up = content moves down
+
+                // Send pan command to JavaScript
+                _webViewHost.PostMessage("zoom-pan", new
+                {
+                    action = "pan",
+                    deltaX = 0,
+                    deltaY = panDeltaY
+                });
+
+                Debug.WriteLine($"Sent pan command: deltaY={panDeltaY}");
+
+                // Mark event as handled to prevent WPF from handling it
+                e.Handled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Wheel event error: {ex.Message}");
+        }
+    }
+
+    private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // Only handle middle button
+        if (e.MiddleButton != MouseButtonState.Pressed)
+        {
+            return;
+        }
+
+        // Only handle if MarkdownView is visible
+        if (MarkdownView.Visibility != Visibility.Visible || _webViewHost is null)
+        {
+            return;
+        }
+
+        // Start panning
+        _isPanning = true;
+        _panStartPoint = e.GetPosition(MarkdownView);
+        
+        // Capture mouse to receive events even if mouse leaves window
+        MarkdownView.CaptureMouse();
+        
+        // Mark event as handled
+        e.Handled = true;
+        
+        Debug.WriteLine($"Pan started at ({_panStartPoint.X}, {_panStartPoint.Y})");
+    }
+
+    private void Window_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (!_isPanning || _webViewHost is null)
+        {
+            return;
+        }
+
+        var currentTab = GetCurrentTab();
+        if (currentTab is null)
+        {
+            return;
+        }
+
+        // Calculate delta from start point
+        var currentPosition = e.GetPosition(MarkdownView);
+        var deltaX = currentPosition.X - _panStartPoint.X;
+        var deltaY = currentPosition.Y - _panStartPoint.Y;
+
+        // Update start point for continuous dragging
+        _panStartPoint = currentPosition;
+
+        // Send pan command to JavaScript
+        _webViewHost.PostMessage("zoom-pan", new
+        {
+            action = "pan",
+            deltaX,
+            deltaY
+        });
+
+        // Mark event as handled
+        e.Handled = true;
+    }
+
+    private void Window_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        // Only handle middle button release
+        if (e.MiddleButton != MouseButtonState.Released && _isPanning)
+        {
+            return;
+        }
+
+        if (_isPanning)
+        {
+            // Stop panning
+            _isPanning = false;
+            MarkdownView.ReleaseMouseCapture();
+            
+            Debug.WriteLine("Pan stopped");
+        }
+    }
+
+    #endregion
 }

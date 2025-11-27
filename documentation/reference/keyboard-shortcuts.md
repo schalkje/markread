@@ -53,7 +53,9 @@ Complete reference of MarkRead keyboard shortcuts.
 | `F11` | Full Screen | Toggle fullscreen mode |
 | `Ctrl+=` | Zoom In | Increase font size |
 | `Ctrl+-` | Zoom Out | Decrease font size |
-| `Ctrl+0` | Reset Zoom | Reset to default size |
+| `Ctrl+0` | Reset Zoom | Reset to default zoom |
+| `Ctrl+1` | Zoom 100% | Set zoom to 100% |
+| `Ctrl+2` | Fit to Width | Fit document to window width |
 | `Ctrl+Shift+P` | Command Palette | Show all commands |
 
 ## Editing (Read-only Notes)
