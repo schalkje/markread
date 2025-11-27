@@ -715,7 +715,7 @@ class ZoomPanController {
         if (Math.abs(oldZoom - newZoom) < 0.01) {
             console.log('ZoomPanController: Zoom limit reached');
             return; // At boundary, no change
-        }5
+        }
 
         // Calculate zoom center point in viewport coordinates
         const centerX = cursorX || window.innerWidth / 2;
@@ -725,17 +725,16 @@ class ZoomPanController {
         const newScale = newZoom / 100.0;
         const scaleRatio = newScale / oldScale;
         
-        // With center-origin transform, content scales from its center
-        // Flexbox centering places content center at viewport center when pan=0
-        // 
-        // Point under cursor, offset from viewport center:
-        const centerOffsetX = centerX - window.innerWidth / 2;
-        const centerOffsetY = centerY - window.innerHeight / 2;
+        // With flex-start alignment, content top is at y=0 when panY=0
+        // Point under cursor, offset from viewport top:
+        const cursorOffsetY = centerY - this.panY;
         
-        // To keep cursor point fixed as we scale:
-        // The point's position relative to content center scales, but we adjust pan
+        // After scaling, maintain cursor position:
+        this.panY = centerY - cursorOffsetY * scaleRatio;
+        
+        // Horizontal uses align-items: center, so it works like before
+        const centerOffsetX = centerX - window.innerWidth / 2;
         this.panX = centerOffsetX - (centerOffsetX - this.panX) * scaleRatio;
-        this.panY = centerOffsetY - (centerOffsetY - this.panY) * scaleRatio;
         
         this.zoomPercent = newZoom;
 
@@ -852,9 +851,9 @@ class ZoomPanController {
 
         const scale = this.zoomPercent / 100.0;
         
-        // Use center origin so scaling happens from content center
-        // This works naturally with flexbox centering
-        this.contentElement.style.transformOrigin = 'center center';
+        // Use top-center origin to match flex-start alignment
+        // Content scales from top edge, horizontally centered
+        this.contentElement.style.transformOrigin = 'top center';
         this.contentElement.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${scale})`;
 
         // Performance hint for browser
