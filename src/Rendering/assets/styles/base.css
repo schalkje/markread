@@ -89,7 +89,9 @@ html {
 /* Modern content container with better spacing */
 #app {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start; /* Align to top instead of center for zoom/pan to work */
+    align-items: center; /* Horizontal centering only */
+    flex-direction: column; /* Stack vertically */
     background: inherit;
     position: fixed;
     top: 0;
@@ -100,7 +102,8 @@ html {
 }
 
 main#content {
-    width: min(800px, 100%);
+    width: 800px; /* Fixed width */
+    max-width: 100%; /* But don't exceed viewport on small screens */
     padding: var(--space-12) var(--space-8) var(--space-16);
     background: inherit;
 }

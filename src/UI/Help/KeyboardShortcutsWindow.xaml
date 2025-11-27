@@ -1,0 +1,206 @@
+<Window x:Class="MarkRead.App.UI.Help.KeyboardShortcutsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Keyboard Shortcuts - MarkRead" 
+        Height="600" Width="800"
+        WindowStartupLocation="CenterScreen"
+        Style="{DynamicResource DefaultWindow}"
+        Background="{DynamicResource ThemeBackgroundBrush}">
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Content -->
+        <ScrollViewer Grid.Row="0" 
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="24">
+            <StackPanel MaxWidth="700">
+                
+                <!-- Header -->
+                <TextBlock Text="Keyboard Shortcuts &amp; Mouse Controls"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource ThemeTextPrimaryBrush}"
+                           Margin="0,0,0,24"/>
+                
+                <!-- File Operations -->
+                <TextBlock Text="File Operations"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeTextPrimaryBrush}"
+                           Margin="0,0,0,12"/>
+                
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+O" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Open folder" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+Shift+O" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Open file" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Ctrl+F" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Find in document" Margin="0,0,0,8"/>
+                </Grid>
+                
+                <!-- View Controls -->
+                <TextBlock Text="View Controls"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeTextPrimaryBrush}"
+                           Margin="0,8,0,12"/>
+                
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+B" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Toggle sidebar" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="F1" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Show keyboard shortcuts" Margin="0,0,0,8"/>
+                </Grid>
+                
+                <!-- Zoom Controls -->
+                <TextBlock Text="Zoom Controls"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeTextPrimaryBrush}"
+                           Margin="0,8,0,12"/>
+                
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+Plus" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Zoom in" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+Minus" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Zoom out" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Ctrl+0" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Reset zoom to 100%" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl+Mouse Wheel" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Zoom in/out at cursor position" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Ctrl+W" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Fit to screen width" Margin="0,0,0,8"/>
+                </Grid>
+                
+                <!-- Navigation -->
+                <TextBlock Text="Navigation"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeTextPrimaryBrush}"
+                           Margin="0,8,0,12"/>
+                
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Arrow Keys" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Pan document (40px steps)" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="PageUp/PageDown" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Pan one page up/down" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Home" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Jump to top of document" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="End" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Jump to bottom of document" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Mouse Wheel" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Scroll vertically" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Shift+Mouse Wheel" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="5" Grid.Column="1" Text="Scroll horizontally" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Alt+Left/Right" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="6" Grid.Column="1" Text="Navigate back/forward" Margin="0,0,0,8"/>
+                </Grid>
+                
+                <!-- Mouse Controls -->
+                <TextBlock Text="Mouse Controls"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeTextPrimaryBrush}"
+                           Margin="0,8,0,12"/>
+                
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Middle Button Drag" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Pan document in any direction" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Click Scrollbar" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Jump to position" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Drag Scrollbar Thumb" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Scroll document" Margin="0,0,0,8"/>
+                </Grid>
+                
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Close Button -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource ThemeSidebarBackgroundBrush}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="24,16">
+            <Button Content="Close"
+                    MinWidth="100"
+                    HorizontalAlignment="Right"
+                    IsCancel="True"
+                    Click="Close_Click"
+                    Style="{DynamicResource DefaultButton}"/>
+        </Border>
+    </Grid>
+</Window>

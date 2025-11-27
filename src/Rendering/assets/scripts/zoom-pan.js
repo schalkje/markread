@@ -1,7 +1,11 @@
 /**
  * Zoom and Pan Controller for MarkRead
  * Handles zoom/pan transforms via CSS matrix, coordinates with WPF host
+ * Version: 2025-11-27-08:22 - Cache clear test
  */
+
+// DIAGNOSTIC: Log immediately when file loads (before class definition)
+console.log('=== ZOOM-PAN.JS FILE LOADED - VERSION 2025-11-27-08:22 ===');
 
 class ZoomPanController {
     constructor() {
@@ -61,7 +65,7 @@ class ZoomPanController {
         // Listen for commands from WPF
         if (window.chrome && window.chrome.webview) {
             window.chrome.webview.addEventListener('message', (event) => this.handleMessage(event));
-            console.log('ZoomPanController: Initialized and listening for messages');
+            console.log('=== ZoomPanController v2025-11-26-20:00 INITIALIZED ===');
         } else {
             console.warn('ZoomPanController: WebView2 bridge not available');
         }
@@ -607,6 +611,8 @@ class ZoomPanController {
      * @param {WheelEvent} event - Wheel event
      */
     handleWheelEvent(event) {
+        console.log(`WHEEL EVENT: ctrlKey=${event.ctrlKey}, shiftKey=${event.shiftKey}, deltaY=${event.deltaY}, deltaX=${event.deltaX}`);
+        
         // CTRL + wheel = zoom
         if (event.ctrlKey) {
             console.log('ZoomPanController: CTRL+Wheel detected', event.deltaY);
@@ -629,6 +635,7 @@ class ZoomPanController {
         } 
         // SHIFT + wheel = horizontal pan
         else if (event.shiftKey) {
+            console.log(`SHIFT+WHEEL: Calling pan(${-event.deltaY}, 0)`);
             event.preventDefault();
             
             // Pan horizontally based on wheel direction
@@ -638,6 +645,7 @@ class ZoomPanController {
         }
         // Normal wheel = vertical pan (since we disabled native scrolling)
         else {
+            console.log(`NORMAL WHEEL: Calling pan(${-event.deltaX}, ${-event.deltaY})`);
             event.preventDefault();
             
             // Pan in the direction of the wheel
@@ -685,6 +693,9 @@ class ZoomPanController {
                 case 'pan':
                     this.pan(command.deltaX, command.deltaY);
                     break;
+                case 'fitToWidth':
+                    this.fitToWidth();
+                    break;
                 default:
                     console.warn('ZoomPanController: Unknown command:', command.action);
             }
@@ -704,21 +715,29 @@ class ZoomPanController {
         if (Math.abs(oldZoom - newZoom) < 0.01) {
             console.log('ZoomPanController: Zoom limit reached');
             return; // At boundary, no change
-        }
+        }5
 
-        // Calculate zoom center point (cursor-centered or viewport-centered)
+        // Calculate zoom center point in viewport coordinates
         const centerX = cursorX || window.innerWidth / 2;
         const centerY = cursorY || window.innerHeight / 2;
-
-        // Calculate new pan offset to keep point under cursor fixed
-        // Formula: newPan = oldPan - (centerPoint * (newScale - oldScale))
+        
         const oldScale = oldZoom / 100.0;
         const newScale = newZoom / 100.0;
-        const scaleDiff = newScale - oldScale;
+        const scaleRatio = newScale / oldScale;
+        
+        // With center-origin transform, content scales from its center
+        // Flexbox centering places content center at viewport center when pan=0
+        // 
+        // Point under cursor, offset from viewport center:
+        const centerOffsetX = centerX - window.innerWidth / 2;
+        const centerOffsetY = centerY - window.innerHeight / 2;
+        
+        // To keep cursor point fixed as we scale:
+        // The point's position relative to content center scales, but we adjust pan
+        this.panX = centerOffsetX - (centerOffsetX - this.panX) * scaleRatio;
+        this.panY = centerOffsetY - (centerOffsetY - this.panY) * scaleRatio;
         
         this.zoomPercent = newZoom;
-        this.panX = this.panX - (centerX * scaleDiff);
-        this.panY = this.panY - (centerY * scaleDiff);
 
         // Clamp pan to boundaries
         this.clampPanBoundaries();
@@ -729,8 +748,9 @@ class ZoomPanController {
         this.updatePositionIndicator();
         this.updateZoomIndicator();
 
-        console.log(`ZoomPanController: Zoomed from ${oldZoom}% to ${newZoom}%`);
+        console.log(`Zoom state updated (2): ${this.zoomPercent}%, pan=(${this.panX}, ${this.panY})`);
     }
+
 
     /**
      * Pan the viewport by delta amounts
@@ -738,11 +758,15 @@ class ZoomPanController {
      * @param {number} deltaY - Vertical delta in pixels
      */
     pan(deltaX, deltaY) {
+        console.log(`pan called: deltaX=${deltaX}, deltaY=${deltaY}`);
         this.panX += deltaX || 0;
         this.panY += deltaY || 0;
+        console.log(`After pan: panX=${this.panX}, panY=${this.panY}`);
 
         // Clamp to boundaries
+        console.log('About to call clampPanBoundaries');
         this.clampPanBoundaries();
+        console.log('After clampPanBoundaries');
 
         // Apply transform and notify WPF
         this.applyTransform();
@@ -767,6 +791,36 @@ class ZoomPanController {
     }
 
     /**
+     * Fit content to viewport width
+     */
+    fitToWidth() {
+        if (!this.contentElement) {
+            return;
+        }
+
+        // Get the content's actual rendered width
+        const contentWidth = this.contentElement.offsetWidth;
+        const viewportWidth = window.innerWidth;
+
+        // Calculate zoom percentage to fit width
+        const newZoom = (viewportWidth / contentWidth) * 100.0;
+        
+        // Clamp to valid zoom range
+        this.zoomPercent = Math.max(10, Math.min(1000, newZoom));
+        
+        // Reset pan to origin
+        this.panX = 0.0;
+        this.panY = 0.0;
+
+        this.applyTransform();
+        this.sendStateUpdate();
+        this.updatePositionIndicator();
+        this.updateZoomIndicator();
+
+        console.log(`ZoomPanController: Fit to width - zoom=${this.zoomPercent}%`);
+    }
+
+    /**
      * Restore zoom/pan state (e.g., when switching tabs)
      * @param {number} zoom - Zoom percentage to restore
      * @param {number} panX - Pan X offset to restore
@@ -776,6 +830,9 @@ class ZoomPanController {
         this.zoomPercent = Math.max(10, Math.min(1000, zoom || 100));
         this.panX = panX || 0;
         this.panY = panY || 0;
+
+        // If restoring to default position (0,0), keep it at (0,0) since flex-start aligns to top
+        // No adjustment needed - flex-start already positions content at top
 
         this.clampPanBoundaries();
         this.applyTransform();
@@ -795,10 +852,10 @@ class ZoomPanController {
 
         const scale = this.zoomPercent / 100.0;
         
-        // Apply CSS matrix transform: matrix(scaleX, 0, 0, scaleY, translateX, translateY)
-        // Note: CSS transforms use transform-origin (default center), but we manage pan manually
-        this.contentElement.style.transformOrigin = '0 0'; // Top-left origin for consistent pan behavior
-        this.contentElement.style.transform = `matrix(${scale}, 0, 0, ${scale}, ${this.panX}, ${this.panY})`;
+        // Use center origin so scaling happens from content center
+        // This works naturally with flexbox centering
+        this.contentElement.style.transformOrigin = 'center center';
+        this.contentElement.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${scale})`;
 
         // Performance hint for browser
         this.contentElement.style.willChange = 'transform';
@@ -808,15 +865,21 @@ class ZoomPanController {
      * Clamp pan offsets to keep content visible within viewport boundaries
      */
     clampPanBoundaries() {
+        console.log('clampPanBoundaries called');
+        
         if (!this.contentElement) {
+            console.log('No contentElement, returning');
             return;
         }
 
         const scale = this.zoomPercent / 100.0;
         
-        // Use cached original dimensions, or fall back to live measurement
+        // Use cached original dimensions
         const contentWidth = this.originalContentWidth || this.contentElement.scrollWidth;
         const contentHeight = this.originalContentHeight || this.contentElement.scrollHeight;
+
+        console.log(`originalContentWidth=${this.originalContentWidth}, originalContentHeight=${this.originalContentHeight}`);
+        console.log(`Using: contentWidth=${contentWidth}, contentHeight=${contentHeight}`);
 
         // Calculate scaled dimensions
         const scaledWidth = contentWidth * scale;
@@ -826,23 +889,44 @@ class ZoomPanController {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
-        // Calculate maximum pan offsets
-        // maxPan = max(0, scaledSize - viewportSize)
-        // Pan is negative when content is larger than viewport
-        const maxPanX = Math.max(0, scaledWidth - viewportWidth);
-        const maxPanY = Math.max(0, scaledHeight - viewportHeight);
+        console.log(`Clamp: contentH=${contentHeight}, scaledH=${scaledHeight}, viewportH=${viewportHeight}, beforeClamp panY=${this.panY}`);
 
-        // Clamp pan offsets
-        // Pan should be in range [-maxPan, 0] to keep content visible
-        this.panX = Math.max(-maxPanX, Math.min(0, this.panX));
-        this.panY = Math.max(-maxPanY, Math.min(0, this.panY));
-
-        // Reset pan to 0 if content fits within viewport (no need to pan)
+        // With center-origin transform, content center is at viewport center when pan=0
+        // Content edges are at ±(scaledWidth/2) from center
+        
+        // Horizontal clamping (content is horizontally centered by align-items: center)
         if (scaledWidth <= viewportWidth) {
+            // Content fits - keep it centered (panX=0)
             this.panX = 0;
+        } else {
+            // Content wider than viewport
+            // With align-items: center, content center aligns with viewport center
+            // Show left edge: panX = (scaledWidth - viewportWidth) / 2
+            // Show right edge: panX = -(scaledWidth - viewportWidth) / 2
+            const maxPanRight = (scaledWidth - viewportWidth) / 2;
+            const maxPanLeft = -(scaledWidth - viewportWidth) / 2;
+            
+            this.panX = Math.max(maxPanLeft, Math.min(maxPanRight, this.panX));
         }
+        
+        // Vertical clamping (with flex-start alignment)
         if (scaledHeight <= viewportHeight) {
+            // Content fits vertically - keep it at top (panY=0)
+            console.log(`Content fits vertically - setting panY to 0`);
             this.panY = 0;
+        } else {
+            // Content taller than viewport
+            // With flex-start: top of content starts at y=0 when panY=0
+            // Showing top: panY = 0 (content top at viewport top)
+            // Showing bottom: panY = -(scaledHeight - viewportHeight) (content bottom at viewport bottom)
+            const maxPanUp = 0; // Top limit
+            const maxPanDown = -(scaledHeight - viewportHeight); // Bottom limit
+            
+            console.log(`Content taller - maxUp=${maxPanUp}, maxDown=${maxPanDown}`);
+            
+            this.panY = Math.max(maxPanDown, Math.min(maxPanUp, this.panY));
+            
+            console.log(`After clamp: panY=${this.panY}`);
         }
     }
 
@@ -860,7 +944,7 @@ class ZoomPanController {
                 }
             };
             window.chrome.webview.postMessage(state);
-            console.log('ZoomPanController: Sent state update:', state);
+            console.log(`Zoom state updated (3): ${this.zoomPercent}%, pan=(${this.panX}, ${this.panY})`);
         }
     }
 }

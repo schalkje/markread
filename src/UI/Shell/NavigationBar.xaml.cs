@@ -194,6 +194,18 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
         ResetZoomRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    private void FitToWidth_Click(object sender, RoutedEventArgs e)
+    {
+        // Raise event for fit to width
+        FitToWidthRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ShowKeyboardShortcuts_Click(object sender, RoutedEventArgs e)
+    {
+        // Raise event for showing keyboard shortcuts
+        ShowKeyboardShortcutsRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>
     /// Event raised when menu button is clicked (toggle sidebar)
     /// </summary>
@@ -228,4 +240,14 @@ public partial class NavigationBar : System.Windows.Controls.UserControl
     /// Event raised when reset zoom is requested
     /// </summary>
     public event EventHandler? ResetZoomRequested;
+
+    /// <summary>
+    /// Event raised when fit to width zoom is requested
+    /// </summary>
+    public event EventHandler? FitToWidthRequested;
+
+    /// <summary>
+    /// Event raised when keyboard shortcuts help is requested
+    /// </summary>
+    public event EventHandler? ShowKeyboardShortcutsRequested;
 }

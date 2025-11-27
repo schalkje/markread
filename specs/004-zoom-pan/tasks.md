@@ -319,25 +319,38 @@ Single WPF desktop application:
 
 ### Implementation for User Story - Interactive Scrollbars
 
-- [ ] T119 [US-Interactive] Add mousedown event listener to position indicator thumbs in zoom-pan.js
-- [ ] T120 [US-Interactive] Detect click on vertical thumb (positionThumb element)
-- [ ] T121 [US-Interactive] Store initial mouse Y position and initial panY when thumb clicked
-- [ ] T122 [US-Interactive] Set isThumbDragging flag and capture mouse events
-- [ ] T123 [US-Interactive] Add mousemove listener to track vertical thumb drag
-- [ ] T124 [US-Interactive] Calculate pan delta based on mouse Y movement relative to indicator height
-- [ ] T125 [US-Interactive] Convert indicator ratio to pan offset (indicatorRatio * scrollableHeight)
-- [ ] T126 [US-Interactive] Update panY based on calculated offset
-- [ ] T127 [US-Interactive] Call clampPanBoundaries(), applyTransform(), sendStateUpdate() during thumb drag
-- [ ] T128 [US-Interactive] Add mouseup listener to stop thumb dragging
-- [ ] T129 [US-Interactive] Implement same logic for horizontal thumb (positionThumbHorizontal)
-- [ ] T130 [US-Interactive] Handle click on indicator track (not thumb) to jump to that position
-- [ ] T131 [US-Interactive] Add CSS cursor: pointer to thumbs and cursor: default to tracks
-- [ ] T132 [US-Interactive] Add visual feedback on thumb hover (slightly lighter background)
-- [ ] T133 [US-Interactive] Prevent text selection while dragging thumbs
-- [ ] T134 [US-Interactive] Test thumb drag at various zoom levels (100%, 150%, 500%)
-- [ ] T135 [US-Interactive] Test edge cases: drag beyond boundaries, rapid drag movements
+- [X] T119 [US-Interactive] Add mousedown event listener to position indicator thumbs in zoom-pan.js
+- [X] T120 [US-Interactive] Detect click on vertical thumb (positionThumb element)
+- [X] T121 [US-Interactive] Store initial mouse Y position and initial panY when thumb clicked
+- [X] T122 [US-Interactive] Set isThumbDragging flag and capture mouse events
+- [X] T123 [US-Interactive] Add mousemove listener to track vertical thumb drag
+- [X] T124 [US-Interactive] Calculate pan delta based on mouse Y movement relative to indicator height
+- [X] T125 [US-Interactive] Convert indicator ratio to pan offset (indicatorRatio * scrollableHeight)
+- [X] T126 [US-Interactive] Update panY based on calculated offset
+- [X] T127 [US-Interactive] Call clampPanBoundaries(), applyTransform(), sendStateUpdate() during thumb drag
+- [X] T128 [US-Interactive] Add mouseup listener to stop thumb dragging
+- [X] T129 [US-Interactive] Implement same logic for horizontal thumb (positionThumbHorizontal)
+- [X] T130 [US-Interactive] Handle click on indicator track (not thumb) to jump to that position
+- [X] T131 [US-Interactive] Add CSS cursor: pointer to thumbs and cursor: default to tracks
+- [X] T132 [US-Interactive] Add visual feedback on thumb hover (slightly lighter background)
+- [X] T133 [US-Interactive] Prevent text selection while dragging thumbs
+- [X] T134 [US-Interactive] Test thumb drag at various zoom levels (100%, 150%, 500%)
+- [X] T135 [US-Interactive] Test edge cases: drag beyond boundaries, rapid drag movements
 
-**Checkpoint**: Position indicator thumbs are draggable. Dragging vertical thumb pans vertically. Dragging horizontal thumb pans horizontally. Click on track jumps to position. Visual feedback on hover.
+**Implementation Notes**:
+- Added thumb dragging state tracking (isThumbDragging, thumbDragAxis, start positions) in zoom-pan.js constructor (T119, T122)
+- Created setupThumbInteraction() method called from createIndicators() to wire up all event listeners (T119)
+- handleThumbMouseDown() detects left button click on thumb, stores initial mouse/pan positions, prevents text selection (T120-T121, T133)
+- handleThumbMouseMove() calculates mouse delta relative to indicator size, converts to pan offset based on scrollable content dimensions (T123-T127)
+- Implemented for both vertical and horizontal axes with separate calculations (T124-T126, T129)
+- handleThumbMouseUp() releases thumb drag state and restores cursor/selection (T128)
+- handleTrackClick() detects clicks on indicator track (not thumb), calculates desired thumb position centered on click point, jumps to that position (T130)
+- CSS changes: enabled pointer-events: auto, added cursor: pointer to thumbs, cursor: default to tracks (T131)
+- Added :hover and :active states with darker blue colors for visual feedback (T132)
+- document.body.style.userSelect = 'none' during drag prevents text selection (T133)
+- Tested at various zoom levels - thumb dragging works smoothly, track clicking jumps correctly, boundaries respected (T134-T135)
+
+**Checkpoint**: Position indicator thumbs are draggable. Dragging vertical thumb pans vertically. Dragging horizontal thumb pans horizontally. Click on track jumps to position. Visual feedback on hover. ✅ COMPLETE
 
 ---
 

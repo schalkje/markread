@@ -99,6 +99,8 @@ public partial class MainWindow : Window
         this.NavigationBar.ZoomInRequested += OnZoomInRequested;
         this.NavigationBar.ZoomOutRequested += OnZoomOutRequested;
         this.NavigationBar.ResetZoomRequested += OnResetZoomRequested;
+        this.NavigationBar.FitToWidthRequested += OnFitToWidthRequested;
+        this.NavigationBar.ShowKeyboardShortcutsRequested += OnShowKeyboardShortcutsRequested;
 
         // Wire up FindBar events
         FindBar.SearchRequested += OnSearchRequested;
@@ -163,6 +165,32 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        // Handle F1 for help
+        if (e.Key == Key.F1)
+        {
+            OnShowKeyboardShortcutsRequested(this, EventArgs.Empty);
+            e.Handled = true;
+            return;
+        }
+        
+        // Handle Ctrl+B for toggle sidebar
+        if (e.Key == Key.B && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            // Toggle sidebar visibility
+            if (SidebarPanel.Visibility == Visibility.Visible)
+            {
+                SidebarPanel.Visibility = Visibility.Collapsed;
+                SidebarColumn.Width = new GridLength(0);
+            }
+            else
+            {
+                SidebarPanel.Visibility = Visibility.Visible;
+                SidebarColumn.Width = new GridLength(250);
+            }
+            e.Handled = true;
+            return;
+        }
+        
         // Handle Ctrl+, for Settings
         if (e.Key == Key.OemComma && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
@@ -581,15 +609,25 @@ public partial class MainWindow : Window
         // Wait for JavaScript to fully initialize and cache content dimensions
         await Task.Delay(150);
 
-        // Restore zoom/pan state for this tab
-        _webViewHost.PostMessage("zoom-pan", new
+        // Apply zoom mode based on settings
+        if (_currentSettings.DefaultZoomMode == "FitToWidth")
         {
-            action = "restore",
-            zoom = tab.ZoomPercent,
-            panX = tab.PanOffsetX,
-            panY = tab.PanOffsetY
-        });
-        Debug.WriteLine($"Restored zoom/pan for tab '{tab.Title}': zoom={tab.ZoomPercent}%, pan=({tab.PanOffsetX}, {tab.PanOffsetY})");
+            // Apply fit-to-width for new tabs
+            _webViewHost.PostMessage("zoom-pan", new { action = "fitToWidth" });
+            Debug.WriteLine($"Applied fit-to-width for tab '{tab.Title}'");
+        }
+        else
+        {
+            // Restore zoom/pan state for this tab
+            _webViewHost.PostMessage("zoom-pan", new
+            {
+                action = "restore",
+                zoom = tab.ZoomPercent,
+                panX = tab.PanOffsetX,
+                panY = tab.PanOffsetY
+            });
+            Debug.WriteLine($"Restored zoom/pan for tab '{tab.Title}': zoom={tab.ZoomPercent}%, pan=({tab.PanOffsetX}, {tab.PanOffsetY})");
+        }
 
         // Navigate to anchor if specified (anchor navigation takes precedence over saved state)
         if (!string.IsNullOrEmpty(anchor))
@@ -768,7 +806,7 @@ This folder contains Markdown files in subdirectories.
                     tab.ZoomPercent = zoom;
                     tab.PanOffsetX = panX;
                     tab.PanOffsetY = panY;
-                    Debug.WriteLine($"Zoom state updated: {zoom}%, pan=({panX}, {panY})");
+                    Debug.WriteLine($"Zoom state updated (1): {zoom}%, pan=({panX}, {panY})");
                 });
             }
         }
@@ -1018,6 +1056,34 @@ This folder contains Markdown files in subdirectories.
         if (_webViewHost is not null)
         {
             _webViewHost.PostMessage("zoom-pan", new { action = "reset" });
+        }
+    }
+
+    private void OnFitToWidthRequested(object? sender, EventArgs e)
+    {
+        if (_webViewHost is not null)
+        {
+            _webViewHost.PostMessage("zoom-pan", new { action = "fitToWidth" });
+        }
+    }
+
+    private void OnShowKeyboardShortcutsRequested(object? sender, EventArgs e)
+    {
+        try
+        {
+            var helpWindow = new UI.Help.KeyboardShortcutsWindow
+            {
+                Owner = this
+            };
+            helpWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            WpfMessageBox.Show(
+                $"Failed to open keyboard shortcuts help: {ex.Message}",
+                "Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 
@@ -1517,20 +1583,12 @@ This folder contains Markdown files in subdirectories.
     {
         Debug.WriteLine($"Window_PreviewMouseWheel: Delta={e.Delta}, Modifiers={Keyboard.Modifiers}");
 
-        // Only handle if CTRL key is pressed
-        if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control)
-        {
-            return;
-        }
-
         // Only handle if MarkdownView is visible
         if (MarkdownView.Visibility != Visibility.Visible)
         {
             Debug.WriteLine("MarkdownView not visible");
             return;
         }
-
-        Debug.WriteLine("CTRL+Scroll detected, MarkdownView visible");
 
         if (_webViewHost?.Core is null)
         {
@@ -1544,34 +1602,67 @@ This folder contains Markdown files in subdirectories.
             return;
         }
 
+        // Get mouse position relative to WebView
+        var position = e.GetPosition(MarkdownView);
+
+        // Check if mouse is over the WebView2
+        if (position.X < 0 || position.Y < 0 || 
+            position.X > MarkdownView.ActualWidth || position.Y > MarkdownView.ActualHeight)
+        {
+            // Mouse not over WebView2, don't handle
+            return;
+        }
+
         try
         {
-            // Calculate zoom delta (+10 for scroll up, -10 for scroll down)
-            var delta = e.Delta > 0 ? 10 : -10;
-
-            // Get mouse position relative to WebView
-            var position = e.GetPosition(MarkdownView);
-
-            // Create zoom command JSON
-            var zoomCommand = new
+            // CTRL + wheel = zoom
+            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
-                action = "zoom",
-                delta,
-                cursorX = position.X,
-                cursorY = position.Y
-            };
+                Debug.WriteLine("CTRL+Scroll detected, MarkdownView visible");
 
-            // Send command to JavaScript
-            var json = JsonSerializer.Serialize(zoomCommand);
-            Debug.WriteLine($"Sending zoom command: {json}");
-            _webViewHost.Core.PostWebMessageAsJson(json);
+                // Calculate zoom delta (+10 for scroll up, -10 for scroll down)
+                var delta = e.Delta > 0 ? 10 : -10;
 
-            // Mark event as handled to prevent default scroll behavior
-            e.Handled = true;
+                // Send zoom command to JavaScript
+                _webViewHost.PostMessage("zoom-pan", new
+                {
+                    action = "zoom",
+                    delta,
+                    cursorX = position.X,
+                    cursorY = position.Y
+                });
+
+                Debug.WriteLine($"Sent zoom command: delta={delta}");
+
+                // Mark event as handled to prevent default scroll behavior
+                e.Handled = true;
+            }
+            // Normal wheel = pan (scroll)
+            else
+            {
+                Debug.WriteLine("Normal scroll detected - sending pan command");
+
+                // Convert wheel delta to pan delta
+                // WPF Delta is in multiples of 120 (one "click" = 120)
+                var panDeltaY = e.Delta; // Positive = scroll up = content moves down
+
+                // Send pan command to JavaScript
+                _webViewHost.PostMessage("zoom-pan", new
+                {
+                    action = "pan",
+                    deltaX = 0,
+                    deltaY = panDeltaY
+                });
+
+                Debug.WriteLine($"Sent pan command: deltaY={panDeltaY}");
+
+                // Mark event as handled to prevent WPF from handling it
+                e.Handled = true;
+            }
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Zoom error: {ex.Message}");
+            Debug.WriteLine($"Wheel event error: {ex.Message}");
         }
     }
 

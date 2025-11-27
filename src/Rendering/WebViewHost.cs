@@ -456,8 +456,41 @@ public sealed class WebViewHost : IDisposable
 
         _core.SetVirtualHostNameToFolderMapping(_virtualHostName, _assetRoot, CoreWebView2HostResourceAccessKind.Allow);
 
+        // Add cache-control headers for JavaScript files to prevent aggressive caching during development
+        _core.AddWebResourceRequestedFilter($"https://{_virtualHostName}/scripts/*", CoreWebView2WebResourceContext.Script);
+        _core.WebResourceRequested += OnWebResourceRequested;
+
         _core.WebMessageReceived += OnWebMessageReceived;
         _core.NavigationCompleted += OnNavigationCompleted;
+
+        // Clear all browsing data to force fresh load of JavaScript files
+        // This ensures the latest zoom-pan.js with proper pan/clamp logic is loaded
+        try
+        {
+            await _core.Profile.ClearBrowsingDataAsync(
+                CoreWebView2BrowsingDataKinds.DiskCache | 
+                CoreWebView2BrowsingDataKinds.AllDomStorage);
+        }
+        catch
+        {
+            // Cache clearing failed, but initialization can continue
+            // JavaScript will still be loaded (just might be cached version)
+        }
+    }
+
+    private void OnWebResourceRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs e)
+    {
+        // Add no-cache headers for script files to prevent stale JavaScript
+        if (e.Request.Uri.Contains("/scripts/"))
+        {
+            var response = e.Response;
+            if (response != null)
+            {
+                response.Headers.AppendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+                response.Headers.AppendHeader("Pragma", "no-cache");
+                response.Headers.AppendHeader("Expires", "0");
+            }
+        }
     }
 
     private async void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)

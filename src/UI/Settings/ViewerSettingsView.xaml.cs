@@ -26,6 +26,16 @@ public partial class ViewerSettingsView : WpfUserControl
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         
+        // Set zoom mode
+        if (_settings.DefaultZoomMode == "FitToWidth")
+        {
+            FitToWidthMode.IsChecked = true;
+        }
+        else
+        {
+            PercentageMode.IsChecked = true;
+        }
+        
         // Set slider value
         ZoomSlider.Value = _settings.DefaultZoomPercent;
         UpdateZoomDisplay();
@@ -39,16 +49,29 @@ public partial class ViewerSettingsView : WpfUserControl
         if (_settings == null)
             throw new InvalidOperationException("Settings not initialized. Call Initialize() first.");
 
+        string zoomMode = FitToWidthMode.IsChecked == true ? "FitToWidth" : "Percentage";
+        
         return _settings with
         {
-            DefaultZoomPercent = ZoomSlider.Value
+            DefaultZoomPercent = ZoomSlider.Value,
+            DefaultZoomMode = zoomMode
         };
+    }
+
+    private void ZoomMode_Changed(object sender, RoutedEventArgs e)
+    {
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void ZoomSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         UpdateZoomDisplay();
         SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ResetZoom_Click(object sender, RoutedEventArgs e)
+    {
+        ZoomSlider.Value = 100.0;
     }
 
     private void UpdateZoomDisplay()

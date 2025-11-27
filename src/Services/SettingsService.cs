@@ -892,7 +892,8 @@ public record ViewerSettings(
     bool AutoReload,
     bool ShowFileTree,
     LastSessionData? LastSession = null,
-    double DefaultZoomPercent = 100.0)
+    double DefaultZoomPercent = 100.0,
+    string DefaultZoomMode = "Percentage") // "Percentage" or "FitToWidth"
 {
     public static ViewerSettings Default() => new("system", "readme", true, true);
     
@@ -902,9 +903,11 @@ public record ViewerSettings(
     public ViewerSettings Validate()
     {
         var validatedZoom = Math.Clamp(DefaultZoomPercent, 10.0, 1000.0);
-        if (Math.Abs(validatedZoom - DefaultZoomPercent) > 0.01)
+        var validatedMode = DefaultZoomMode == "FitToWidth" ? "FitToWidth" : "Percentage";
+        
+        if (Math.Abs(validatedZoom - DefaultZoomPercent) > 0.01 || validatedMode != DefaultZoomMode)
         {
-            return this with { DefaultZoomPercent = validatedZoom };
+            return this with { DefaultZoomPercent = validatedZoom, DefaultZoomMode = validatedMode };
         }
         return this;
     }

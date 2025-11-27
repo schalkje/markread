@@ -319,6 +319,9 @@
                     <MenuItem Header="_Reset Zoom" 
                               Click="ResetZoom_Click"
                               InputGestureText="Ctrl+0"/>
+                    <MenuItem Header="_Fit to Width" 
+                              Click="FitToWidth_Click"
+                              InputGestureText="Ctrl+W"/>
                     <Separator/>
                     <MenuItem Header="Go _Back" 
                               Command="{x:Static local:NavigationCommands.GoBack}"
@@ -326,6 +329,13 @@
                     <MenuItem Header="Go _Forward" 
                               Command="{x:Static local:NavigationCommands.GoForward}"
                               InputGestureText="Alt+Right"/>
+                </MenuItem>
+                
+                <!-- Help Menu -->
+                <MenuItem Header="_Help">
+                    <MenuItem Header="_Keyboard Shortcuts" 
+                              Click="ShowKeyboardShortcuts_Click"
+                              InputGestureText="F1"/>
                 </MenuItem>
             </Menu>
 
