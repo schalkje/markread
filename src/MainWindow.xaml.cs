@@ -215,11 +215,36 @@ public partial class MainWindow : Window
                 e.Handled = true;
             }
         }
-        // Handle close tab shortcut
+        // Handle close tab shortcuts
         else if (e.Key == Key.F4 && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
             // Ctrl+F4 - Close active tab
             _tabService.CloseActiveTab();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.W && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            // Ctrl+W - Close active tab
+            _tabService.CloseActiveTab();
+            e.Handled = true;
+        }
+        // Handle navigation shortcuts
+        else if (e.Key == Key.Left && (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
+        {
+            // Alt+Left - Go back
+            if (AppNavigationCommands.GoBack.CanExecute(null, this))
+            {
+                _ = ExecuteGoBackAsync();
+            }
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Right && (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
+        {
+            // Alt+Right - Go forward
+            if (AppNavigationCommands.GoForward.CanExecute(null, this))
+            {
+                _ = ExecuteGoForwardAsync();
+            }
             e.Handled = true;
         }
     }
@@ -847,6 +872,17 @@ This folder contains Markdown files in subdirectories.
                     history.SearchCurrentIndex = currentIndex;
                 });
             }
+        }
+        else if (e.Name.Equals("requestDefaultZoom", StringComparison.OrdinalIgnoreCase))
+        {
+            // Handle Ctrl+0 request to reset to default zoom from settings
+            _ = Dispatcher.InvokeAsync(() =>
+            {
+                if (_webViewHost is not null)
+                {
+                    _webViewHost.PostMessage("zoom-pan", new { action = "reset" });
+                }
+            });
         }
     }
 

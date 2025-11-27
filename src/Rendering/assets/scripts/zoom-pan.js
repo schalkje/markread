@@ -178,7 +178,13 @@ class ZoomPanController {
         if (this.positionIndicatorHorizontal && this.positionThumbHorizontal) {
             const visibleRatioX = Math.min(1, viewportWidth / scaledWidth);
             const scrollableWidth = Math.max(0, scaledWidth - viewportWidth);
-            const positionRatioX = scrollableWidth > 0 ? Math.abs(this.panX) / scrollableWidth : 0;
+            
+            // Calculate position ratio based on coordinate system:
+            // maxPanRight = +(scrollableWidth/2) shows left edge → thumb at 0
+            // maxPanLeft = -(scrollableWidth/2) shows right edge → thumb at 1
+            // Current panX maps to range [0, 1] where 0 = left, 1 = right
+            const maxPan = scrollableWidth / 2;
+            const positionRatioX = scrollableWidth > 0 ? (maxPan - this.panX) / scrollableWidth : 0;
 
             const indicatorWidth = this.positionIndicatorHorizontal.clientWidth;
             const thumbWidth = Math.max(20, indicatorWidth * visibleRatioX);
@@ -331,10 +337,11 @@ class ZoomPanController {
             const maxThumbPosition = indicatorWidth - thumbWidth;
 
             // Convert mouse delta to pan delta
+            // Moving thumb right (positive mouseDelta) should decrease panX (show right edge)
             const panDeltaRatio = maxThumbPosition > 0 ? mouseDelta / maxThumbPosition : 0;
             const panDelta = panDeltaRatio * scrollableWidth;
 
-            // Update pan position
+            // Update pan position (subtract because right = negative panX)
             this.panX = this.thumbDragStartPanX - panDelta;
         }
 
@@ -437,10 +444,12 @@ class ZoomPanController {
             const desiredThumbCenter = clickX;
             const desiredThumbLeft = Math.max(0, Math.min(indicatorWidth - thumbWidth, desiredThumbCenter - thumbWidth / 2));
 
-            // Convert to pan position
+            // Convert to pan position using correct coordinate system
+            // positionRatio 0 = left edge (panX = +max), 1 = right edge (panX = -max)
             const maxThumbPosition = indicatorWidth - thumbWidth;
             const positionRatio = maxThumbPosition > 0 ? desiredThumbLeft / maxThumbPosition : 0;
-            this.panX = -positionRatio * scrollableWidth;
+            const maxPan = scrollableWidth / 2;
+            this.panX = maxPan - positionRatio * scrollableWidth;
         }
 
         // Apply the pan with clamping
@@ -525,11 +534,38 @@ class ZoomPanController {
                 delta = -10;
                 handled = true;
             }
-            // CTRL + 0 (reset zoom) - handled separately in reset section
+            // CTRL + 0 (reset to default zoom from settings)
             else if (event.key === '0' || event.code === 'Digit0' || event.code === 'Numpad0') {
                 event.preventDefault();
-                console.log('ZoomPanController: CTRL+0 detected, resetting zoom');
-                this.reset();
+                console.log('ZoomPanController: CTRL+0 detected, resetting to default zoom');
+                // Send message to WPF to get default zoom setting and reset
+                if (window.chrome && window.chrome.webview) {
+                    window.chrome.webview.postMessage({
+                        name: 'requestDefaultZoom',
+                        payload: {}
+                    });
+                }
+                return;
+            }
+            // CTRL + 1 (100% zoom)
+            else if (event.key === '1' || event.code === 'Digit1' || event.code === 'Numpad1') {
+                event.preventDefault();
+                console.log('ZoomPanController: CTRL+1 detected, setting 100% zoom');
+                this.zoomPercent = 100.0;
+                this.panX = 0;
+                this.panY = 0;
+                this.clampPanBoundaries();
+                this.applyTransform();
+                this.sendStateUpdate();
+                this.updatePositionIndicator();
+                this.updateZoomIndicator();
+                return;
+            }
+            // CTRL + 2 (fit to width)
+            else if (event.key === '2' || event.code === 'Digit2' || event.code === 'Numpad2') {
+                event.preventDefault();
+                console.log('ZoomPanController: CTRL+2 detected, fitting to width');
+                this.fitToWidth();
                 return;
             }
 

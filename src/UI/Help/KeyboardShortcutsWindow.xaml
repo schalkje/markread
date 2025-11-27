@@ -96,6 +96,8 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+Plus" FontFamily="Consolas" Margin="0,0,0,8"/>
@@ -105,13 +107,19 @@
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="Zoom out" Margin="0,0,0,8"/>
                     
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Ctrl+0" FontFamily="Consolas" Margin="0,0,0,8"/>
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Reset zoom to 100%" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Reset zoom to default" Margin="0,0,0,8"/>
                     
-                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl+Mouse Wheel" FontFamily="Consolas" Margin="0,0,0,8"/>
-                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Zoom in/out at cursor position" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl+1" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Zoom to 100%" Margin="0,0,0,8"/>
                     
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Ctrl+W" FontFamily="Consolas" Margin="0,0,0,8"/>
-                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Fit to screen width" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Ctrl+2" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Fit to width" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Ctrl+Mouse Wheel" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="5" Grid.Column="1" Text="Zoom in/out at cursor position" Margin="0,0,0,8"/>
+                    
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Ctrl+W" FontFamily="Consolas" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="6" Grid.Column="1" Text="Close current tab" Margin="0,0,0,8"/>
                 </Grid>
                 
                 <!-- Navigation -->

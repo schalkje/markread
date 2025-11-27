@@ -74,6 +74,8 @@ Complete reference of all keyboard shortcuts in MarkRead. All shortcuts are cust
 | Zoom in | `Ctrl++` or `Ctrl+=` |
 | Zoom out | `Ctrl+-` |
 | Reset zoom | `Ctrl+0` |
+| Zoom to 100% | `Ctrl+1` |
+| Fit to width | `Ctrl+2` |
 | Toggle fullscreen | `F11` |
 
 ## Selection and Editing
