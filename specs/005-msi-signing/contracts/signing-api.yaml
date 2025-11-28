@@ -1,0 +1,35 @@
+openapi: 3.0.0
+info:
+  title: MSI Signing API
+  version: 1.0.0
+paths:
+  /sign-msi:
+    post:
+      summary: Sign MSI installer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                msiPath:
+                  type: string
+                certSecret:
+                  type: string
+                passwordSecret:
+                  type: string
+      responses:
+        '200':
+          description: MSI signed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  signedMsiPath:
+                    type: string
+                  signatureStatus:
+                    type: string
+        '400':
+          description: Invalid input or signing failure
