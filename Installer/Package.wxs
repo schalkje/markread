@@ -137,6 +137,7 @@
         <File Id="HtmlSanitizer.dll" Source="$(var.MarkRead.App.TargetDir)HtmlSanitizer.dll" />
         <File Id="AngleSharp.dll" Source="$(var.MarkRead.App.TargetDir)AngleSharp.dll" />
         <File Id="AngleSharp.Css.dll" Source="$(var.MarkRead.App.TargetDir)AngleSharp.Css.dll" />
+        <File Id="Microsoft.Xaml.Behaviors.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Xaml.Behaviors.dll" />
         <File Id="Microsoft.Web.WebView2.Core.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.Core.dll" />
         <File Id="Microsoft.Web.WebView2.WinForms.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.WinForms.dll" />
         <File Id="Microsoft.Web.WebView2.Wpf.dll" Source="$(var.MarkRead.App.TargetDir)Microsoft.Web.WebView2.Wpf.dll" />
