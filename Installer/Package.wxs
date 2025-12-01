@@ -210,6 +210,7 @@
         <File Id="render.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\scripts\render.js" KeyPath="yes" />
         <File Id="find.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\scripts\find.js" />
         <File Id="theme_bridge.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\scripts\theme-bridge.js" />
+        <File Id="zoom_pan.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\scripts\zoom-pan.js" />
       </Component>
       
       <!-- Styles -->
