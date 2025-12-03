@@ -1,0 +1,194 @@
+name: Build and Sign MSI
+
+on:
+  push:
+    branches: [ main, release/** ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  BUILD_CONFIGURATION: Release
+  WIX_VERSION: '4.0.5'
+
+jobs:
+  build-and-sign:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Install WiX Toolset
+      run: |
+        Write-Host "Installing WiX Toolset v${{ env.WIX_VERSION }}..." -ForegroundColor Cyan
+        dotnet tool install --global wix --version ${{ env.WIX_VERSION }}
+        wix --version
+      shell: pwsh
+    
+    - name: Restore dependencies
+      run: dotnet restore markread.sln
+    
+    - name: Build application
+      run: |
+        Write-Host "Building MarkRead application..." -ForegroundColor Cyan
+        dotnet build markread.sln `
+          --configuration ${{ env.BUILD_CONFIGURATION }} `
+          --no-restore `
+          /p:Platform="Any CPU"
+      shell: pwsh
+    
+    - name: Build MSI installer
+      run: |
+        Write-Host "Building MSI installer..." -ForegroundColor Cyan
+        dotnet build installer/MarkRead.Installer.wixproj `
+          --configuration ${{ env.BUILD_CONFIGURATION }} `
+          /p:Platform=x64
+      shell: pwsh
+    
+    - name: Find MSI file
+      id: find-msi
+      run: |
+        $msiPath = Get-ChildItem -Path "installer/bin/${{ env.BUILD_CONFIGURATION }}" -Filter "*.msi" -Recurse | 
+                   Select-Object -First 1 -ExpandProperty FullName
+        
+        if (-not $msiPath) {
+          throw "MSI file not found in build output"
+        }
+        
+        Write-Host "Found MSI: $msiPath" -ForegroundColor Green
+        $msiName = Split-Path -Leaf $msiPath
+        
+        # Output for next steps
+        "msi-path=$msiPath" >> $env:GITHUB_OUTPUT
+        "msi-name=$msiName" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+    
+    - name: Decode certificate
+      if: github.event_name != 'pull_request'
+      run: |
+        Write-Host "Decoding certificate from GitHub Secrets..." -ForegroundColor Cyan
+        
+        $certBase64 = "${{ secrets.CERT_PFX }}"
+        if ([string]::IsNullOrWhiteSpace($certBase64)) {
+          throw "CERT_PFX secret is not set"
+        }
+        
+        $certPassword = "${{ secrets.CERT_PASSWORD }}"
+        if ([string]::IsNullOrWhiteSpace($certPassword)) {
+          throw "CERT_PASSWORD secret is not set"
+        }
+        
+        $certBytes = [System.Convert]::FromBase64String($certBase64)
+        $certPath = Join-Path $env:RUNNER_TEMP "cert.pfx"
+        [System.IO.File]::WriteAllBytes($certPath, $certBytes)
+        
+        Write-Host "✓ Certificate decoded successfully" -ForegroundColor Green
+        Write-Host "Certificate path: $certPath" -ForegroundColor Gray
+        
+        # Output for next steps
+        "cert-path=$certPath" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+      id: decode-cert
+    
+    - name: Validate certificate
+      if: github.event_name != 'pull_request'
+      run: |
+        Write-Host "Validating certificate..." -ForegroundColor Cyan
+        
+        .\scripts\validate-certificate.ps1 `
+          -PfxPath "${{ steps.decode-cert.outputs.cert-path }}" `
+          -Password "${{ secrets.CERT_PASSWORD }}"
+        
+        if ($LASTEXITCODE -ne 0) {
+          throw "Certificate validation failed"
+        }
+      shell: pwsh
+    
+    - name: Sign MSI
+      if: github.event_name != 'pull_request'
+      run: |
+        Write-Host "Signing MSI installer..." -ForegroundColor Cyan
+        
+        .\scripts\sign-msi.ps1 `
+          -MsiPath "${{ steps.find-msi.outputs.msi-path }}" `
+          -PfxPath "${{ steps.decode-cert.outputs.cert-path }}" `
+          -Password "${{ secrets.CERT_PASSWORD }}" `
+          -Description "MarkRead - Markdown Viewer"
+        
+        if ($LASTEXITCODE -ne 0) {
+          throw "MSI signing failed"
+        }
+      shell: pwsh
+    
+    - name: Verify signature
+      if: github.event_name != 'pull_request'
+      run: |
+        Write-Host "Verifying MSI signature..." -ForegroundColor Cyan
+        
+        .\scripts\verify-signature.ps1 `
+          -MsiPath "${{ steps.find-msi.outputs.msi-path }}"
+        
+        # Note: We allow NotTrusted status since it's a self-signed cert
+        # The important thing is that the signature exists and is valid
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "✓ Signature verified successfully" -ForegroundColor Green
+        }
+        else {
+          # Check if it's just NotTrusted (expected for self-signed)
+          $sig = Get-AuthenticodeSignature "${{ steps.find-msi.outputs.msi-path }}"
+          if ($sig.Status -eq "NotTrusted") {
+            Write-Host "⚠ Signature is valid but not trusted (expected for self-signed cert)" -ForegroundColor Yellow
+            Write-Host "✓ MSI is properly signed" -ForegroundColor Green
+          }
+          else {
+            throw "Signature verification failed with status: $($sig.Status)"
+          }
+        }
+      shell: pwsh
+    
+    - name: Upload unsigned MSI (PR only)
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: markread-msi-unsigned
+        path: ${{ steps.find-msi.outputs.msi-path }}
+        if-no-files-found: error
+    
+    - name: Upload signed MSI
+      if: github.event_name != 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: markread-msi-signed
+        path: ${{ steps.find-msi.outputs.msi-path }}
+        if-no-files-found: error
+    
+    - name: Clean up certificate
+      if: always() && steps.decode-cert.outputs.cert-path
+      run: |
+        $certPath = "${{ steps.decode-cert.outputs.cert-path }}"
+        if (Test-Path $certPath) {
+          Remove-Item $certPath -Force
+          Write-Host "✓ Certificate file removed" -ForegroundColor Green
+        }
+      shell: pwsh
+    
+    - name: Create release (on tag)
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ steps.find-msi.outputs.msi-path }}
+        draft: false
+        prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
