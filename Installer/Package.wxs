@@ -174,6 +174,16 @@
         <File Id="mermaid.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\mermaid\mermaid.min.js" />
       </Component>
       
+      <!-- Prism root files -->
+      <Component Id="PrismCore" Directory="PrismFolder" Guid="A1B2C3D4-E5F6-7A8B-9C0D-1E2F3A4B5C6D">
+        <File Id="prism_core_root.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\prism-core.min.js" KeyPath="yes" />
+        <File Id="prism_autoloader_root.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\prism-autoloader.min.js" />
+        <File Id="prism_config.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\prism-config.js" />
+        <File Id="prism_line_numbers_root.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\prism-line-numbers.min.js" />
+        <File Id="prism_toolbar_root.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\prism-toolbar.min.js" />
+        <File Id="prism_copy_to_clipboard_root.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\prism-copy-to-clipboard.min.js" />
+      </Component>
+      
       <!-- Prism components -->
       <Component Id="PrismComponents" Directory="PrismComponentsFolder" Guid="B8C9D0E1-F2A3-4B5C-CD8E-8F9A0B1C2D3E">
         <File Id="prism_core.min.js" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\components\prism-core.min.js" />
@@ -203,6 +213,7 @@
         <File Id="prism_tomorrow.min.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\themes\prism-tomorrow.min.css" />
         <File Id="prism_line_numbers.min.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\themes\prism-line-numbers.min.css" />
         <File Id="prism_toolbar.min.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\themes\prism-toolbar.min.css" />
+        <File Id="theme_aware.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\prism\themes\theme-aware.css" />
       </Component>
       
       <!-- Scripts -->
@@ -217,6 +228,7 @@
       <Component Id="Styles" Directory="StylesFolder" Guid="E1F2A3B4-C5D6-4E5F-FA0B-1C2D3E4F5A6B">
         <File Id="base.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\styles\base.css" KeyPath="yes" />
         <File Id="markdown_base.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\styles\markdown-base.css" />
+        <File Id="position_indicator.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\styles\position-indicator.css" />
         <File Id="responsive.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\styles\responsive.css" />
         <File Id="theme_variables.css" Source="$(var.MarkRead.App.TargetDir)Rendering\assets\styles\theme-variables.css" />
       </Component>
