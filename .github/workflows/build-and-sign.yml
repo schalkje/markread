@@ -7,6 +7,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write  # Required for creating releases
+
 env:
   DOTNET_VERSION: '8.0.x'
   BUILD_CONFIGURATION: Release
@@ -187,11 +190,36 @@ jobs:
         }
       shell: pwsh
     
+    - name: Export public certificate for release
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: |
+        Write-Host "Exporting public certificate for users..." -ForegroundColor Cyan
+        
+        # Get certificate info from signed MSI
+        $sig = Get-AuthenticodeSignature "${{ steps.find-msi.outputs.msi-path }}"
+        $cert = $sig.SignerCertificate
+        
+        if ($cert) {
+          $cerPath = Join-Path $env:RUNNER_TEMP "markread-cert.cer"
+          $certBytes = $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+          [System.IO.File]::WriteAllBytes($cerPath, $certBytes)
+          
+          Write-Host "✓ Public certificate exported: $cerPath" -ForegroundColor Green
+          "cert-public-path=$cerPath" >> $env:GITHUB_OUTPUT
+        }
+        else {
+          Write-Host "⚠ Could not extract certificate from signed MSI" -ForegroundColor Yellow
+        }
+      shell: pwsh
+      id: export-cert
+    
     - name: Create release (on tag)
       if: startsWith(github.ref, 'refs/tags/v')
       uses: softprops/action-gh-release@v1
       with:
-        files: ${{ steps.find-msi.outputs.msi-path }}
+        files: |
+          ${{ steps.find-msi.outputs.msi-path }}
+          ${{ steps.export-cert.outputs.cert-public-path }}
         draft: false
         prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
         generate_release_notes: true
