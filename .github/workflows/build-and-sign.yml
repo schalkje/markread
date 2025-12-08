@@ -2,7 +2,6 @@ name: Build and Sign MSI
 
 on:
   push:
-    branches: [ main, release/** ]
     tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
@@ -39,12 +38,16 @@ jobs:
       run: dotnet restore markread.sln
     
     - name: Build application
+      # Version is inherited from Directory.Build.props
+      # Use /maxcpucount:1 to prevent WPF XAML parallel compilation race conditions
+      # This is a known issue with WPF projects: https://github.com/dotnet/wpf/issues/4814
       run: |
         Write-Host "Building MarkRead application..." -ForegroundColor Cyan
         dotnet build markread.sln `
           --configuration ${{ env.BUILD_CONFIGURATION }} `
           --no-restore `
-          /p:Platform="Any CPU"
+          /p:Platform="Any CPU" `
+          /maxcpucount:1
       shell: pwsh
     
     - name: Build MSI installer
@@ -52,10 +55,12 @@ jobs:
         Write-Host "Building MSI installer..." -ForegroundColor Cyan
         dotnet build installer/MarkRead.Installer.wixproj `
           --configuration ${{ env.BUILD_CONFIGURATION }} `
-          /p:Platform=x64
+          /p:Platform=x64 `
+          --no-restore `
+          /maxcpucount:1
       shell: pwsh
     
-    - name: Find MSI file
+    - name: Locate unsigned MSI file
       id: find-msi
       run: |
         $msiPath = Get-ChildItem -Path "installer/bin/${{ env.BUILD_CONFIGURATION }}" -Filter "*.msi" -Recurse | 
