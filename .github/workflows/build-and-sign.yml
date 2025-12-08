@@ -213,13 +213,41 @@ jobs:
       shell: pwsh
       id: export-cert
     
+    - name: Prepare release files
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: |
+        Write-Host "Preparing files for release..." -ForegroundColor Cyan
+        
+        # Create release directory
+        $releaseDir = Join-Path $env:RUNNER_TEMP "release"
+        New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+        
+        # Copy signed MSI
+        $msiPath = "${{ steps.find-msi.outputs.msi-path }}"
+        $msiName = "${{ steps.find-msi.outputs.msi-name }}"
+        Copy-Item -Path $msiPath -Destination (Join-Path $releaseDir $msiName) -Force
+        Write-Host "✓ Copied signed MSI: $msiName" -ForegroundColor Green
+        
+        # Copy certificate if available
+        $certPath = "${{ steps.export-cert.outputs.cert-public-path }}"
+        if ($certPath -and (Test-Path $certPath)) {
+          Copy-Item -Path $certPath -Destination (Join-Path $releaseDir "markread-cert.cer") -Force
+          Write-Host "✓ Copied public certificate: markread-cert.cer" -ForegroundColor Green
+        }
+        
+        # List files
+        Write-Host "`nRelease files:" -ForegroundColor Cyan
+        Get-ChildItem $releaseDir | ForEach-Object { Write-Host "  - $($_.Name)" -ForegroundColor Gray }
+        
+        "release-dir=$releaseDir" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+      id: prepare-release
+    
     - name: Create release (on tag)
       if: startsWith(github.ref, 'refs/tags/v')
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          ${{ steps.find-msi.outputs.msi-path }}
-          ${{ steps.export-cert.outputs.cert-public-path }}
+        files: ${{ steps.prepare-release.outputs.release-dir }}/*
         draft: false
         prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
         generate_release_notes: true
