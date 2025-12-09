@@ -667,28 +667,33 @@ Write-Host ""
 Write-Step "Pushing to remote..."
 
 if (-not $DryRun) {
+    # Get current branch
+    $currentBranch = git branch --show-current
+    
     Write-Host ""
     Write-Host "${Bold}Ready to push:${Reset}"
+    Write-Host "  - Branch: $currentBranch"
     Write-Host "  - Commit: $commitMessage"
     Write-Host "  - Tag: $tagName"
     Write-Host ""
     Write-Host "${Yellow}This will trigger the GitHub Actions release workflow!${Reset}"
+    Write-Host "${Cyan}  Workflow: release.yml (Build, Sign, and Publish)${Reset}"
     Write-Host ""
     
     $confirm = Read-Host "Push to remote? (Y/n)"
     if ($confirm -eq "n") {
         Write-Warning-Custom "Aborted. To push manually:"
-        Write-Host "  git push origin main"
+        Write-Host "  git push origin $currentBranch"
         Write-Host "  git push origin $tagName"
         exit 0
     }
     
     # Push commit
-    git push origin main
+    git push origin $currentBranch
     if ($LASTEXITCODE -ne 0) {
         Exit-WithError "Push failed!"
     }
-    Write-Success "Pushed commit to main"
+    Write-Success "Pushed commit to $currentBranch"
     
     # Push tag (this triggers release workflow)
     git push origin $tagName
@@ -714,11 +719,14 @@ Write-Host ""
 Write-Host "${Bold}Next Steps:${Reset}"
 Write-Host "  1. Monitor GitHub Actions workflow:"
 Write-Host "     ${Cyan}https://github.com/schalkje/markread/actions${Reset}"
+Write-Host "     Workflows running: CI (on branch push) + Release (on tag push)"
 Write-Host ""
-Write-Host "  2. Wait for release to be created (~10-15 minutes)"
+Write-Host "  2. Wait for release to be created (~7-10 minutes)"
+Write-Host "     The release.yml workflow will build, sign, and publish"
 Write-Host ""
 Write-Host "  3. Verify release:"
 Write-Host "     ${Cyan}https://github.com/schalkje/markread/releases/tag/$tagName${Reset}"
+Write-Host "     Look for: Signed MSI + Public certificate (.cer)"
 Write-Host ""
 
 if (-not $DryRun) {
