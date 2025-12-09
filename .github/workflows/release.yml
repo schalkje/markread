@@ -1,0 +1,287 @@
+name: Release - Build, Sign, and Publish
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v0.3.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write  # Required for creating releases
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  BUILD_CONFIGURATION: Release
+  WIX_VERSION: '4.0.5'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Install WiX Toolset
+      run: |
+        Write-Host "Installing WiX Toolset v${{ env.WIX_VERSION }}..." -ForegroundColor Cyan
+        dotnet tool install --global wix --version ${{ env.WIX_VERSION }}
+        wix --version
+      shell: pwsh
+    
+    - name: Restore dependencies
+      run: |
+        Write-Host "Restoring dependencies..." -ForegroundColor Cyan
+        dotnet restore markread.sln
+      shell: pwsh
+    
+    - name: Build application
+      run: |
+        Write-Host "Building MarkRead application..." -ForegroundColor Cyan
+        dotnet build markread.sln `
+          --configuration ${{ env.BUILD_CONFIGURATION }} `
+          --no-restore `
+          /p:Platform="Any CPU" `
+          /maxcpucount:1
+      shell: pwsh
+    
+    - name: Build MSI installer
+      run: |
+        Write-Host "Building MSI installer..." -ForegroundColor Cyan
+        dotnet build installer/MarkRead.Installer.wixproj `
+          --configuration ${{ env.BUILD_CONFIGURATION }} `
+          /p:Platform=x64 `
+          --no-restore `
+          /maxcpucount:1
+      shell: pwsh
+    
+    - name: Locate unsigned MSI file
+      id: find-msi
+      run: |
+        $msiPath = Get-ChildItem -Path "installer/bin/${{ env.BUILD_CONFIGURATION }}" -Filter "*.msi" -Recurse | 
+                   Select-Object -First 1 -ExpandProperty FullName
+        
+        if (-not $msiPath) {
+          throw "MSI file not found in build output"
+        }
+        
+        Write-Host "Found MSI: $msiPath" -ForegroundColor Green
+        $msiName = Split-Path -Leaf $msiPath
+        
+        "msi-path=$msiPath" >> $env:GITHUB_OUTPUT
+        "msi-name=$msiName" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+    
+    - name: Decode certificate from secrets
+      run: |
+        Write-Host "Decoding certificate from GitHub Secrets..." -ForegroundColor Cyan
+        
+        $certBase64 = "${{ secrets.CERT_PFX }}"
+        if ([string]::IsNullOrWhiteSpace($certBase64)) {
+          throw "CERT_PFX secret is not set. Please configure signing certificate in repository secrets."
+        }
+        
+        $certPassword = "${{ secrets.CERT_PASSWORD }}"
+        if ([string]::IsNullOrWhiteSpace($certPassword)) {
+          throw "CERT_PASSWORD secret is not set. Please configure certificate password in repository secrets."
+        }
+        
+        $certBytes = [System.Convert]::FromBase64String($certBase64)
+        $certPath = Join-Path $env:RUNNER_TEMP "cert.pfx"
+        [System.IO.File]::WriteAllBytes($certPath, $certBytes)
+        
+        Write-Host "✓ Certificate decoded successfully" -ForegroundColor Green
+        
+        "cert-path=$certPath" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+      id: decode-cert
+    
+    - name: Validate certificate
+      run: |
+        Write-Host "Validating certificate..." -ForegroundColor Cyan
+        
+        .\scripts\validate-certificate.ps1 `
+          -PfxPath "${{ steps.decode-cert.outputs.cert-path }}" `
+          -Password "${{ secrets.CERT_PASSWORD }}"
+        
+        if ($LASTEXITCODE -ne 0) {
+          throw "Certificate validation failed"
+        }
+        
+        Write-Host "✓ Certificate is valid" -ForegroundColor Green
+      shell: pwsh
+    
+    - name: Sign MSI installer
+      run: |
+        Write-Host "Signing MSI installer..." -ForegroundColor Cyan
+        
+        .\scripts\sign-msi.ps1 `
+          -MsiPath "${{ steps.find-msi.outputs.msi-path }}" `
+          -PfxPath "${{ steps.decode-cert.outputs.cert-path }}" `
+          -Password "${{ secrets.CERT_PASSWORD }}" `
+          -Description "MarkRead - Markdown Viewer"
+        
+        if ($LASTEXITCODE -ne 0) {
+          throw "MSI signing failed"
+        }
+        
+        Write-Host "✓ MSI signed successfully" -ForegroundColor Green
+      shell: pwsh
+    
+    - name: Verify signature
+      run: |
+        Write-Host "Verifying MSI signature..." -ForegroundColor Cyan
+        
+        .\scripts\verify-signature.ps1 `
+          -MsiPath "${{ steps.find-msi.outputs.msi-path }}"
+        
+        # Allow NotTrusted status for self-signed certificates
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "✓ Signature verified successfully" -ForegroundColor Green
+        }
+        else {
+          $sig = Get-AuthenticodeSignature "${{ steps.find-msi.outputs.msi-path }}"
+          if ($sig.Status -eq "NotTrusted") {
+            Write-Host "✓ Signature is valid (NotTrusted status expected for self-signed cert)" -ForegroundColor Green
+          }
+          else {
+            throw "Signature verification failed with status: $($sig.Status)"
+          }
+        }
+      shell: pwsh
+    
+    - name: Upload signed MSI artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: markread-msi-signed
+        path: ${{ steps.find-msi.outputs.msi-path }}
+        if-no-files-found: error
+        retention-days: 90
+    
+    - name: Export public certificate
+      run: |
+        Write-Host "Exporting public certificate for users..." -ForegroundColor Cyan
+        
+        # Extract certificate from signed MSI
+        $sig = Get-AuthenticodeSignature "${{ steps.find-msi.outputs.msi-path }}"
+        $cert = $sig.SignerCertificate
+        
+        if (-not $cert) {
+          throw "Could not extract certificate from signed MSI"
+        }
+        
+        # Export as .cer file
+        $cerPath = Join-Path $env:RUNNER_TEMP "markread-cert.cer"
+        $certBytes = $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+        [System.IO.File]::WriteAllBytes($cerPath, $certBytes)
+        
+        Write-Host "✓ Public certificate exported: $cerPath" -ForegroundColor Green
+        Write-Host "Certificate subject: $($cert.Subject)" -ForegroundColor Gray
+        Write-Host "Certificate expiry: $($cert.NotAfter)" -ForegroundColor Gray
+        
+        "cert-public-path=$cerPath" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+      id: export-cert
+    
+    - name: Prepare release files
+      run: |
+        Write-Host "Preparing files for release..." -ForegroundColor Cyan
+        
+        # Create release directory
+        $releaseDir = Join-Path $env:RUNNER_TEMP "release"
+        New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+        
+        # Copy signed MSI
+        $msiPath = "${{ steps.find-msi.outputs.msi-path }}"
+        $msiName = "${{ steps.find-msi.outputs.msi-name }}"
+        $releaseMsiPath = Join-Path $releaseDir $msiName
+        Copy-Item -Path $msiPath -Destination $releaseMsiPath -Force
+        Write-Host "✓ Copied signed MSI: $msiName" -ForegroundColor Green
+        
+        # Copy public certificate
+        $certPath = "${{ steps.export-cert.outputs.cert-public-path }}"
+        $releaseCertPath = Join-Path $releaseDir "markread-cert.cer"
+        Copy-Item -Path $certPath -Destination $releaseCertPath -Force
+        Write-Host "✓ Copied public certificate: markread-cert.cer" -ForegroundColor Green
+        
+        # Build file list
+        $fileList = @($releaseMsiPath, $releaseCertPath)
+        
+        # Display release contents
+        Write-Host "`nRelease contents:" -ForegroundColor Cyan
+        Get-ChildItem $releaseDir | ForEach-Object { 
+          $size = [math]::Round($_.Length / 1MB, 2)
+          Write-Host "  - $($_.Name) ($size MB)" -ForegroundColor Gray 
+        }
+        
+        # Output file paths
+        $filesOutput = $fileList -join "`n"
+        "release-files<<EOF" >> $env:GITHUB_OUTPUT
+        $filesOutput >> $env:GITHUB_OUTPUT
+        "EOF" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+      id: prepare-release
+    
+    - name: Create GitHub release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          ${{ steps.prepare-release.outputs.release-files }}
+        draft: false
+        prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+        generate_release_notes: true
+        fail_on_unmatched_files: true
+        body: |
+          ## Installation Instructions
+          
+          1. **Download** both files:
+             - `${{ steps.find-msi.outputs.msi-name }}` - The signed installer
+             - `markread-cert.cer` - The public certificate
+          
+          2. **Install the certificate** (one-time setup):
+             - Right-click `markread-cert.cer` → Install Certificate
+             - Select "Local Machine" → Next
+             - Choose "Place all certificates in the following store"
+             - Browse → Select "Trusted Root Certification Authorities" → OK
+             - Complete the wizard
+          
+          3. **Run the installer**:
+             - Double-click `${{ steps.find-msi.outputs.msi-name }}`
+             - The installer will now run without "Unknown Publisher" warnings
+          
+          ## What's Changed
+          See below for automatically generated release notes.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Clean up certificate
+      if: always() && steps.decode-cert.outputs.cert-path
+      run: |
+        $certPath = "${{ steps.decode-cert.outputs.cert-path }}"
+        if (Test-Path $certPath) {
+          Remove-Item $certPath -Force
+          Write-Host "✓ Certificate file removed" -ForegroundColor Green
+        }
+      shell: pwsh
+    
+    - name: Release summary
+      run: |
+        Write-Host "`n================================" -ForegroundColor Cyan
+        Write-Host "✓ RELEASE COMPLETED SUCCESSFULLY" -ForegroundColor Green
+        Write-Host "================================`n" -ForegroundColor Cyan
+        Write-Host "Release tag: ${{ github.ref_name }}" -ForegroundColor Gray
+        Write-Host "MSI file: ${{ steps.find-msi.outputs.msi-name }}" -ForegroundColor Gray
+        Write-Host "Certificate: markread-cert.cer" -ForegroundColor Gray
+        Write-Host "`nView release: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}" -ForegroundColor Cyan
+      shell: pwsh
