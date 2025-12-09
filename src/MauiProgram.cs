@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using CommunityToolkit.Maui;
 using MarkRead.Services;
+using MarkRead.Rendering;
 
 namespace MarkRead;
 
@@ -42,17 +43,20 @@ public static class MauiProgram
 		services.AddSingleton<ISettingsService, SettingsService>();
 		services.AddSingleton<IThemeService, ThemeService>();
 		services.AddSingleton<ILoggingService, LoggingService>();
+		
+		// Rendering services
+		services.AddSingleton<HtmlTemplateService>();
 	}
 
 	private static void RegisterViewModels(IServiceCollection services)
 	{
-		// ViewModels will be registered here as they are created
-		// Example: services.AddTransient<MainViewModel>();
+		// ViewModels
+		services.AddTransient<ViewModels.DocumentViewModel>();
 	}
 
 	private static void RegisterViews(IServiceCollection services)
 	{
-		// Views will be registered here as they are created
-		// Example: services.AddTransient<MainPage>();
+		// Views
+		services.AddTransient<Views.MarkdownView>();
 	}
 }

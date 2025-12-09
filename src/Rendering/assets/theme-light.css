@@ -1,0 +1,25 @@
+/* Light Theme CSS Variables */
+body.light {
+    --background-color: #ffffff;
+    --surface-color: #f6f8fa;
+    --text-color: #1f2328;
+    --text-secondary: #636c76;
+    --border-color: #d1d9e0;
+    
+    --link-color: #0969da;
+    --link-hover-color: #0550ae;
+    
+    --code-background: rgba(175, 184, 193, 0.2);
+    --code-block-background: #f6f8fa;
+    
+    --quote-border: #d1d9e0;
+    
+    --table-header-background: #f6f8fa;
+    --table-row-alt-background: #f6f8fa;
+}
+
+/* Light theme syntax highlighting adjustments */
+body.light .hljs {
+    background: #f6f8fa;
+    color: #1f2328;
+}

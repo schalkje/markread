@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:MarkRead.ViewModels"
+             x:Class="MarkRead.Views.MarkdownView"
+             x:DataType="viewmodels:DocumentViewModel"
+             Title="{Binding Title}">
+    
+    <Grid>
+        <!-- Loading Indicator -->
+        <ActivityIndicator IsRunning="{Binding IsRendering}"
+                          IsVisible="{Binding IsRendering}"
+                          VerticalOptions="Center"
+                          HorizontalOptions="Center"
+                          Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}" />
+        
+        <!-- Error Message -->
+        <VerticalStackLayout IsVisible="{Binding HasError}"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Center"
+                           Spacing="16"
+                           Padding="32">
+            <Label Text="⚠️"
+                   FontSize="48"
+                   HorizontalOptions="Center" />
+            <Label Text="{Binding ErrorMessage}"
+                   FontSize="16"
+                   HorizontalOptions="Center"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+            <Button Text="Reload"
+                    Command="{Binding ReloadDocumentCommand}"
+                    HorizontalOptions="Center" />
+        </VerticalStackLayout>
+        
+        <!-- HybridWebView for markdown rendering -->
+        <!-- Note: HybridWebView will be configured in code-behind -->
+        <Border x:Name="WebViewContainer"
+                IsVisible="{Binding IsRendering, Converter={StaticResource InvertedBoolConverter}}"
+                BackgroundColor="{AppThemeBinding Light=White, Dark=#0d1117}">
+            <!-- WebView will be added dynamically in code-behind -->
+        </Border>
+    </Grid>
+    
+</ContentPage>

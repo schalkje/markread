@@ -19,11 +19,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Moq" Version="4.20.72" />
   </ItemGroup>
 
-  <!-- Project reference commented out temporarily - will be added when service classes are ready to test -->
-  <!-- <ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\MarkRead.csproj" />
-  </ItemGroup> -->
+  </ItemGroup>
 
 </Project>

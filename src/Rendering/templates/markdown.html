@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>{{TITLE}}</title>
+    
+    <!-- Inline theme styles to prevent white flash -->
+    {{THEME_STYLES}}
+    
+    <!-- Base Styles -->
+    <link rel="stylesheet" href="../assets/styles.css" />
+    <link rel="stylesheet" href="../assets/theme-light.css" />
+    <link rel="stylesheet" href="../assets/theme-dark.css" />
+    
+    <!-- Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- Mermaid Diagrams -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose'
+        });
+    </script>
+    
+    <style>
+        /* Prevent white flash on load */
+        html {
+            background: var(--background-color);
+            color: var(--text-color);
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Performance optimizations */
+        * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        img, video {
+            will-change: transform;
+        }
+    </style>
+</head>
+<body class="{{THEME_CLASS}}">
+    <div id="markdown-content" class="markdown-body">
+        {{CONTENT}}
+    </div>
+    
+    <script>
+        // Initialize syntax highlighting
+        document.addEventListener('DOMContentLoaded', () => {
+            hljs.highlightAll();
+        });
+        
+        // C# Bridge for link clicks
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (link && link.href) {
+                e.preventDefault();
+                window.chrome.webview.postMessage({
+                    type: 'linkClick',
+                    href: link.href,
+                    target: link.target
+                });
+            }
+        });
+        
+        // Scroll position tracking
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                window.chrome.webview.postMessage({
+                    type: 'scrollPosition',
+                    position: window.scrollY
+                });
+            }, 100);
+        });
+        
+        // Expose scroll restoration function
+        window.restoreScroll = (position) => {
+            window.scrollTo(0, position);
+        };
+    </script>
+</body>
+</html>
