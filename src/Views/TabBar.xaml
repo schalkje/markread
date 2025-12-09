@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:MarkRead.ViewModels"
+             x:Class="MarkRead.Views.TabBar"
+             x:DataType="viewmodels:MainViewModel">
+    <Grid BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
+          HeightRequest="40">
+        
+        <!-- Tab ScrollView for overflow support -->
+        <ScrollView Orientation="Horizontal"
+                    HorizontalScrollBarVisibility="Never"
+                    VerticalScrollBarVisibility="Never">
+            <CollectionView ItemsSource="{Binding Tabs}"
+                            SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="0" />
+                </CollectionView.ItemsLayout>
+                
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="viewmodels:TabViewModel">
+                        <Border StrokeThickness="0"
+                                Padding="12,8"
+                                MinimumWidthRequest="120"
+                                MaximumWidthRequest="240"
+                                BackgroundColor="{Binding IsActive, Converter={StaticResource BoolToColorConverter}, 
+                                                          ConverterParameter='active'}">
+                            
+                            <!-- Tab Container -->
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                
+                                <!-- Pin Icon (if pinned) -->
+                                <Image Grid.Column="0" 
+                                       Source="pin.png"
+                                       WidthRequest="12"
+                                       HeightRequest="12"
+                                       IsVisible="{Binding IsPinned}"
+                                       VerticalOptions="Center" />
+                                
+                                <!-- Tab Title -->
+                                <Label Grid.Column="1"
+                                       Text="{Binding Title}"
+                                       FontSize="13"
+                                       LineBreakMode="TailTruncation"
+                                       VerticalOptions="Center"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:MainViewModel}}, Path=SwitchToTabCommand}"
+                                                              CommandParameter="{Binding Id}" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                                
+                                <!-- Close Button -->
+                                <Button Grid.Column="2"
+                                        Text="×"
+                                        FontSize="18"
+                                        WidthRequest="20"
+                                        HeightRequest="20"
+                                        Padding="0"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:MainViewModel}}, Path=CloseTabCommand}"
+                                        CommandParameter="{Binding Id}"
+                                        VerticalOptions="Center">
+                                    <Button.Triggers>
+                                        <DataTrigger TargetType="Button" Binding="{Binding IsPinned}" Value="True">
+                                            <Setter Property="IsVisible" Value="False" />
+                                        </DataTrigger>
+                                    </Button.Triggers>
+                                    <Button.Shadow>
+                                        <Shadow Brush="Transparent" Radius="0" />
+                                    </Button.Shadow>
+                                </Button>
+                            </Grid>
+                            
+                            <!-- Visual State Manager for hover effects -->
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup Name="CommonStates">
+                                    <VisualState Name="Normal" />
+                                    <VisualState Name="PointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Property="BackgroundColor" 
+                                                    Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </ScrollView>
+        
+        <!-- New Tab Button -->
+        <Button Text="+"
+                FontSize="18"
+                WidthRequest="40"
+                HeightRequest="40"
+                Padding="0"
+                BackgroundColor="Transparent"
+                TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource Gray300}}"
+                Command="{Binding NewTabCommand}"
+                HorizontalOptions="End"
+                VerticalOptions="Center"
+                Margin="0,0,4,0">
+            <Button.Shadow>
+                <Shadow Brush="Transparent" Radius="0" />
+            </Button.Shadow>
+        </Button>
+    </Grid>
+</ContentView>

@@ -7,19 +7,25 @@ public partial class MainPage : ContentPage
 {
     private readonly ISettingsService _settingsService;
     private readonly FileTreeViewModel _fileTreeViewModel;
+    private readonly MainViewModel _mainViewModel;
     private const string SidebarWidthKey = "SidebarWidth";
     private const string SidebarVisibleKey = "SidebarVisible";
     private const double MinSidebarWidth = 150;
     private const double MaxSidebarWidth = 600;
 
-    public MainPage(ISettingsService settingsService, FileTreeViewModel fileTreeViewModel)
+    public MainPage(
+        ISettingsService settingsService, 
+        FileTreeViewModel fileTreeViewModel,
+        MainViewModel mainViewModel)
     {
         InitializeComponent();
         
         _settingsService = settingsService;
         _fileTreeViewModel = fileTreeViewModel;
+        _mainViewModel = mainViewModel;
         
         FileTree.BindingContext = _fileTreeViewModel;
+        TabBar.BindingContext = _mainViewModel;
         
         // Restore sidebar state
         LoadSidebarState();

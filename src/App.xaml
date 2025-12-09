@@ -15,6 +15,7 @@
             <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
             <converters:LevelToIndentConverter x:Key="LevelToIndentConverter" />
             <converters:NodeTypeToIconConverter x:Key="NodeTypeToIconConverter" />
+            <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

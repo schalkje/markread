@@ -32,7 +32,16 @@
 
         <!-- Main Content Area -->
         <Grid x:Name="ContentArea" Grid.Column="2">
-            <views:MarkdownView x:Name="MarkdownView" />
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            
+            <!-- Tab Bar -->
+            <views:TabBar x:Name="TabBar" Grid.Row="0" />
+            
+            <!-- Document Content -->
+            <views:MarkdownView x:Name="MarkdownView" Grid.Row="1" />
         </Grid>
     </Grid>
 

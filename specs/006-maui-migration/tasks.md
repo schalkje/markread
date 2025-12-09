@@ -208,20 +208,20 @@ All paths relative to repository root:
 
 ### Models for US2 (continued from foundation)
 
-- [ ] T086 [P] [US3] Create SessionState model in src/Models/SessionState.cs (OpenTabs, ActiveTabId, WindowState)
+- [x] T086 [P] [US3] Create SessionState model in src/Models/SessionState.cs (OpenTabs, ActiveTabId, WindowState)
 
 ### Services for US3
 
-- [ ] T087 [US3] Create ITabService interface in src/Services/ITabService.cs (OpenTab, CloseTab, SwitchTab, ReorderTabs)
-- [ ] T088 [US3] Implement TabService in src/Services/TabService.cs with tab lifecycle management
-- [ ] T089 [US3] Create ISessionService interface in src/Services/ISessionService.cs (SaveSession, RestoreSession)
-- [ ] T090 [US3] Implement SessionService in src/Services/SessionService.cs with JSON persistence and crash detection
+- [x] T087 [US3] Create ITabService interface in src/Services/ITabService.cs (OpenTab, CloseTab, SwitchTab, ReorderTabs)
+- [x] T088 [US3] Implement TabService in src/Services/TabService.cs with tab lifecycle management
+- [x] T089 [US3] Create ISessionService interface in src/Services/ISessionService.cs (SaveSession, RestoreSession)
+- [x] T090 [US3] Implement SessionService in src/Services/SessionService.cs with JSON persistence and crash detection
 
 ### ViewModels for US3
 
-- [ ] T091 [US3] Create TabViewModel in src/ViewModels/TabViewModel.cs (Tab data, CloseCommand, ActivateCommand)
-- [ ] T092 [US3] Create MainViewModel in src/ViewModels/MainViewModel.cs (Tabs collection, ActiveTab, NewTab, CloseTab commands)
-- [ ] T093 [US3] Implement tab overflow warning logic (warn at 20+ tabs, allow continuation)
+- [x] T091 [US3] Create TabViewModel in src/ViewModels/TabViewModel.cs (Tab data, CloseCommand, ActivateCommand)
+- [x] T092 [US3] Create MainViewModel in src/ViewModels/MainViewModel.cs (Tabs collection, ActiveTab, NewTab, CloseTab commands)
+- [x] T093 [US3] Implement tab overflow warning logic (warn at 20+ tabs, allow continuation)
 
 ### Views for US3
 
