@@ -43,6 +43,7 @@ public static class MauiProgram
 		services.AddSingleton<ISettingsService, SettingsService>();
 		services.AddSingleton<IThemeService, ThemeService>();
 		services.AddSingleton<ILoggingService, LoggingService>();
+		services.AddSingleton<INavigationService, NavigationService>();
 		
 		// Rendering services
 		services.AddSingleton<HtmlTemplateService>();
@@ -52,11 +53,14 @@ public static class MauiProgram
 	{
 		// ViewModels
 		services.AddTransient<ViewModels.DocumentViewModel>();
+		services.AddTransient<ViewModels.FileTreeViewModel>();
 	}
 
 	private static void RegisterViews(IServiceCollection services)
 	{
 		// Views
 		services.AddTransient<Views.MarkdownView>();
+		services.AddTransient<Views.FileTreeView>();
+		services.AddTransient<MainPage>();
 	}
 }

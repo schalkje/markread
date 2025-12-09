@@ -10,6 +10,7 @@ public class SettingsService : ISettingsService
 {
     private readonly string _settingsPath;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly Dictionary<string, object> _cache = new();
 
     public SettingsService()
     {
@@ -23,6 +24,34 @@ public class SettingsService : ISettingsService
             WriteIndented = true,
             PropertyNameCaseInsensitive = true
         };
+
+        // Load cache from disk
+        _ = LoadCacheAsync();
+    }
+
+    private async Task LoadCacheAsync()
+    {
+        if (!File.Exists(_settingsPath))
+        {
+            return;
+        }
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(_settingsPath);
+            var settings = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, _jsonOptions);
+            if (settings != null)
+            {
+                foreach (var kvp in settings)
+                {
+                    _cache[kvp.Key] = kvp.Value;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore errors during cache load
+        }
     }
 
     public async Task<Settings> LoadAsync()
@@ -59,4 +88,46 @@ public class SettingsService : ISettingsService
     }
 
     public string GetSettingsPath() => _settingsPath;
+
+    public T GetSetting<T>(string key, T defaultValue = default!)
+    {
+        if (_cache.TryGetValue(key, out var value))
+        {
+            try
+            {
+                if (value is JsonElement jsonElement)
+                {
+                    return jsonElement.Deserialize<T>(_jsonOptions) ?? defaultValue;
+                }
+                else if (value is T typedValue)
+                {
+                    return typedValue;
+                }
+            }
+            catch
+            {
+                // Conversion failed, return default
+            }
+        }
+        return defaultValue;
+    }
+
+    public void SetSetting<T>(string key, T value)
+    {
+        _cache[key] = value!;
+        
+        // Save asynchronously (fire and forget)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(_cache, _jsonOptions);
+                await File.WriteAllTextAsync(_settingsPath, json);
+            }
+            catch
+            {
+                // Ignore save errors
+            }
+        });
+    }
 }

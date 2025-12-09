@@ -13,6 +13,8 @@
             
             <!-- Value Converters -->
             <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            <converters:LevelToIndentConverter x:Key="LevelToIndentConverter" />
+            <converters:NodeTypeToIconConverter x:Key="NodeTypeToIconConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

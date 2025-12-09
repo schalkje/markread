@@ -9,10 +9,7 @@ namespace MarkRead.Services;
 public class FileSystemService : IFileSystemService
 {
     private readonly ConcurrentDictionary<string, FileSystemWatcher> _watchers = new();
-    private readonly HashSet<string> _excludedFolders = new()
-    {
-        ".git", "node_modules", "bin", "obj", ".vscode", ".env", "venv", "__pycache__"
-    };
+    private readonly FolderExclusion _folderExclusion = new();
 
     public async Task<string> ReadFileAsync(string filePath)
     {
@@ -46,8 +43,8 @@ public class FileSystemService : IFileSystemService
             // Load subdirectories
             foreach (var subDir in dirInfo.GetDirectories())
             {
-                // Skip excluded folders
-                if (_excludedFolders.Contains(subDir.Name.ToLowerInvariant()))
+                // Skip excluded folders using FolderExclusion
+                if (_folderExclusion.ShouldExclude(subDir.Name))
                     continue;
 
                 // Skip hidden folders
