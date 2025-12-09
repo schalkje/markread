@@ -120,9 +120,21 @@ public partial class MainViewModel : ObservableObject
         _tabService.ReopenLastClosedTab();
     }
 
-    public void ReorderTabs(int oldIndex, int newIndex)
+    [RelayCommand]
+    private void ReorderTabs(List<string> tabIds)
     {
-        _tabService.ReorderTabs(oldIndex, newIndex);
+        // Find indices of tabs in the new order
+        for (int newIndex = 0; newIndex < tabIds.Count; newIndex++)
+        {
+            var tabId = tabIds[newIndex];
+            var currentIndex = Tabs.ToList().FindIndex(t => t.Id == tabId);
+            
+            if (currentIndex >= 0 && currentIndex != newIndex)
+            {
+                // Reorder in TabService
+                _tabService.ReorderTabs(currentIndex, newIndex);
+            }
+        }
     }
 
     private void OnTabOpened(object? sender, DocumentTab tab)

@@ -225,17 +225,17 @@ All paths relative to repository root:
 
 ### Views for US3
 
-- [ ] T094 [US3] Create TabBar.xaml in src/Views/ with HorizontalScrollView for tab overflow
-- [ ] T095 [US3] Implement TabBar.xaml.cs with tab switching and close button handlers
-- [ ] T096 [US3] Add tab close animations (smooth fade-out)
-- [ ] T097 [US3] Add tab activation highlighting with smooth transitions
+- [x] T094 [US3] Create TabBar.xaml in src/Views/ with HorizontalScrollView for tab overflow
+- [x] T095 [US3] Implement TabBar.xaml.cs with tab switching and close button handlers
+- [x] T096 [US3] Add tab close animations (smooth fade-out)
+- [x] T097 [US3] Add tab activation highlighting with smooth transitions
 
 ### Drag-to-Reorder for US3
 
-- [ ] T098 [US3] Create TabDragBehavior in src/Behaviors/TabDragBehavior.cs
-- [ ] T099 [US3] Implement drag gesture recognition for tabs
-- [ ] T100 [US3] Add smooth reordering animations during drag
-- [ ] T101 [US3] Persist tab order via SessionService
+- [x] T098 [US3] Create TabDragBehavior in src/Behaviors/TabDragBehavior.cs
+- [x] T099 [US3] Implement drag gesture recognition for tabs
+- [x] T100 [US3] Add smooth reordering animations during drag
+- [x] T101 [US3] Persist tab order via SessionService
 
 ### Tab Switching & Navigation for US3
 

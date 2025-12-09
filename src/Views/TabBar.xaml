@@ -2,6 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:MarkRead.ViewModels"
+             xmlns:behaviors="clr-namespace:MarkRead.Behaviors"
              x:Class="MarkRead.Views.TabBar"
              x:DataType="viewmodels:MainViewModel">
     <Grid BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
@@ -25,6 +26,11 @@
                                 MaximumWidthRequest="240"
                                 BackgroundColor="{Binding IsActive, Converter={StaticResource BoolToColorConverter}, 
                                                           ConverterParameter='active'}">
+                            
+                            <!-- Add drag behavior for reordering -->
+                            <Border.Behaviors>
+                                <behaviors:TabDragBehavior />
+                            </Border.Behaviors>
                             
                             <!-- Tab Container -->
                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
