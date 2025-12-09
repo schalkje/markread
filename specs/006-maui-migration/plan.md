@@ -304,3 +304,396 @@ For touch-enabled devices, provide gesture equivalents:
 - **User guide**: `documentation/user-guide/keyboard-shortcuts.md` (usage patterns)
 
 All keyboard shortcuts must be implemented explicitly - nothing is implicit from the WPF migration.
+
+## WPF Feature Inventory & Migration Checklist
+
+> **Purpose**: Comprehensive inventory of functionality in existing WPF app (`src.old/`) that must be functionally implemented in MAUI rebuild. Since this is a complete rebuild with no code reuse, this section ensures nothing is overlooked.
+
+### Core Architecture (All P1)
+
+**Service Layer** (36+ services identified):
+- ✅ `MarkdownService` - Markdig integration for markdown processing
+- ✅ `FileWatcherService` - Real-time file system monitoring (System.IO.FileSystemWatcher)
+- ✅ `FolderService` - Folder tree operations and validation
+- ✅ `NavigationService` - Back/forward history with per-tab state
+- ✅ `HistoryService` - Navigation history tracking with search state preservation
+- ✅ `TabService` - Tab lifecycle management
+- ✅ `SettingsService` - JSON/XML persistence for preferences
+- ✅ `UIStateService` - Window state and layout persistence
+- ✅ `SidebarService` - File tree visibility and state management
+- ✅ `SearchService` - In-page search with match counting
+- ✅ `ThemeManager` (IThemeService) - Theme switching and configuration
+- ✅ `HtmlSanitizerService` - Security sanitization for rendered HTML (uses Ganss.Xss)
+- ✅ `LinkResolver` - Resolves relative/absolute/root-relative links with security checks
+- ✅ `RootRelativeLinkRewriter` - Converts root-relative links (e.g., `/docs/file.md`)
+- ✅ `AnimationPerformanceMonitor` - 60fps tracking, frame drop detection, performance reporting
+- ✅ `AccessibilityValidator` - WCAG 2.1 AA contrast validation, color accessibility checks
+- ✅ `AnimationService` - Animation state management
+- ✅ `TreeViewService` - Tree node operations
+- ✅ `TreeViewContextMenuService` - Context menu for file tree
+- ✅ `FolderExclusionSettings` - Built-in exclusions (.git, node_modules, bin, obj, .vscode, etc.)
+- ✅ `StartupPerformanceMonitor` (if exists - needs verification)
+
+**Migration Action**: Implement equivalent functionality following MAUI best practices and modern C# patterns. **Not** a 1:1 code port - redesign services to leverage MAUI architecture (dependency injection, async/await, MVVM patterns, platform services). Use WPF implementation only as functional reference for requirements and behavior, not as code template.
+
+### CLI Arguments Handling (P1)
+
+**Existing Implementation**: `src.old/Cli/StartupArguments.cs`
+- ✅ Parse command-line arguments for file/folder paths
+- ✅ `StartupPathKind` enum: None, Directory, File, Unknown
+- ✅ Normalize input (remove quotes, trim)
+- ✅ Expand environment variables
+- ✅ Resolve to full paths
+- ✅ `RootCandidate` property for folder root
+- ✅ `DocumentCandidate` property for initial file
+
+**Usage Pattern**:
+```bash
+# Open specific markdown file
+markread.exe README.md
+
+# Open folder
+markread.exe ./documentation
+
+# With environment variables
+markread.exe %USERPROFILE%\docs\notes.md
+```
+
+**Migration Action**: Implement equivalent CLI functionality using MAUI startup patterns. May use platform-specific code in `Platforms/Windows/` or custom argument handler. Focus on behavior (open file/folder on launch) rather than replicating WPF argument parsing structure.
+
+### Rendering Infrastructure (P1)
+
+**Existing Implementation**: `src.old/Rendering/`
+- ✅ **WebViewHost.cs** - WebView2 integration with message bridge
+  - CoreWebView2 initialization and readiness tracking
+  - Virtual host mapping for local assets
+  - JavaScript-C# bridge for link clicks, anchor navigation
+  - Scroll position tracking and restoration
+  - Theme injection into WebView
+  - Performance optimization (theme caching)
+- ✅ **Renderer.cs** - HTML generation from markdown
+  - Markdig pipeline integration
+  - HTML template token replacement
+  - Theme inline style injection (prevents white flash)
+  - Root-relative link conversion (`/` → `file:///rootPath/`)
+  - Mermaid code fence conversion (`:::mermaid` → ` ```mermaid `)
+  - HTML sanitization integration
+  - Base URL resolution for relative paths
+- ✅ **templates/markdown.html** - HTML template with tokens:
+  - `<!--CONTENT-->` - Rendered markdown HTML
+  - `__STATE_JSON__` - Serialized state for JS bridge
+  - `<!--BASE_URL-->` - Base URL for relative paths
+  - `<!--THEME_STYLE-->` - Inline CSS for theme
+  - `<!--DATA_THEME-->` - Theme attribute for CSS vars
+- ✅ **assets/** - Web assets (highlight.js, mermaid.js, CSS)
+
+**Migration Action**: Implement equivalent rendering functionality using MAUI HybridWebView. Design HTML generation following MAUI patterns (may differ from WPF token system). Preserve bridge concept for JS-C# communication but implement using MAUI WebView message handlers.
+
+### UI Components (P1 Core, P2 Advanced)
+
+**Existing Implementation**: `src.old/UI/`
+- ✅ **MainWindow.xaml** - Shell container with DI integration (P1)
+- ✅ **Tabs/TabsView.xaml** - Tab bar with close buttons, scroll buttons (P1)
+  - ObservableCollection binding
+  - Active tab highlighting
+  - Tab creation/closure/activation events
+  - Horizontal scroll for overflow
+  - New tab button
+- ✅ **Sidebar/SidebarView.xaml** - File tree with animations (P1)
+  - Collapse/expand animations (storyboards)
+  - Icon rendering for file types
+  - Selection highlighting
+  - Width animations (expand/collapse)
+  - Theme-aware styling (dynamic brush references)
+- ✅ **Find/FindBar.xaml** - In-page search with animations (P1)
+  - Show/hide animations with storyboard
+  - Match count display (`currentIndex + 1 of totalMatches`)
+  - Search text change events
+  - Next/previous navigation
+  - Escape key to close
+- ✅ **Settings/SettingsWindow.xaml** - Settings dialog (P2)
+  - ViewerSettings panel
+  - FolderExclusions panel
+  - Save/cancel with unsaved changes prompt
+  - Event-based change tracking
+- ✅ **Search/SearchPanel.xaml** - Advanced search UI (P2)
+- ✅ **Shell/ThemeToggleButton.xaml** - Theme switcher with animation (P2)
+  - Cycles: Light → Dark → System
+  - Icon updates per theme
+  - Theme switch animation storyboard
+  - IThemeService integration
+- ✅ **Sidebar/TreeView/TreeViewViewModel.cs** - MVVM for tree navigation (P1)
+- ✅ **Help/KeyboardShortcutsWindow.xaml** (if exists - needs verification) (P2)
+
+**Migration Action**: Implement equivalent UI functionality using MAUI controls and patterns. Use MAUI animation APIs (not WPF storyboards). Design ViewModels following MAUI best practices with CommunityToolkit.Mvvm. UI structure may differ significantly from WPF while preserving user-facing behavior.
+
+### Theming System (P1)
+
+**Existing Implementation**: `src.old/ThemeManager.cs` and `src.old/Themes/`
+- ✅ **IThemeService Interface** with PropertyChanged events
+- ✅ **ThemeManager Class** implementation
+  - Theme type enum: Light, Dark, System
+  - Active theme tracking with `CurrentTheme` property
+  - Theme configuration model with color definitions
+  - Dynamic theme switching at runtime
+  - Settings persistence integration
+  - System theme detection (Windows registry/settings)
+- ✅ **ThemeConfiguration Model**
+  - Background, Foreground, Accent colors
+  - Border, Selection, Highlight colors
+  - WCAG contrast validation integration
+- ✅ **XAML Theme Resources** (ResourceDictionary)
+  - Dynamic brush definitions
+  - Color theme switching without restart
+
+**Features to Preserve**:
+- Three theme modes: Light, Dark, System (auto-detect)
+- Real-time theme switching (no restart required)
+- Theme persistence across sessions
+- Accessibility contrast validation before applying
+- Theme injection into WebView to prevent white flash
+- CSS variable mapping for web content themes
+
+**Migration Action**: Implement theming functionality following MAUI patterns. Use MAUI AppThemeBinding and ResourceDictionary system (different from WPF). Design service to leverage MAUI's built-in theme capabilities rather than replicating WPF ThemeManager structure. Preserve core behavior: Light/Dark/System modes with real-time switching.
+
+### Performance Monitoring (P2)
+
+**Existing Implementation**: `src.old/Services/AnimationPerformanceMonitor.cs`
+- ✅ Singleton pattern for global access
+- ✅ Frame rate tracking (60fps target = 16.67ms per frame)
+- ✅ Frame time measurements with DateTime.UtcNow ticks
+- ✅ Dropped frame counting
+- ✅ Average FPS calculation
+- ✅ Average frame time calculation
+- ✅ WPF CompositionTarget.Rendering event integration
+- ✅ Performance report generation
+- ✅ Animation validation with tolerance threshold
+
+**Usage Pattern**:
+```csharp
+// Start monitoring before animation
+AnimationPerformanceMonitor.Instance.Start();
+
+// ... run animation ...
+
+// Stop and get report
+AnimationPerformanceMonitor.Instance.Stop();
+var report = AnimationPerformanceMonitor.Instance.GetReport();
+
+// Validate performance
+bool meetsTarget = AnimationPerformanceMonitor.Instance.ValidateAnimationPerformance(durationMs: 300);
+```
+
+**Migration Action**: Implement performance monitoring using MAUI-appropriate patterns (`Dispatcher` timers, platform handlers, or diagnostic APIs). Design may differ significantly from WPF singleton pattern. Focus on achieving 60fps tracking functionality, not replicating AnimationPerformanceMonitor structure.
+
+### Accessibility Features (P2)
+
+**Existing Implementation**: `src.old/Services/AccessibilityValidator.cs`
+- ✅ WCAG 2.1 Level AA compliance validation
+- ✅ Color contrast ratio calculation (relative luminance algorithm)
+- ✅ Minimum contrast ratios:
+  - Regular text: 4.5:1
+  - Large text (18pt+ or 14pt+ bold): 3.0:1
+  - UI components: 3.0:1
+- ✅ Contrast assessment labels: "AAA (Enhanced)", "AA (Minimum)", "AA Large Text", "Fail"
+- ✅ sRGB to linear RGB conversion
+- ✅ Accessibility report generation for color schemes
+
+**Usage Pattern**:
+```csharp
+// Validate theme colors
+bool textPass = AccessibilityValidator.ValidateTextContrast(foreground, background);
+bool largeTextPass = AccessibilityValidator.ValidateLargeTextContrast(titleColor, bgColor);
+bool uiPass = AccessibilityValidator.ValidateUIComponentContrast(accentColor, bgColor);
+
+// Get detailed report
+string report = AccessibilityValidator.GenerateAccessibilityReport(
+    background: bgColor,
+    foreground: fgColor,
+    accent: accentColor,
+    border: borderColor
+);
+```
+
+**Migration Action**: Implement WCAG validation functionality using `Microsoft.Maui.Graphics.Color`. Algorithm logic (relative luminance, contrast ratios) remains the same, but service design should follow MAUI patterns. May integrate differently with theme system than WPF implementation.
+
+### Link Resolution & Security (P1)
+
+**Existing Implementation**: `src.old/Services/LinkResolver.cs`
+- ✅ Link type detection: Relative, Absolute, Anchor, External (http/https/mailto)
+- ✅ Root-relative link resolution (`/docs/file.md` → full path)
+- ✅ Security validation: Block links outside active root
+- ✅ File system path validation with exception handling
+- ✅ Anchor splitting (`file.md#section` → path + anchor)
+- ✅ URI scheme validation (block unsupported schemes)
+- ✅ Path normalization (Path.GetFullPath)
+- ✅ `LinkResolutionResult` model:
+  - Type: Local, External, Anchor, Blocked, Empty
+  - ResolvedPath, Anchor, ExternalUri properties
+  - BlockReason for security violations
+
+**Security Rules**:
+- ✅ Links must stay within active folder root
+- ✅ Only http/https/mailto/file schemes allowed
+- ✅ Invalid paths blocked with descriptive error
+- ✅ Path traversal attempts detected and blocked
+
+**Migration Action**: Implement link resolution and security validation for MAUI. Preserve security rules (root boundaries, scheme validation) but design service following MAUI patterns. May use different service composition than WPF (e.g., combine with navigation service rather than separate LinkResolver class).
+
+### HTML Sanitization (P1)
+
+**Existing Implementation**: `src.old/Services/HtmlSanitizerService.cs`
+- ✅ Uses Ganss.Xss library (HtmlSanitizer)
+- ✅ Thread-safe with lock synchronization
+- ✅ Allowed tags: pre, code, span, div, table, thead, tbody, tr, th, td, blockquote, figure, figcaption, dl, dt, dd, ul, ol, li, hr, input, img, sup, sub, kbd
+- ✅ Allowed attributes: class, id, href, src, alt, title, type, value, checked, disabled, target, rel, loading, width, height, colspan, rowspan, name
+- ✅ Allowed schemes: http, https, mailto, file (likely)
+- ✅ Base URI support for relative link resolution
+
+**Migration Action**: Implement HTML sanitization using Ganss.Xss (verify .NET 10 compatibility) or alternative library. Preserve security whitelist (allowed tags/attributes) but service design may differ from WPF wrapper pattern. Integrate with MAUI rendering pipeline.
+
+### Folder Exclusion System (P2)
+
+**Existing Implementation**: `src.old/Services/FolderExclusionSettings.cs`
+- ✅ **ExclusionRule Model**:
+  - Pattern (case-insensitive folder name)
+  - IsEnabled flag
+  - IsBuiltIn flag (prevents deletion, allows disable)
+  - Optional Description
+- ✅ **Built-in Exclusions**:
+  - `.git`, `.github`, `.specify`, `.vscode`
+  - `.venv`, `.env`, `venv`
+  - `bin`, `obj`
+  - `node_modules`
+- ✅ **Operations**:
+  - Get enabled patterns
+  - Check if folder is excluded (case-insensitive)
+  - User can add custom rules
+  - Built-in rules can be disabled but not deleted
+
+**Migration Action**: Implement folder exclusion functionality following MAUI settings patterns. Preserve built-in rules and customization capability but may use different data model or storage approach than WPF. Consider MAUI preferences API for persistence.
+
+### Navigation History (P1)
+
+**Existing Implementation**: `src.old/Services/HistoryService.cs`
+- ✅ Per-tab history tracking (`ConcurrentDictionary<Guid, NavigationHistory>`)
+- ✅ `NavigationHistory` class:
+  - List of NavigationEntry (internal)
+  - Current index tracking
+  - CanGoBack / CanGoForward properties
+  - Push with duplicate collapsing
+  - Search state preservation (query, match count, current index)
+  - Forward history clearing on new push
+- ✅ Thread-safe with ConcurrentDictionary
+
+**Migration Action**: Implement navigation history following MAUI patterns. May integrate differently than WPF (e.g., use Shell navigation stack, combine with MAUI navigation service). Preserve per-tab history and search state functionality. Consider MAUI threading model for concurrency.
+
+### UI State Persistence (P2)
+
+**Existing Implementation**: `src.old/Services/UIStateService.cs`
+- ✅ **IUIStateService Interface** with PropertyChanged
+- ✅ **UIState Model** (needs inspection - likely contains):
+  - Window size and position
+  - Sidebar width and visibility
+  - Active tab ID
+  - Last opened folder/file
+  - Zoom level
+  - Theme preference
+- ✅ **Operations**:
+  - SaveUIState - Persist to disk
+  - LoadUIState - Restore from disk
+  - ResetToDefaults - Clear saved state
+  - UpdateCurrentState - Update and auto-persist
+  - InitializeAsync - Load on startup
+  - Validation (IsValid method)
+
+**Migration Action**: Implement state persistence using MAUI Preferences API or similar. State model will differ (MAUI doesn't have "window" concept like WPF). Focus on preserving user session data (sidebar state, zoom, theme, open tabs) rather than replicating WPF UIState structure.
+
+### File Watching (P1)
+
+**Existing Implementation**: `src.old/Services/FileWatcherService.cs`
+- ✅ System.IO.FileSystemWatcher integration
+- ✅ IDisposable pattern for cleanup
+- ✅ Likely monitors: Changed, Deleted, Renamed events
+- ✅ File change notifications for auto-reload
+
+**Migration Action**: Implement file watching using System.IO.FileSystemWatcher or MAUI-appropriate alternative. Design service to integrate with MAUI lifecycle events (OnResume, OnSleep). May structure differently than WPF service while preserving auto-reload behavior.
+
+### Testing Infrastructure (All Phases)
+
+**Existing Tests**: `tests/unit/` and `tests/integration/`
+- ✅ MSTest framework (WPF-specific)
+- ✅ LinkResolverTests, SettingsServiceTests, ThemeManagerTests
+- ✅ StartupSmokeTests, NavigationTests, TabsAndSearchTests
+- ✅ Arrange-Act-Assert pattern
+
+**Test Coverage Needed**:
+- All service classes (unit tests)
+- ViewModels with mock services (unit tests)
+- CLI argument parsing (unit tests)
+- Link resolution and security (unit tests)
+- HTML sanitization (unit tests)
+- Accessibility validation (unit tests)
+- File watching (integration tests)
+- Startup and navigation (integration tests)
+- UI interactions (MAUI UI tests)
+
+**Migration Action**: Rewrite all tests for MAUI using xUnit (per research.md). Use MAUI Device Runners for UI tests. Create new test project structure in `tests/`.
+
+### Missing Functionality Verification
+
+**Need to Inspect** (not yet confirmed):
+- ✅ Context menu for file tree (TreeViewContextMenuService exists)
+- ❓ Drag-and-drop for tabs (reordering)
+- ❓ Drag-and-drop for external files
+- ❓ Print/export functionality
+- ❓ Recent files tracking
+- ❓ Pinned tabs persistence
+- ❓ Session crash recovery details (SessionService interface defined but implementation needs inspection)
+- ❓ Startup performance monitoring (StartupPerformanceMonitor - needs verification)
+- ❓ Developer tools integration (F12 WebView DevTools)
+- ❓ Logging infrastructure details (ILoggingService interface defined but implementation needs inspection)
+
+**Action**: Continue scanning `src.old/` for remaining functionality. Update this checklist as discoveries are made.
+
+### Implementation Priority
+
+**P1 (MVP - Must Have)**:
+- ✅ All core services (Markdown, FileSystem, Settings, Navigation, Tab, Theme)
+- ✅ CLI argument parsing
+- ✅ WebView rendering with bridge
+- ✅ Link resolution and security
+- ✅ HTML sanitization
+- ✅ File watching
+- ✅ History tracking
+- ✅ Basic UI components (MainPage, Tabs, Sidebar, FindBar)
+- ✅ Theme switching (Light/Dark/System)
+- ✅ Essential keyboard shortcuts
+
+**P2 (Post-MVP - Should Have)**:
+- ✅ Performance monitoring
+- ✅ Accessibility validation
+- ✅ Folder exclusions
+- ✅ UI state persistence
+- ✅ Advanced UI (Settings, Search, Theme toggle)
+- ✅ Animation infrastructure
+- ✅ Advanced keyboard shortcuts
+- ✅ Context menus
+
+**P3 (Nice to Have)**:
+- ✅ Touch gestures
+- ✅ Developer shortcuts (F12 DevTools)
+- ✅ Print/export
+- ✅ Drag-and-drop
+
+### Testing Checklist
+
+For each feature above, create tests to verify:
+- ✅ Functional correctness (unit tests)
+- ✅ Performance targets (60fps, <100ms response)
+- ✅ Accessibility compliance (WCAG 2.1 AA)
+- ✅ Security validation (link blocking, HTML sanitization)
+- ✅ Error handling and edge cases
+- ✅ Thread safety where applicable
+
+**Migration Outcome**: Complete rebuild with feature parity to WPF app, plus improvements in performance, animations, and touch support.
