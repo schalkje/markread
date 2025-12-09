@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using CommunityToolkit.Maui;
+using MarkRead.Services;
 
 namespace MarkRead;
 
@@ -35,23 +36,12 @@ public static class MauiProgram
 
 	private static void RegisterServices(IServiceCollection services)
 	{
-		// Core services will be registered here as they are migrated from WPF
-		// Example from src.old/Services:
-		// services.AddSingleton<SettingsService>();
-		// services.AddSingleton<HistoryService>();
-		// services.AddSingleton<FileWatcherService>();
-		// services.AddSingleton<FolderService>();
-		// services.AddSingleton<MarkdownService>();
-		// services.AddSingleton<SearchService>();
-		// services.AddSingleton<NavigationService>();
-		// services.AddSingleton<TabService>();
-		// services.AddSingleton<SidebarService>();
-		// services.AddSingleton<TreeViewService>();
-		// services.AddSingleton<TreeViewContextMenuService>();
-		// services.AddSingleton<UIStateService>();
-		// services.AddSingleton<AnimationService>();
-		// services.AddSingleton<HtmlSanitizerService>();
-		// services.AddSingleton<LinkResolver>();
+		// Core services
+		services.AddSingleton<IMarkdownService, MarkdownService>();
+		services.AddSingleton<IFileSystemService, FileSystemService>();
+		services.AddSingleton<ISettingsService, SettingsService>();
+		services.AddSingleton<IThemeService, ThemeService>();
+		services.AddSingleton<ILoggingService, LoggingService>();
 	}
 
 	private static void RegisterViewModels(IServiceCollection services)
