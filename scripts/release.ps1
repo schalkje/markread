@@ -561,18 +561,30 @@ Write-Host ""
 Write-Step "Building release version..."
 
 if (-not $DryRun) {
-    dotnet clean | Out-Null
+    # Clean build output
+    Write-Info "Cleaning previous build..."
+    dotnet clean markread.sln --configuration Release | Out-Null
     
-    # First build attempt (may fail due to WPF timing issues)
-    Write-Info "Building... (first attempt)"
-    $buildResult = dotnet build --configuration Release 2>&1
+    # Build with explicit solution file
+    Write-Info "Building solution..."
+    $buildOutput = dotnet build markread.sln --configuration Release 2>&1
     
-    # If first build fails, try again (common WPF issue with generated files)
     if ($LASTEXITCODE -ne 0) {
-        Write-Info "First build failed (WPF timing issue), retrying..."
-        $buildResult = dotnet build --configuration Release
+        Write-Host ""
+        Write-Host "${Red}Build errors:${Reset}"
+        $buildOutput | Select-Object -Last 20 | ForEach-Object { Write-Host $_ }
+        Write-Host ""
+        
+        # Try again (common WPF XAML timing issue)
+        Write-Info "Build failed, retrying (WPF XAML generation can have timing issues)..."
+        $buildOutput = dotnet build markread.sln --configuration Release 2>&1
+        
         if ($LASTEXITCODE -ne 0) {
-            Exit-WithError "Build failed after retry!"
+            Write-Host ""
+            Write-Host "${Red}Build errors after retry:${Reset}"
+            $buildOutput | Select-Object -Last 30 | ForEach-Object { Write-Host $_ }
+            Write-Host ""
+            Exit-WithError "Build failed after retry! See errors above."
         }
     }
     
