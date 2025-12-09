@@ -638,7 +638,18 @@ string report = AccessibilityValidator.GenerateAccessibilityReport(
 - Startup and navigation (integration tests)
 - UI interactions (MAUI UI tests)
 
-**Migration Action**: Rewrite all tests for MAUI using xUnit (per research.md). Use MAUI Device Runners for UI tests. Create new test project structure in `tests/`.
+**Migration Action**: Rewrite tests for MAUI functionality using xUnit (per research.md). Use MAUI Device Runners for UI tests. Test architecture may differ from WPF tests - focus on verifying behavior and requirements, not matching WPF test structure.
+
+### Design Philosophy
+
+**Key Principle**: This is a **functional migration**, not a structural port. 
+
+- ✅ **Preserve**: User-facing behavior, feature requirements, security rules, performance targets, accessibility standards
+- ✅ **Redesign**: Service architecture, class structure, dependency patterns, data flow
+- ✅ **Modernize**: Use MAUI best practices, async/await, dependency injection, platform services, modern C# features
+- ❌ **Avoid**: Blindly copying WPF patterns, translating WPF-specific code, maintaining WPF service boundaries
+
+**Example**: WPF has separate `LinkResolver`, `FolderService`, and `NavigationService`. MAUI implementation might combine these into unified navigation/routing service, or split differently based on MAUI patterns. Both approaches valid as long as functionality (link resolution, security validation, history) is preserved.
 
 ### Missing Functionality Verification
 
