@@ -6,6 +6,16 @@ namespace MarkRead.Models;
 public class SessionState
 {
     /// <summary>
+    /// List of open workspace folders (root folders)
+    /// </summary>
+    public List<string> WorkspaceFolders { get; set; } = new();
+
+    /// <summary>
+    /// Currently active workspace folder path
+    /// </summary>
+    public string? ActiveWorkspaceFolder { get; set; }
+
+    /// <summary>
     /// List of open tab IDs in order
     /// </summary>
     public List<string> OpenTabs { get; set; } = new();

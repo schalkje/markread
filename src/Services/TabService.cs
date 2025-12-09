@@ -26,7 +26,7 @@ public class TabService : ITabService
         _loggingService = loggingService;
     }
 
-    public DocumentTab OpenTab(string documentPath, bool setActive = true)
+    public DocumentTab OpenTab(string documentPath, string? workspaceFolder = null, bool setActive = true)
     {
         // Check if tab already exists
         var existingTab = _tabs.FirstOrDefault(t => t.DocumentPath == documentPath);
@@ -44,6 +44,7 @@ public class TabService : ITabService
             Id = Guid.NewGuid().ToString(),
             Title = Path.GetFileNameWithoutExtension(documentPath),
             DocumentPath = documentPath,
+            WorkspaceFolder = workspaceFolder ?? string.Empty,
             IsActive = setActive
         };
 

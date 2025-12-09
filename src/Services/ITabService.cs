@@ -40,7 +40,10 @@ public interface ITabService
     /// <summary>
     /// Opens a new tab with the specified document path
     /// </summary>
-    DocumentTab OpenTab(string documentPath, bool setActive = true);
+    /// <param name="documentPath">Path to the document</param>
+    /// <param name="workspaceFolder">Workspace folder this tab belongs to (optional)</param>
+    /// <param name="setActive">Whether to make this tab active</param>
+    DocumentTab OpenTab(string documentPath, string? workspaceFolder = null, bool setActive = true);
 
     /// <summary>
     /// Closes the specified tab

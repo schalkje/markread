@@ -21,6 +21,11 @@ public class DocumentTab
     public string DocumentPath { get; set; } = string.Empty;
 
     /// <summary>
+    /// Root folder path that this tab belongs to (workspace folder)
+    /// </summary>
+    public string WorkspaceFolder { get; set; } = string.Empty;
+
+    /// <summary>
     /// Indicates if this tab is currently active
     /// </summary>
     public bool IsActive { get; set; }

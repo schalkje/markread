@@ -46,6 +46,7 @@ public static class MauiProgram
 		services.AddSingleton<INavigationService, NavigationService>();
 		services.AddSingleton<ITabService, TabService>();
 		services.AddSingleton<ISessionService, SessionService>();
+		services.AddSingleton<IWorkspaceService, WorkspaceService>();
 		
 		// Rendering services
 		services.AddSingleton<HtmlTemplateService>();
