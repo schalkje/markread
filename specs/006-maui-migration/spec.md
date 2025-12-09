@@ -251,9 +251,9 @@ Users access and modify application settings through a modern, native settings i
 3. **Performance Baseline**: "Typical hardware" defined as Intel i5 (8th gen+) or equivalent with 8GB RAM and SSD
 4. **Modern UI Standards**: Using hybrid design approach - Fluent Design on Windows for native feel, Material Design 3 for other platforms if cross-platform support is added
 5. **Touch Support**: Touch gesture support is optional for MVP but should be architecturally planned for
-6. **Migration Approach**: Rewrite rather than incremental migration due to fundamental architecture differences between WPF and MAUI
+6. **Migration Approach**: Complete rebuild from scratch, not incremental migration or code reuse
 7. **Existing Functionality**: All current WPF features must be preserved or improved, no feature regression
-8. **Code Reuse**: Business logic and services layer can be largely reused; UI layer requires complete rewrite
+8. **Code Reuse**: No code reuse from WPF implementation; existing code serves only as functional reference for feature completeness
 9. **Testing Strategy**: Automated UI testing will use MAUI's testing frameworks rather than WPF-specific tools
 10. **Package Management**: Continue using same markdown libraries (Markdig) and web assets (highlight.js, Mermaid) where possible
 
