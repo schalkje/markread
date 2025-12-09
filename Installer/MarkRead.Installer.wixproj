@@ -15,10 +15,10 @@
 
   <ItemGroup>
     <!-- Reference the main application project to ensure build order -->
-    <ProjectReference Include="..\src\MarkRead.App.csproj">
-      <Name>MarkRead.App</Name>
+    <ProjectReference Include="..\src\MarkRead.csproj">
+      <Name>MarkRead</Name>
       <DoNotHarvest>True</DoNotHarvest>
-      <SetTargetFramework>TargetFramework=net8.0-windows</SetTargetFramework>
+      <SetTargetFramework>TargetFramework=net10.0-windows10.0.19041.0</SetTargetFramework>
     </ProjectReference>
   </ItemGroup>
 

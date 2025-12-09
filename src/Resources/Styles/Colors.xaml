@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-comp compile="true" ?>
+<ResourceDictionary 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Light Theme Colors -->
+    <Color x:Key="LightBackground">#FFFFFF</Color>
+    <Color x:Key="LightSurface">#F5F5F5</Color>
+    <Color x:Key="LightPrimary">#0078D4</Color>
+    <Color x:Key="LightPrimaryVariant">#005A9E</Color>
+    <Color x:Key="LightSecondary">#6C757D</Color>
+    <Color x:Key="LightOnBackground">#000000</Color>
+    <Color x:Key="LightOnSurface">#212529</Color>
+    <Color x:Key="LightOnPrimary">#FFFFFF</Color>
+    <Color x:Key="LightBorder">#DEE2E6</Color>
+    <Color x:Key="LightDivider">#E0E0E0</Color>
+    <Color x:Key="LightError">#DC3545</Color>
+    <Color x:Key="LightSuccess">#28A745</Color>
+    <Color x:Key="LightWarning">#FFC107</Color>
+    <Color x:Key="LightInfo">#17A2B8</Color>
+
+    <!-- Dark Theme Colors -->
+    <Color x:Key="DarkBackground">#1E1E1E</Color>
+    <Color x:Key="DarkSurface">#2D2D30</Color>
+    <Color x:Key="DarkPrimary">#0078D4</Color>
+    <Color x:Key="DarkPrimaryVariant">#3399FF</Color>
+    <Color x:Key="DarkSecondary">#ADB5BD</Color>
+    <Color x:Key="DarkOnBackground">#FFFFFF</Color>
+    <Color x:Key="DarkOnSurface">#E0E0E0</Color>
+    <Color x:Key="DarkOnPrimary">#FFFFFF</Color>
+    <Color x:Key="DarkBorder">#3E3E42</Color>
+    <Color x:Key="DarkDivider">#424242</Color>
+    <Color x:Key="DarkError">#F44336</Color>
+    <Color x:Key="DarkSuccess">#4CAF50</Color>
+    <Color x:Key="DarkWarning">#FFC107</Color>
+    <Color x:Key="DarkInfo">#29B6F6</Color>
+
+    <!-- Active Colors (Light theme - Dark theme support in future phases) -->
+    <Color x:Key="BackgroundColor">#FFFFFF</Color>
+    <Color x:Key="SurfaceColor">#F5F5F5</Color>
+    <Color x:Key="PrimaryColor">#0078D4</Color>
+    <Color x:Key="PrimaryVariantColor">#005A9E</Color>
+    <Color x:Key="SecondaryColor">#6C757D</Color>
+    <Color x:Key="OnBackgroundColor">#000000</Color>
+    <Color x:Key="OnSurfaceColor">#212529</Color>
+    <Color x:Key="OnPrimaryColor">#FFFFFF</Color>
+    <Color x:Key="BorderColor">#DEE2E6</Color>
+    <Color x:Key="DividerColor">#E0E0E0</Color>
+    <Color x:Key="ErrorColor">#DC3545</Color>
+    <Color x:Key="SuccessColor">#28A745</Color>
+    <Color x:Key="WarningColor">#FFC107</Color>
+    <Color x:Key="InfoColor">#17A2B8</Color>
+
+    <!-- Markdown-specific colors -->
+    <Color x:Key="CodeBlockBackground">#F8F9FA</Color>
+    <Color x:Key="InlineCodeBackground">#E9ECEF</Color>
+    <Color x:Key="LinkColor">#0078D4</Color>
+    <Color x:Key="BlockquoteBorder">#6C757D</Color>
+
+</ResourceDictionary>
