@@ -13,7 +13,7 @@
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
 - Include exact file paths in descriptions
 
-## Path Conventions
+## Path Conventions 
 
 All paths relative to repository root:
 - **Application**: `src/` (new MAUI app)
@@ -152,49 +152,49 @@ All paths relative to repository root:
 
 ### Models for US2
 
-- [ ] T061 [P] [US2] Add NavigationHistory model in src/Models/NavigationHistory.cs (stack-based history)
-- [ ] T062 [P] [US2] Add FolderExclusion model in src/Models/FolderExclusion.cs (patterns, rules)
+- [x] T061 [P] [US2] Add NavigationHistory model in src/Models/NavigationHistory.cs (stack-based history)
+- [x] T062 [P] [US2] Add FolderExclusion model in src/Models/FolderExclusion.cs (patterns, rules)
 
 ### Services for US2
 
-- [ ] T063 [US2] Create INavigationService interface in src/Services/INavigationService.cs (Navigate, Back, Forward, CanGoBack)
-- [ ] T064 [US2] Implement NavigationService in src/Services/NavigationService.cs with per-tab history
-- [ ] T065 [US2] Add folder exclusion logic to FileSystemService (filter .git, node_modules, bin, obj, .vscode, .env, venv)
+- [x] T063 [US2] Create INavigationService interface in src/Services/INavigationService.cs (Navigate, Back, Forward, CanGoBack)
+- [x] T064 [US2] Implement NavigationService in src/Services/NavigationService.cs with per-tab history
+- [x] T065 [US2] Add folder exclusion logic to FileSystemService (filter .git, node_modules, bin, obj, .vscode, .env, venv)
 
 ### ViewModels for US2
 
-- [ ] T066 [US2] Create FileTreeViewModel in src/ViewModels/FileTreeViewModel.cs (RootPath, Nodes, ExpandNode, LoadFolder commands)
-- [ ] T067 [US2] Implement tree node expansion/collapse with animation state tracking
-- [ ] T068 [US2] Add type-ahead search with 2-second auto-clear in FileTreeViewModel
-- [ ] T069 [US2] Implement file/folder selection and OpenFile command
+- [x] T066 [US2] Create FileTreeViewModel in src/ViewModels/FileTreeViewModel.cs (RootPath, Nodes, ExpandNode, LoadFolder commands)
+- [x] T067 [US2] Implement tree node expansion/collapse with animation state tracking
+- [x] T068 [US2] Add type-ahead search with 2-second auto-clear in FileTreeViewModel
+- [x] T069 [US2] Implement file/folder selection and OpenFile command
 
 ### Views for US2
 
-- [ ] T070 [US2] Create FileTreeView.xaml in src/Views/ with CollectionView for virtualization
-- [ ] T071 [US2] Implement FileTreeView.xaml.cs with FileTreeViewModel binding
-- [ ] T072 [US2] Add expand/collapse animations in FileTreeView (200-300ms with easing)
-- [ ] T073 [US2] Create file type icons for FileTreeView (folder, markdown, image icons)
-- [ ] T074 [US2] Implement hover effects for tree items with smooth transitions
+- [x] T070 [US2] Create FileTreeView.xaml in src/Views/ with CollectionView for virtualization
+- [x] T071 [US2] Implement FileTreeView.xaml.cs with FileTreeViewModel binding
+- [x] T072 [US2] Add expand/collapse animations in FileTreeView (200-300ms with easing)
+- [x] T073 [US2] Create file type icons for FileTreeView (folder, markdown, image icons)
+- [x] T074 [US2] Implement hover effects for tree items with smooth transitions
 
 ### Sidebar Integration for US2
 
-- [ ] T075 [US2] Add sidebar toggle functionality to MainPage (Ctrl+B shortcut)
-- [ ] T076 [US2] Implement smooth sidebar show/hide animations
-- [ ] T077 [US2] Add resizable splitter between sidebar and content area
-- [ ] T078 [US2] Persist sidebar width and visibility state via SettingsService
+- [x] T075 [US2] Add sidebar toggle functionality to MainPage (Ctrl+B shortcut)
+- [x] T076 [US2] Implement smooth sidebar show/hide animations
+- [x] T077 [US2] Add resizable splitter between sidebar and content area
+- [x] T078 [US2] Persist sidebar width and visibility state via SettingsService
 
 ### Keyboard Navigation for US2
 
-- [ ] T079 [US2] Create TreeViewKeyboardBehavior in src/Behaviors/TreeViewKeyboardBehavior.cs
-- [ ] T080 [US2] Implement Up/Down/Left/Right/Enter keyboard navigation
-- [ ] T081 [US2] Add Ctrl+Enter handler to open file in new tab
-- [ ] T082 [US2] Implement F5/Ctrl+R for tree refresh
+- [x] T079 [US2] Create TreeViewKeyboardBehavior in src/Behaviors/TreeViewKeyboardBehavior.cs
+- [x] T080 [US2] Implement Up/Down/Left/Right/Enter keyboard navigation
+- [x] T081 [US2] Add Ctrl+Enter handler to open file in new tab
+- [x] T082 [US2] Implement F5/Ctrl+R for tree refresh
 
 ### Testing for US2
 
-- [ ] T083 [P] [US2] Create FileTreeViewModelTests.cs in tests/unit/ViewModels/ (test tree loading, filtering, expansion)
-- [ ] T084 [P] [US2] Create NavigationServiceTests.cs in tests/unit/Services/ (test history stack)
-- [ ] T085 [US2] Create FileTreeNavigationTests.cs in tests/integration/ (test end-to-end folder loading and navigation)
+- [x] T083 [P] [US2] Create FileTreeViewModelTests.cs in tests/unit/ViewModels/ (test tree loading, filtering, expansion)
+- [x] T084 [P] [US2] Create NavigationServiceTests.cs in tests/unit/Services/ (test history stack)
+- [x] T085 [US2] Create FileTreeNavigationTests.cs in tests/integration/ (test end-to-end folder loading and navigation)
 
 **Checkpoint US2**: File navigation complete and independently testable
 

@@ -3,12 +3,12 @@ namespace MarkRead.Models;
 /// <summary>
 /// Represents a document tab in the tab bar
 /// </summary>
-public class Tab
+public class DocumentTab
 {
     /// <summary>
     /// Unique identifier for the tab
     /// </summary>
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Id { get; set; } = Guid.NewGuid().ToString();
 
     /// <summary>
     /// Display title of the tab
