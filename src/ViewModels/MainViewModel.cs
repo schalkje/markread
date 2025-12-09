@@ -14,6 +14,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ITabService _tabService;
     private readonly ISessionService _sessionService;
     private readonly ILoggingService _loggingService;
+    private readonly IKeyboardShortcutService _keyboardShortcutService;
     private readonly FileTreeViewModel _fileTreeViewModel;
 
     [ObservableProperty]
@@ -29,11 +30,13 @@ public partial class MainViewModel : ObservableObject
         ITabService tabService,
         ISessionService sessionService,
         ILoggingService loggingService,
+        IKeyboardShortcutService keyboardShortcutService,
         FileTreeViewModel fileTreeViewModel)
     {
         _tabService = tabService;
         _sessionService = sessionService;
         _loggingService = loggingService;
+        _keyboardShortcutService = keyboardShortcutService;
         _fileTreeViewModel = fileTreeViewModel;
 
         // Subscribe to tab service events
@@ -44,6 +47,36 @@ public partial class MainViewModel : ObservableObject
 
         // Subscribe to file tree events
         _fileTreeViewModel.FileOpened += OnFileOpened;
+
+        // Register keyboard shortcuts
+        RegisterKeyboardShortcuts();
+    }
+
+    private void RegisterKeyboardShortcuts()
+    {
+        // Tab navigation shortcuts
+        _keyboardShortcutService.RegisterShortcut("Tab", KeyModifiers.Ctrl, 
+            () => NextTab(), "Switch to next tab");
+        _keyboardShortcutService.RegisterShortcut("Tab", KeyModifiers.CtrlShift, 
+            () => PreviousTab(), "Switch to previous tab");
+
+        // Close tab shortcuts
+        _keyboardShortcutService.RegisterShortcut("W", KeyModifiers.Ctrl, 
+            () => CloseTab(ActiveTab?.Id ?? ""), "Close active tab");
+
+        // Reopen closed tab
+        _keyboardShortcutService.RegisterShortcut("T", KeyModifiers.CtrlShift, 
+            () => ReopenLastClosedTab(), "Reopen last closed tab");
+
+        // Direct tab access (Ctrl+1 through Ctrl+9)
+        for (int i = 1; i <= 9; i++)
+        {
+            int index = i - 1; // Capture for closure
+            _keyboardShortcutService.RegisterShortcut(i.ToString(), KeyModifiers.Ctrl,
+                () => SwitchToTabByIndex(index), $"Switch to tab {i}");
+        }
+
+        _loggingService.LogInfo("Keyboard shortcuts registered for tab management");
     }
 
     [RelayCommand]

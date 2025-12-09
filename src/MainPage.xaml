@@ -2,7 +2,12 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:views="clr-namespace:MarkRead.Views"
+             xmlns:behaviors="clr-namespace:MarkRead.Behaviors"
              x:Class="MarkRead.MainPage">
+
+    <ContentPage.Behaviors>
+        <behaviors:KeyboardShortcutBehavior />
+    </ContentPage.Behaviors>
 
     <Grid x:Name="MainGrid">
         <Grid.ColumnDefinitions>

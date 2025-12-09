@@ -47,6 +47,7 @@ public static class MauiProgram
 		services.AddSingleton<ITabService, TabService>();
 		services.AddSingleton<ISessionService, SessionService>();
 		services.AddSingleton<IWorkspaceService, WorkspaceService>();
+		services.AddSingleton<IKeyboardShortcutService, KeyboardShortcutService>();
 		
 		// Rendering services
 		services.AddSingleton<HtmlTemplateService>();

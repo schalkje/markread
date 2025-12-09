@@ -237,12 +237,21 @@ All paths relative to repository root:
 - [x] T100 [US3] Add smooth reordering animations during drag
 - [x] T101 [US3] Persist tab order via SessionService
 
+### Multi-Folder Workspace Support (Enhancement)
+
+- [x] E001 [US3] Create WorkspaceFolder model for multiple root folders
+- [x] E002 [US3] Add WorkspaceFolder property to DocumentTab
+- [x] E003 [US3] Update SessionState to track workspace folders
+- [x] E004 [US3] Create IWorkspaceService + WorkspaceService
+- [x] E005 [US3] Update ITabService.OpenTab to accept workspace folder parameter
+- [x] E006 [US3] Register WorkspaceService in DI container
+
 ### Tab Switching & Navigation for US3
 
-- [ ] T102 [US3] Implement Ctrl+Tab / Ctrl+Shift+Tab shortcuts for tab navigation
-- [ ] T103 [US3] Implement Ctrl+1-9 shortcuts for direct tab switching
-- [ ] T104 [US3] Add smooth content fade-in on tab switch (prevent white flash)
-- [ ] T105 [US3] Implement Ctrl+W for tab close and Ctrl+Shift+T for reopen
+- [x] T102 [US3] Implement Ctrl+Tab / Ctrl+Shift+Tab shortcuts for tab navigation
+- [x] T103 [US3] Implement Ctrl+1-9 shortcuts for direct tab switching
+- [x] T104 [US3] Add smooth content fade-in on tab switch (prevent white flash)
+- [x] T105 [US3] Implement Ctrl+W for tab close and Ctrl+Shift+T for reopen
 
 ### Session Recovery for US3
 
