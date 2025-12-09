@@ -11,6 +11,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-25
 - Local filesystem only (settings persisted via existing SettingsService) (002-folder-treeview)
 - C# .NET 8 (net8.0-windows) + WPF, Microsoft.Web.WebView2 (1.0.2420.47), Markdig (0.34.0) (004-zoom-pan)
 - Local application settings file (JSON/XML) for default zoom preference (004-zoom-pan)
+- PowerShell (for scripts), Windows Installer XML (WiX), GitHub Actions YAML + Windows, PowerShell, WiX Toolset, GitHub Actions, self-signed certificate (PFX), GitHub Secrets (005-msi-signing)
+- Local filesystem (MSI, certificate files), GitHub Secrets (005-msi-signing)
 
 ## Project Structure
 
@@ -36,9 +38,9 @@ tests/
 .NET 8 (C#): Follow standard conventions
 
 ## Recent Changes
+- 005-msi-signing: Added PowerShell (for scripts), Windows Installer XML (WiX), GitHub Actions YAML + Windows, PowerShell, WiX Toolset, GitHub Actions, self-signed certificate (PFX), GitHub Secrets
 - 004-zoom-pan: Added C# .NET 8 (net8.0-windows) + WPF, Microsoft.Web.WebView2 (1.0.2420.47), Markdig (0.34.0)
 - 003-mockup-ui: Added C# .NET 8 + WPF, WebView2, Markdig (for markdown processing)
-- 002-folder-treeview: Added .NET 8 (C#) + WPF TreeView control, System.IO.FileSystemWatcher for real-time monitoring
 
 
 <!-- MANUAL ADDITIONS START -->

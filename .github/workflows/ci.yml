@@ -1,0 +1,109 @@
+name: CI - Build and Test
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  BUILD_CONFIGURATION: Release
+  WIX_VERSION: '4.0.5'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Install WiX Toolset
+      run: |
+        Write-Host "Installing WiX Toolset v${{ env.WIX_VERSION }}..." -ForegroundColor Cyan
+        dotnet tool install --global wix --version ${{ env.WIX_VERSION }}
+        wix --version
+      shell: pwsh
+    
+    - name: Restore dependencies
+      run: |
+        Write-Host "Restoring dependencies..." -ForegroundColor Cyan
+        dotnet restore markread.sln
+      shell: pwsh
+    
+    - name: Build application
+      run: |
+        Write-Host "Building MarkRead application..." -ForegroundColor Cyan
+        dotnet build markread.sln `
+          --configuration ${{ env.BUILD_CONFIGURATION }} `
+          --no-restore `
+          /p:Platform="Any CPU" `
+          /maxcpucount:1
+      shell: pwsh
+    
+    # Uncomment when tests are added
+    # - name: Run tests
+    #   run: |
+    #     Write-Host "Running tests..." -ForegroundColor Cyan
+    #     dotnet test markread.sln `
+    #       --configuration ${{ env.BUILD_CONFIGURATION }} `
+    #       --no-build `
+    #       --verbosity normal
+    #   shell: pwsh
+    
+    - name: Build MSI installer
+      run: |
+        Write-Host "Building MSI installer..." -ForegroundColor Cyan
+        dotnet build installer/MarkRead.Installer.wixproj `
+          --configuration ${{ env.BUILD_CONFIGURATION }} `
+          /p:Platform=x64 `
+          --no-restore `
+          /maxcpucount:1
+      shell: pwsh
+    
+    - name: Locate MSI file
+      id: find-msi
+      run: |
+        $msiPath = Get-ChildItem -Path "installer/bin/${{ env.BUILD_CONFIGURATION }}" -Filter "*.msi" -Recurse | 
+                   Select-Object -First 1 -ExpandProperty FullName
+        
+        if (-not $msiPath) {
+          throw "MSI file not found in build output"
+        }
+        
+        Write-Host "Found MSI: $msiPath" -ForegroundColor Green
+        $msiName = Split-Path -Leaf $msiPath
+        $msiSize = [math]::Round((Get-Item $msiPath).Length / 1MB, 2)
+        Write-Host "MSI size: $msiSize MB" -ForegroundColor Gray
+        
+        "msi-path=$msiPath" >> $env:GITHUB_OUTPUT
+        "msi-name=$msiName" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+    
+    - name: Upload unsigned MSI artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: markread-msi-unsigned-${{ github.sha }}
+        path: ${{ steps.find-msi.outputs.msi-path }}
+        if-no-files-found: error
+        retention-days: 30
+    
+    - name: Build summary
+      run: |
+        Write-Host "`n✓ Build completed successfully!" -ForegroundColor Green
+        Write-Host "`nArtifacts:" -ForegroundColor Cyan
+        Write-Host "  - Unsigned MSI: ${{ steps.find-msi.outputs.msi-name }}" -ForegroundColor Gray
+        Write-Host "`nNote: This is an unsigned build for testing purposes only." -ForegroundColor Yellow
+        Write-Host "Signed releases are created when version tags are pushed." -ForegroundColor Yellow
+      shell: pwsh

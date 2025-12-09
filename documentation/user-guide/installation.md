@@ -37,9 +37,52 @@ This is the easiest method for most users.
 #### Step 2: Run Installer
 
 1. Double-click `MarkRead-Setup-x.x.x.exe`
-2. If prompted by Windows SmartScreen:
+2. **Windows SmartScreen / Security Warning**:
+   
+   The installer is digitally signed, but you may see warnings depending on your Windows configuration:
+   
+   **If you see "Unknown publisher" warning:**
+   - This appears if the code signing certificate is not yet trusted
    - Click **"More info"**
    - Click **"Run anyway"**
+   - **First-time setup**: You may need to install the certificate (see below)
+   
+   **If no warnings appear:**
+   - The certificate is already trusted
+   - Proceed directly to installation
+
+3. **Installing the Certificate (First Time Only)**:
+   
+   If you frequently see "Unknown publisher" warnings:
+   
+   **Option A: Automatic (Recommended)**
+   ```powershell
+   # Download and run the certificate import script
+   # (Requires PowerShell, downloads from latest release)
+   irm https://raw.githubusercontent.com/schalkje/markread/main/scripts/import-certificate.ps1 | iex
+   ```
+   
+   **Option B: Manual**
+   1. Download `markread-cert.cer` from [releases page](https://github.com/schalkje/markread/releases/latest)
+   2. Right-click the certificate file → **Install Certificate**
+   3. Choose **Local Machine** (requires admin) or **Current User**
+   4. Select **"Place all certificates in the following store"**
+   5. Click **Browse** → Select **"Trusted Root Certification Authorities"**
+   6. Click **Next** → **Finish**
+   7. Repeat for **"Trusted Publishers"** store
+   
+   **Option C: Using Script**
+   ```powershell
+   # If you already have the certificate file
+   .\import-certificate.ps1 -CertificatePath "markread-cert.cer"
+   
+   # Or download from latest release automatically
+   .\import-certificate.ps1
+   ```
+   
+   After installing the certificate, future installations will not show warnings.
+
+4. Proceed to installation wizard
 
 #### Step 3: Follow Installation Wizard
 
@@ -147,6 +190,34 @@ If not added to PATH during install, you can add manually:
 7. Restart your terminal
 
 ## Troubleshooting Installation
+
+### Issue: "Unknown publisher" or "Do you want to allow this app to make changes?"
+
+**Cause**: Code signing certificate not trusted on your system
+
+**Solution**:
+Install the MarkRead certificate to trust the publisher:
+
+**Quick Fix:**
+```powershell
+# Run as Administrator for system-wide trust
+.\scripts\import-certificate.ps1
+```
+
+**Manual Steps:**
+1. Download `markread-cert.cer` from [releases](https://github.com/schalkje/markread/releases/latest)
+2. Right-click → **Install Certificate**
+3. Choose **Local Machine** (admin) or **Current User**
+4. Install to **Trusted Root Certification Authorities**
+5. Also install to **Trusted Publishers**
+6. Run installer again (no warnings)
+
+**Check Certificate Status:**
+```powershell
+.\scripts\import-certificate.ps1 -CheckOnly
+```
+
+See [Certificate Installation](#installing-the-certificate-first-time-only) for details.
 
 ### Issue: "This app can't run on your PC"
 

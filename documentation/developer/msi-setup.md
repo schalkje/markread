@@ -1,6 +1,13 @@
-# MSI Installer Setup Guide
+# MSI Installer Setup and Code Signing Guide
 
-This guide will walk you through building and testing the MSI installer for MarkRead.
+This guide covers building MSI installers for MarkRead and setting up code signing with self-signed certificates.
+
+## Quick Links
+
+- [Building MSI Installers](#building-the-installer)
+- [Code Signing Setup](#code-signing)
+- [GitHub Actions CI/CD](#cicd-pipeline)
+- [Local Development Signing](#local-signing)
 
 ## Prerequisites
 
@@ -334,14 +341,281 @@ To change install location or make per-user:
 - [WiX Tutorial](https://www.firegiant.com/wix/tutorial/)
 - [MSI Installer Best Practices](https://docs.microsoft.com/windows/win32/msi/)
 
+---
+
+## Code Signing
+
+### Overview
+
+MarkRead uses self-signed certificates for MSI code signing during development and testing. This eliminates "Unknown publisher" warnings after certificate trust.
+
+### Creating a Code Signing Certificate
+
+Use the `create-certificate.ps1` script to generate a new self-signed certificate:
+
+```powershell
+# Navigate to repository root
+cd C:\repo\markread
+
+# Create certificate
+.\scripts\create-certificate.ps1 `
+    -SubjectName "CN=MarkRead Developer" `
+    -ValidityYears 2 `
+    -Password "YourSecurePassword123" `
+    -ExportPath "C:\Certs\markread-cert.pfx"
+```
+
+**Important:**
+- Use a strong password
+- Store password securely (password manager recommended)
+- Minimum 1 year validity, recommended 2-3 years
+- Certificate is stored in `Cert:\CurrentUser\My`
+
+### Exporting Certificates
+
+#### For Signing (PFX with Private Key)
+
+```powershell
+.\scripts\export-certificate.ps1 `
+    -Thumbprint "YOUR_CERT_THUMBPRINT" `
+    -Password "YourSecurePassword123" `
+    -PfxPath "markread-signing.pfx"
+```
+
+**WARNING:** Never commit PFX files to source control!
+
+#### For User Distribution (CER Public Key Only)
+
+```powershell
+.\scripts\export-certificate.ps1 `
+    -Thumbprint "YOUR_CERT_THUMBPRINT" `
+    -CerPath "markread-public.cer"
+```
+
+This CER file can be safely distributed and included in releases.
+
+### Validating Certificates
+
+Before signing, validate your certificate:
+
+```powershell
+# Validate from certificate store
+.\scripts\validate-certificate.ps1 `
+    -Thumbprint "YOUR_CERT_THUMBPRINT" `
+    -CheckPrivateKey
+
+# Validate PFX file
+.\scripts\validate-certificate.ps1 `
+    -PfxPath "markread-signing.pfx" `
+    -Password "YourSecurePassword123"
+```
+
+Checks performed:
+- ✓ Certificate not expired
+- ✓ Code signing extended key usage
+- ✓ Private key available
+- ✓ Date validity
+- ⚠ Expiration warnings (< 30 days)
+
+### GitHub Secrets Setup
+
+For automated CI/CD signing:
+
+1. **Encode PFX to Base64:**
+   ```powershell
+   $pfxBytes = [System.IO.File]::ReadAllBytes("markread-signing.pfx")
+   $pfxBase64 = [System.Convert]::ToBase64String($pfxBytes)
+   $pfxBase64 | Set-Clipboard
+   ```
+
+2. **Add to GitHub:**
+   - Go to Repository Settings → Secrets and variables → Actions
+   - Add secret `CERT_PFX` with the Base64 content
+   - Add secret `CERT_PASSWORD` with your password
+
+3. **Verify:**
+   - Both secrets should appear in the list
+   - Values are encrypted and hidden
+
+### Local Signing
+
+The `sign-local.ps1` script provides an easy local development signing workflow.
+
+#### Basic Usage
+
+```powershell
+# Auto-detect MSI and certificate, prompt for selection
+.\scripts\sign-local.ps1
+
+# Sign specific MSI pattern
+.\scripts\sign-local.ps1 -MsiPath "installer\bin\Release\*.msi"
+
+# Use specific PFX file
+.\scripts\sign-local.ps1 -CertificatePath "mycert.pfx"
+
+# Use certificate by thumbprint (no password needed)
+.\scripts\sign-local.ps1 -Thumbprint "ABC123..."
+```
+
+#### How It Works
+
+1. **MSI Detection**: Searches `installer/bin/**/*.msi` by default, picks latest by date
+2. **Certificate Selection**: 
+   - Searches CurrentUser\My and LocalMachine\My stores
+   - Filters for code signing certificates with private keys
+   - Prompts user to select if multiple found
+3. **Validation**: Checks expiration, EKU, private key availability
+4. **Signing**: Calls `sign-msi.ps1` with detected parameters
+5. **Verification**: Runs `verify-signature.ps1` to confirm success
+6. **Results**: Displays summary and next steps
+
+#### Certificate Sources
+
+The script supports multiple certificate sources:
+
+**Certificate Store (Recommended):**
+```powershell
+# Auto-detect and select
+.\scripts\sign-local.ps1
+
+# Specific thumbprint
+.\scripts\sign-local.ps1 -Thumbprint "ABC123..."
+```
+
+**PFX File:**
+```powershell
+# Prompts for password
+.\scripts\sign-local.ps1 -CertificatePath "cert.pfx"
+
+# With password parameter
+$pwd = ConvertTo-SecureString "password" -AsPlainText -Force
+.\scripts\sign-local.ps1 -CertificatePath "cert.pfx" -Password $pwd
+```
+
+#### Options
+
+- `-MsiPath`: MSI file pattern (default: `installer\bin\**\*.msi`)
+- `-CertificatePath`: Path to PFX file (optional)
+- `-Password`: Certificate password as SecureString (optional)
+- `-Thumbprint`: Certificate thumbprint from store (optional)
+- `-TimestampServer`: Timestamp server URL (default: DigiCert)
+- `-SkipValidation`: Skip certificate validation checks
+
+#### Troubleshooting
+
+**No certificates found:**
+```powershell
+# Create a new certificate
+.\scripts\create-certificate.ps1 -SubjectName "CN=MyDev"
+```
+
+**No MSI found:**
+```powershell
+# Build the solution
+dotnet build markread.sln -c Release
+```
+
+**Wrong password:**
+- Re-enter password when prompted
+- Or specify with `-Password` parameter
+
+**Certificate selection:**
+- Use `-Thumbprint` to skip selection prompt
+- Find thumbprints: `Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert`
+
+### CI/CD Pipeline
+
+The GitHub Actions workflow (`.github/workflows/build-and-sign.yml`) automatically:
+
+1. ✓ Builds the MSI
+2. ✓ Decodes certificate from secrets
+3. ✓ Signs the MSI
+4. ✓ Verifies signature
+5. ✓ Uploads signed artifact
+
+**Failure Handling:**
+- ✗ Fails if certificate expired
+- ✗ Fails if signing fails
+- ✓ Provides diagnostics without exposing secrets
+- ✓ Only uploads signed artifacts
+
+### Certificate Rotation
+
+When certificate expires or needs renewal:
+
+1. Generate new certificate:
+   ```powershell
+   .\scripts\create-certificate.ps1 -SubjectName "CN=MarkRead Developer" -Password "NewPassword"
+   ```
+
+2. Update GitHub Secrets:
+   - Export and encode new PFX
+   - Update `CERT_PFX` and `CERT_PASSWORD`
+
+3. Update local development:
+   - Export new PFX for local use
+
+4. Notify users:
+   - Export new CER for distribution
+   - Include in next release
+   - Update installation docs
+
+### Troubleshooting
+
+#### "Certificate Not Found"
+- Verify thumbprint: `Get-ChildItem Cert:\CurrentUser\My`
+- Check store location (CurrentUser vs LocalMachine)
+
+#### "Private Key Not Found"
+- Ensure `-KeyExportPolicy Exportable` was used
+- Reimport PFX with exportable option
+- Verify: `(Get-Item Cert:\CurrentUser\My\THUMBPRINT).HasPrivateKey`
+
+#### "Unknown Publisher" Still Appears
+- Verify signature exists: Right-click MSI → Properties → Digital Signatures
+- Ensure users imported the public certificate
+- See user installation guide for trust steps
+
+#### GitHub Actions Signing Fails
+- Check certificate not expired
+- Verify secrets set correctly
+- Review workflow logs
+- Ensure signtool.exe available
+
+### Best Practices
+
+1. **Certificate Management:**
+   - Use 2-3 year validity
+   - Set renewal reminders (30 days before expiration)
+   - Keep secure backup of PFX and password
+
+2. **Security:**
+   - Never commit PFX to source control
+   - Use strong passwords
+   - Limit access to certificate files
+   - Rotate periodically
+
+3. **Testing:**
+   - Test signed MSI locally first
+   - Verify signature after signing
+   - Test on clean machine
+
+4. **Distribution:**
+   - Include CER file in releases
+   - Provide clear instructions
+   - Document expected UAC behavior
+
+---
+
 ## Next Steps
 
-After successful MSI creation:
+After successful MSI creation and signing:
 
 1. ✅ Test installer thoroughly
-2. ✅ Create first release (v0.1.0-alpha)
-3. ⬜ Gather feedback
-4. ⬜ Create production release (v1.0.0)
+2. ✅ Test signed MSI installation
+3. ✅ Create first release (v0.1.0-alpha)
+4. ⬜ Gather feedback
+5. ⬜ Create production release (v1.0.0)
 5. ⬜ Consider code signing
 6. ⬜ Add to winget (after MSI is stable)
 
