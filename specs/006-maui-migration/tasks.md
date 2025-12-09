@@ -255,9 +255,9 @@ All paths relative to repository root:
 
 ### Session Recovery for US3
 
-- [ ] T106 [US3] Implement continuous session state persistence during normal operation
-- [ ] T107 [US3] Add abnormal termination detection on app startup
-- [ ] T108 [US3] Create restore session dialog with "Restore" and "Start Fresh" options
+- [x] T106 [US3] Implement continuous session state persistence during normal operation
+- [x] T107 [US3] Add abnormal termination detection on app startup
+- [x] T108 [US3] Create restore session dialog with "Restore" and "Start Fresh" options
 
 ### Testing for US3
 
