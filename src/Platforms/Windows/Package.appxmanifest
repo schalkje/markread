@@ -3,16 +3,17 @@
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap rescap">
+  IgnorableNamespaces="uap uap5 rescap mp">
 
-  <Identity Name="com.markread.app" Publisher="CN=MarkRead" Version="1.0.0.0" />
+  <Identity Name="com.schalken.markread" Publisher="CN=schalken.net" Version="0.1.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="BB4A0527-347D-4581-A1B5-640EAA1F2836" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>MarkRead</DisplayName>
-    <PublisherDisplayName>MarkRead</PublisherDisplayName>
+    <PublisherDisplayName>schalken.net</PublisherDisplayName>
     <Logo>AppIcon.png</Logo>
   </Properties>
 
@@ -29,32 +30,41 @@
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
       <uap:VisualElements
         DisplayName="MarkRead"
-        Description="Modern markdown viewer with smooth rendering and navigation"
+        Description="Modern Markdown Viewer for Windows - Fast, smooth rendering with folder navigation"
         Square150x150Logo="AppIcon.png"
         Square44x44Logo="AppIcon.png"
         BackgroundColor="transparent">
-        <uap:DefaultTile Square71x71Logo="AppIcon.png" Wide310x150Logo="AppIcon.png" Square310x310Logo="AppIcon.png" />
+        <uap:DefaultTile Square71x71Logo="AppIcon.png" Wide310x150Logo="AppIcon.png" Square310x310Logo="AppIcon.png" ShortName="MarkRead" />
         <uap:SplashScreen Image="AppIcon.png" />
       </uap:VisualElements>
       
-      <!-- File associations for .md and .markdown files -->
+      <!-- File associations and protocol support -->
       <Extensions>
         <uap:Extension Category="windows.fileTypeAssociation">
-          <uap:FileTypeAssociation Name="markdown">
+          <uap:FileTypeAssociation Name="markdownfile">
             <uap:DisplayName>Markdown Document</uap:DisplayName>
             <uap:Logo>AppIcon.png</uap:Logo>
+            <uap:InfoTip>Open with MarkRead</uap:InfoTip>
             <uap:SupportedFileTypes>
-              <uap:FileType>.md</uap:FileType>
-              <uap:FileType>.markdown</uap:FileType>
+              <uap:FileType ContentType="text/markdown">.md</uap:FileType>
+              <uap:FileType ContentType="text/markdown">.markdown</uap:FileType>
             </uap:SupportedFileTypes>
           </uap:FileTypeAssociation>
         </uap:Extension>
+        
+        <!-- Command-line activation support -->
+        <uap5:Extension Category="windows.appExecutionAlias">
+          <uap5:AppExecutionAlias>
+            <uap5:ExecutionAlias Alias="markread.exe" />
+          </uap5:AppExecutionAlias>
+        </uap5:Extension>
       </Extensions>
     </Application>
   </Applications>
 
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
+    <Capability Name="internetClient" />
   </Capabilities>
 
 </Package>

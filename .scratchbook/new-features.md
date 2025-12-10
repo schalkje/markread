@@ -1,5 +1,22 @@
 # revamp to MAUI
 
+# windows integration
+Start fom the command prompt with a folder or file as parameter
+
+## Windows explorer
+
+Part of right click menu for folders and markdown files
+
+## vs code
+
+Open in option on markdown files and on folders
+
+## Windows task bar
+
+- open x last
+- favorites
+
+
 # Support multiple folders
 
 # search all files

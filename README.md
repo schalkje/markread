@@ -22,39 +22,49 @@
 
 ## � Installation
 
-### Via MSI Installer (Recommended)
+### Via MSIX Package (Recommended)
 
-1. Download the latest MSI installer from [GitHub Releases](https://github.com/schalkje/markread/releases/latest)
-2. Run the installer
-3. Follow the installation wizard
+1. Download the latest MSIX package for your architecture from [GitHub Releases](https://github.com/schalkje/markread/releases/latest)
+   - **x64**: For most modern Windows PCs
+   - **arm64**: For ARM-based devices (Surface Pro X, etc.)
 
-The installer will:
-- Install MarkRead to `C:\Program Files\MarkRead`
-- Create Start Menu and Desktop shortcuts
-- Associate `.md` and `.markdown` files with MarkRead
-- Add MarkRead to Windows Programs & Features for easy uninstallation
+2. **First-time installation**: Trust the certificate
+   - Right-click the MSIX file → Properties → Digital Signatures
+   - Select certificate → Details → View Certificate → Install Certificate
+   - Choose "Local Machine" → "Trusted People" store
+
+3. **Install**: Double-click the MSIX file and click "Install"
+
+The MSIX package provides:
+- 📁 Automatic `.md` and `.markdown` file associations
+- 🖥️ Start Menu and search integration  
+- ⌨️ Command-line access via `markread` command
+- 🔄 Clean uninstall through Settings > Apps
 
 ### System Requirements
 
 - **OS:** Windows 10 (version 1809+) or Windows 11
-- **Runtime:** None required (self-contained with .NET MAUI runtime)
-- **Disk Space:** ~80 MB
+- **Runtime:** Self-contained (includes .NET 10 MAUI runtime)
+- **Disk Space:** ~100 MB
 - **Memory:** 100-200 MB typical usage
-- **WebView2:** Automatically installed if not present
+- **Architecture:** x64 or arm64
 
 ## �🚀 Quick Start
 
 ```powershell
-# Launch MarkRead and open a folder
-MarkRead.exe "C:\path\to\your\docs"
+# Launch MarkRead from command line (after MSIX installation)
+markread "C:\path\to\your\docs"
 
 # Or open a specific file
-MarkRead.exe "C:\path\to\your\docs\README.md"
+markread README.md
+
+# Open current directory
+markread .
 
 # After installation, you can also:
 # - Double-click any .md file
-# - Right-click a folder and "Open with MarkRead"
-# - Launch from Start Menu
+# - Search for "MarkRead" in Start Menu
+# - Use from any command prompt or PowerShell
 ```
 
 For detailed usage instructions, see the [Getting Started Guide](documentation/user-guide/getting-started.md).

@@ -1,0 +1,293 @@
+name: Release - Build and Sign MSIX
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v0.3.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write  # Required for creating releases
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  BUILD_CONFIGURATION: Release
+  MAUI_VERSION: '10.0.10'
+
+jobs:
+  build-msix:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        architecture: [x64, arm64]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Install MAUI workload
+      run: |
+        Write-Host "Installing .NET MAUI workload..." -ForegroundColor Cyan
+        dotnet workload install maui --source https://api.nuget.org/v3/index.json
+      shell: pwsh
+    
+    - name: Restore dependencies
+      run: |
+        Write-Host "Restoring dependencies..." -ForegroundColor Cyan
+        dotnet restore src/MarkRead.csproj
+      shell: pwsh
+    
+    - name: Decode certificate from secrets
+      run: |
+        Write-Host "Decoding certificate from GitHub Secrets..." -ForegroundColor Cyan
+        
+        $certBase64 = "${{ secrets.MSIX_CERT_PFX }}"
+        if ([string]::IsNullOrWhiteSpace($certBase64)) {
+          throw "MSIX_CERT_PFX secret is not set. Please configure signing certificate in repository secrets."
+        }
+        
+        $certPassword = "${{ secrets.MSIX_CERT_PASSWORD }}"
+        if ([string]::IsNullOrWhiteSpace($certPassword)) {
+          throw "MSIX_CERT_PASSWORD secret is not set. Please configure certificate password in repository secrets."
+        }
+        
+        $certBytes = [System.Convert]::FromBase64String($certBase64)
+        $certPath = Join-Path $env:TEMP "MarkRead.pfx"
+        [System.IO.File]::WriteAllBytes($certPath, $certBytes)
+        
+        Write-Host "Certificate saved to: $certPath" -ForegroundColor Green
+        "cert-path=$certPath" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+      id: cert-decode
+    
+    - name: Import certificate
+      run: |
+        Write-Host "Importing certificate..." -ForegroundColor Cyan
+        
+        $certPath = "${{ steps.cert-decode.outputs.cert-path }}"
+        $certPassword = ConvertTo-SecureString -String "${{ secrets.MSIX_CERT_PASSWORD }}" -AsPlainText -Force
+        
+        $cert = Import-PfxCertificate `
+          -FilePath $certPath `
+          -CertStoreLocation Cert:\CurrentUser\My `
+          -Password $certPassword
+        
+        Write-Host "Certificate imported successfully" -ForegroundColor Green
+        Write-Host "  Subject: $($cert.Subject)" -ForegroundColor Gray
+        Write-Host "  Thumbprint: $($cert.Thumbprint)" -ForegroundColor Gray
+        
+        "cert-thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+      id: cert-import
+    
+    - name: Build and package MSIX
+      run: |
+        Write-Host "Building MSIX for ${{ matrix.architecture }}..." -ForegroundColor Cyan
+        
+        $thumbprint = "${{ steps.cert-import.outputs.cert-thumbprint }}"
+        
+        dotnet publish src/MarkRead.csproj `
+          -c ${{ env.BUILD_CONFIGURATION }} `
+          -r win-${{ matrix.architecture }} `
+          -f net10.0-windows10.0.19041.0 `
+          /p:WindowsPackageType=MSIX `
+          /p:WindowsAppSDKSelfContained=true `
+          /p:GenerateAppInstallerFile=false `
+          /p:PackageCertificateThumbprint=$thumbprint `
+          /p:AppxPackageSigningEnabled=true
+        
+        if ($LASTEXITCODE -ne 0) {
+          throw "Build failed with exit code $LASTEXITCODE"
+        }
+        
+        Write-Host "Build completed successfully" -ForegroundColor Green
+      shell: pwsh
+    
+    - name: Locate MSIX package
+      id: find-msix
+      run: |
+        $msixPath = Get-ChildItem -Path "src/bin/${{ env.BUILD_CONFIGURATION }}/net10.0-windows10.0.19041.0/win-${{ matrix.architecture }}" `
+          -Filter "*.msix" -Recurse | 
+          Select-Object -First 1 -ExpandProperty FullName
+        
+        if (-not $msixPath) {
+          throw "MSIX file not found in build output"
+        }
+        
+        Write-Host "Found MSIX: $msixPath" -ForegroundColor Green
+        
+        $msixName = Split-Path -Leaf $msixPath
+        $fileSize = [math]::Round((Get-Item $msixPath).Length / 1MB, 2)
+        
+        Write-Host "  Name: $msixName" -ForegroundColor Gray
+        Write-Host "  Size: $fileSize MB" -ForegroundColor Gray
+        
+        # Rename for clarity
+        $newName = "MarkRead-${{ matrix.architecture }}.msix"
+        $newPath = Join-Path (Split-Path $msixPath) $newName
+        Copy-Item $msixPath $newPath
+        
+        "msix-path=$newPath" >> $env:GITHUB_OUTPUT
+        "msix-name=$newName" >> $env:GITHUB_OUTPUT
+        "msix-size=$fileSize" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+    
+    - name: Verify MSIX signature
+      run: |
+        Write-Host "Verifying MSIX signature..." -ForegroundColor Cyan
+        
+        $msixPath = "${{ steps.find-msix.outputs.msix-path }}"
+        $signature = Get-AuthenticodeSignature -FilePath $msixPath
+        
+        Write-Host "Signature Details:" -ForegroundColor Yellow
+        Write-Host "  Status: $($signature.Status)" -ForegroundColor Gray
+        Write-Host "  Signer: $($signature.SignerCertificate.Subject)" -ForegroundColor Gray
+        Write-Host "  Thumbprint: $($signature.SignerCertificate.Thumbprint)" -ForegroundColor Gray
+        
+        if ($signature.Status -ne 'Valid' -and $signature.Status -ne 'UnknownError') {
+          Write-Warning "Signature status is: $($signature.Status)"
+        } else {
+          Write-Host "  ✓ Package is properly signed" -ForegroundColor Green
+        }
+      shell: pwsh
+    
+    - name: Upload MSIX artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: msix-${{ matrix.architecture }}
+        path: ${{ steps.find-msix.outputs.msix-path }}
+        retention-days: 30
+    
+    - name: Cleanup certificate
+      if: always()
+      run: |
+        $thumbprint = "${{ steps.cert-import.outputs.cert-thumbprint }}"
+        if ($thumbprint) {
+          Remove-Item "Cert:\CurrentUser\My\$thumbprint" -ErrorAction SilentlyContinue
+        }
+        
+        $certPath = "${{ steps.cert-decode.outputs.cert-path }}"
+        if ($certPath -and (Test-Path $certPath)) {
+          Remove-Item $certPath -Force
+        }
+      shell: pwsh
+
+  create-release:
+    needs: build-msix
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Determine tag
+      id: tag
+      run: |
+        if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+          $tag = "${{ github.event.inputs.tag }}"
+        } else {
+          $tag = "${{ github.ref_name }}"
+        }
+        
+        Write-Host "Release tag: $tag" -ForegroundColor Green
+        "tag=$tag" >> $env:GITHUB_OUTPUT
+        
+        $version = $tag -replace '^v', ''
+        "version=$version" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    
+    - name: List artifacts
+      run: |
+        Write-Host "Downloaded artifacts:" -ForegroundColor Cyan
+        Get-ChildItem -Path artifacts -Recurse | ForEach-Object {
+          Write-Host "  $($_.FullName)" -ForegroundColor Gray
+        }
+      shell: pwsh
+    
+    - name: Generate release notes
+      id: release-notes
+      run: |
+        Write-Host "Generating release notes..." -ForegroundColor Cyan
+        
+        $tag = "${{ steps.tag.outputs.tag }}"
+        $version = "${{ steps.tag.outputs.version }}"
+        
+        # Check for CHANGELOG.md
+        $changelogPath = "CHANGELOG.md"
+        $releaseNotes = @"
+# MarkRead $version
+
+## Installation
+
+### MSIX Package (Recommended)
+
+Download the MSIX package for your architecture:
+- **x64**: For most modern Windows PCs
+- **arm64**: For ARM-based Windows devices (Surface Pro X, etc.)
+
+#### First-Time Installation:
+1. Download the MSIX file for your architecture
+2. Right-click the file → Properties → Digital Signatures
+3. Select the certificate → Details → View Certificate → Install Certificate
+4. Choose "Local Machine" → "Place all certificates in the following store" → Select "Trusted People"
+5. Double-click the MSIX file to install
+
+#### Subsequent Updates:
+Simply double-click the new MSIX file to update.
+
+### Command Line Usage
+
+After installation, you can use MarkRead from the command line:
+
+``````powershell
+# Open a folder
+markread C:\MyDocs
+
+# Open a specific file
+markread README.md
+
+# Open current directory
+markread .
+``````
+
+## What's New
+
+See [CHANGELOG.md](https://github.com/schalkje/markread/blob/main/CHANGELOG.md) for full details.
+
+"@
+        
+        $notesPath = "release-notes.md"
+        $releaseNotes | Out-File -FilePath $notesPath -Encoding utf8
+        
+        "notes-path=$notesPath" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        name: MarkRead ${{ steps.tag.outputs.version }}
+        body_path: ${{ steps.release-notes.outputs.notes-path }}
+        draft: false
+        prerelease: ${{ contains(steps.tag.outputs.tag, '-') }}
+        files: |
+          artifacts/msix-x64/*.msix
+          artifacts/msix-arm64/*.msix
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

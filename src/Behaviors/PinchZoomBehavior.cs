@@ -81,12 +81,12 @@ public class PinchZoomBehavior : Behavior<View>
                 // Smooth spring-back animation if zoomed out too far
                 if (_currentScale < MinScale)
                 {
-                    view.ScaleTo(MinScale, AnimationDuration, Easing.SpringOut);
+                    _ = view.ScaleToAsync(MinScale, AnimationDuration, Easing.SpringOut);
                     _currentScale = MinScale;
                 }
                 else if (_currentScale > MaxScale)
                 {
-                    view.ScaleTo(MaxScale, AnimationDuration, Easing.SpringOut);
+                    _ = view.ScaleToAsync(MaxScale, AnimationDuration, Easing.SpringOut);
                     _currentScale = MaxScale;
                 }
                 
@@ -102,8 +102,8 @@ public class PinchZoomBehavior : Behavior<View>
     /// </summary>
     public void ResetZoom(View view)
     {
-        view.TranslateTo(0, 0, AnimationDuration, Easing.CubicOut);
-        view.ScaleTo(1, AnimationDuration, Easing.CubicOut);
+        _ = view.TranslateToAsync(0, 0, AnimationDuration, Easing.CubicOut);
+        _ = view.ScaleToAsync(1, AnimationDuration, Easing.CubicOut);
         _currentScale = 1;
         _startScale = 1;
         _xOffset = 0;
