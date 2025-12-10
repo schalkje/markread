@@ -51,40 +51,40 @@ All paths relative to repository root:
 
 ### Core Models (Required by all stories)
 
-- [ ] T013 [P] Create Document model in src/Models/Document.cs (FilePath, Content, Title, RenderState, ScrollPosition)
-- [ ] T014 [P] Create FileTreeNode model in src/Models/FileTreeNode.cs (Path, Name, Type, Children, IsExpanded)
-- [ ] T015 [P] Create Tab model in src/Models/Tab.cs (Id, Title, DocumentPath, IsActive, IsPinned)
-- [ ] T016 [P] Create Theme model in src/Models/Theme.cs (ThemeType enum, ColorScheme, Typography settings)
-- [ ] T017 [P] Create Settings model in src/Models/Settings.cs (ThemePreference, WindowState, SidebarVisible, etc.)
+- [x] T013 [P] Create Document model in src/Models/Document.cs (FilePath, Content, Title, RenderState, ScrollPosition)
+- [x] T014 [P] Create FileTreeNode model in src/Models/FileTreeNode.cs (Path, Name, Type, Children, IsExpanded)
+- [x] T015 [P] Create Tab model in src/Models/Tab.cs (Id, Title, DocumentPath, IsActive, IsPinned)
+- [x] T016 [P] Create Theme model in src/Models/Theme.cs (ThemeType enum, ColorScheme, Typography settings)
+- [x] T017 [P] Create Settings model in src/Models/Settings.cs (ThemePreference, WindowState, SidebarVisible, etc.)
 
 ### Core Services (Required by all stories)
 
-- [ ] T018 Create IMarkdownService interface in src/Services/IMarkdownService.cs (RenderToHtml method)
-- [ ] T019 Implement MarkdownService in src/Services/MarkdownService.cs using Markdig 0.44.0 pipeline
-- [ ] T020 [P] Create IFileSystemService interface in src/Services/IFileSystemService.cs (ReadFile, WatchFile, LoadDirectory)
-- [ ] T021 Implement FileSystemService in src/Services/FileSystemService.cs with FileSystemWatcher integration
-- [ ] T022 [P] Create ISettingsService interface in src/Services/ISettingsService.cs (Load/Save settings to JSON)
-- [ ] T023 Implement SettingsService in src/Services/SettingsService.cs using System.Text.Json
-- [ ] T024 [P] Create IThemeService interface in src/Services/IThemeService.cs (GetTheme, SetTheme, ThemeChanged event)
-- [ ] T025 Implement ThemeService in src/Services/ThemeService.cs with MAUI AppThemeBinding support
-- [ ] T026 [P] Create ILoggingService interface in src/Services/ILoggingService.cs (LogError, LogWarning, LogInfo)
-- [ ] T027 Implement LoggingService in src/Services/LoggingService.cs with file-based logging and rotation (10MB max, 5 files)
+- [x] T018 Create IMarkdownService interface in src/Services/IMarkdownService.cs (RenderToHtml method)
+- [x] T019 Implement MarkdownService in src/Services/MarkdownService.cs using Markdig 0.44.0 pipeline
+- [x] T020 [P] Create IFileSystemService interface in src/Services/IFileSystemService.cs (ReadFile, WatchFile, LoadDirectory)
+- [x] T021 Implement FileSystemService in src/Services/FileSystemService.cs with FileSystemWatcher integration
+- [x] T022 [P] Create ISettingsService interface in src/Services/ISettingsService.cs (Load/Save settings to JSON)
+- [x] T023 Implement SettingsService in src/Services/SettingsService.cs using System.Text.Json
+- [x] T024 [P] Create IThemeService interface in src/Services/IThemeService.cs (GetTheme, SetTheme, ThemeChanged event)
+- [x] T025 Implement ThemeService in src/Services/ThemeService.cs with MAUI AppThemeBinding support
+- [x] T026 [P] Create ILoggingService interface in src/Services/ILoggingService.cs (LogError, LogWarning, LogInfo)
+- [x] T027 Implement LoggingService in src/Services/LoggingService.cs with file-based logging and rotation (10MB max, 5 files)
 
 ### Rendering Infrastructure (Required by US1, US2, US4, US6)
 
-- [ ] T028 Create HtmlTemplateService in src/Rendering/HtmlTemplateService.cs for HTML generation
-- [ ] T029 Create markdown.html template in src/Rendering/templates/markdown.html with token system
-- [ ] T030 [P] Add web assets to src/Rendering/assets/: highlight.js (latest stable)
-- [ ] T031 [P] Add web assets to src/Rendering/assets/: mermaid.js (v11.12.2)
-- [ ] T032 [P] Create styles.css in src/Rendering/assets/ with base markdown styles
-- [ ] T033 [P] Create theme-light.css in src/Rendering/assets/ with light theme CSS variables
-- [ ] T034 [P] Create theme-dark.css in src/Rendering/assets/ with dark theme CSS variables
+- [x] T028 Create HtmlTemplateService in src/Rendering/HtmlTemplateService.cs for HTML generation
+- [x] T029 Create markdown.html template in src/Rendering/templates/markdown.html with token system
+- [x] T030 [P] Add web assets to src/Rendering/assets/: highlight.js (latest stable)
+- [x] T031 [P] Add web assets to src/Rendering/assets/: mermaid.js (v11.12.2)
+- [x] T032 [P] Create styles.css in src/Rendering/assets/ with base markdown styles
+- [x] T033 [P] Create theme-light.css in src/Rendering/assets/ with light theme CSS variables
+- [x] T034 [P] Create theme-dark.css in src/Rendering/assets/ with dark theme CSS variables
 
 ### Dependency Injection Setup
 
-- [ ] T035 Register all foundational services in MauiProgram.cs (Markdown, FileSystem, Settings, Theme, Logging)
-- [ ] T036 Configure CommunityToolkit.Mvvm in MauiProgram.cs for ViewModel source generation
-- [ ] T037 Setup logging pipeline in App.xaml.cs with ILoggingService initialization
+- [x] T035 Register all foundational services in MauiProgram.cs (Markdown, FileSystem, Settings, Theme, Logging)
+- [x] T036 Configure CommunityToolkit.Mvvm in MauiProgram.cs for ViewModel source generation
+- [x] T037 Setup logging pipeline in App.xaml.cs with ILoggingService initialization
 
 ### Foundational Tests
 
@@ -104,35 +104,35 @@ All paths relative to repository root:
 
 ### Models & ViewModels for US1
 
-- [ ] T041 [P] [US1] Create DocumentViewModel in src/ViewModels/DocumentViewModel.cs (Content, Title, ScrollPosition, LoadDocument command)
-- [ ] T042 [P] [US1] Implement INotifyPropertyChanged via ObservableObject for DocumentViewModel
+- [x] T041 [P] [US1] Create DocumentViewModel in src/ViewModels/DocumentViewModel.cs (Content, Title, ScrollPosition, LoadDocument command)
+- [x] T042 [P] [US1] Implement INotifyPropertyChanged via ObservableObject for DocumentViewModel
 
 ### Views for US1
 
-- [ ] T043 [US1] Create MarkdownView.xaml in src/Views/ with HybridWebView control
-- [ ] T044 [US1] Implement MarkdownView.xaml.cs with DocumentViewModel data binding
-- [ ] T045 [US1] Setup HybridWebView initialization in MarkdownView (HybridRoot="Rendering/templates")
-- [ ] T046 [US1] Implement JavaScript-C# bridge in MarkdownView for link clicks and scroll events
+- [x] T043 [US1] Create MarkdownView.xaml in src/Views/ with HybridWebView control
+- [x] T044 [US1] Implement MarkdownView.xaml.cs with DocumentViewModel data binding
+- [x] T045 [US1] Setup HybridWebView initialization in MarkdownView (HybridRoot="Rendering/templates")
+- [x] T046 [US1] Implement JavaScript-C# bridge in MarkdownView for link clicks and scroll events
 
 ### Rendering Implementation for US1
 
-- [ ] T047 [US1] Implement HTML generation in HtmlTemplateService.RenderDocument (markdown → HTML with tokens)
-- [ ] T048 [US1] Add theme style injection to prevent white flash on load
-- [ ] T049 [US1] Implement scroll position persistence in DocumentViewModel
-- [ ] T050 [US1] Add error handling for malformed markdown (graceful degradation)
+- [x] T047 [US1] Implement HTML generation in HtmlTemplateService.RenderDocument (markdown → HTML with tokens)
+- [x] T048 [US1] Add theme style injection to prevent white flash on load
+- [x] T049 [US1] Implement scroll position persistence in DocumentViewModel
+- [x] T050 [US1] Add error handling for malformed markdown (graceful degradation)
 
 ### Integration for US1
 
-- [ ] T051 [US1] Connect MarkdownService to DocumentViewModel for rendering
-- [ ] T052 [US1] Implement window resize handling with smooth content reflow
-- [ ] T053 [US1] Add syntax highlighting initialization in markdown.html template
-- [ ] T054 [US1] Configure Mermaid.js initialization for diagram rendering
+- [x] T051 [US1] Connect MarkdownService to DocumentViewModel for rendering
+- [x] T052 [US1] Implement window resize handling with smooth content reflow
+- [x] T053 [US1] Add syntax highlighting initialization in markdown.html template
+- [x] T054 [US1] Configure Mermaid.js initialization for diagram rendering
 
 ### Performance Optimization for US1
 
-- [ ] T055 [US1] Implement HTML caching to avoid re-rendering unchanged content
-- [ ] T056 [US1] Add performance monitoring for scroll FPS (log if < 60 FPS)
-- [ ] T057 [US1] Optimize large file handling (10MB+) with progressive rendering warnings
+- [x] T055 [US1] Implement HTML caching to avoid re-rendering unchanged content
+- [x] T056 [US1] Add performance monitoring for scroll FPS (log if < 60 FPS)
+- [x] T057 [US1] Optimize large file handling (10MB+) with progressive rendering warnings
 
 ### Testing for US1
 
