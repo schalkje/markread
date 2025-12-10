@@ -1,6 +1,6 @@
-# MarkRead - Markdown Viewer for Windows
+# MarkRead - Modern Markdown Viewer for Windows
 
-[![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![.NET MAUI 10](https://img.shields.io/badge/.NET%20MAUI-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/apps/maui)
 [![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows)](https://www.microsoft.com/windows)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -11,12 +11,14 @@
 ## ✨ Key Features
 
 - 📄 **Powerful Markdown Rendering** - Full GitHub Flavored Markdown support with syntax highlighting, tables, task lists, and more
-- 🎨 **Beautiful UI** - Modern, professional interface with light and dark themes
-- 🗂️ **Smart Navigation** - File tree sidebar, tabbed interface, and intelligent link resolution
-- 🔍 **Advanced Search** - In-page search and global cross-file search capabilities
+- 🎨 **Beautiful UI** - Modern Fluent Design with light, dark, and high contrast themes
+- 🗂️ **Smart Navigation** - File tree sidebar with permission error handling, tabbed interface with drag-to-reorder, intelligent link resolution
+- 🔍 **Advanced Search** - In-page search with keyboard navigation, global cross-file search capabilities, live file tree filtering
 - 📊 **Mermaid Diagrams** - Native support for flowcharts, sequence diagrams, and more
-- ⚡ **Fast & Offline** - Instant startup, no internet required, fully local operation
+- ⚡ **Fast & Offline** - Instant startup, no internet required, fully local operation with debounced file watching
 - 🎯 **Developer-Focused** - Perfect for documentation in Git repositories and project folders
+- ♿ **Accessible** - Full screen reader support, keyboard navigation, semantic properties, high contrast mode
+- 🔐 **Secure** - HTML sanitization, safe link handling, permission error recovery
 
 ## � Installation
 
@@ -34,10 +36,11 @@ The installer will:
 
 ### System Requirements
 
-- **OS:** Windows 10 (1809+) or Windows 11
-- **Runtime:** None required (self-contained)
-- **Disk Space:** ~50 MB
-- **Memory:** Minimal (WPF + WebView2)
+- **OS:** Windows 10 (version 1809+) or Windows 11
+- **Runtime:** None required (self-contained with .NET MAUI runtime)
+- **Disk Space:** ~80 MB
+- **Memory:** 100-200 MB typical usage
+- **WebView2:** Automatically installed if not present
 
 ## �🚀 Quick Start
 
@@ -83,23 +86,38 @@ MarkRead is perfect for:
 |----------|--------|
 | `Ctrl+O` | Open folder |
 | `Ctrl+T` | New tab |
-| `Ctrl+W` | Close tab |
+| `Ctrl+W` | Close active tab |
+| `Ctrl+Shift+W` | Close all tabs (with confirmation) |
+| `Ctrl+K Ctrl+W` | Close other tabs (chord shortcut) |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Switch between tabs |
 | `Ctrl+F` | Find in document |
+| `F3` / `Shift+F3` | Next/Previous search match |
+| `Ctrl+G` | Go to heading |
+| `Ctrl+Shift+C` | Copy file path |
+| `Ctrl+Shift+H` | Copy as HTML |
+| `Ctrl+Shift+P` | Copy as plain text |
+| `Ctrl+P` | Show keyboard shortcuts |
+| `F11` | Toggle fullscreen |
 | `Alt+Left/Right` | Navigate back/forward |
 | `F5` | Refresh current document |
+| `F1` | Show help |
+
+> 💡 **Tip**: Press `Ctrl+P` or `F1` to see the complete keyboard shortcuts reference with accessibility hints!
 
 See the [complete shortcuts reference](documentation/reference/keyboard-shortcuts.md) for more.
 
 ## 🛠️ Technology Stack
 
-MarkRead is built with modern, reliable technologies:
+MarkRead is built with modern, cross-platform technologies:
 
-- **.NET 8** - Cross-platform framework with C#
-- **WPF** - Windows Presentation Foundation for native UI
-- **WebView2** - Chromium-based rendering engine
-- **Markdig** - Fast, extensible Markdown processor
-- **Prism/Highlight.js** - Syntax highlighting for code blocks
+- **.NET MAUI 10** - Modern UI framework for Windows (with future cross-platform support)
+- **C# 12** - Latest C# language features
+- **WebView2** - Chromium-based rendering engine (Edge WebView2)
+- **Markdig 0.44.0** - Fast, extensible Markdown processor
+- **Prism/Highlight.js** - Syntax highlighting for 180+ languages
 - **Mermaid** - Diagram and flowchart rendering
+- **CommunityToolkit.Mvvm** - Modern MVVM architecture with source generators
+- **Fluent Design System** - Microsoft's design language for Windows apps
 
 ## 🤝 Contributing
 

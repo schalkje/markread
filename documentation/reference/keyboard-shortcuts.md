@@ -2,170 +2,154 @@
 
 > 📍 **Navigation**: [Home](../../README.md) → [Documentation](../) → [Reference](./) → Keyboard Shortcuts
 
-Complete reference of MarkRead keyboard shortcuts.
+Complete reference of MarkRead keyboard shortcuts. Press `F1` or `Ctrl+P` anytime in the app to see this list!
 
-## File Operations
+## General
 
 | Shortcut | Action | Description |
 |----------|--------|-------------|
-| `Ctrl+O` | Open File | Open markdown file dialog |
-| `Ctrl+Shift+O` | Open Folder | Open folder dialog |
-| `Ctrl+W` | Close Tab | Close current tab |
-| `Ctrl+Shift+W` | Close All Tabs | Close all open tabs |
-| `Ctrl+Shift+T` | Reopen Tab | Reopen last closed tab |
+| `F1` | Help | Show keyboard shortcuts dialog |
+| `Ctrl+P` | Show Shortcuts | Show keyboard shortcuts (alternative) |
+| `F11` | Toggle Fullscreen | Enter/exit fullscreen mode |
+| `Alt+F4` | Exit | Close application |
+
+## File & Folder Operations
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+O` | Open Folder | Open folder browser dialog |
 | `F5` | Reload | Reload current document |
+
+## Tab Management
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+T` | New Tab | Open new empty tab |
+| `Ctrl+W` | Close Tab | Close current active tab |
+| `Ctrl+Shift+W` | Close All Tabs | Close all open tabs (with confirmation) |
+| `Ctrl+K Ctrl+W` | Close Other Tabs | Close all tabs except current (chord shortcut) |
+| `Ctrl+Tab` | Next Tab | Switch to next tab |
+| `Ctrl+Shift+Tab` | Previous Tab | Switch to previous tab |
+| **Drag & Drop** | Reorder Tabs | Click and drag tab headers to reorder |
+
+> 💡 **Chord Shortcuts**: `Ctrl+K Ctrl+W` means press `Ctrl+K`, release, then press `Ctrl+W` within 2 seconds.
 
 ## Navigation
 
 | Shortcut | Action | Description |
 |----------|--------|-------------|
-| `Alt+Left` | Back | Navigate to previous page |
-| `Alt+Right` | Forward | Navigate to next page |
-| `Ctrl+Home` | Top | Scroll to top of document |
-| `Ctrl+End` | Bottom | Scroll to bottom of document |
-| `Ctrl+G` | Go to Line | Jump to specific heading |
+| `Ctrl+G` | Go to Heading | Show heading picker dialog |
+| `Alt+Left` | Navigate Back | Go to previous location |
+| `Alt+Right` | Navigate Forward | Go to next location |
+| `Ctrl+Home` | Scroll to Top | Jump to document start |
+| `Ctrl+End` | Scroll to Bottom | Jump to document end |
 
-## Tabs
-
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `Ctrl+T` | New Tab | Open new tab |
-| `Ctrl+Tab` | Next Tab | Switch to next tab |
-| `Ctrl+Shift+Tab` | Previous Tab | Switch to previous tab |
-| `Ctrl+1-9` | Tab 1-9 | Switch to specific tab |
-| `Ctrl+P` | Pin Tab | Pin/unpin current tab |
-
-## Search
+## Search & Find
 
 | Shortcut | Action | Description |
 |----------|--------|-------------|
-| `Ctrl+F` | Find | Open in-page search |
-| `F3` | Find Next | Jump to next match |
-| `Shift+F3` | Find Previous | Jump to previous match |
-| `Ctrl+Shift+F` | Global Search | Open workspace search |
+| `Ctrl+F` | Find in Document | Open in-page search bar |
+| `F3` | Find Next | Jump to next search match |
+| `Shift+F3` | Find Previous | Jump to previous search match |
 | `Escape` | Close Search | Close search panel |
+| **Type in Sidebar** | Filter Files | Type in file tree to filter |
 
-## View
-
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `Ctrl+B` | Toggle Sidebar | Show/hide file tree |
-| `F11` | Full Screen | Toggle fullscreen mode |
-| `Ctrl+=` | Zoom In | Increase font size |
-| `Ctrl+-` | Zoom Out | Decrease font size |
-| `Ctrl+0` | Reset Zoom | Reset to default zoom |
-| `Ctrl+1` | Zoom 100% | Set zoom to 100% |
-| `Ctrl+2` | Fit to Width | Fit document to window width |
-| `Ctrl+Shift+P` | Command Palette | Show all commands |
-
-## Editing (Read-only Notes)
-
-MarkRead is a **viewer** - these shortcuts open external editor:
+## Editing & Clipboard
 
 | Shortcut | Action | Description |
 |----------|--------|-------------|
-| `Ctrl+E` | Edit | Open file in default editor |
-| `Ctrl+Shift+E` | Edit In... | Choose editor application |
-
-## Application
-
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `Ctrl+,` | Settings | Open settings dialog |
-| `Ctrl+Shift+A` | About | Show about dialog |
-| `Alt+F4` | Exit | Close application |
-| `F1` | Help | Show keyboard shortcuts |
-
-## Sidebar
-
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `Ctrl+\` | Toggle Sidebar | Show/hide sidebar |
-| `Ctrl+Shift+E` | Focus Explorer | Focus file tree |
-| `Up/Down` | Navigate Files | Move through file list |
-| `Enter` | Open File | Open selected file |
-| `Ctrl+Enter` | Open New Tab | Open file in new tab |
-
-## Copy Operations
-
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `Ctrl+C` | Copy | Copy selected text |
-| `Ctrl+A` | Select All | Select entire document |
-| `Ctrl+Shift+C` | Copy Path | Copy file path |
-| `Ctrl+Shift+H` | Copy as HTML | Copy rendered HTML |
-
-## Quick Actions
-
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `Ctrl+K Ctrl+T` | Change Theme | Toggle light/dark theme |
-| `Ctrl+K Ctrl+S` | Keyboard Shortcuts | Show this reference |
-| `Ctrl+K Ctrl+O` | Open Recent | Show recent files |
-| `Ctrl+K Ctrl+W` | Close Others | Close other tabs |
-
-## Developer Shortcuts
-
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `F12` | Dev Tools | Open WebView2 dev tools |
-| `Ctrl+Shift+I` | Inspect | Inspect element |
-| `Ctrl+Shift+J` | Console | Open console |
-| `Ctrl+Shift+R` | Hard Reload | Reload ignoring cache |
+| `Ctrl+Shift+C` | Copy File Path | Copy full file path to clipboard |
+| `Ctrl+Shift+H` | Copy as HTML | Copy document as HTML |
+| `Ctrl+Shift+P` | Copy as Plain Text | Copy document as plain text |
 
 ## Accessibility
 
 | Shortcut | Action | Description |
 |----------|--------|-------------|
-| `Alt+Shift+T` | Read Title | Screen reader: read title |
-| `Ctrl+Shift+[` | Decrease Contrast | Lower contrast |
-| `Ctrl+Shift+]` | Increase Contrast | Higher contrast |
-| `Ctrl+Shift+H` | High Contrast | Toggle high contrast |
+| `Ctrl+A` | Announce Title | Screen reader announces document title |
+| `Tab` | Focus Next | Move focus to next element |
+| `Shift+Tab` | Focus Previous | Move focus to previous element |
+| `Enter` / `Space` | Activate | Activate focused element |
+| **Arrow Keys** | Navigate Tree | Navigate file tree with keyboard |
 
-## Customization
+## View & Appearance
 
-Shortcuts can be customized in settings:
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+B` | Toggle Sidebar | Show/hide file tree sidebar |
+| **Mouse Drag** | Resize Sidebar | Drag splitter to resize sidebar |
 
-```json
-{
-  "keyboardShortcuts": {
-    "openFile": "Ctrl+O",
-    "search": "Ctrl+F",
-    "newTab": "Ctrl+T"
-  }
-}
-```
+## Tips & Tricks
 
-## Platform Differences
+### Chord Shortcuts
+Some shortcuts require a two-key sequence (called "chords"):
+- Press the first key combination
+- Release all keys
+- Press the second combination within 2 seconds
 
-### Windows
-- `Ctrl` = Control key
-- `Alt` = Alt key
-- `Shift` = Shift key
+Example: `Ctrl+K Ctrl+W`
+1. Press and hold `Ctrl+K`
+2. Release
+3. Press `Ctrl+W` within 2 seconds
 
-### macOS (if supported)
-- `Ctrl` → `Cmd`
-- `Alt` → `Option`
-- Same otherwise
+### Accessibility Best Practices
+- Use `Tab` to navigate between interactive elements
+- `Enter` or `Space` activates buttons and links
+- `Escape` closes dialogs and overlays
+- Screen readers announce keyboard hints automatically
 
-## Shortcut Conflicts
+### Discoverability
+- **Tooltips**: Hover over any button to see its shortcut
+- **F1 Dialog**: Press `F1` anytime for the shortcut reference
+- **Screen Reader**: All shortcuts are announced with descriptions
 
-If shortcuts conflict with other apps:
+### Customization (Future)
+Keyboard shortcuts will be customizable in a future release. Current shortcuts are designed based on:
+- Common conventions (Ctrl+O, Ctrl+F, etc.)
+- Visual Studio Code patterns (for developer familiarity)
+- Accessibility guidelines (WCAG 2.1)
 
-1. Open Settings (`Ctrl+,`)
-2. Navigate to Keyboard Shortcuts
-3. Customize conflicting shortcuts
-4. Save changes
+## Platform Notes
 
-## Learning Tips
+### Windows 10/11
+- All shortcuts use `Ctrl` for control operations
+- `Alt` for navigation (Alt+Left, Alt+Right)
+- `Shift` for variations (Ctrl+Shift+W)
+- Function keys (F1, F3, F5, F11) work as expected
 
-- **F1**: Show shortcut quick reference
-- **Ctrl+Shift+P**: Command palette shows all available commands
-- Hover over buttons to see shortcuts
-- Settings shows all customizable shortcuts
+### Future Platform Support
+When macOS support is added:
+- `Ctrl` shortcuts will map to `Cmd`
+- `Alt` shortcuts will map to `Option`
+- Other keys remain the same
+
+## Conflicts & Troubleshooting
+
+### System Shortcuts
+Some Windows shortcuts may conflict:
+- `Alt+F4` always closes the application (system-level)
+- `Win+...` shortcuts are handled by Windows
+- `Ctrl+Alt+Del` is reserved by the system
+
+### Screen Reader Shortcuts
+If using a screen reader (NVDA, JAWS):
+- Screen reader commands take precedence
+- Use pass-through mode for app shortcuts if needed
+- MarkRead's shortcuts are designed to coexist with common screen reader keys
+
+## Learning Resources
+
+- **In-App Help**: Press `F1` to see shortcuts anytime
+- **Welcome Screen**: Shows essential shortcuts on first launch
+- **Tooltips**: Hover over UI elements for keyboard hints
+- **Documentation**: This page and [User Guide](../user-guide/basic-usage.md)
 
 ## See Also
 
-- [User Guide: Keyboard Shortcuts](../user-guide/keyboard-shortcuts.md)
-- [Settings](../user-guide/settings.md)
+- [User Guide: Basic Usage](../user-guide/basic-usage.md)
+- [User Guide: File Navigation](../user-guide/file-navigation.md)
 - [Configuration Reference](configuration.md)
+
+---
+
+> 💡 **Pro Tip**: Print or bookmark this page for quick reference, or just press `F1` in the app!

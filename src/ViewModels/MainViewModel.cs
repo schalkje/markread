@@ -17,6 +17,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ILoggingService _loggingService;
     private readonly IKeyboardShortcutService _keyboardShortcutService;
     private readonly INavigationService _navigationService;
+    private readonly IDialogService _dialogService;
     private readonly FileTreeViewModel _fileTreeViewModel;
     private readonly SearchViewModel _searchViewModel;
     private readonly IServiceProvider _serviceProvider;
@@ -36,6 +37,7 @@ public partial class MainViewModel : ObservableObject
         ILoggingService loggingService,
         IKeyboardShortcutService keyboardShortcutService,
         INavigationService navigationService,
+        IDialogService dialogService,
         FileTreeViewModel fileTreeViewModel,
         SearchViewModel searchViewModel,
         IServiceProvider serviceProvider)
@@ -45,6 +47,7 @@ public partial class MainViewModel : ObservableObject
         _loggingService = loggingService;
         _keyboardShortcutService = keyboardShortcutService;
         _navigationService = navigationService;
+        _dialogService = dialogService;
         _fileTreeViewModel = fileTreeViewModel;
         _searchViewModel = searchViewModel;
         _serviceProvider = serviceProvider;
@@ -76,7 +79,7 @@ public partial class MainViewModel : ObservableObject
         _keyboardShortcutService.RegisterShortcut("W", KeyModifiers.Ctrl, 
             () => CloseTab(ActiveTab?.Id ?? ""), "Close active tab");
         _keyboardShortcutService.RegisterShortcut("W", KeyModifiers.CtrlShift,
-            () => CloseAllTabs(), "Close all tabs");
+            () => _ = CloseAllTabsAsync(), "Close all tabs");
         _keyboardShortcutService.RegisterShortcut("P", KeyModifiers.Ctrl,
             () => TogglePinTab(ActiveTab?.Id ?? ""), "Pin/unpin active tab");
 
@@ -87,7 +90,7 @@ public partial class MainViewModel : ObservableObject
         // Chord shortcuts
         _keyboardShortcutService.RegisterChordShortcut("K", KeyModifiers.Ctrl,
             "W", KeyModifiers.Ctrl,
-            () => CloseOtherTabs(ActiveTab?.Id ?? ""), "Close other tabs");
+            () => _ = CloseOtherTabsAsync(ActiveTab?.Id ?? ""), "Close other tabs");
 
         // Copy shortcuts
         _keyboardShortcutService.RegisterShortcut("C", KeyModifiers.CtrlShift,
@@ -261,16 +264,41 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void CloseAllTabs()
+    private async Task CloseAllTabsAsync()
     {
+        if (Tabs.Count > 1)
+        {
+            var confirm = await _dialogService.ShowConfirmationAsync(
+                "Close All Tabs",
+                $"Are you sure you want to close all {Tabs.Count} tabs?",
+                "Close All",
+                "Cancel");
+                
+            if (!confirm)
+                return;
+        }
+        
         _tabService.CloseAllTabs();
     }
 
     [RelayCommand]
-    private void CloseOtherTabs(string tabId)
+    private async Task CloseOtherTabsAsync(string tabId)
     {
         if (string.IsNullOrEmpty(tabId))
             return;
+
+        var otherTabCount = Tabs.Count - 1;
+        if (otherTabCount > 1)
+        {
+            var confirm = await _dialogService.ShowConfirmationAsync(
+                "Close Other Tabs",
+                $"Are you sure you want to close {otherTabCount} other tabs?",
+                "Close Others",
+                "Cancel");
+                
+            if (!confirm)
+                return;
+        }
 
         _tabService.CloseOtherTabs(tabId);
     }

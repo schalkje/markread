@@ -4,12 +4,14 @@ using MarkRead.Models;
 namespace MarkRead.Services;
 
 /// <summary>
-/// File system operations with change watching
+/// File system operations with change watching, debouncing, and error handling
 /// </summary>
 public class FileSystemService : IFileSystemService
 {
     private readonly ConcurrentDictionary<string, FileSystemWatcher> _watchers = new();
+    private readonly ConcurrentDictionary<string, Timer> _debounceTimers = new();
     private readonly FolderExclusion _folderExclusion = new();
+    private const int DebounceDelayMs = 300; // 300ms debounce for file changes
 
     public async Task<string> ReadFileAsync(string filePath)
     {
@@ -35,7 +37,8 @@ public class FileSystemService : IFileSystemService
             Name = dirInfo.Name,
             Type = FileTreeNodeType.Directory,
             Level = level,
-            IsExpanded = level == 0 // Auto-expand root
+            IsExpanded = level == 0, // Auto-expand root
+            HasPermissionError = false
         };
 
         try
@@ -51,9 +54,26 @@ public class FileSystemService : IFileSystemService
                 if (subDir.Attributes.HasFlag(FileAttributes.Hidden))
                     continue;
 
-                var childNode = LoadDirectory(subDir.FullName, level + 1);
-                childNode.Parent = node;
-                node.Children.Add(childNode);
+                try
+                {
+                    var childNode = LoadDirectory(subDir.FullName, level + 1);
+                    childNode.Parent = node;
+                    node.Children.Add(childNode);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // Add node with permission error marker
+                    var errorNode = new FileTreeNode
+                    {
+                        Path = subDir.FullName,
+                        Name = subDir.Name,
+                        Type = FileTreeNodeType.Directory,
+                        Level = level + 1,
+                        Parent = node,
+                        HasPermissionError = true
+                    };
+                    node.Children.Add(errorNode);
+                }
             }
 
             // Load markdown files
@@ -65,7 +85,8 @@ public class FileSystemService : IFileSystemService
                     Name = file.Name,
                     Type = FileTreeNodeType.File,
                     Level = level + 1,
-                    Parent = node
+                    Parent = node,
+                    HasPermissionError = false
                 };
                 node.Children.Add(fileNode);
             }
@@ -78,7 +99,8 @@ public class FileSystemService : IFileSystemService
         }
         catch (UnauthorizedAccessException)
         {
-            // Skip directories we don't have permission to access
+            // Mark this node as having permission error
+            node.HasPermissionError = true;
         }
 
         return node;
@@ -95,7 +117,29 @@ public class FileSystemService : IFileSystemService
             EnableRaisingEvents = true
         };
 
-        watcher.Changed += (s, e) => onChanged(e.FullPath);
+        // Debounced change handler
+        watcher.Changed += (s, e) =>
+        {
+            var key = e.FullPath;
+            
+            // Cancel existing timer for this file
+            if (_debounceTimers.TryRemove(key, out var existingTimer))
+            {
+                existingTimer.Dispose();
+            }
+
+            // Create new timer that fires after debounce delay
+            var timer = new Timer(_ =>
+            {
+                onChanged(key);
+                if (_debounceTimers.TryRemove(key, out var t))
+                {
+                    t.Dispose();
+                }
+            }, null, DebounceDelayMs, Timeout.Infinite);
+
+            _debounceTimers[key] = timer;
+        };
 
         _watchers[filePath] = watcher;
 
@@ -104,6 +148,10 @@ public class FileSystemService : IFileSystemService
             if (_watchers.TryRemove(filePath, out var w))
             {
                 w.Dispose();
+            }
+            if (_debounceTimers.TryRemove(filePath, out var t))
+            {
+                t.Dispose();
             }
         });
     }

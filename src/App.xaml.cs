@@ -75,7 +75,27 @@ public partial class App : Application
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		var window = new Window(_mainPage);
+		var window = new Window(_mainPage)
+		{
+			Title = "MarkRead",
+			MinimumWidth = 800,
+			MinimumHeight = 600
+		};
+		
+#if WINDOWS
+		// Set default window size on first launch
+		if (window.Handler?.PlatformView is Microsoft.UI.Xaml.Window nativeWindow)
+		{
+			var scaledWidth = (int)(1200 * nativeWindow.AppWindow.ClientSize.Width / Microsoft.UI.Windowing.DisplayArea.Primary.WorkArea.Width);
+			var scaledHeight = (int)(800 * nativeWindow.AppWindow.ClientSize.Height / Microsoft.UI.Windowing.DisplayArea.Primary.WorkArea.Height);
+			
+			// Only set size if not restored from session
+			if (nativeWindow.AppWindow.Size.Width == 0 || nativeWindow.AppWindow.Size.Height == 0)
+			{
+				nativeWindow.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 1200, Height = 800 });
+			}
+		}
+#endif
 		
 		// Check for abnormal termination and handle startup arguments after window is created
 		MainThread.BeginInvokeOnMainThread(async () =>

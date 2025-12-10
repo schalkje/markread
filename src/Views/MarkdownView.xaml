@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:MarkRead.ViewModels"
              x:Class="MarkRead.Views.MarkdownView"
-             x:DataType="viewmodels:DocumentViewModel"
-             Title="{Binding Title}">
+             x:DataType="viewmodels:DocumentViewModel">
     
     <Grid>
         <!-- Loading Indicator -->
@@ -41,4 +40,4 @@
         </Border>
     </Grid>
     
-</ContentPage>
+</ContentView>

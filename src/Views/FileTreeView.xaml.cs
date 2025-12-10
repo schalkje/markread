@@ -6,21 +6,22 @@ namespace MarkRead.Views;
 
 public partial class FileTreeView : ContentPage
 {
-    private readonly FileTreeViewModel _viewModel;
+    private FileTreeViewModel? _viewModel;
     private readonly TreeViewKeyboardBehavior _keyboardBehavior;
 
-    public FileTreeView(FileTreeViewModel viewModel)
+    public FileTreeView()
     {
         InitializeComponent();
-        
-        _viewModel = viewModel;
-        BindingContext = _viewModel;
         _keyboardBehavior = new TreeViewKeyboardBehavior();
 
-        // Wire up keyboard handling
-        // Note: MAUI doesn't have direct keyboard event support yet
-        // This would need platform-specific implementation via handlers or effects
-        // For now, we have the behavior ready for when keyboard events are available
+        // ViewModel will be set via BindingContext from parent
+        this.BindingContextChanged += (s, e) =>
+        {
+            if (BindingContext is FileTreeViewModel vm)
+            {
+                _viewModel = vm;
+            }
+        };
     }
 
     private void OnNodePointerEntered(object? sender, PointerEventArgs e)
@@ -44,6 +45,8 @@ public partial class FileTreeView : ContentPage
     // Keyboard handlers (would be called by platform-specific code)
     public void OnKeyDown(string key, bool ctrl, bool shift, bool alt)
     {
+        if (_viewModel == null) return;
+        
         switch (key.ToLower())
         {
             case "down":

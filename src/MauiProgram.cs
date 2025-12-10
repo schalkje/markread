@@ -52,6 +52,7 @@ public static class MauiProgram
 		services.AddSingleton<ILinkResolver, LinkResolver>();
 		services.AddSingleton<ISearchService, SearchService>();
 		services.AddSingleton<IHtmlSanitizerService, HtmlSanitizerService>();
+		services.AddSingleton<IDialogService, DialogService>();
 		
 		// Rendering services
 		services.AddSingleton<HtmlTemplateService>();

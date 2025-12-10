@@ -50,7 +50,7 @@
             <views:SearchBar x:Name="SearchBar" Grid.Row="1" />
             
             <!-- Document Content -->
-            <views:MarkdownView x:Name="MarkdownView" Grid.Row="2" />
+            <ContentView x:Name="MarkdownViewContainer" Grid.Row="2" />
         </Grid>
     </Grid>
 

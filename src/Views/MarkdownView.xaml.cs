@@ -7,12 +7,13 @@ using System.Text.Json;
 
 namespace MarkRead.Views;
 
-public partial class MarkdownView : ContentPage
+public partial class MarkdownView : ContentView
 {
     private readonly DocumentViewModel _viewModel;
     private readonly HtmlTemplateService _htmlTemplateService;
     private readonly ILinkResolver _linkResolver;
     private readonly INavigationService _navigationService;
+    private readonly IDialogService _dialogService;
     private WebView? _webView;
     private bool _isLoading = false;
 
@@ -20,7 +21,8 @@ public partial class MarkdownView : ContentPage
         DocumentViewModel viewModel, 
         HtmlTemplateService htmlTemplateService,
         ILinkResolver linkResolver,
-        INavigationService navigationService)
+        INavigationService navigationService,
+        IDialogService dialogService)
     {
         InitializeComponent();
         
@@ -28,6 +30,7 @@ public partial class MarkdownView : ContentPage
         _htmlTemplateService = htmlTemplateService;
         _linkResolver = linkResolver;
         _navigationService = navigationService;
+        _dialogService = dialogService;
         BindingContext = _viewModel;
 
         // Subscribe to document changes
@@ -95,14 +98,14 @@ public partial class MarkdownView : ContentPage
 
         if (resolvedPath == null)
         {
-            await DisplayAlertAsync("Navigation Error", $"Could not resolve link: {linkHref}", "OK");
+            await _dialogService.ShowErrorAsync("Navigation Error", $"Could not resolve link: {linkHref}");
             return;
         }
 
         // Check if file exists
         if (!_linkResolver.LinkTargetExists(resolvedPath))
         {
-            await DisplayAlertAsync("File Not Found", $"The linked file does not exist: {Path.GetFileName(resolvedPath)}", "OK");
+            await _dialogService.ShowWarningAsync("File Not Found", $"The linked file does not exist: {Path.GetFileName(resolvedPath)}");
             return;
         }
 
@@ -115,12 +118,12 @@ public partial class MarkdownView : ContentPage
         // Validate scheme
         if (!_linkResolver.IsAllowedScheme(url))
         {
-            await DisplayAlertAsync("Security Warning", $"This link type is not allowed for security reasons.", "OK");
+            await _dialogService.ShowWarningAsync("Security Warning", "This link type is not allowed for security reasons.");
             return;
         }
 
         // Show confirmation dialog
-        var confirm = await DisplayAlertAsync(
+        var confirm = await _dialogService.ShowConfirmationAsync(
             "Open External Link?",
             $"Do you want to open this link in your default browser?\n\n{url}",
             "Open",
@@ -134,7 +137,7 @@ public partial class MarkdownView : ContentPage
             }
             catch (Exception ex)
             {
-                await DisplayAlertAsync("Error", $"Failed to open link: {ex.Message}", "OK");
+                await _dialogService.ShowErrorAsync("Error", $"Failed to open link: {ex.Message}");
             }
         }
     }
@@ -177,6 +180,9 @@ public partial class MarkdownView : ContentPage
 
         try
         {
+            // Fade out current content
+            await _webView.FadeTo(0, 150, Easing.CubicIn);
+            
             // Generate complete HTML page
             var html = await _htmlTemplateService.RenderDocumentAsync(
                 _viewModel.CurrentDocument.Content,
@@ -191,10 +197,14 @@ public partial class MarkdownView : ContentPage
 
             _webView.Source = htmlSource;
 
+            // Wait a moment for content to load, then fade in
+            await Task.Delay(100);
+            await _webView.FadeTo(1, 200, Easing.CubicOut);
+
             // Restore scroll position after rendering
             if (_viewModel.CurrentDocument.ScrollPosition > 0)
             {
-                await Task.Delay(100); // Wait for rendering
+                await Task.Delay(50); // Wait for fade-in to complete
                 await RestoreScrollPositionAsync(_viewModel.CurrentDocument.ScrollPosition);
             }
         }
@@ -202,6 +212,8 @@ public partial class MarkdownView : ContentPage
         {
             _viewModel.HasError = true;
             _viewModel.ErrorMessage = $"Failed to render document: {ex.Message}";
+            // Ensure content is visible even on error
+            await _webView.FadeTo(1, 100);
         }
     }
 
@@ -214,11 +226,9 @@ public partial class MarkdownView : ContentPage
         await _webView.EvaluateJavaScriptAsync(script);
     }
 
-    protected override void OnDisappearing()
+    ~MarkdownView()
     {
-        base.OnDisappearing();
-        
-        // Unsubscribe from events
+        // Unsubscribe from events on disposal
         if (_viewModel != null)
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;

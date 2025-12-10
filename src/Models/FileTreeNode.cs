@@ -46,6 +46,11 @@ public class FileTreeNode
     public int Level { get; set; }
 
     /// <summary>
+    /// Indicates if there was a permission error accessing this node
+    /// </summary>
+    public bool HasPermissionError { get; set; }
+
+    /// <summary>
     /// File extension (for files only)
     /// </summary>
     public string Extension => Type == FileTreeNodeType.File ? System.IO.Path.GetExtension(Path) : string.Empty;
