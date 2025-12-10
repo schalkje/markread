@@ -2,6 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:MarkRead.ViewModels"
+             xmlns:behaviors="clr-namespace:MarkRead.Behaviors"
              x:Class="MarkRead.Views.MarkdownView"
              x:DataType="viewmodels:DocumentViewModel">
     
@@ -31,11 +32,14 @@
                     HorizontalOptions="Center" />
         </VerticalStackLayout>
         
-        <!-- HybridWebView for markdown rendering -->
-        <!-- Note: HybridWebView will be configured in code-behind -->
+        <!-- HybridWebView for markdown rendering with touch support -->
         <Border x:Name="WebViewContainer"
                 IsVisible="{Binding IsRendering, Converter={StaticResource InvertedBoolConverter}}"
                 BackgroundColor="{AppThemeBinding Light=White, Dark=#0d1117}">
+            <Border.Behaviors>
+                <behaviors:PinchZoomBehavior x:Name="PinchZoom" />
+                <behaviors:SwipeNavigationBehavior x:Name="SwipeNav" />
+            </Border.Behaviors>
             <!-- WebView will be added dynamically in code-behind -->
         </Border>
     </Grid>

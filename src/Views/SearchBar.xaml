@@ -47,8 +47,8 @@
                     TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}"
                     FontSize="12"
                     Padding="8,4"
-                    WidthRequest="32"
-                    HeightRequest="32"
+                    WidthRequest="44"
+                    HeightRequest="44"
                     ToolTipProperties.Text="Previous match (Shift+F3)"/>
             
             <!-- Next Match Button -->
@@ -59,8 +59,8 @@
                     TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}"
                     FontSize="12"
                     Padding="8,4"
-                    WidthRequest="32"
-                    HeightRequest="32"
+                    WidthRequest="44"
+                    HeightRequest="44"
                     ToolTipProperties.Text="Next match (F3)"/>
             
             <!-- Options -->
@@ -73,8 +73,8 @@
                         TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}"
                         FontSize="12"
                         Padding="8,4"
-                        WidthRequest="32"
-                        HeightRequest="32"
+                        WidthRequest="44"
+                        HeightRequest="44"
                         ToolTipProperties.Text="Match case"/>
                 
                 <!-- Whole Word -->
@@ -84,8 +84,8 @@
                         TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}"
                         FontSize="12"
                         Padding="8,4"
-                        WidthRequest="32"
-                        HeightRequest="32"
+                        WidthRequest="44"
+                        HeightRequest="44"
                         ToolTipProperties.Text="Match whole word"/>
                 
                 <!-- Regex -->
@@ -95,8 +95,8 @@
                         TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}"
                         FontSize="12"
                         Padding="8,4"
-                        WidthRequest="32"
-                        HeightRequest="32"
+                        WidthRequest="44"
+                        HeightRequest="44"
                         ToolTipProperties.Text="Use regular expression"/>
             </HorizontalStackLayout>
             
@@ -108,8 +108,8 @@
                     TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}"
                     FontSize="16"
                     Padding="8,4"
-                    WidthRequest="32"
-                    HeightRequest="32"
+                    WidthRequest="44"
+                    HeightRequest="44"
                     Margin="8,0,0,0"
                     ToolTipProperties.Text="Close search (Esc)"/>
         </Grid>

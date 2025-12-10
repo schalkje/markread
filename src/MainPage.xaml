@@ -10,6 +10,9 @@
     </ContentPage.Behaviors>
 
     <Grid x:Name="MainGrid">
+        <Grid.Behaviors>
+            <behaviors:EdgeSwipeBehavior x:Name="SidebarEdgeSwipe" />
+        </Grid.Behaviors>
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="SidebarColumn" Width="250" />
             <ColumnDefinition Width="Auto" />
@@ -27,7 +30,7 @@
         <!-- Splitter -->
         <BoxView x:Name="Splitter"
                  Grid.Column="1"
-                 WidthRequest="4"
+                 WidthRequest="12"
                  BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
                  HorizontalOptions="Center">
             <BoxView.GestureRecognizers>
@@ -37,6 +40,9 @@
 
         <!-- Main Content Area -->
         <Grid x:Name="ContentArea" Grid.Column="2">
+            <Grid.Behaviors>
+                <behaviors:SwipeNavigationBehavior x:Name="TabSwipeNav" />
+            </Grid.Behaviors>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />

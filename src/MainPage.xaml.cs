@@ -39,6 +39,13 @@ public partial class MainPage : ContentPage
         // Add MarkdownView to container
         MarkdownViewContainer.Content = _markdownView;
         
+        // Wire up tab swipe navigation for touch
+        TabSwipeNav.SwipedLeft += OnTabSwipedLeft;
+        TabSwipeNav.SwipedRight += OnTabSwipedRight;
+        
+        // Wire up edge swipe for sidebar toggle
+        SidebarEdgeSwipe.EdgeSwiped += OnEdgeSwiped;
+        
         // Subscribe to search events
         _searchViewModel.SearchResultsChanged += OnSearchResultsChanged;
         _searchViewModel.CurrentMatchChanged += OnCurrentMatchChanged;
@@ -48,6 +55,24 @@ public partial class MainPage : ContentPage
         
         // Wire up FileTreeViewModel events
         _fileTreeViewModel.FileOpened += OnFileOpened;
+    }
+    
+    private void OnTabSwipedLeft(object? sender, EventArgs e)
+    {
+        // Swipe left = next tab
+        _mainViewModel.NextTabCommand.Execute(null);
+    }
+    
+    private void OnTabSwipedRight(object? sender, EventArgs e)
+    {
+        // Swipe right = previous tab
+        _mainViewModel.PreviousTabCommand.Execute(null);
+    }
+    
+    private void OnEdgeSwiped(object? sender, EventArgs e)
+    {
+        // Two-finger swipe from edge = toggle sidebar
+        ToggleSidebar();
     }
 
     private void LoadSidebarState()

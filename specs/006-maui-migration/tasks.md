@@ -417,23 +417,23 @@ All paths relative to repository root:
 
 ### Touch Gesture Support for US5
 
-- [ ] T167 [P] [US5] Implement pinch-to-zoom gesture in MarkdownView for content scaling
-- [ ] T168 [P] [US5] Add smooth zoom animation with natural inertia
-- [ ] T169 [P] [US5] Implement swipe gestures for tab navigation (left/right swipes switch tabs)
-- [ ] T170 [P] [US5] Add swipe gestures for document navigation (back/forward)
+- [x] T167 [P] [US5] Implement pinch-to-zoom gesture in MarkdownView for content scaling
+- [x] T168 [P] [US5] Add smooth zoom animation with natural inertia
+- [x] T169 [P] [US5] Implement swipe gestures for tab navigation (left/right swipes switch tabs)
+- [x] T170 [P] [US5] Add swipe gestures for document navigation (back/forward)
 
 ### Touch Target Optimization for US5
 
-- [ ] T171 [US5] Audit all interactive elements for minimum 44x44px touch targets
-- [ ] T172 [US5] Update button sizes in TabBar for touch devices
-- [ ] T173 [US5] Update sidebar splitter handle for touch-friendly dragging
-- [ ] T174 [US5] Ensure file tree items have adequate touch target spacing
+- [x] T171 [US5] Audit all interactive elements for minimum 44x44px touch targets
+- [x] T172 [US5] Update button sizes in TabBar for touch devices
+- [x] T173 [US5] Update sidebar splitter handle for touch-friendly dragging
+- [x] T174 [US5] Ensure file tree items have adequate touch target spacing
 
 ### Touch Scrolling for US5
 
-- [ ] T175 [US5] Implement momentum scrolling for file tree on touch
-- [ ] T176 [US5] Add edge bounce effects for touch scrolling
-- [ ] T177 [US5] Implement two-finger swipe from edge to toggle sidebar
+- [x] T175 [US5] Implement momentum scrolling for file tree on touch
+- [x] T176 [US5] Add edge bounce effects for touch scrolling
+- [x] T177 [US5] Implement two-finger swipe from edge to toggle sidebar
 
 ### Testing for US5
 

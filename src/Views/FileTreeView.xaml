@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:MarkRead.ViewModels"
              xmlns:models="clr-namespace:MarkRead.Models"
+             xmlns:behaviors="clr-namespace:MarkRead.Behaviors"
              x:Class="MarkRead.Views.FileTreeView"
              x:DataType="viewmodels:FileTreeViewModel"
              Title="Files">
@@ -22,6 +23,9 @@
         
         <!-- File Tree -->
         <ScrollView Grid.Row="1">
+            <ScrollView.Behaviors>
+                <behaviors:MomentumScrollBehavior />
+            </ScrollView.Behaviors>
             <StackLayout Spacing="0" Padding="4">
                 <CollectionView ItemsSource="{Binding Nodes}"
                                SelectionMode="None">
@@ -30,7 +34,7 @@
                             <StackLayout>
                                 <!-- Node Item -->
                                 <Grid Padding="0"
-                                      HeightRequest="32"
+                                      HeightRequest="44"
                                       ColumnDefinitions="Auto,Auto,*">
                                     
                                     <!-- Indentation based on level -->

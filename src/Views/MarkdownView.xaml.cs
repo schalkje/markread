@@ -36,8 +36,30 @@ public partial class MarkdownView : ContentView
         // Subscribe to document changes
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         
+        // Wire up swipe navigation gestures
+        SwipeNav.SwipedLeft += OnSwipedLeft;
+        SwipeNav.SwipedRight += OnSwipedRight;
+        
         // Initialize WebView
         InitializeWebView();
+    }
+    
+    private void OnSwipedLeft(object? sender, EventArgs e)
+    {
+        // Swipe left = navigate forward
+        if (_navigationService.CanGoForward)
+        {
+            _navigationService.GoForward();
+        }
+    }
+    
+    private void OnSwipedRight(object? sender, EventArgs e)
+    {
+        // Swipe right = navigate back
+        if (_navigationService.CanGoBack)
+        {
+            _navigationService.GoBack();
+        }
     }
 
     private void InitializeWebView()

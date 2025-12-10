@@ -6,7 +6,7 @@
              x:Class="MarkRead.Views.TabBar"
              x:DataType="viewmodels:MainViewModel">
     <Grid BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
-          HeightRequest="40">
+          HeightRequest="48">
         
         <!-- Tab ScrollView for overflow support -->
         <ScrollView Orientation="Horizontal"
@@ -62,8 +62,8 @@
                                 <Button Grid.Column="2"
                                         Text="×"
                                         FontSize="18"
-                                        WidthRequest="20"
-                                        HeightRequest="20"
+                                        WidthRequest="44"
+                                        HeightRequest="44"
                                         Padding="0"
                                         BackgroundColor="Transparent"
                                         TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
