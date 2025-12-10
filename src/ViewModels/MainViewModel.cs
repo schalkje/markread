@@ -18,6 +18,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IKeyboardShortcutService _keyboardShortcutService;
     private readonly INavigationService _navigationService;
     private readonly FileTreeViewModel _fileTreeViewModel;
+    private readonly SearchViewModel _searchViewModel;
     private readonly IServiceProvider _serviceProvider;
 
     [ObservableProperty]
@@ -36,6 +37,7 @@ public partial class MainViewModel : ObservableObject
         IKeyboardShortcutService keyboardShortcutService,
         INavigationService navigationService,
         FileTreeViewModel fileTreeViewModel,
+        SearchViewModel searchViewModel,
         IServiceProvider serviceProvider)
     {
         _tabService = tabService;
@@ -44,6 +46,7 @@ public partial class MainViewModel : ObservableObject
         _keyboardShortcutService = keyboardShortcutService;
         _navigationService = navigationService;
         _fileTreeViewModel = fileTreeViewModel;
+        _searchViewModel = searchViewModel;
         _serviceProvider = serviceProvider;
 
         // Subscribe to tab service events
@@ -86,6 +89,16 @@ public partial class MainViewModel : ObservableObject
             () => ScrollToTop(), "Scroll to top");
         _keyboardShortcutService.RegisterShortcut("End", KeyModifiers.Ctrl,
             () => ScrollToBottom(), "Scroll to bottom");
+
+        // Search shortcuts
+        _keyboardShortcutService.RegisterShortcut("F", KeyModifiers.Ctrl,
+            () => ShowSearch(), "Show search");
+        _keyboardShortcutService.RegisterShortcut("F3", KeyModifiers.None,
+            () => NextSearchMatch(), "Next search match");
+        _keyboardShortcutService.RegisterShortcut("F3", KeyModifiers.Shift,
+            () => PreviousSearchMatch(), "Previous search match");
+        _keyboardShortcutService.RegisterShortcut("Escape", KeyModifiers.None,
+            () => HideSearch(), "Hide search");
 
         // Direct tab access (Ctrl+1 through Ctrl+9)
         for (int i = 1; i <= 9; i++)
@@ -346,4 +359,33 @@ public partial class MainViewModel : ObservableObject
 
         return true;
     }
+
+    // Search commands
+    [RelayCommand]
+    private void ShowSearch()
+    {
+        _searchViewModel.ShowSearchCommand.Execute(null);
+        _loggingService.LogInfo("Search bar shown");
+    }
+
+    [RelayCommand]
+    private void HideSearch()
+    {
+        _searchViewModel.HideSearchCommand.Execute(null);
+        _loggingService.LogInfo("Search bar hidden");
+    }
+
+    [RelayCommand]
+    private void NextSearchMatch()
+    {
+        _searchViewModel.NextMatchCommand.Execute(null);
+    }
+
+    [RelayCommand]
+    private void PreviousSearchMatch()
+    {
+        _searchViewModel.PreviousMatchCommand.Execute(null);
+    }
+
+    public SearchViewModel SearchViewModel => _searchViewModel;
 }

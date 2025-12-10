@@ -26,6 +26,7 @@ public partial class MainPage : ContentPage
         
         FileTree.BindingContext = _fileTreeViewModel;
         TabBar.BindingContext = _mainViewModel;
+        SearchBar.BindingContext = _mainViewModel.SearchViewModel;
         
         // Restore sidebar state
         LoadSidebarState();

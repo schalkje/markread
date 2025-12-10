@@ -218,6 +218,9 @@
     <AppThemeBinding x:Key="SidebarHoverColor" Light="{StaticResource LightSidebarHover}" Dark="{StaticResource DarkSidebarHover}" />
     <AppThemeBinding x:Key="SidebarSelectedColor" Light="{StaticResource LightSidebarSelected}" Dark="{StaticResource DarkSidebarSelected}" />
     
+    <!-- Search Bar Colors with Theme Binding -->
+    <AppThemeBinding x:Key="SearchBarBackground" Light="{StaticResource LightSurface}" Dark="{StaticResource DarkSurface}" />
+    
     <!-- Markdown Element Colors with Theme Binding -->
     <AppThemeBinding x:Key="CodeBlockBackground" Light="{StaticResource LightCodeBlockBackground}" Dark="{StaticResource DarkCodeBlockBackground}" />
     <AppThemeBinding x:Key="CodeBlockBorderColor" Light="{StaticResource LightCodeBlockBorder}" Dark="{StaticResource DarkCodeBlockBorder}" />

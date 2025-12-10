@@ -39,14 +39,18 @@
         <Grid x:Name="ContentArea" Grid.Column="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             
             <!-- Tab Bar -->
             <views:TabBar x:Name="TabBar" Grid.Row="0" />
             
+            <!-- Search Bar -->
+            <views:SearchBar x:Name="SearchBar" Grid.Row="1" />
+            
             <!-- Document Content -->
-            <views:MarkdownView x:Name="MarkdownView" Grid.Row="1" />
+            <views:MarkdownView x:Name="MarkdownView" Grid.Row="2" />
         </Grid>
     </Grid>
 

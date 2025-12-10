@@ -372,24 +372,24 @@ All paths relative to repository root:
 
 ### Models for US7
 
-- [ ] T150 [P] [US7] Create SearchState model in src/Models/SearchState.cs (Query, Results, CurrentIndex, HighlightPositions)
+- [x] T150 [P] [US7] Create SearchState model in src/Models/SearchState.cs (Query, Results, CurrentIndex, HighlightPositions)
 
 ### Services for US7
 
-- [ ] T151 [US7] Create ISearchService interface in src/Services/ISearchService.cs (Search, NextMatch, PreviousMatch, ClearSearch)
-- [ ] T152 [US7] Implement SearchService in src/Services/SearchService.cs with real-time search
+- [x] T151 [US7] Create ISearchService interface in src/Services/ISearchService.cs (Search, NextMatch, PreviousMatch, ClearSearch)
+- [x] T152 [US7] Implement SearchService in src/Services/SearchService.cs with real-time search
 
 ### ViewModels for US7
 
-- [ ] T153 [US7] Create SearchViewModel in src/ViewModels/SearchViewModel.cs (Query, MatchCount, CurrentMatch, Search commands)
-- [ ] T154 [US7] Implement real-time search with debouncing (update as user types without lag)
+- [x] T153 [US7] Create SearchViewModel in src/ViewModels/SearchViewModel.cs (Query, MatchCount, CurrentMatch, Search commands)
+- [x] T154 [US7] Implement real-time search with debouncing (update as user types without lag)
 
 ### Views for US7
 
-- [ ] T155 [US7] Create SearchBar.xaml in src/Views/ with modern inline design
-- [ ] T156 [US7] Implement SearchBar.xaml.cs with SearchViewModel binding
-- [ ] T157 [US7] Add smooth slide-down animation for search bar appearance
-- [ ] T158 [US7] Add smooth slide-up animation on Escape key
+- [x] T155 [US7] Create SearchBar.xaml in src/Views/ with modern inline design
+- [x] T156 [US7] Implement SearchBar.xaml.cs with SearchViewModel binding
+- [x] T157 [US7] Add smooth slide-down animation for search bar appearance
+- [x] T158 [US7] Add smooth slide-up animation on Escape key
 
 ### Search Integration for US7
 

@@ -16,6 +16,8 @@
             <converters:LevelToIndentConverter x:Key="LevelToIndentConverter" />
             <converters:NodeTypeToIconConverter x:Key="NodeTypeToIconConverter" />
             <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
+            <converters:BoolToSearchOptionBackgroundConverter x:Key="BoolToSearchOptionBackgroundConverter" />
+            <converters:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
