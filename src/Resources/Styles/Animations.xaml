@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-comp compile="true" ?>
+<ResourceDictionary 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Standard Animation Durations -->
+    <x:Double x:Key="AnimationDurationFast">150</x:Double>
+    <x:Double x:Key="AnimationDurationNormal">250</x:Double>
+    <x:Double x:Key="AnimationDurationSlow">350</x:Double>
+
+    <!-- Easing Functions (referenced in code) -->
+    <!-- 
+    These are defined as x:Static references for use in code-behind:
+    - Easing.CubicIn
+    - Easing.CubicOut  
+    - Easing.CubicInOut
+    - Easing.SpringIn
+    - Easing.SpringOut
+    - Easing.BounceIn
+    - Easing.BounceOut
+    -->
+
+    <!-- Fade In Animation (example, typically applied in code-behind) -->
+    <!-- Usage: await view.FadeTo(1, AnimationDurationNormal, Easing.CubicOut); -->
+
+    <!-- Slide In Animation (example, typically applied in code-behind) -->
+    <!-- Usage: await view.TranslateTo(0, 0, AnimationDurationNormal, Easing.CubicOut); -->
+
+    <!-- Scale Animation (example, typically applied in code-behind) -->
+    <!-- Usage: await view.ScaleTo(1, AnimationDurationNormal, Easing.SpringOut); -->
+
+    <!-- Common Animation Patterns -->
+    <!-- 
+    Fade In: 
+        Opacity 0 → 1, Duration: Normal (250ms), Easing: CubicOut
+    
+    Fade Out:
+        Opacity 1 → 0, Duration: Fast (150ms), Easing: CubicIn
+    
+    Slide Down (appear):
+        TranslateY -20 → 0, Duration: Normal (250ms), Easing: CubicOut
+        + Opacity 0 → 1 (parallel)
+    
+    Slide Up (disappear):
+        TranslateY 0 → -20, Duration: Fast (150ms), Easing: CubicIn
+        + Opacity 1 → 0 (parallel)
+    
+    Scale In:
+        Scale 0.9 → 1.0, Duration: Normal (250ms), Easing: SpringOut
+        + Opacity 0 → 1 (parallel)
+    
+    Expand Collapse:
+        HeightRequest animate, Duration: Normal (250ms), Easing: CubicInOut
+    -->
+
+    <!-- Animation Configuration Comments -->
+    <!-- 
+    For smooth 60 FPS animations in MAUI:
+    
+    1. Use appropriate durations:
+       - Fast: 150ms for quick transitions (close, dismiss)
+       - Normal: 250ms for standard transitions (open, show)
+       - Slow: 350ms for complex transitions (expand, morph)
+    
+    2. Choose correct easing:
+       - CubicOut: Natural entrance (elements appearing)
+       - CubicIn: Natural exit (elements disappearing)
+       - CubicInOut: Smooth both directions (toggle states)
+       - SpringOut: Bouncy entrance (attention-grabbing)
+       - BounceOut: Playful effect (success feedback)
+    
+    3. Implementation in code-behind:
+       ```csharp
+       // Fade in example
+       view.Opacity = 0;
+       await view.FadeTo(1, (double)Application.Current.Resources["AnimationDurationNormal"], Easing.CubicOut);
+       
+       // Slide down example
+       view.TranslationY = -20;
+       view.Opacity = 0;
+       await Task.WhenAll(
+           view.TranslateTo(0, 0, 250, Easing.CubicOut),
+           view.FadeTo(1, 250, Easing.CubicOut)
+       );
+       ```
+    
+    4. For list item animations, use CollectionView with ItemsUpdatingScrollMode
+    
+    5. For smooth theme transitions, use AppThemeBinding with instant updates
+    -->
+
+</ResourceDictionary>
