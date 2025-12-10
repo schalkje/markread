@@ -38,9 +38,10 @@ public class DialogService : IDialogService
     /// <inheritdoc/>
     public async Task ShowInfoAsync(string title, string message)
     {
-        if (Application.Current?.Windows?.FirstOrDefault()?.Page != null)
+        var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
+        if (page != null)
         {
-            await Application.Current.Windows[0].Page.DisplayAlertAsync(
+            await page.DisplayAlertAsync(
                 $"ℹ️ {title}", 
                 message, 
                 "OK");

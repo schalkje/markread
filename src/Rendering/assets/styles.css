@@ -149,6 +149,6 @@
 
 /* Performance: Enable GPU acceleration for smooth scrolling */
 .markdown-body {
-    transform: translateZ(0);
     -webkit-transform: translateZ(0);
+    transform: translateZ(0);
 }

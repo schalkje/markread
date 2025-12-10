@@ -47,18 +47,28 @@ public partial class MarkdownView : ContentView
     private void OnSwipedLeft(object? sender, EventArgs e)
     {
         // Swipe left = navigate forward
-        if (_navigationService.CanGoForward)
+        var tabId = "main"; // MAUI single-tab mode
+        if (_navigationService.CanGoForward(tabId))
         {
-            _navigationService.GoForward();
+            var nextPath = _navigationService.GoForward(tabId);
+            if (nextPath != null && _viewModel.LoadDocumentCommand.CanExecute(nextPath))
+            {
+                _viewModel.LoadDocumentCommand.Execute(nextPath);
+            }
         }
     }
     
     private void OnSwipedRight(object? sender, EventArgs e)
     {
         // Swipe right = navigate back
-        if (_navigationService.CanGoBack)
+        var tabId = "main"; // MAUI single-tab mode
+        if (_navigationService.CanGoBack(tabId))
         {
-            _navigationService.GoBack();
+            var previousPath = _navigationService.GoBack(tabId);
+            if (previousPath != null && _viewModel.LoadDocumentCommand.CanExecute(previousPath))
+            {
+                _viewModel.LoadDocumentCommand.Execute(previousPath);
+            }
         }
     }
 
@@ -203,7 +213,7 @@ public partial class MarkdownView : ContentView
         try
         {
             // Fade out current content
-            await _webView.FadeTo(0, 150, Easing.CubicIn);
+            await _webView.FadeToAsync(0, 150, Easing.CubicIn);
             
             // Generate complete HTML page
             var html = await _htmlTemplateService.RenderDocumentAsync(
@@ -221,7 +231,7 @@ public partial class MarkdownView : ContentView
 
             // Wait a moment for content to load, then fade in
             await Task.Delay(100);
-            await _webView.FadeTo(1, 200, Easing.CubicOut);
+            await _webView.FadeToAsync(1, 200, Easing.CubicOut);
 
             // Restore scroll position after rendering
             if (_viewModel.CurrentDocument.ScrollPosition > 0)
@@ -235,7 +245,7 @@ public partial class MarkdownView : ContentView
             _viewModel.HasError = true;
             _viewModel.ErrorMessage = $"Failed to render document: {ex.Message}";
             // Ensure content is visible even on error
-            await _webView.FadeTo(1, 100);
+            await _webView.FadeToAsync(1, 100);
         }
     }
 
