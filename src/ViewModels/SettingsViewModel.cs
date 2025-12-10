@@ -22,6 +22,17 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isSaving;
+    
+    [ObservableProperty]
+    private double _defaultZoom = 1.0;
+    
+    [ObservableProperty]
+    private StartupBehavior _startupBehavior = StartupBehavior.Ask;
+    
+    [ObservableProperty]
+    private string _excludedFoldersText = string.Empty;
+    
+    private Settings? _currentSettings;
 
     public SettingsViewModel(
         IThemeService themeService,
@@ -93,14 +104,56 @@ public partial class SettingsViewModel : ObservableObject
     {
         try
         {
-            var settings = await _settingsService.LoadAsync();
-            SelectedTheme = settings.ThemePreference;
+            _currentSettings = await _settingsService.LoadAsync();
+            SelectedTheme = _currentSettings.ThemePreference;
+            DefaultZoom = _currentSettings.DefaultZoom;
+            StartupBehavior = _currentSettings.StartupBehavior;
+            ExcludedFoldersText = string.Join(Environment.NewLine, _currentSettings.ExcludedFolders);
             UpdateThemeDisplayText();
             _logger.LogInfo("Settings loaded successfully");
         }
         catch (Exception ex)
         {
             _logger.LogError($"Failed to load settings: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Save settings to storage
+    /// </summary>
+    [RelayCommand]
+    private async Task SaveSettingsAsync()
+    {
+        try
+        {
+            IsSaving = true;
+            
+            if (_currentSettings == null)
+            {
+                _currentSettings = await _settingsService.LoadAsync();
+            }
+            
+            _currentSettings.ThemePreference = SelectedTheme;
+            _currentSettings.DefaultZoom = DefaultZoom;
+            _currentSettings.StartupBehavior = StartupBehavior;
+            
+            // Parse excluded folders
+            _currentSettings.ExcludedFolders = ExcludedFoldersText
+                .Split(new[] { Environment.NewLine, "\n", "," }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList();
+            
+            await _settingsService.SaveAsync(_currentSettings);
+            _logger.LogInfo("Settings saved successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to save settings: {ex.Message}");
+        }
+        finally
+        {
+            IsSaving = false;
         }
     }
 
@@ -114,6 +167,9 @@ public partial class SettingsViewModel : ObservableObject
         {
             IsSaving = true;
             await SetThemeAsync(ThemeType.System);
+            DefaultZoom = 1.0;
+            StartupBehavior = StartupBehavior.Ask;
+            ExcludedFoldersText = ".git\nnode_modules\nbin\nobj\n.vscode\n.env\nvenv\n__pycache__";
             _logger.LogInfo("Settings reset to defaults");
         }
         finally

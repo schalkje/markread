@@ -1,6 +1,7 @@
 using MarkRead.ViewModels;
 using MarkRead.Rendering;
 using MarkRead.Models;
+using MarkRead.Services;
 using Microsoft.Maui.Controls;
 using System.Text.Json;
 
@@ -10,14 +11,23 @@ public partial class MarkdownView : ContentPage
 {
     private readonly DocumentViewModel _viewModel;
     private readonly HtmlTemplateService _htmlTemplateService;
+    private readonly ILinkResolver _linkResolver;
+    private readonly INavigationService _navigationService;
     private WebView? _webView;
+    private bool _isLoading = false;
 
-    public MarkdownView(DocumentViewModel viewModel, HtmlTemplateService htmlTemplateService)
+    public MarkdownView(
+        DocumentViewModel viewModel, 
+        HtmlTemplateService htmlTemplateService,
+        ILinkResolver linkResolver,
+        INavigationService navigationService)
     {
         InitializeComponent();
         
         _viewModel = viewModel;
         _htmlTemplateService = htmlTemplateService;
+        _linkResolver = linkResolver;
+        _navigationService = navigationService;
         BindingContext = _viewModel;
 
         // Subscribe to document changes
@@ -38,6 +48,9 @@ public partial class MarkdownView : ContentPage
             VerticalOptions = LayoutOptions.Fill
         };
 
+        // Handle link navigation
+        _webView.Navigating += OnWebViewNavigating;
+
         // Add to container
         if (WebViewContainer.Content == null)
         {
@@ -51,6 +64,110 @@ public partial class MarkdownView : ContentPage
         {
             await RenderDocumentAsync();
         }
+    }
+
+    private async void OnWebViewNavigating(object? sender, WebNavigatingEventArgs e)
+    {
+        // Cancel default navigation - we'll handle it
+        e.Cancel = true;
+
+        if (string.IsNullOrEmpty(e.Url))
+            return;
+
+        await HandleLinkClickAsync(e.Url);
+    }
+
+    private async Task HandleLinkClickAsync(string linkHref)
+    {
+        if (_viewModel.CurrentDocument == null)
+            return;
+
+        // Check if link is external
+        if (_linkResolver.IsExternalLink(linkHref))
+        {
+            await HandleExternalLinkAsync(linkHref);
+            return;
+        }
+
+        // Resolve internal link
+        var workspaceRoot = Path.GetDirectoryName(_viewModel.CurrentDocument.FilePath) ?? string.Empty;
+        var resolvedPath = _linkResolver.ResolveLink(linkHref, _viewModel.CurrentDocument.FilePath, workspaceRoot);
+
+        if (resolvedPath == null)
+        {
+            await DisplayAlertAsync("Navigation Error", $"Could not resolve link: {linkHref}", "OK");
+            return;
+        }
+
+        // Check if file exists
+        if (!_linkResolver.LinkTargetExists(resolvedPath))
+        {
+            await DisplayAlertAsync("File Not Found", $"The linked file does not exist: {Path.GetFileName(resolvedPath)}", "OK");
+            return;
+        }
+
+        // Navigate to the document
+        await NavigateToDocumentAsync(resolvedPath);
+    }
+
+    private async Task HandleExternalLinkAsync(string url)
+    {
+        // Validate scheme
+        if (!_linkResolver.IsAllowedScheme(url))
+        {
+            await DisplayAlertAsync("Security Warning", $"This link type is not allowed for security reasons.", "OK");
+            return;
+        }
+
+        // Show confirmation dialog
+        var confirm = await DisplayAlertAsync(
+            "Open External Link?",
+            $"Do you want to open this link in your default browser?\n\n{url}",
+            "Open",
+            "Cancel");
+
+        if (confirm)
+        {
+            try
+            {
+                await Launcher.OpenAsync(url);
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error", $"Failed to open link: {ex.Message}", "OK");
+            }
+        }
+    }
+
+    private async Task NavigateToDocumentAsync(string filePath)
+    {
+        // Show loading indicator
+        ShowLoadingIndicator();
+
+        try
+        {
+            // Use the LoadDocument command from ViewModel
+            if (_viewModel.LoadDocumentCommand.CanExecute(filePath))
+            {
+                _viewModel.LoadDocumentCommand.Execute(filePath);
+            }
+        }
+        finally
+        {
+            HideLoadingIndicator();
+        }
+    }
+
+    private void ShowLoadingIndicator()
+    {
+        _isLoading = true;
+        // TODO: Show actual loading UI (spinner overlay)
+    }
+
+    private void HideLoadingIndicator()
+    {
+        _isLoading = false;
+        // TODO: Hide loading UI
     }
 
     private async Task RenderDocumentAsync()
@@ -142,5 +259,25 @@ public partial class MarkdownView : ContentPage
 
         var script = $"window.scrollToSearchMatch({matchIndex});";
         await _webView.EvaluateJavaScriptAsync(script);
+    }
+    
+    /// <summary>
+    /// Scroll to top of document
+    /// </summary>
+    public async Task ScrollToTopAsync()
+    {
+        if (_webView == null) return;
+        
+        await _webView.EvaluateJavaScriptAsync("window.scrollToTop();");
+    }
+    
+    /// <summary>
+    /// Scroll to bottom of document
+    /// </summary>
+    public async Task ScrollToBottomAsync()
+    {
+        if (_webView == null) return;
+        
+        await _webView.EvaluateJavaScriptAsync("window.scrollToBottom();");
     }
 }

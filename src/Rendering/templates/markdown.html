@@ -71,6 +71,29 @@
                 box-shadow: 0 0 4px #ff6b18;
             }
         }
+        
+        /* Link hover tooltip */
+        .link-tooltip {
+            position: fixed;
+            background: var(--background-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-family: monospace;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 400px;
+            word-break: break-all;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .link-tooltip.visible {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="{{THEME_CLASS}}">
@@ -112,6 +135,21 @@
         // Expose scroll restoration function
         window.restoreScroll = (position) => {
             window.scrollTo(0, position);
+        };
+        
+        // Scroll to top/bottom functions
+        window.scrollToTop = () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        };
+        
+        window.scrollToBottom = () => {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
         };
         
         // Search functionality
@@ -209,6 +247,56 @@
             
             return null;
         }
+        
+        // Link hover tooltip functionality
+        let tooltip = null;
+        
+        function showLinkTooltip(event, href) {
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.className = 'link-tooltip';
+                document.body.appendChild(tooltip);
+            }
+            
+            tooltip.textContent = href;
+            tooltip.style.left = event.pageX + 10 + 'px';
+            tooltip.style.top = event.pageY + 10 + 'px';
+            
+            // Force reflow to trigger transition
+            tooltip.offsetHeight;
+            tooltip.classList.add('visible');
+        }
+        
+        function hideLinkTooltip() {
+            if (tooltip) {
+                tooltip.classList.remove('visible');
+            }
+        }
+        
+        // Add hover listeners to all links
+        document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('mouseover', (e) => {
+                const link = e.target.closest('a');
+                if (link && link.href) {
+                    showLinkTooltip(e, link.href);
+                }
+            });
+            
+            document.addEventListener('mouseout', (e) => {
+                const link = e.target.closest('a');
+                if (link) {
+                    hideLinkTooltip();
+                }
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                const link = e.target.closest('a');
+                if (link && tooltip && tooltip.classList.contains('visible')) {
+                    tooltip.style.left = e.pageX + 10 + 'px';
+                    tooltip.style.top = e.pageY + 10 + 'px';
+                }
+            });
+        });
     </script>
 </body>
 </html>

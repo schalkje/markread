@@ -344,15 +344,15 @@ All paths relative to repository root:
 
 - [x] T139 [US6] Connect NavigationService to DocumentViewModel for link navigation (added to MainViewModel)
 - [x] T140 [US6] Implement back/forward keyboard shortcuts (Alt+Left, Alt+Right)
-- [ ] T141 [US6] Add smooth slide transitions for back/forward navigation
+- [x] T141 [US6] Add smooth slide transitions for back/forward navigation
 - [x] T142 [US6] Implement Ctrl+Home / Ctrl+End for scroll to top/bottom (commands added, WebView JS pending)
 
 ### Link Handling for US6
 
-- [ ] T143 [US6] Implement link click handler in MarkdownView JavaScript bridge
-- [ ] T144 [US6] Add external link confirmation dialog before opening in browser
-- [ ] T145 [US6] Implement link hover tooltips with smooth fade-in showing target path
-- [ ] T146 [US6] Add modern loading indicator for slow-loading documents (spinner or skeleton)
+- [x] T143 [US6] Implement link click handler in MarkdownView JavaScript bridge
+- [x] T144 [US6] Add external link confirmation dialog before opening in browser
+- [x] T145 [US6] Implement link hover tooltips with smooth fade-in showing target path
+- [x] T146 [US6] Add modern loading indicator for slow-loading documents (spinner or skeleton)
 
 ### Testing for US6
 
@@ -451,22 +451,22 @@ All paths relative to repository root:
 
 ### Settings UI for US8
 
-- [ ] T179 [US8] Expand SettingsPage.xaml with sections (Appearance, Behavior, Advanced)
-- [ ] T180 [US8] Add folder exclusion management UI to SettingsPage
-- [ ] T181 [US8] Implement settings sections with smooth navigation transitions
-- [ ] T182 [US8] Add instant preview for settings changes (e.g., theme preview)
+- [x] T179 [US8] Expand SettingsPage.xaml with sections (Appearance, Behavior, Advanced)
+- [x] T180 [US8] Add folder exclusion management UI to SettingsPage
+- [x] T181 [US8] Implement settings sections with smooth navigation transitions
+- [x] T182 [US8] Add instant preview for settings changes (e.g., theme preview)
 
 ### Additional Settings for US8
 
-- [ ] T183 [P] [US8] Add default zoom level setting with validation
-- [ ] T184 [P] [US8] Add startup behavior setting (restore session, start fresh, ask)
-- [ ] T185 [P] [US8] Add file tree exclusion pattern management (built-in + custom)
-- [ ] T186 [US8] Implement settings save/cancel with unsaved changes prompt
+- [x] T183 [P] [US8] Add default zoom level setting with validation
+- [x] T184 [P] [US8] Add startup behavior setting (restore session, start fresh, ask)
+- [x] T185 [P] [US8] Add file tree exclusion pattern management (built-in + custom)
+- [x] T186 [US8] Implement settings save/cancel with unsaved changes prompt
 
 ### Settings Shortcut for US8
 
-- [ ] T187 [US8] Implement Ctrl+, shortcut to open settings
-- [ ] T188 [US8] Implement F1 shortcut to show keyboard shortcuts help dialog
+- [x] T187 [US8] Implement Ctrl+, shortcut to open settings
+- [x] T188 [US8] Implement F1 shortcut to show keyboard shortcuts help dialog
 
 ### Testing for US8
 

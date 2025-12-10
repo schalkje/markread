@@ -128,6 +128,149 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- Behavior Section -->
+            <Border 
+                BackgroundColor="{StaticResource SurfaceColor}"
+                StrokeThickness="1"
+                Stroke="{StaticResource BorderColor}"
+                Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8"/>
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="16">
+                    <!-- Section Title -->
+                    <Label 
+                        Text="Behavior"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource TextPrimaryColor}" />
+
+                    <!-- Startup Behavior -->
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label 
+                                Text="Startup Behavior"
+                                FontSize="16"
+                                TextColor="{StaticResource TextPrimaryColor}" />
+                            <Label 
+                                Text="Choose what happens when the app starts"
+                                FontSize="12"
+                                TextColor="{StaticResource TextSecondaryColor}" />
+                        </VerticalStackLayout>
+
+                        <Picker 
+                            Grid.Column="1"
+                            SelectedItem="{Binding StartupBehavior, Mode=TwoWay}"
+                            BackgroundColor="{StaticResource SurfaceVariantColor}"
+                            TextColor="{StaticResource TextPrimaryColor}"
+                            WidthRequest="200"
+                            VerticalOptions="Center">
+                            <Picker.Items>
+                                <x:String>Ask</x:String>
+                                <x:String>RestoreSession</x:String>
+                                <x:String>StartFresh</x:String>
+                            </Picker.Items>
+                        </Picker>
+                    </Grid>
+
+                    <!-- Default Zoom -->
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label 
+                                Text="Default Zoom Level"
+                                FontSize="16"
+                                TextColor="{StaticResource TextPrimaryColor}" />
+                            <Label 
+                                Text="{Binding DefaultZoom, StringFormat='{0:P0}'}"
+                                FontSize="12"
+                                TextColor="{StaticResource TextSecondaryColor}" />
+                        </VerticalStackLayout>
+
+                        <Slider 
+                            Grid.Column="1"
+                            Value="{Binding DefaultZoom, Mode=TwoWay}"
+                            Minimum="0.5"
+                            Maximum="2.0"
+                            WidthRequest="200"
+                            VerticalOptions="Center" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Advanced Section -->
+            <Border 
+                BackgroundColor="{StaticResource SurfaceColor}"
+                StrokeThickness="1"
+                Stroke="{StaticResource BorderColor}"
+                Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8"/>
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="16">
+                    <!-- Section Title -->
+                    <Label 
+                        Text="Advanced"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource TextPrimaryColor}" />
+
+                    <!-- Excluded Folders -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label 
+                            Text="Excluded Folders"
+                            FontSize="16"
+                            TextColor="{StaticResource TextPrimaryColor}" />
+                        <Label 
+                            Text="Enter folder names to exclude from file tree (one per line)"
+                            FontSize="12"
+                            TextColor="{StaticResource TextSecondaryColor}"
+                            Margin="0,0,0,8" />
+                        <Editor 
+                            Text="{Binding ExcludedFoldersText, Mode=TwoWay}"
+                            HeightRequest="120"
+                            BackgroundColor="{StaticResource SurfaceVariantColor}"
+                            TextColor="{StaticResource TextPrimaryColor}"
+                            FontFamily="Consolas, Courier New"
+                            FontSize="12" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Save/Cancel Buttons -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <Button 
+                    Grid.Column="0"
+                    Text="Save Settings"
+                    Command="{Binding SaveSettingsCommand}"
+                    BackgroundColor="{StaticResource PrimaryColor}"
+                    TextColor="{StaticResource OnPrimaryColor}"
+                    Padding="16,12"
+                    CornerRadius="6"
+                    FontSize="14"
+                    IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}">
+                    <Button.Shadow>
+                        <Shadow Brush="{StaticResource ShadowColor}"
+                                Offset="0,2"
+                                Radius="4"
+                                Opacity="0.3" />
+                    </Button.Shadow>
+                </Button>
+
+                <Button 
+                    Grid.Column="1"
+                    Text="Reset to Defaults"
+                    Command="{Binding ResetToDefaultsCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource ErrorColor}"
+                    BorderColor="{StaticResource ErrorColor}"
+                    BorderWidth="1"
+                    Padding="16,12"
+                    CornerRadius="6"
+                    FontSize="14" />
+            </Grid>
+
             <!-- About Section -->
             <Border 
                 BackgroundColor="{StaticResource SurfaceColor}"
@@ -163,20 +306,6 @@
                         Margin="0,4,0,0" />
                 </VerticalStackLayout>
             </Border>
-
-            <!-- Reset Button -->
-            <Button 
-                Text="Reset to Defaults"
-                Command="{Binding ResetToDefaultsCommand}"
-                BackgroundColor="Transparent"
-                TextColor="{StaticResource ErrorColor}"
-                BorderColor="{StaticResource ErrorColor}"
-                BorderWidth="1"
-                Padding="16,12"
-                CornerRadius="6"
-                FontSize="14"
-                HorizontalOptions="Center"
-                Margin="0,8,0,0" />
 
         </VerticalStackLayout>
     </ScrollView>

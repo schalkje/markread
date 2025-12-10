@@ -69,6 +69,11 @@ public class Settings
     /// Default zoom level (1.0 = 100%)
     /// </summary>
     public double DefaultZoom { get; set; } = 1.0;
+    
+    /// <summary>
+    /// Startup behavior: RestoreSession, StartFresh, or Ask
+    /// </summary>
+    public StartupBehavior StartupBehavior { get; set; } = StartupBehavior.Ask;
 
     /// <summary>
     /// Folder exclusion patterns
@@ -84,4 +89,14 @@ public class Settings
         "venv",
         "__pycache__"
     };
+}
+
+/// <summary>
+/// Startup behavior options
+/// </summary>
+public enum StartupBehavior
+{
+    Ask,
+    RestoreSession,
+    StartFresh
 }

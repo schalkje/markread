@@ -100,6 +100,12 @@ public partial class MainViewModel : ObservableObject
         _keyboardShortcutService.RegisterShortcut("Escape", KeyModifiers.None,
             () => HideSearch(), "Hide search");
 
+        // Settings shortcuts
+        _keyboardShortcutService.RegisterShortcut("Comma", KeyModifiers.Ctrl,
+            () => OpenSettingsAsync().ConfigureAwait(false), "Open settings");
+        _keyboardShortcutService.RegisterShortcut("F1", KeyModifiers.None,
+            () => ShowKeyboardHelpAsync().ConfigureAwait(false), "Show keyboard shortcuts help");
+
         // Direct tab access (Ctrl+1 through Ctrl+9)
         for (int i = 1; i <= 9; i++)
         {
@@ -389,6 +395,26 @@ public partial class MainViewModel : ObservableObject
     private void PreviousSearchMatch()
     {
         _searchViewModel.PreviousMatchCommand.Execute(null);
+    }
+    
+    // Keyboard help command
+    [RelayCommand]
+    private async Task ShowKeyboardHelpAsync()
+    {
+        try
+        {
+            // Show keyboard shortcuts help dialog
+            var shortcuts = _keyboardShortcutService.GetAllShortcuts();
+            var message = "Keyboard Shortcuts:\\n\\n" +
+                         string.Join("\\n", shortcuts.Select(kvp => $"{kvp.Key}: {kvp.Value}"));
+            
+            await Shell.Current.DisplayAlertAsync("Keyboard Shortcuts", message, "OK");
+            _loggingService.LogInfo("Keyboard shortcuts help shown");
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogError($"Failed to show keyboard help: {ex.Message}");
+        }
     }
 
     public SearchViewModel SearchViewModel => _searchViewModel;
