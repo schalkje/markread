@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:MarkRead.ViewModels"
+             xmlns:models="clr-namespace:MarkRead.Models"
+             x:Class="MarkRead.Views.SettingsPage"
+             x:DataType="vm:SettingsViewModel"
+             Title="Settings"
+             BackgroundColor="{StaticResource BackgroundColor}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="24">
+            
+            <!-- Settings Header -->
+            <Label 
+                Text="Settings"
+                FontSize="28"
+                FontAttributes="Bold"
+                TextColor="{StaticResource TextPrimaryColor}"
+                Margin="0,0,0,8" />
+
+            <!-- Theme Section -->
+            <Border 
+                BackgroundColor="{StaticResource SurfaceColor}"
+                StrokeThickness="1"
+                Stroke="{StaticResource BorderColor}"
+                Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8"/>
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="16">
+                    <!-- Section Title -->
+                    <Label 
+                        Text="Appearance"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource TextPrimaryColor}" />
+
+                    <!-- Theme Toggle Button -->
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                        <Label 
+                            Grid.Column="0"
+                            Text="Theme"
+                            FontSize="16"
+                            TextColor="{StaticResource TextPrimaryColor}"
+                            VerticalOptions="Center" />
+
+                        <Label 
+                            Grid.Column="1"
+                            Text="{Binding SelectedTheme}"
+                            FontSize="14"
+                            TextColor="{StaticResource TextSecondaryColor}"
+                            VerticalOptions="Center" />
+
+                        <Button 
+                            Grid.Column="2"
+                            Text="{Binding ThemeDisplayText}"
+                            Command="{Binding CycleThemeCommand}"
+                            BackgroundColor="{StaticResource PrimaryColor}"
+                            TextColor="{StaticResource OnPrimaryColor}"
+                            Padding="20,8"
+                            CornerRadius="6"
+                            FontSize="14"
+                            HorizontalOptions="End"
+                            IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}">
+                            <Button.Shadow>
+                                <Shadow Brush="{StaticResource ShadowColor}"
+                                        Offset="0,2"
+                                        Radius="4"
+                                        Opacity="0.3" />
+                            </Button.Shadow>
+                        </Button>
+                    </Grid>
+
+                    <!-- Theme Options (Alternative: Individual buttons) -->
+                    <HorizontalStackLayout Spacing="12" Margin="0,8,0,0">
+                        <Button 
+                            Text="☀️ Light"
+                            Command="{Binding SetThemeCommand}"
+                            CommandParameter="{x:Static models:ThemeType.Light}"
+                            BackgroundColor="{StaticResource SurfaceVariantColor}"
+                            TextColor="{StaticResource TextPrimaryColor}"
+                            BorderColor="{StaticResource BorderColor}"
+                            BorderWidth="1"
+                            Padding="16,8"
+                            CornerRadius="6"
+                            FontSize="13" />
+
+                        <Button 
+                            Text="🌙 Dark"
+                            Command="{Binding SetThemeCommand}"
+                            CommandParameter="{x:Static models:ThemeType.Dark}"
+                            BackgroundColor="{StaticResource SurfaceVariantColor}"
+                            TextColor="{StaticResource TextPrimaryColor}"
+                            BorderColor="{StaticResource BorderColor}"
+                            BorderWidth="1"
+                            Padding="16,8"
+                            CornerRadius="6"
+                            FontSize="13" />
+
+                        <Button 
+                            Text="💻 System"
+                            Command="{Binding SetThemeCommand}"
+                            CommandParameter="{x:Static models:ThemeType.System}"
+                            BackgroundColor="{StaticResource SurfaceVariantColor}"
+                            TextColor="{StaticResource TextPrimaryColor}"
+                            BorderColor="{StaticResource BorderColor}"
+                            BorderWidth="1"
+                            Padding="16,8"
+                            CornerRadius="6"
+                            FontSize="13" />
+                    </HorizontalStackLayout>
+
+                    <!-- Theme Description -->
+                    <Label 
+                        FontSize="12"
+                        TextColor="{StaticResource TextSecondaryColor}"
+                        Margin="0,4,0,0">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Theme changes are applied instantly. " />
+                                <Span Text="System" FontAttributes="Bold" />
+                                <Span Text=" follows your OS appearance settings." />
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- About Section -->
+            <Border 
+                BackgroundColor="{StaticResource SurfaceColor}"
+                StrokeThickness="1"
+                Stroke="{StaticResource BorderColor}"
+                Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8"/>
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="12">
+                    <Label 
+                        Text="About"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource TextPrimaryColor}" />
+
+                    <Label 
+                        Text="MarkRead"
+                        FontSize="16"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource TextPrimaryColor}" />
+
+                    <Label 
+                        Text="Modern Markdown Viewer"
+                        FontSize="14"
+                        TextColor="{StaticResource TextSecondaryColor}" />
+
+                    <Label 
+                        Text="Version 1.0.0"
+                        FontSize="12"
+                        TextColor="{StaticResource TextTertiaryColor}"
+                        Margin="0,4,0,0" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Reset Button -->
+            <Button 
+                Text="Reset to Defaults"
+                Command="{Binding ResetToDefaultsCommand}"
+                BackgroundColor="Transparent"
+                TextColor="{StaticResource ErrorColor}"
+                BorderColor="{StaticResource ErrorColor}"
+                BorderWidth="1"
+                Padding="16,12"
+                CornerRadius="6"
+                FontSize="14"
+                HorizontalOptions="Center"
+                Margin="0,8,0,0" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

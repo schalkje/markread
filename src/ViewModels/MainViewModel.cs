@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MarkRead.Models;
 using MarkRead.Services;
+using MarkRead.Views;
 using System.Collections.ObjectModel;
 
 namespace MarkRead.ViewModels;
@@ -16,6 +17,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ILoggingService _loggingService;
     private readonly IKeyboardShortcutService _keyboardShortcutService;
     private readonly FileTreeViewModel _fileTreeViewModel;
+    private readonly IServiceProvider _serviceProvider;
 
     [ObservableProperty]
     private ObservableCollection<TabViewModel> _tabs = new();
@@ -31,13 +33,15 @@ public partial class MainViewModel : ObservableObject
         ISessionService sessionService,
         ILoggingService loggingService,
         IKeyboardShortcutService keyboardShortcutService,
-        FileTreeViewModel fileTreeViewModel)
+        FileTreeViewModel fileTreeViewModel,
+        IServiceProvider serviceProvider)
     {
         _tabService = tabService;
         _sessionService = sessionService;
         _loggingService = loggingService;
         _keyboardShortcutService = keyboardShortcutService;
         _fileTreeViewModel = fileTreeViewModel;
+        _serviceProvider = serviceProvider;
 
         // Subscribe to tab service events
         _tabService.TabOpened += OnTabOpened;
@@ -151,6 +155,28 @@ public partial class MainViewModel : ObservableObject
     private void ReopenLastClosedTab()
     {
         _tabService.ReopenLastClosedTab();
+    }
+
+    [RelayCommand]
+    private async Task OpenSettingsAsync()
+    {
+        try
+        {
+            var settingsPage = _serviceProvider.GetService(typeof(SettingsPage)) as SettingsPage;
+            if (settingsPage != null && Application.Current?.Windows.Count > 0)
+            {
+                var mainWindow = Application.Current.Windows[0];
+                if (mainWindow?.Page != null)
+                {
+                    await mainWindow.Page.Navigation.PushModalAsync(settingsPage, true);
+                    _loggingService.LogInfo("Settings page opened");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogError($"Failed to open settings: {ex.Message}");
+        }
     }
 
     [RelayCommand]

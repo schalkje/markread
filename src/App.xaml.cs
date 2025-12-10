@@ -10,6 +10,7 @@ public partial class App : Application
 	private readonly IServiceProvider _serviceProvider;
 	private readonly ISessionService _sessionService;
 	private readonly ILoggingService _loggingService;
+	private readonly IThemeService _themeService;
 
 	public App(IServiceProvider serviceProvider)
 	{
@@ -18,9 +19,26 @@ public partial class App : Application
 		_serviceProvider = serviceProvider;
 		_sessionService = serviceProvider.GetRequiredService<ISessionService>();
 		_loggingService = serviceProvider.GetRequiredService<ILoggingService>();
+		_themeService = serviceProvider.GetRequiredService<IThemeService>();
+		
+		// Initialize theme before creating window
+		_ = InitializeThemeAsync();
 		
 		// Resolve MainPage from DI container
 		_mainPage = serviceProvider.GetRequiredService<MainPage>();
+	}
+
+	private async Task InitializeThemeAsync()
+	{
+		try
+		{
+			await _themeService.InitializeThemeAsync();
+			_loggingService.LogInfo("Theme initialized successfully");
+		}
+		catch (Exception ex)
+		{
+			_loggingService.LogError($"Failed to initialize theme: {ex.Message}");
+		}
 	}
 
 	protected override Window CreateWindow(IActivationState? activationState)

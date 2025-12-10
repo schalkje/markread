@@ -48,6 +48,7 @@ public static class MauiProgram
 		services.AddSingleton<ISessionService, SessionService>();
 		services.AddSingleton<IWorkspaceService, WorkspaceService>();
 		services.AddSingleton<IKeyboardShortcutService, KeyboardShortcutService>();
+		services.AddSingleton<IAccessibilityValidator, AccessibilityValidator>();
 		
 		// Rendering services
 		services.AddSingleton<HtmlTemplateService>();
@@ -59,6 +60,7 @@ public static class MauiProgram
 		services.AddTransient<ViewModels.DocumentViewModel>();
 		services.AddTransient<ViewModels.FileTreeViewModel>();
 		services.AddSingleton<ViewModels.MainViewModel>();
+		services.AddTransient<ViewModels.SettingsViewModel>();
 	}
 
 	private static void RegisterViews(IServiceCollection services)
@@ -66,6 +68,7 @@ public static class MauiProgram
 		// Views
 		services.AddTransient<Views.MarkdownView>();
 		services.AddTransient<Views.FileTreeView>();
+		services.AddTransient<Views.SettingsPage>();
 		services.AddTransient<MainPage>();
 	}
 }
