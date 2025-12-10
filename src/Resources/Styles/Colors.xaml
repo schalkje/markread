@@ -161,6 +161,34 @@
     <Color x:Key="DarkSyntaxNumber">#B5CEA8</Color>
 
     <!-- ================================================================ -->
+    <!-- HIGH CONTRAST COLORS - WCAG AAA Compliant (7:1 contrast ratio) -->
+    <!-- ================================================================ -->
+    
+    <!-- High Contrast Light -->
+    <Color x:Key="HighContrastLightBackground">#FFFFFF</Color>
+    <Color x:Key="HighContrastLightSurface">#FFFFFF</Color>
+    <Color x:Key="HighContrastLightPrimary">#003D7A</Color>
+    <Color x:Key="HighContrastLightOnBackground">#000000</Color>
+    <Color x:Key="HighContrastLightOnSurface">#000000</Color>
+    <Color x:Key="HighContrastLightBorder">#000000</Color>
+    <Color x:Key="HighContrastLightFocus">#FF00FF</Color>
+    <Color x:Key="HighContrastLightError">#8B0000</Color>
+    <Color x:Key="HighContrastLightSuccess">#006400</Color>
+    <Color x:Key="HighContrastLightLink">#003D7A</Color>
+    
+    <!-- High Contrast Dark -->
+    <Color x:Key="HighContrastDarkBackground">#000000</Color>
+    <Color x:Key="HighContrastDarkSurface">#000000</Color>
+    <Color x:Key="HighContrastDarkPrimary">#1AEBFF</Color>
+    <Color x:Key="HighContrastDarkOnBackground">#FFFFFF</Color>
+    <Color x:Key="HighContrastDarkOnSurface">#FFFFFF</Color>
+    <Color x:Key="HighContrastDarkBorder">#FFFFFF</Color>
+    <Color x:Key="HighContrastDarkFocus">#FFFF00</Color>
+    <Color x:Key="HighContrastDarkError">#FF6666</Color>
+    <Color x:Key="HighContrastDarkSuccess">#00FF00</Color>
+    <Color x:Key="HighContrastDarkLink">#1AEBFF</Color>
+
+    <!-- ================================================================ -->
     <!-- THEME-AWARE COLORS (using AppThemeBinding) -->
     <!-- ================================================================ -->
     

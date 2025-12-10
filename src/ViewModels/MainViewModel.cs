@@ -70,13 +70,44 @@ public partial class MainViewModel : ObservableObject
         _keyboardShortcutService.RegisterShortcut("Tab", KeyModifiers.CtrlShift, 
             () => PreviousTab(), "Switch to previous tab");
 
-        // Close tab shortcuts
+        // Tab management shortcuts
+        _keyboardShortcutService.RegisterShortcut("T", KeyModifiers.Ctrl,
+            () => NewTab(), "Open new tab");
         _keyboardShortcutService.RegisterShortcut("W", KeyModifiers.Ctrl, 
             () => CloseTab(ActiveTab?.Id ?? ""), "Close active tab");
+        _keyboardShortcutService.RegisterShortcut("W", KeyModifiers.CtrlShift,
+            () => CloseAllTabs(), "Close all tabs");
+        _keyboardShortcutService.RegisterShortcut("P", KeyModifiers.Ctrl,
+            () => TogglePinTab(ActiveTab?.Id ?? ""), "Pin/unpin active tab");
 
         // Reopen closed tab
         _keyboardShortcutService.RegisterShortcut("T", KeyModifiers.CtrlShift, 
             () => ReopenLastClosedTab(), "Reopen last closed tab");
+
+        // Chord shortcuts
+        _keyboardShortcutService.RegisterChordShortcut("K", KeyModifiers.Ctrl,
+            "W", KeyModifiers.Ctrl,
+            () => CloseOtherTabs(ActiveTab?.Id ?? ""), "Close other tabs");
+
+        // Copy shortcuts
+        _keyboardShortcutService.RegisterShortcut("C", KeyModifiers.CtrlShift,
+            () => CopyFilePath(), "Copy file path to clipboard");
+        _keyboardShortcutService.RegisterShortcut("H", KeyModifiers.CtrlShift,
+            () => CopyAsHtml(), "Copy rendered HTML to clipboard");
+
+        // Navigation shortcuts
+        _keyboardShortcutService.RegisterShortcut("G", KeyModifiers.Ctrl,
+            () => ShowGoToHeadingDialogAsync().ConfigureAwait(false), "Go to heading");
+        _keyboardShortcutService.RegisterShortcut("P", KeyModifiers.CtrlShift,
+            () => ShowCommandPaletteAsync().ConfigureAwait(false), "Show command palette");
+
+        // View shortcuts
+        _keyboardShortcutService.RegisterShortcut("F11", KeyModifiers.None,
+            () => ToggleFullscreen(), "Toggle fullscreen");
+
+        // Accessibility shortcuts
+        _keyboardShortcutService.RegisterShortcut("T", KeyModifiers.ShiftAlt,
+            () => AnnounceTitle(), "Announce current document title for screen reader");
 
         // Back/Forward navigation shortcuts
         _keyboardShortcutService.RegisterShortcut("Left", KeyModifiers.Alt,
@@ -123,6 +154,101 @@ public partial class MainViewModel : ObservableObject
         // Open a blank tab or prompt for file
         _loggingService.LogInfo("New tab command executed");
         // TODO: Implement new tab logic when we have a file picker
+    }
+
+    [RelayCommand]
+    private void CopyFilePath()
+    {
+        if (ActiveTab == null || string.IsNullOrEmpty(ActiveTab.DocumentPath))
+        {
+            _loggingService.LogWarning("No active tab or document path to copy");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetTextAsync(ActiveTab.DocumentPath);
+            _loggingService.LogInfo($"Copied file path to clipboard: {ActiveTab.DocumentPath}");
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogError($"Failed to copy file path: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void CopyAsHtml()
+    {
+        if (ActiveTab == null)
+        {
+            _loggingService.LogWarning("No active tab to copy HTML from");
+            return;
+        }
+
+        _loggingService.LogInfo("Copy as HTML command executed");
+        // TODO: Implement HTML copy from rendered WebView content
+    }
+
+    [RelayCommand]
+    private async Task ShowGoToHeadingDialogAsync()
+    {
+        if (ActiveTab == null)
+        {
+            _loggingService.LogWarning("No active tab for heading navigation");
+            return;
+        }
+
+        _loggingService.LogInfo("Go to heading command executed");
+        // TODO: Extract headings from current document and show selection dialog
+        await Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private async Task ShowCommandPaletteAsync()
+    {
+        _loggingService.LogInfo("Command palette requested");
+        // TODO: Implement command palette with fuzzy search
+        await Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private void ToggleFullscreen()
+    {
+        try
+        {
+            if (Application.Current?.Windows.Count > 0)
+            {
+                var mainWindow = Application.Current.Windows[0];
+                // MAUI doesn't have direct fullscreen API, would need platform-specific code
+                _loggingService.LogInfo("Fullscreen toggle command executed");
+                // TODO: Implement platform-specific fullscreen toggle
+            }
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogError($"Failed to toggle fullscreen: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void AnnounceTitle()
+    {
+        if (ActiveTab == null)
+        {
+            _loggingService.LogWarning("No active tab to announce");
+            return;
+        }
+
+        try
+        {
+            // Use SemanticScreenReader to announce title for accessibility
+            SemanticScreenReader.Announce($"Current document: {ActiveTab.Title}");
+            _loggingService.LogInfo($"Announced title for screen reader: {ActiveTab.Title}");
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogError($"Failed to announce title: {ex.Message}");
+        }
     }
 
     [RelayCommand]
@@ -403,13 +529,16 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            // Show keyboard shortcuts help dialog
-            var shortcuts = _keyboardShortcutService.GetAllShortcuts();
-            var message = "Keyboard Shortcuts:\\n\\n" +
-                         string.Join("\\n", shortcuts.Select(kvp => $"{kvp.Key}: {kvp.Value}"));
-            
-            await Shell.Current.DisplayAlertAsync("Keyboard Shortcuts", message, "OK");
-            _loggingService.LogInfo("Keyboard shortcuts help shown");
+            var keyboardShortcutsPage = _serviceProvider.GetService(typeof(KeyboardShortcutsPage)) as KeyboardShortcutsPage;
+            if (keyboardShortcutsPage != null && Application.Current?.Windows.Count > 0)
+            {
+                var mainWindow = Application.Current.Windows[0];
+                if (mainWindow?.Page != null)
+                {
+                    await mainWindow.Page.Navigation.PushModalAsync(keyboardShortcutsPage, true);
+                    _loggingService.LogInfo("Keyboard shortcuts help page opened");
+                }
+            }
         }
         catch (Exception ex)
         {

@@ -337,8 +337,8 @@ All paths relative to repository root:
 
 - [x] T135 [US6] Create LinkResolver in src/Services/LinkResolver.cs (resolve relative, absolute, root-relative, anchor links)
 - [x] T136 [US6] Add security validation to LinkResolver (block links outside active root, validate schemes)
-- [ ] T137 [US6] Implement HTML sanitization service using Ganss.Xss or alternative (.NET 10 compatible)
-- [ ] T138 [US6] Add allowed tags/attributes whitelist for HTML sanitization
+- [X] T137 [US6] Implement HTML sanitization service using Ganss.Xss or alternative (.NET 10 compatible)
+- [X] T138 [US6] Add allowed tags/attributes whitelist for HTML sanitization
 
 ### Navigation Integration for US6
 
@@ -538,29 +538,29 @@ All paths relative to repository root:
 
 ### Advanced Shortcuts
 
-- [ ] T212 [P] Implement Ctrl+T for new tab
-- [ ] T213 [P] Implement Ctrl+Shift+W for close all tabs
-- [ ] T214 [P] Implement Ctrl+P for pin/unpin tab
-- [ ] T215 [P] Implement Ctrl+K Ctrl+W for close other tabs
-- [ ] T216 [P] Implement F11 for fullscreen toggle
-- [ ] T217 [P] Implement Ctrl+Shift+C for copy file path
-- [ ] T218 [P] Implement Ctrl+Shift+H for copy as HTML
-- [ ] T219 [P] Implement Ctrl+G for go to heading dialog
-- [ ] T220 [P] Implement Ctrl+Shift+P for command palette
+- [X] T212 [P] Implement Ctrl+T for new tab
+- [X] T213 [P] Implement Ctrl+Shift+W for close all tabs
+- [X] T214 [P] Implement Ctrl+P for pin/unpin tab
+- [X] T215 [P] Implement Ctrl+K Ctrl+W for close other tabs
+- [X] T216 [P] Implement F11 for fullscreen toggle
+- [X] T217 [P] Implement Ctrl+Shift+C for copy file path
+- [X] T218 [P] Implement Ctrl+Shift+H for copy as HTML
+- [X] T219 [P] Implement Ctrl+G for go to heading dialog
+- [X] T220 [P] Implement Ctrl+Shift+P for command palette
 
 ### Accessibility Features
 
-- [ ] T221 Implement screen reader support for file tree navigation
-- [ ] T222 Add keyboard focus indicators throughout application
-- [ ] T223 Implement high contrast mode support
-- [ ] T224 Add Alt+Shift+T shortcut for screen reader title announcement
-- [ ] T225 Ensure all UI text has proper semantic structure for screen readers
+- [X] T221 Implement screen reader support for file tree navigation
+- [X] T222 Add keyboard focus indicators throughout application
+- [X] T223 Implement high contrast mode support
+- [X] T224 Add Alt+Shift+T shortcut for screen reader title announcement
+- [X] T225 Ensure all UI text has proper semantic structure for screen readers
 
 ### Help & Discoverability
 
-- [ ] T226 Create keyboard shortcuts help dialog (F1)
-- [ ] T227 Add tooltips with shortcuts to all buttons/menu items
-- [ ] T228 Create welcome screen with keyboard shortcut overview
+- [X] T226 Create keyboard shortcuts help dialog (F1)
+- [X] T227 Add tooltips with shortcuts to all buttons/menu items
+- [X] T228 Create welcome screen with keyboard shortcut overview
 
 **Checkpoint**: Advanced features and accessibility complete
 

@@ -49,7 +49,9 @@
                                        FontSize="13"
                                        LineBreakMode="TailTruncation"
                                        VerticalOptions="Center"
-                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}">
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                                       SemanticProperties.Description="{Binding Title}"
+                                       SemanticProperties.Hint="Double tap to switch to this tab">
                                     <Label.GestureRecognizers>
                                         <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:MainViewModel}}, Path=SwitchToTabCommand}"
                                                               CommandParameter="{Binding Id}" />
@@ -67,7 +69,9 @@
                                         TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:MainViewModel}}, Path=CloseTabCommand}"
                                         CommandParameter="{Binding Id}"
-                                        VerticalOptions="Center">
+                                        VerticalOptions="Center"
+                                        ToolTipProperties.Text="Close tab (Ctrl+W)"
+                                        SemanticProperties.Hint="Close this tab. Keyboard shortcut: Control plus W">
                                     <Button.Triggers>
                                         <DataTrigger TargetType="Button" Binding="{Binding IsPinned}" Value="True">
                                             <Setter Property="IsVisible" Value="False" />
@@ -108,7 +112,9 @@
                 Command="{Binding NewTabCommand}"
                 HorizontalOptions="End"
                 VerticalOptions="Center"
-                Margin="0,0,4,0">
+                Margin="0,0,4,0"
+                ToolTipProperties.Text="New tab (Ctrl+T)"
+                SemanticProperties.Hint="Open a new tab. Keyboard shortcut: Control plus T">
             <Button.Shadow>
                 <Shadow Brush="Transparent" Radius="0" />
             </Button.Shadow>

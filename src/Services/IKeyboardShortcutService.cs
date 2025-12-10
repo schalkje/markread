@@ -15,6 +15,13 @@ public interface IKeyboardShortcutService
     void RegisterShortcut(string key, KeyModifiers modifiers, Action action, string description);
 
     /// <summary>
+    /// Registers a chord keyboard shortcut (e.g., Ctrl+K Ctrl+W)
+    /// </summary>
+    void RegisterChordShortcut(string firstKey, KeyModifiers firstModifiers,
+                              string secondKey, KeyModifiers secondModifiers,
+                              Action action, string description);
+
+    /// <summary>
     /// Handles a key press event
     /// </summary>
     /// <param name="key">The pressed key</param>

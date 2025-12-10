@@ -6,7 +6,7 @@
 
 Add a search in all files functionality.
 - search the content
-- option to search for file names
+- option to search for file names, search for folder names
 
 Results should appear in the place of the file tree. Use the look and feel of the search all files in vscode.
 Support: open, open itab and open in new window on the search results

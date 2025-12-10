@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MarkRead.Views.KeyboardShortcutsPage"
+             Title="Keyboard Shortcuts"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
+    
+    <Grid Padding="20">
+        <ScrollView>
+            <VerticalStackLayout Spacing="24">
+                <!-- Header -->
+                <Label Text="Keyboard Shortcuts"
+                       Style="{StaticResource Heading1}"
+                       HorizontalOptions="Center" />
+                
+                <!-- General Section -->
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="General"
+                           Style="{StaticResource Heading2}" />
+                    
+                    <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
+                        <Label Grid.Row="0" Grid.Column="0" Text="F1" FontFamily="Consolas" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="Show keyboard shortcuts help" />
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="Ctrl+," FontFamily="Consolas" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="Open settings" />
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="Ctrl+Shift+P" FontFamily="Consolas" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="Show command palette" />
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="F11" FontFamily="Consolas" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="Toggle fullscreen" />
+                    </Grid>
+                </VerticalStackLayout>
+                
+                <!-- Tab Management Section -->
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Tab Management"
+                           Style="{StaticResource Heading2}" />
+                    
+                    <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
+                        <Label Grid.Row="0" Grid.Column="0" Text="Ctrl+T" FontFamily="Consolas" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="Open new tab" />
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="Ctrl+W" FontFamily="Consolas" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="Close active tab" />
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="Ctrl+Shift+W" FontFamily="Consolas" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="Close all tabs" />
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="Ctrl+Shift+T" FontFamily="Consolas" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="Reopen last closed tab" />
+                        
+                        <Label Grid.Row="4" Grid.Column="0" Text="Ctrl+Tab" FontFamily="Consolas" />
+                        <Label Grid.Row="4" Grid.Column="1" Text="Switch to next tab" />
+                        
+                        <Label Grid.Row="5" Grid.Column="0" Text="Ctrl+Shift+Tab" FontFamily="Consolas" />
+                        <Label Grid.Row="5" Grid.Column="1" Text="Switch to previous tab" />
+                        
+                        <Label Grid.Row="6" Grid.Column="0" Text="Ctrl+P" FontFamily="Consolas" />
+                        <Label Grid.Row="6" Grid.Column="1" Text="Pin/unpin active tab" />
+                        
+                        <Label Grid.Row="7" Grid.Column="0" Text="Ctrl+1-9" FontFamily="Consolas" />
+                        <Label Grid.Row="7" Grid.Column="1" Text="Switch to tab by number" />
+                    </Grid>
+                </VerticalStackLayout>
+                
+                <!-- Navigation Section -->
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Navigation"
+                           Style="{StaticResource Heading2}" />
+                    
+                    <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
+                        <Label Grid.Row="0" Grid.Column="0" Text="Alt+Left" FontFamily="Consolas" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="Navigate back" />
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="Alt+Right" FontFamily="Consolas" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="Navigate forward" />
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="Ctrl+Home" FontFamily="Consolas" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="Scroll to top" />
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="Ctrl+End" FontFamily="Consolas" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="Scroll to bottom" />
+                        
+                        <Label Grid.Row="4" Grid.Column="0" Text="Ctrl+G" FontFamily="Consolas" />
+                        <Label Grid.Row="4" Grid.Column="1" Text="Go to heading" />
+                    </Grid>
+                </VerticalStackLayout>
+                
+                <!-- Search Section -->
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Search"
+                           Style="{StaticResource Heading2}" />
+                    
+                    <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
+                        <Label Grid.Row="0" Grid.Column="0" Text="Ctrl+F" FontFamily="Consolas" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="Show search" />
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="F3" FontFamily="Consolas" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="Next search match" />
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="Shift+F3" FontFamily="Consolas" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="Previous search match" />
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="Escape" FontFamily="Consolas" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="Hide search" />
+                    </Grid>
+                </VerticalStackLayout>
+                
+                <!-- Editing Section -->
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Editing &amp; Clipboard"
+                           Style="{StaticResource Heading2}" />
+                    
+                    <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
+                        <Label Grid.Row="0" Grid.Column="0" Text="Ctrl+Shift+C" FontFamily="Consolas" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="Copy file path" />
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="Ctrl+Shift+H" FontFamily="Consolas" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="Copy as HTML" />
+                    </Grid>
+                </VerticalStackLayout>
+                
+                <!-- Accessibility Section -->
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Accessibility"
+                           Style="{StaticResource Heading2}" />
+                    
+                    <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
+                        <Label Grid.Row="0" Grid.Column="0" Text="Alt+Shift+T" FontFamily="Consolas" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="Announce current document title" />
+                    </Grid>
+                </VerticalStackLayout>
+                
+                <!-- Close Button -->
+                <Button Text="Close"
+                        Command="{Binding CloseCommand}"
+                        HorizontalOptions="Center"
+                        Margin="0,20,0,0"
+                        Padding="40,10"
+                        SemanticProperties.Description="Close keyboard shortcuts dialog" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

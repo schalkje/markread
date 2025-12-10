@@ -15,7 +15,9 @@
             <Entry Text="{Binding SearchQuery}"
                    Placeholder="Type to search files..."
                    ClearButtonVisibility="WhileEditing"
-                   FontSize="14" />
+                   FontSize="14"
+                   SemanticProperties.Description="Search for files in the current folder"
+                   SemanticProperties.Hint="Type to filter the file tree" />
         </Border>
         
         <!-- File Tree -->
@@ -42,7 +44,9 @@
                                            Text="{Binding Type, Converter={StaticResource NodeTypeToIconConverter}}"
                                            FontSize="16"
                                            VerticalOptions="Center"
-                                           Margin="4,0">
+                                           Margin="4,0"
+                                           SemanticProperties.Description="{Binding Type, Converter={StaticResource NodeTypeToAccessibilityTextConverter}}"
+                                           SemanticProperties.Hint="{Binding IsExpanded, Converter={StaticResource ExpandStateToHintConverter}}">
                                         <Label.GestureRecognizers>
                                             <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:FileTreeViewModel}}, Path=ToggleNodeExpansionCommand}"
                                                                 CommandParameter="{Binding .}" />
@@ -54,7 +58,9 @@
                                            Text="{Binding Name}"
                                            FontSize="14"
                                            VerticalOptions="Center"
-                                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}">
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                                           SemanticProperties.Description="{Binding Name}"
+                                           SemanticProperties.Hint="{Binding Type, Converter={StaticResource NodeTypeToActionHintConverter}}">
                                         <Label.GestureRecognizers>
                                             <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:FileTreeViewModel}}, Path=OpenFileCommand}"
                                                                 CommandParameter="{Binding .}" />

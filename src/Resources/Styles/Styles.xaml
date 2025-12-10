@@ -108,4 +108,13 @@
         <Setter Property="CornerRadius" Value="0" />
     </Style>
 
+    <!-- Keyboard Focus Indicator Styles -->
+    <!-- Note: Focus indicators are handled via VisualStateManager in individual controls -->
+    <!-- These styles can be applied explicitly to buttons and entries that need focus indicators -->
+    
+    <Style x:Key="FocusIndicatorBorder" TargetType="Border">
+        <Setter Property="Stroke" Value="{StaticResource PrimaryColor}" />
+        <Setter Property="StrokeThickness" Value="2" />
+    </Style>
+
 </ResourceDictionary>

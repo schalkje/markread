@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MarkRead.Views.WelcomePage"
+             Title="Welcome to MarkRead"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
+    
+    <ScrollView>
+        <VerticalStackLayout Padding="40" Spacing="32" HorizontalOptions="Center" MaximumWidthRequest="800">
+            
+            <!-- Header -->
+            <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+                <Label Text="📖 Welcome to MarkRead"
+                       FontSize="36"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       SemanticProperties.HeadingLevel="Level1" />
+                       
+                <Label Text="A modern, fast markdown viewer for Windows"
+                       FontSize="16"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+            
+            <!-- Quick Start Section -->
+            <VerticalStackLayout Spacing="16">
+                <Label Text="Quick Start"
+                       Style="{StaticResource Heading2}"
+                       SemanticProperties.HeadingLevel="Level2" />
+                       
+                <VerticalStackLayout Spacing="12">
+                    <HorizontalStackLayout Spacing="12">
+                        <Label Text="📁" FontSize="24" />
+                        <VerticalStackLayout>
+                            <Label Text="Open a folder" FontAttributes="Bold" />
+                            <Label Text="Browse markdown files using the sidebar file tree" 
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" />
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                    
+                    <HorizontalStackLayout Spacing="12">
+                        <Label Text="📄" FontSize="24" />
+                        <VerticalStackLayout>
+                            <Label Text="Open a file" FontAttributes="Bold" />
+                            <Label Text="Double-click any .md file to view it with syntax highlighting" 
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" />
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                    
+                    <HorizontalStackLayout Spacing="12">
+                        <Label Text="🎨" FontSize="24" />
+                        <VerticalStackLayout>
+                            <Label Text="Customize themes" FontAttributes="Bold" />
+                            <Label Text="Switch between light, dark, or system theme (Ctrl+,)" 
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" />
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+            
+            <!-- Essential Shortcuts Section -->
+            <VerticalStackLayout Spacing="16">
+                <Label Text="Essential Keyboard Shortcuts"
+                       Style="{StaticResource Heading2}"
+                       SemanticProperties.HeadingLevel="Level2" />
+                       
+                <Grid ColumnDefinitions="150,*" RowSpacing="12" ColumnSpacing="16">
+                    <!-- Tab Management -->
+                    <Label Grid.Row="0" Grid.Column="0" 
+                           Text="Ctrl+T" 
+                           FontFamily="Consolas"
+                           FontAttributes="Bold" />
+                    <Label Grid.Row="0" Grid.Column="1" 
+                           Text="Open new tab" />
+                    
+                    <Label Grid.Row="1" Grid.Column="0" 
+                           Text="Ctrl+W" 
+                           FontFamily="Consolas"
+                           FontAttributes="Bold" />
+                    <Label Grid.Row="1" Grid.Column="1" 
+                           Text="Close active tab" />
+                    
+                    <Label Grid.Row="2" Grid.Column="0" 
+                           Text="Ctrl+Tab" 
+                           FontFamily="Consolas"
+                           FontAttributes="Bold" />
+                    <Label Grid.Row="2" Grid.Column="1" 
+                           Text="Switch between tabs" />
+                    
+                    <!-- Search -->
+                    <Label Grid.Row="3" Grid.Column="0" 
+                           Text="Ctrl+F" 
+                           FontFamily="Consolas"
+                           FontAttributes="Bold" />
+                    <Label Grid.Row="3" Grid.Column="1" 
+                           Text="Search in document" />
+                    
+                    <!-- Navigation -->
+                    <Label Grid.Row="4" Grid.Column="0" 
+                           Text="Alt+← / Alt+→" 
+                           FontFamily="Consolas"
+                           FontAttributes="Bold" />
+                    <Label Grid.Row="4" Grid.Column="1" 
+                           Text="Navigate back/forward" />
+                    
+                    <!-- Settings & Help -->
+                    <Label Grid.Row="5" Grid.Column="0" 
+                           Text="Ctrl+," 
+                           FontFamily="Consolas"
+                           FontAttributes="Bold" />
+                    <Label Grid.Row="5" Grid.Column="1" 
+                           Text="Open settings" />
+                    
+                    <Label Grid.Row="6" Grid.Column="0" 
+                           Text="F1" 
+                           FontFamily="Consolas"
+                           FontAttributes="Bold" />
+                    <Label Grid.Row="6" Grid.Column="1" 
+                           Text="View all keyboard shortcuts" />
+                </Grid>
+            </VerticalStackLayout>
+            
+            <!-- Features Section -->
+            <VerticalStackLayout Spacing="16">
+                <Label Text="Key Features"
+                       Style="{StaticResource Heading2}"
+                       SemanticProperties.HeadingLevel="Level2" />
+                       
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="✅ Fast rendering with smooth 60+ FPS scrolling" />
+                    <Label Text="✅ Syntax highlighting for code blocks" />
+                    <Label Text="✅ Mermaid diagram support" />
+                    <Label Text="✅ Multi-tab document management" />
+                    <Label Text="✅ Real-time file watching" />
+                    <Label Text="✅ Modern dark and light themes" />
+                    <Label Text="✅ Keyboard-friendly navigation" />
+                    <Label Text="✅ Screen reader support" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+            
+            <!-- Action Buttons -->
+            <HorizontalStackLayout Spacing="16" HorizontalOptions="Center" Margin="0,20,0,0">
+                <Button Text="Open Folder"
+                        Command="{Binding OpenFolderCommand}"
+                        Padding="20,12"
+                        SemanticProperties.Description="Open a folder to browse markdown files" />
+                        
+                <Button Text="View All Shortcuts"
+                        Command="{Binding ViewShortcutsCommand}"
+                        Style="{StaticResource SecondaryButton}"
+                        Padding="20,12"
+                        SemanticProperties.Description="View complete list of keyboard shortcuts" />
+            </HorizontalStackLayout>
+            
+            <!-- Footer -->
+            <VerticalStackLayout Spacing="8" HorizontalOptions="Center" Margin="0,20,0,0">
+                <CheckBox IsChecked="{Binding DontShowAgain}"
+                          HorizontalOptions="Center" />
+                <Label Text="Don't show this welcome screen again"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                       FontSize="12" />
+            </VerticalStackLayout>
+            
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

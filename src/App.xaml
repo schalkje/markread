@@ -18,6 +18,11 @@
             <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
             <converters:BoolToSearchOptionBackgroundConverter x:Key="BoolToSearchOptionBackgroundConverter" />
             <converters:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter" />
+            
+            <!-- Accessibility Converters -->
+            <converters:NodeTypeToAccessibilityTextConverter x:Key="NodeTypeToAccessibilityTextConverter" />
+            <converters:ExpandStateToHintConverter x:Key="ExpandStateToHintConverter" />
+            <converters:NodeTypeToActionHintConverter x:Key="NodeTypeToActionHintConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

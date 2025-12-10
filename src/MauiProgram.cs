@@ -51,6 +51,7 @@ public static class MauiProgram
 		services.AddSingleton<IAccessibilityValidator, AccessibilityValidator>();
 		services.AddSingleton<ILinkResolver, LinkResolver>();
 		services.AddSingleton<ISearchService, SearchService>();
+		services.AddSingleton<IHtmlSanitizerService, HtmlSanitizerService>();
 		
 		// Rendering services
 		services.AddSingleton<HtmlTemplateService>();
@@ -73,6 +74,8 @@ public static class MauiProgram
 		services.AddTransient<Views.FileTreeView>();
 		services.AddTransient<Views.SettingsPage>();
 		services.AddTransient<Views.SearchBar>();
+		services.AddTransient<Views.KeyboardShortcutsPage>();
+		services.AddTransient<Views.WelcomePage>();
 		services.AddTransient<MainPage>();
 	}
 }
