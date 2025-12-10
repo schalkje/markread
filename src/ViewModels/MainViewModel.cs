@@ -302,6 +302,10 @@ public partial class MainViewModel : ObservableObject
             {
                 t.Update();
             }
+            
+            // Update search content when active tab changes
+            // Note: This will be properly wired when DocumentViewModel is integrated
+            // For now, search will work once a document is loaded
         }
     }
 

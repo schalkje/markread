@@ -49,6 +49,28 @@
         img, video {
             will-change: transform;
         }
+        
+        /* Search highlight styles */
+        .search-highlight {
+            background-color: #ffd70080;
+            transition: background-color 0.3s ease;
+        }
+        
+        .search-highlight-current {
+            background-color: #ff6b1880;
+            box-shadow: 0 0 4px #ff6b18;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .search-highlight {
+                background-color: #3d3d0080;
+            }
+            
+            .search-highlight-current {
+                background-color: #ff6b1880;
+                box-shadow: 0 0 4px #ff6b18;
+            }
+        }
     </style>
 </head>
 <body class="{{THEME_CLASS}}">
@@ -91,6 +113,102 @@
         window.restoreScroll = (position) => {
             window.scrollTo(0, position);
         };
+        
+        // Search functionality
+        let searchHighlights = [];
+        let currentHighlightIndex = -1;
+        
+        window.highlightSearchResults = (matches) => {
+            // Clear previous highlights
+            clearSearchHighlights();
+            
+            if (!matches || matches.length === 0) {
+                return;
+            }
+            
+            const content = document.getElementById('markdown-content');
+            searchHighlights = [];
+            
+            // Create highlights for each match
+            matches.forEach((match, index) => {
+                const range = findTextRange(content, match.offset, match.length);
+                if (range) {
+                    const span = document.createElement('span');
+                    span.className = 'search-highlight';
+                    span.setAttribute('data-search-index', index);
+                    range.surroundContents(span);
+                    searchHighlights.push(span);
+                }
+            });
+        };
+        
+        window.clearSearchHighlights = () => {
+            searchHighlights.forEach(span => {
+                const parent = span.parentNode;
+                if (parent) {
+                    parent.replaceChild(document.createTextNode(span.textContent), span);
+                    parent.normalize();
+                }
+            });
+            searchHighlights = [];
+            currentHighlightIndex = -1;
+        };
+        
+        window.scrollToSearchMatch = (index) => {
+            if (index < 0 || index >= searchHighlights.length) {
+                return;
+            }
+            
+            // Remove current highlight from previous match
+            if (currentHighlightIndex >= 0 && currentHighlightIndex < searchHighlights.length) {
+                searchHighlights[currentHighlightIndex].classList.remove('search-highlight-current');
+            }
+            
+            // Add current highlight to new match
+            currentHighlightIndex = index;
+            const span = searchHighlights[index];
+            span.classList.add('search-highlight-current');
+            
+            // Smooth scroll to match with offset for better visibility
+            const rect = span.getBoundingClientRect();
+            const offset = window.innerHeight / 3;
+            window.scrollTo({
+                top: window.scrollY + rect.top - offset,
+                behavior: 'smooth'
+            });
+        };
+        
+        // Helper function to find text range at specific offset
+        function findTextRange(node, offset, length) {
+            const walker = document.createTreeWalker(
+                node,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            let currentOffset = 0;
+            let textNode = walker.nextNode();
+            
+            while (textNode) {
+                const textLength = textNode.textContent.length;
+                
+                if (currentOffset + textLength > offset) {
+                    const startOffset = offset - currentOffset;
+                    const endOffset = Math.min(startOffset + length, textLength);
+                    
+                    const range = document.createRange();
+                    range.setStart(textNode, startOffset);
+                    range.setEnd(textNode, endOffset);
+                    return range;
+                }
+                
+                currentOffset += textLength;
+                textNode = walker.nextNode();
+            }
+            
+            return null;
+        }
     </script>
 </body>
 </html>

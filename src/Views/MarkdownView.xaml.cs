@@ -1,6 +1,8 @@
 using MarkRead.ViewModels;
 using MarkRead.Rendering;
+using MarkRead.Models;
 using Microsoft.Maui.Controls;
+using System.Text.Json;
 
 namespace MarkRead.Views;
 
@@ -104,5 +106,41 @@ public partial class MarkdownView : ContentPage
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         }
+    }
+    
+    /// <summary>
+    /// Highlight search results in the WebView
+    /// </summary>
+    public async Task HighlightSearchResultsAsync(SearchState searchState)
+    {
+        if (_webView == null) return;
+
+        if (searchState.Results.Count == 0)
+        {
+            // Clear highlights if no results
+            await _webView.EvaluateJavaScriptAsync("window.clearSearchHighlights();");
+            return;
+        }
+
+        // Convert search results to JSON for JavaScript
+        var matchesJson = JsonSerializer.Serialize(searchState.Results.Select(r => new 
+        {
+            offset = r.Offset,
+            length = r.Length
+        }));
+
+        var script = $"window.highlightSearchResults({matchesJson});";
+        await _webView.EvaluateJavaScriptAsync(script);
+    }
+
+    /// <summary>
+    /// Scroll to a specific search match
+    /// </summary>
+    public async Task ScrollToSearchMatchAsync(int matchIndex)
+    {
+        if (_webView == null) return;
+
+        var script = $"window.scrollToSearchMatch({matchIndex});";
+        await _webView.EvaluateJavaScriptAsync(script);
     }
 }

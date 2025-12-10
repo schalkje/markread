@@ -1,5 +1,6 @@
 ﻿using MarkRead.ViewModels;
 using MarkRead.Services;
+using MarkRead.Models;
 
 namespace MarkRead;
 
@@ -8,6 +9,7 @@ public partial class MainPage : ContentPage
     private readonly ISettingsService _settingsService;
     private readonly FileTreeViewModel _fileTreeViewModel;
     private readonly MainViewModel _mainViewModel;
+    private readonly SearchViewModel _searchViewModel;
     private const string SidebarWidthKey = "SidebarWidth";
     private const string SidebarVisibleKey = "SidebarVisible";
     private const double MinSidebarWidth = 150;
@@ -16,17 +18,23 @@ public partial class MainPage : ContentPage
     public MainPage(
         ISettingsService settingsService, 
         FileTreeViewModel fileTreeViewModel,
-        MainViewModel mainViewModel)
+        MainViewModel mainViewModel,
+        SearchViewModel searchViewModel)
     {
         InitializeComponent();
         
         _settingsService = settingsService;
         _fileTreeViewModel = fileTreeViewModel;
         _mainViewModel = mainViewModel;
+        _searchViewModel = searchViewModel;
         
         FileTree.BindingContext = _fileTreeViewModel;
         TabBar.BindingContext = _mainViewModel;
-        SearchBar.BindingContext = _mainViewModel.SearchViewModel;
+        SearchBar.BindingContext = _searchViewModel;
+        
+        // Subscribe to search events
+        _searchViewModel.SearchResultsChanged += OnSearchResultsChanged;
+        _searchViewModel.CurrentMatchChanged += OnCurrentMatchChanged;
         
         // Restore sidebar state
         LoadSidebarState();
@@ -116,5 +124,17 @@ public partial class MainPage : ContentPage
             SidebarColumn.Width = new GridLength(0);
             Splitter.IsVisible = false;
         }
+    }
+    
+    private async void OnSearchResultsChanged(object? sender, SearchState state)
+    {
+        // Forward search results to MarkdownView for highlighting
+        await MarkdownView.HighlightSearchResultsAsync(state);
+    }
+    
+    private async void OnCurrentMatchChanged(object? sender, int matchIndex)
+    {
+        // Scroll to the current match in MarkdownView
+        await MarkdownView.ScrollToSearchMatchAsync(matchIndex);
     }
 }

@@ -393,11 +393,11 @@ All paths relative to repository root:
 
 ### Search Integration for US7
 
-- [ ] T159 [US7] Implement Ctrl+F shortcut to show search bar
-- [ ] T160 [US7] Implement F3 / Shift+F3 shortcuts for next/previous match
-- [ ] T161 [US7] Add result highlighting in WebView with smooth transitions
-- [ ] T162 [US7] Implement smooth scrolling to highlighted results
-- [ ] T163 [US7] Add match counter display (e.g., "3 of 15 matches")
+- [x] T159 [US7] Implement Ctrl+F shortcut to show search bar
+- [x] T160 [US7] Implement F3 / Shift+F3 shortcuts for next/previous match
+- [x] T161 [US7] Add result highlighting in WebView with smooth transitions
+- [x] T162 [US7] Implement smooth scrolling to highlighted results
+- [x] T163 [US7] Add match counter display (e.g., "3 of 15 matches")
 
 ### Testing for US7
 
