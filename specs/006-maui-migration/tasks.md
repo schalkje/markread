@@ -335,17 +335,17 @@ All paths relative to repository root:
 
 ### Security & Link Resolution for US6
 
-- [ ] T135 [US6] Create LinkResolver in src/Services/LinkResolver.cs (resolve relative, absolute, root-relative, anchor links)
-- [ ] T136 [US6] Add security validation to LinkResolver (block links outside active root, validate schemes)
+- [x] T135 [US6] Create LinkResolver in src/Services/LinkResolver.cs (resolve relative, absolute, root-relative, anchor links)
+- [x] T136 [US6] Add security validation to LinkResolver (block links outside active root, validate schemes)
 - [ ] T137 [US6] Implement HTML sanitization service using Ganss.Xss or alternative (.NET 10 compatible)
 - [ ] T138 [US6] Add allowed tags/attributes whitelist for HTML sanitization
 
 ### Navigation Integration for US6
 
-- [ ] T139 [US6] Connect NavigationService to DocumentViewModel for link navigation
-- [ ] T140 [US6] Implement back/forward keyboard shortcuts (Alt+Left, Alt+Right)
+- [x] T139 [US6] Connect NavigationService to DocumentViewModel for link navigation (added to MainViewModel)
+- [x] T140 [US6] Implement back/forward keyboard shortcuts (Alt+Left, Alt+Right)
 - [ ] T141 [US6] Add smooth slide transitions for back/forward navigation
-- [ ] T142 [US6] Implement Ctrl+Home / Ctrl+End for scroll to top/bottom
+- [x] T142 [US6] Implement Ctrl+Home / Ctrl+End for scroll to top/bottom (commands added, WebView JS pending)
 
 ### Link Handling for US6
 

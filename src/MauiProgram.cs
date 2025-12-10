@@ -49,6 +49,7 @@ public static class MauiProgram
 		services.AddSingleton<IWorkspaceService, WorkspaceService>();
 		services.AddSingleton<IKeyboardShortcutService, KeyboardShortcutService>();
 		services.AddSingleton<IAccessibilityValidator, AccessibilityValidator>();
+		services.AddSingleton<ILinkResolver, LinkResolver>();
 		
 		// Rendering services
 		services.AddSingleton<HtmlTemplateService>();

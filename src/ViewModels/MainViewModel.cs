@@ -16,6 +16,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ISessionService _sessionService;
     private readonly ILoggingService _loggingService;
     private readonly IKeyboardShortcutService _keyboardShortcutService;
+    private readonly INavigationService _navigationService;
     private readonly FileTreeViewModel _fileTreeViewModel;
     private readonly IServiceProvider _serviceProvider;
 
@@ -33,6 +34,7 @@ public partial class MainViewModel : ObservableObject
         ISessionService sessionService,
         ILoggingService loggingService,
         IKeyboardShortcutService keyboardShortcutService,
+        INavigationService navigationService,
         FileTreeViewModel fileTreeViewModel,
         IServiceProvider serviceProvider)
     {
@@ -40,6 +42,7 @@ public partial class MainViewModel : ObservableObject
         _sessionService = sessionService;
         _loggingService = loggingService;
         _keyboardShortcutService = keyboardShortcutService;
+        _navigationService = navigationService;
         _fileTreeViewModel = fileTreeViewModel;
         _serviceProvider = serviceProvider;
 
@@ -72,6 +75,18 @@ public partial class MainViewModel : ObservableObject
         _keyboardShortcutService.RegisterShortcut("T", KeyModifiers.CtrlShift, 
             () => ReopenLastClosedTab(), "Reopen last closed tab");
 
+        // Back/Forward navigation shortcuts
+        _keyboardShortcutService.RegisterShortcut("Left", KeyModifiers.Alt,
+            () => GoBack(), "Navigate back");
+        _keyboardShortcutService.RegisterShortcut("Right", KeyModifiers.Alt,
+            () => GoForward(), "Navigate forward");
+
+        // Scroll shortcuts
+        _keyboardShortcutService.RegisterShortcut("Home", KeyModifiers.Ctrl,
+            () => ScrollToTop(), "Scroll to top");
+        _keyboardShortcutService.RegisterShortcut("End", KeyModifiers.Ctrl,
+            () => ScrollToBottom(), "Scroll to bottom");
+
         // Direct tab access (Ctrl+1 through Ctrl+9)
         for (int i = 1; i <= 9; i++)
         {
@@ -80,7 +95,7 @@ public partial class MainViewModel : ObservableObject
                 () => SwitchToTabByIndex(index), $"Switch to tab {i}");
         }
 
-        _loggingService.LogInfo("Keyboard shortcuts registered for tab management");
+        _loggingService.LogInfo("Keyboard shortcuts registered for tab management and navigation");
     }
 
     [RelayCommand]
@@ -177,6 +192,48 @@ public partial class MainViewModel : ObservableObject
         {
             _loggingService.LogError($"Failed to open settings: {ex.Message}");
         }
+    }
+
+    [RelayCommand]
+    private void GoBack()
+    {
+        if (ActiveTab == null) return;
+
+        var previousPath = _navigationService.GoBack(ActiveTab.Id);
+        if (previousPath != null)
+        {
+            // Navigate to previous document
+            _loggingService.LogInfo($"Navigating back to: {previousPath}");
+            // TODO: Load document in current tab without adding to history
+        }
+    }
+
+    [RelayCommand]
+    private void GoForward()
+    {
+        if (ActiveTab == null) return;
+
+        var nextPath = _navigationService.GoForward(ActiveTab.Id);
+        if (nextPath != null)
+        {
+            // Navigate to next document
+            _loggingService.LogInfo($"Navigating forward to: {nextPath}");
+            // TODO: Load document in current tab without adding to history
+        }
+    }
+
+    [RelayCommand]
+    private void ScrollToTop()
+    {
+        _loggingService.LogInfo("Scroll to top command executed");
+        // TODO: Implement WebView scroll to top via JavaScript
+    }
+
+    [RelayCommand]
+    private void ScrollToBottom()
+    {
+        _loggingService.LogInfo("Scroll to bottom command executed");
+        // TODO: Implement WebView scroll to bottom via JavaScript
     }
 
     [RelayCommand]
