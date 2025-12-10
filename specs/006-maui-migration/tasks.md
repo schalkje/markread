@@ -572,25 +572,25 @@ All paths relative to repository root:
 
 ### Error Handling & Edge Cases
 
-- [ ] T229 [P] Implement permission error handling for file tree (inline warning icons with tooltips)
-- [ ] T230 [P] Add graceful degradation for malformed markdown
-- [ ] T231 [P] Implement debouncing for rapid file system changes (100+ files)
-- [ ] T232 [P] Add minimum window size constraints to prevent UI breakage
+- [X] T229 [P] Implement permission error handling for file tree (inline warning icons with tooltips)
+- [X] T230 [P] Add graceful degradation for malformed markdown
+- [X] T231 [P] Implement debouncing for rapid file system changes (100+ files)
+- [X] T232 [P] Add minimum window size constraints to prevent UI breakage
 - [ ] T233 [P] Implement high-DPI display support validation
 
 ### User Experience Polish
 
-- [ ] T234 Add smooth loading transitions for all views
-- [ ] T235 Implement modern error dialogs with helpful messages
-- [ ] T236 Add confirmation dialogs for destructive actions (close all tabs)
+- [X] T234 Add smooth loading transitions for all views
+- [X] T235 Implement modern error dialogs with helpful messages
+- [X] T236 Add confirmation dialogs for destructive actions (close all tabs)
 - [ ] T237 Polish all animations for consistent timing and easing curves
 - [ ] T238 Implement visual feedback for all loading states
 
 ### Documentation
 
-- [ ] T239 Update README.md with MAUI architecture overview
-- [ ] T240 Create QUICKSTART.md for developers with build/run instructions
-- [ ] T241 Document all keyboard shortcuts in documentation/reference/keyboard-shortcuts.md
+- [X] T239 Update README.md with MAUI architecture overview
+- [X] T240 Create QUICKSTART.md for developers with build/run instructions
+- [X] T241 Document all keyboard shortcuts in documentation/reference/keyboard-shortcuts.md
 - [ ] T242 Create migration notes documenting lessons learned from WPF to MAUI
 
 ### Final Integration & Validation
