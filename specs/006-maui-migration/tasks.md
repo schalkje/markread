@@ -483,16 +483,16 @@ All paths relative to repository root:
 
 ### CLI Arguments (P1 - Critical for MVP)
 
-- [ ] T191 Create StartupArguments parser for Windows in src/Platforms/Windows/ (parse file/folder paths, environment variables)
-- [ ] T192 Integrate StartupArguments with App.xaml.cs startup sequence
-- [ ] T193 Implement "open file" behavior on startup (if file argument provided)
-- [ ] T194 Implement "open folder" behavior on startup (if folder argument provided)
+- [x] T191 Create StartupArguments parser for Windows in src/Platforms/Windows/ (parse file/folder paths, environment variables)
+- [x] T192 Integrate StartupArguments with App.xaml.cs startup sequence
+- [x] T193 Implement "open file" behavior on startup (if file argument provided)
+- [x] T194 Implement "open folder" behavior on startup (if folder argument provided)
 
 ### Platform-Specific Features
 
-- [ ] T195 [P] Configure Windows app manifest in src/Platforms/Windows/Package.appxmanifest
-- [ ] T196 [P] Add Windows-specific file associations for .md files
-- [ ] T197 [P] Setup Windows notification integration for file watch alerts
+- [x] T195 [P] Configure Windows app manifest in src/Platforms/Windows/Package.appxmanifest
+- [x] T196 [P] Add Windows-specific file associations for .md files
+- [x] T197 [P] Setup Windows notification integration for file watch alerts
 
 ### Testing
 

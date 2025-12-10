@@ -1,6 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using MarkRead.Services;
 using MarkRead.Views;
+#if WINDOWS
+using MarkRead.Platforms.Windows;
+#endif
 
 namespace MarkRead;
 
@@ -11,6 +14,9 @@ public partial class App : Application
 	private readonly ISessionService _sessionService;
 	private readonly ILoggingService _loggingService;
 	private readonly IThemeService _themeService;
+	private readonly ITabService _tabService;
+	private readonly IFileSystemService _fileSystemService;
+	private StartupArguments? _startupArguments;
 
 	public App(IServiceProvider serviceProvider)
 	{
@@ -20,12 +26,38 @@ public partial class App : Application
 		_sessionService = serviceProvider.GetRequiredService<ISessionService>();
 		_loggingService = serviceProvider.GetRequiredService<ILoggingService>();
 		_themeService = serviceProvider.GetRequiredService<IThemeService>();
+		_tabService = serviceProvider.GetRequiredService<ITabService>();
+		_fileSystemService = serviceProvider.GetRequiredService<IFileSystemService>();
+		
+		// Parse command-line arguments
+		ParseStartupArguments();
 		
 		// Initialize theme before creating window
 		_ = InitializeThemeAsync();
 		
 		// Resolve MainPage from DI container
 		_mainPage = serviceProvider.GetRequiredService<MainPage>();
+	}
+	
+	private void ParseStartupArguments()
+	{
+		try
+		{
+#if WINDOWS
+			var args = Environment.GetCommandLineArgs();
+			// Skip first argument (executable path)
+			_startupArguments = StartupArguments.Parse(args.Skip(1).ToArray());
+			
+			if (_startupArguments.HasPath)
+			{
+				_loggingService.LogInfo($"Startup path detected: {_startupArguments.GetPrimaryPath()}");
+			}
+#endif
+		}
+		catch (Exception ex)
+		{
+			_loggingService.LogError($"Failed to parse startup arguments: {ex.Message}");
+		}
 	}
 
 	private async Task InitializeThemeAsync()
@@ -45,13 +77,97 @@ public partial class App : Application
 	{
 		var window = new Window(_mainPage);
 		
-		// Check for abnormal termination after window is created
+		// Check for abnormal termination and handle startup arguments after window is created
 		MainThread.BeginInvokeOnMainThread(async () =>
 		{
 			await CheckSessionRecoveryAsync();
+			await HandleStartupArgumentsAsync();
 		});
 		
 		return window;
+	}
+	
+	private async Task HandleStartupArgumentsAsync()
+	{
+		try
+		{
+			if (_startupArguments == null || !_startupArguments.HasPath)
+			{
+				return;
+			}
+			
+			var path = _startupArguments.GetPrimaryPath();
+			if (string.IsNullOrEmpty(path))
+			{
+				return;
+			}
+			
+			if (_startupArguments.IsFilePath)
+			{
+				// Open file behavior
+				_loggingService.LogInfo($"Opening file from startup: {path}");
+				await OpenFileAsync(path);
+			}
+			else if (_startupArguments.IsFolderPath)
+			{
+				// Open folder behavior
+				_loggingService.LogInfo($"Opening folder from startup: {path}");
+				await OpenFolderAsync(path);
+			}
+		}
+		catch (Exception ex)
+		{
+			_loggingService.LogError($"Failed to handle startup arguments: {ex.Message}");
+		}
+	}
+	
+	private async Task OpenFileAsync(string filePath)
+	{
+		try
+		{
+			if (!File.Exists(filePath))
+			{
+				_loggingService.LogWarning($"Startup file does not exist: {filePath}");
+				return;
+			}
+			
+			// Check if it's a markdown file
+			var extension = Path.GetExtension(filePath).ToLowerInvariant();
+			if (extension != ".md" && extension != ".markdown")
+			{
+				_loggingService.LogWarning($"Startup file is not a markdown file: {filePath}");
+				return;
+			}
+			
+			// Open in new tab
+			_tabService.OpenTab(filePath, setActive: true);
+			_loggingService.LogInfo($"Opened startup file in tab: {filePath}");
+		}
+		catch (Exception ex)
+		{
+			_loggingService.LogError($"Failed to open startup file: {ex.Message}");
+		}
+	}
+	
+	private async Task OpenFolderAsync(string folderPath)
+	{
+		try
+		{
+			if (!Directory.Exists(folderPath))
+			{
+				_loggingService.LogWarning($"Startup folder does not exist: {folderPath}");
+				return;
+			}
+			
+			// Load folder in file tree
+			var fileTreeViewModel = _serviceProvider.GetRequiredService<ViewModels.FileTreeViewModel>();
+			await fileTreeViewModel.LoadFolderCommand.ExecuteAsync(folderPath);
+			_loggingService.LogInfo($"Loaded startup folder in file tree: {folderPath}");
+		}
+		catch (Exception ex)
+		{
+			_loggingService.LogError($"Failed to open startup folder: {ex.Message}");
+		}
 	}
 
 	private async Task CheckSessionRecoveryAsync()

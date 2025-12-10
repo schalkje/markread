@@ -6,14 +6,14 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap rescap">
 
-  <Identity Name="maui-package-name-placeholder" Publisher="CN=User Name" Version="0.0.0.0" />
+  <Identity Name="com.markread.app" Publisher="CN=MarkRead" Version="1.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="BB4A0527-347D-4581-A1B5-640EAA1F2836" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>$placeholder$</DisplayName>
-    <PublisherDisplayName>User Name</PublisherDisplayName>
-    <Logo>$placeholder$.png</Logo>
+    <DisplayName>MarkRead</DisplayName>
+    <PublisherDisplayName>MarkRead</PublisherDisplayName>
+    <Logo>AppIcon.png</Logo>
   </Properties>
 
   <Dependencies>
@@ -28,14 +28,28 @@
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="$placeholder$"
-        Description="$placeholder$"
-        Square150x150Logo="$placeholder$.png"
-        Square44x44Logo="$placeholder$.png"
+        DisplayName="MarkRead"
+        Description="Modern markdown viewer with smooth rendering and navigation"
+        Square150x150Logo="AppIcon.png"
+        Square44x44Logo="AppIcon.png"
         BackgroundColor="transparent">
-        <uap:DefaultTile Square71x71Logo="$placeholder$.png" Wide310x150Logo="$placeholder$.png" Square310x310Logo="$placeholder$.png" />
-        <uap:SplashScreen Image="$placeholder$.png" />
+        <uap:DefaultTile Square71x71Logo="AppIcon.png" Wide310x150Logo="AppIcon.png" Square310x310Logo="AppIcon.png" />
+        <uap:SplashScreen Image="AppIcon.png" />
       </uap:VisualElements>
+      
+      <!-- File associations for .md and .markdown files -->
+      <Extensions>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="markdown">
+            <uap:DisplayName>Markdown Document</uap:DisplayName>
+            <uap:Logo>AppIcon.png</uap:Logo>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.md</uap:FileType>
+              <uap:FileType>.markdown</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+      </Extensions>
     </Application>
   </Applications>
 
