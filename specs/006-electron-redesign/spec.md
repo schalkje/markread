@@ -20,100 +20,101 @@
   - Demonstrated to users independently
 -->
 
-### User Story 1 - Open and Navigate Multiple Folders (Priority: P1)
+### User Story 1 - Rich Markdown Rendering with Code and Diagrams (Priority: P1)
 
-A technical writer works on documentation for multiple interconnected projects. They need to view documentation from project-core, project-api, and project-examples simultaneously, switching between folders without losing context or closing tabs.
+A developer opens a complex documentation file containing code examples in multiple languages, tables, task lists, and Mermaid sequence diagrams. The document renders immediately with proper syntax highlighting, formatted tables, and interactive diagrams.
 
-**Why this priority**: This is the foundational capability that differentiates this redesign from the current single-folder approach. Multi-folder support enables real-world documentation workflows where information spans multiple repositories or project components.
+**Why this priority**: Accurate, fast markdown rendering is the core value proposition. Without excellent rendering, all other features are meaningless. Users must trust that their documentation displays correctly with all formatting, code syntax, and diagrams intact.
 
-**Independent Test**: Open 3 folders (e.g., "docs-main", "docs-api", "docs-examples"). Each folder should maintain its own file tree and set of tabs. Switching between folders should preserve all open tabs and their scroll positions. User can close one folder without affecting others.
-
-**Acceptance Scenarios**:
-
-1. **Given** no folders are open, **When** user selects "Open Folder" and chooses 3 different directories, **Then** the application shows all 3 folders in a folder switcher, each with independent file trees
-2. **Given** folder A has 3 tabs open and folder B has 2 tabs open, **When** user switches from folder A to folder B, **Then** folder A's tabs are hidden but preserved, and folder B's tabs are displayed
-3. **Given** multiple folders are open, **When** user closes one folder, **Then** only that folder's tabs are closed, other folders remain unaffected
-4. **Given** user has tabs open in multiple folders, **When** application is closed and reopened, **Then** all folders and their tab states are restored
-
----
-
-### User Story 2 - Keyboard-Driven Navigation and Commands (Priority: P1)
-
-A developer reviews API documentation while keeping hands on the keyboard. They use keyboard shortcuts to open files, navigate between tabs, search content, toggle panels, and execute commands without touching the mouse.
-
-**Why this priority**: Keyboard efficiency is core to the VS Code-inspired experience. Power users rely on keyboard shortcuts for speed and workflow continuity. This foundational capability must work from day one.
-
-**Independent Test**: Using only the keyboard, open the command palette (Ctrl+Shift+P), execute "Open Folder", navigate file tree with arrow keys, open files with Enter, create new tabs (Ctrl+T), switch between tabs (Ctrl+1-9), toggle sidebar (Ctrl+B), search (Ctrl+F), and navigate back/forward (Alt+Left/Right). All actions should complete successfully without mouse.
+**Independent Test**: Open a markdown file containing GitHub Flavored Markdown (tables, task lists, strikethrough), code blocks in 5+ languages (JavaScript, Python, C#, SQL, YAML), embedded images, and a Mermaid diagram. Verify all elements render correctly with proper syntax highlighting colors, table borders, checkbox rendering, and diagram layout within 500ms.
 
 **Acceptance Scenarios**:
 
-1. **Given** application is launched, **When** user presses Ctrl+Shift+P, **Then** command palette opens showing all available commands with fuzzy search
-2. **Given** command palette is open, **When** user types "theme" and presses Enter, **Then** theme selection menu appears
-3. **Given** file tree has focus, **When** user presses arrow keys and Enter, **Then** navigation moves between files and folders, Enter opens selected file
-4. **Given** multiple tabs are open, **When** user presses Ctrl+[1-9], **Then** application jumps directly to that tab number
-5. **Given** any state, **When** user presses F1, **Then** keyboard shortcuts help overlay displays
+1. **Given** a markdown file with code blocks in JavaScript, Python, and SQL, **When** file is opened, **Then** each code block displays with language-specific syntax highlighting within 500ms
+2. **Given** a markdown file with a Mermaid flowchart diagram, **When** file is rendered, **Then** diagram appears as a formatted graphic (not raw code) with proper node layout and connectors
+3. **Given** a markdown file with tables and task lists, **When** file is displayed, **Then** tables show borders and alignment, checkboxes appear as interactive UI elements
+4. **Given** a markdown file with relative image links, **When** file is rendered, **Then** images load and display at correct positions
+5. **Given** a markdown file with HTML content, **When** file is rendered, **Then** HTML is sanitized (scripts removed) but formatting preserved
 
 ---
 
-### User Story 3 - Multi-Pane Layout with Split Views (Priority: P2)
+### User Story 2 - Smooth Zoom, Scroll, and Page Navigation (Priority: P2)
 
-A documentation reviewer compares the new API guide against the old version. They split the window vertically, opening the new guide on the left and old guide on the right, scrolling each independently to verify changes.
+A reviewer reads a long technical specification document on a touch-enabled laptop. They use pinch-to-zoom to enlarge diagrams, scroll smoothly through sections with trackpad, jump to headings using keyboard shortcuts, and pan zoomed content with mouse drag - all interactions feel responsive and natural.
 
-**Why this priority**: Split views enable side-by-side comparison, a common workflow for reviewers and technical writers. While not essential for basic viewing, it significantly improves productivity for comparison tasks.
+**Why this priority**: Once content renders correctly, users need fluid navigation within documents. Zoom, scroll, and pan are fundamental reading interactions that must feel native and responsive, whether using mouse, keyboard, or touch.
 
-**Independent Test**: Open two markdown files. Execute "Split Editor Right" command (Ctrl+\\). Both files should be visible side-by-side, each with independent scroll position, zoom level, and search state. Closing one pane should not affect the other. Rearranging panes should work smoothly.
+**Independent Test**: Open a 50-page markdown document. Use Ctrl+Scroll to zoom in 200%, verify content scales smoothly. Scroll through document with mouse wheel, trackpad gestures, and Page Down key - all should be smooth (60 FPS). Use Ctrl+F to search, jump to matches with Enter/Shift+Enter. Pan zoomed content by click-dragging. All interactions should respond within 50ms.
 
 **Acceptance Scenarios**:
 
-1. **Given** a file is open in the main editor, **When** user presses Ctrl+\\, **Then** editor splits into two panes with the same file shown in both
-2. **Given** editor is split, **When** user opens a different file in the right pane, **Then** two different files are displayed side-by-side
-3. **Given** editor is split, **When** user scrolls or zooms in one pane, **Then** the other pane is unaffected
-4. **Given** editor has multiple splits, **When** user presses Ctrl+W on one pane, **Then** only that pane closes, others remain
-5. **Given** editor is split, **When** user drags the divider, **Then** pane sizes adjust responsively
+1. **Given** a document is open at 100% zoom, **When** user presses Ctrl+Plus or Ctrl+Scroll-up, **Then** content zooms in 10% increments up to 500%, maintaining scroll position
+2. **Given** a document is zoomed to 200%, **When** user click-drags on the content, **Then** content pans in all directions, cursor shows pan/grab icon
+3. **Given** a long document is open, **When** user scrolls with mouse wheel or trackpad, **Then** scrolling is smooth at 60 FPS with no stuttering
+4. **Given** a document with multiple headings, **When** user presses Ctrl+G or uses heading navigation, **Then** view jumps to selected heading instantly
+5. **Given** a document on touch device, **When** user uses pinch gesture, **Then** content zooms smoothly following finger positions
 
 ---
 
-### User Story 4 - Native File Integration and System Menus (Priority: P2)
+### User Story 3 - Multi-Tab and Multi-Document Navigation (Priority: P3)
 
-A user receives a README.md file via email. They right-click the file in Windows Explorer, select "Open with MarkRead", and the file opens immediately. They also access MarkRead from the Windows Start menu, the taskbar, and can drag-drop files onto the application window.
+A technical writer works on interconnected documentation files. They open multiple related files in tabs, switch between them using Ctrl+Tab or Ctrl+1-9, navigate forward/backward through their reading history with Alt+Left/Right, and view two documents side-by-side when comparing content.
 
-**Why this priority**: Native OS integration provides seamless user experience and discoverability. Users expect desktop applications to work with Windows conventions like file associations, context menus, and drag-drop.
+**Why this priority**: Multi-document workflows are essential for serious documentation work, but rely on having excellent single-document rendering and navigation first. Tabs and history enable efficient context switching.
 
-**Independent Test**: Associate .md files with MarkRead during installation. Right-click a .md file in Explorer and verify "Open with MarkRead" appears. Drag a .md file onto MarkRead window and verify it opens. Pin MarkRead to taskbar and verify recent files appear in jumplist.
+**Independent Test**: Open 5 markdown files in separate tabs. Switch between tabs using Ctrl+1-5 and Ctrl+Tab. Click links to navigate between documents, then use Alt+Left to return. Split view with Ctrl+\\ to show two documents side-by-side. Close tabs with Ctrl+W. All operations should complete within 100ms.
 
 **Acceptance Scenarios**:
 
-1. **Given** MarkRead is installed, **When** user right-clicks a .md file in Explorer, **Then** "Open with MarkRead" appears in context menu
-2. **Given** MarkRead is running, **When** user drags a .md file onto the window, **Then** file opens in a new tab
-3. **Given** MarkRead is pinned to taskbar, **When** user right-clicks the taskbar icon, **Then** recent files and folders appear in the jumplist
-4. **Given** application menu is open, **When** user selects File → Open Recent, **Then** list shows recently opened files and folders
-5. **Given** MarkRead window is open, **When** user double-clicks a .md file in Explorer, **Then** file opens in existing MarkRead window (single instance behavior)
+1. **Given** 5 files are open in tabs, **When** user presses Ctrl+3, **Then** application switches to tab 3 instantly (< 100ms)
+2. **Given** user clicks a link to navigate from Doc A to Doc B, **When** user presses Alt+Left, **Then** view returns to Doc A at previous scroll position
+3. **Given** a file is open, **When** user presses Ctrl+\\, **Then** editor splits showing same file in both panes
+4. **Given** split view is active, **When** user opens different file in right pane, **Then** two files display side-by-side with independent scroll
+5. **Given** multiple tabs are open, **When** user presses Ctrl+W, **Then** active tab closes, next tab becomes active
 
 ---
 
-### User Story 5 - Real-Time File Monitoring and Auto-Reload (Priority: P3)
+### User Story 4 - Keyboard-Driven Commands and Shortcuts (Priority: P3)
 
-A technical writer edits documentation in VS Code while previewing it in MarkRead. When they save changes in VS Code, MarkRead automatically refreshes the preview within 1 second, preserving scroll position and showing the updated content.
+A power user reviews documentation while keeping hands on the keyboard. They use Ctrl+Shift+P to open the command palette, type commands to switch themes, toggle sidebar, and search files. They use Ctrl+O to open files, Ctrl+F to search content, and F1 to view all keyboard shortcuts.
 
-**Why this priority**: Real-time updates improve the preview workflow but are not critical for basic document viewing. The current application already has this feature; the redesign should maintain and improve it.
+**Why this priority**: Keyboard efficiency accelerates workflows for power users. While mouse and touch are important, keyboard commands enable fastest navigation for users who learn the shortcuts.
 
-**Independent Test**: Open a .md file in MarkRead and the same file in a text editor. Edit and save the file in the text editor. Verify MarkRead updates the preview within 1 second without user action, maintaining scroll position and current zoom level.
+**Independent Test**: Using only the keyboard, open command palette (Ctrl+Shift+P), search for "theme" command, execute theme change. Open file tree with Ctrl+B, navigate with arrows, open file with Enter. Search document with Ctrl+F, navigate matches with F3. View shortcuts with F1. All actions complete successfully.
 
 **Acceptance Scenarios**:
 
-1. **Given** a file is open in MarkRead, **When** the file is modified externally and saved, **Then** MarkRead refreshes the view within 1 second with a brief "Reloaded" notification
-2. **Given** a file is being edited rapidly (multiple saves within 2 seconds), **When** saves complete, **Then** MarkRead debounces updates and refreshes once after 500ms of inactivity
-3. **Given** a file is renamed or deleted externally, **When** filesystem event occurs, **Then** MarkRead updates the tab title or shows "File deleted" message
-4. **Given** a file is open and user is scrolled 50% down, **When** file is modified externally, **Then** MarkRead reloads and maintains 50% scroll position
-5. **Given** multiple files are open, **When** only one is modified externally, **Then** only that file's tab is refreshed, others remain unchanged
+1. **Given** application is launched, **When** user presses Ctrl+Shift+P, **Then** command palette opens with fuzzy search of all commands
+2. **Given** document is open, **When** user presses Ctrl+F, **Then** find bar appears with search input focused
+3. **Given** sidebar is visible, **When** user presses Ctrl+B, **Then** sidebar toggles hidden
+4. **Given** multiple tabs are open, **When** user presses Ctrl+Tab, **Then** next tab becomes active
+5. **Given** any state, **When** user presses F1, **Then** keyboard shortcuts reference overlay displays
 
 ---
 
-### User Story 6 - Theme Customization with Dark/Light/High Contrast (Priority: P3)
+### User Story 5 - Multi-Folder Workspaces (Priority: P4)
+
+A technical writer works on documentation for multiple interconnected projects. They open project-core, project-api, and project-examples folders simultaneously, each maintaining independent file trees and tabs. Switching between folders preserves all context.
+
+**Why this priority**: Multi-folder support enables advanced workflows where documentation spans repositories, but most users work in single folders. This can be added after core viewing and navigation features are solid.
+
+**Independent Test**: Open 3 folders. Each folder should show independent file tree and tab collection. Switch between folders and verify tabs are preserved. Close one folder without affecting others. Restart application and verify all folders and tabs restore.
+
+**Acceptance Scenarios**:
+
+1. **Given** no folders are open, **When** user opens 3 different directories, **Then** application shows all 3 folders in folder switcher
+2. **Given** folder A has 3 tabs and folder B has 2 tabs, **When** user switches folders, **Then** appropriate tabs display for active folder
+3. **Given** multiple folders are open, **When** user closes one folder, **Then** only that folder's tabs close
+4. **Given** folders are open with tabs, **When** application restarts, **Then** all folders and tab states restore
+5. **Given** multiple folders are open, **When** user opens file from tree, **Then** file opens in tab within that folder's tab group
+
+---
+
+### User Story 6 - Theme Customization with Dark/Light/High Contrast (Priority: P4)
 
 A user with visual sensitivity works in a dark environment. They switch to dark theme for comfortable reading. Later, when presenting documentation in a bright meeting room, they quickly toggle to light theme. A colleague with accessibility needs uses high contrast mode for better visibility.
 
-**Why this priority**: Theme support improves accessibility and user comfort. Dark/light themes are table stakes for modern desktop apps. High contrast is an accessibility requirement but affects fewer users, making this P3.
+**Why this priority**: Theme support improves accessibility and user comfort. Dark/light themes are expected in modern apps but are secondary to core viewing functionality. High contrast is important for accessibility.
 
 **Independent Test**: Open application and verify it respects system theme. Use command palette or settings to switch to dark theme - verify UI and content both update. Switch to light theme - verify complete update. Enable high contrast theme - verify all text has sufficient contrast ratio (WCAG AA minimum 4.5:1).
 
@@ -197,36 +198,35 @@ A user with visual sensitivity works in a dark environment. They switch to dark 
 - **FR-033**: System MUST persist user theme preference across sessions, overriding system theme when user has explicit preference
 - **FR-034**: Application MUST update theme immediately when system theme changes (if theme mode is set to "System")
 
-#### Markdown Rendering (Preserved from Current Implementation)
+#### Markdown Rendering (Reusing Current Implementation Libraries)
 
 - **FR-035**: System MUST support GitHub Flavored Markdown including tables, task lists, strikethrough, and autolinks
-- **FR-036**: Application MUST provide syntax highlighting for code blocks with support for 50+ languages (using Prism.js or Highlight.js)
-- **FR-037**: System MUST render Mermaid diagrams (flowcharts, sequence diagrams, class diagrams, state diagrams, Gantt charts)
-- **FR-038**: Application MUST sanitize HTML content and prevent script execution for security
-- **FR-039**: System MUST resolve relative image paths and markdown links relative to the current file's location
-- **FR-040**: Application MUST support anchor links and scrolling to heading IDs within documents
+- **FR-036**: Application MUST provide syntax highlighting for code blocks with support for 50+ languages using existing libraries (Prism.js or Highlight.js from current implementation)
+- **FR-037**: System MUST render Mermaid diagrams (flowcharts, sequence diagrams, class diagrams, state diagrams, Gantt charts) using existing Mermaid.js library
+- **FR-038**: Application MUST use existing markdown-it library (or equivalent markdown parser currently in use) for parsing and rendering markdown to HTML
+- **FR-039**: Application MUST sanitize HTML content and prevent script execution for security
+- **FR-040**: System MUST resolve relative image paths and markdown links relative to the current file's location
+- **FR-041**: Application MUST support anchor links and scrolling to heading IDs within documents
 
 #### Search Capabilities (Enhanced)
 
-- **FR-041**: System MUST provide in-page search (Ctrl+F) with case-sensitive/insensitive options, whole word matching, and regex support
-- **FR-042**: Application MUST implement cross-file search (Ctrl+Shift+F) searching all files in the active folder
-- **FR-043**: Cross-file search MUST display results grouped by file with preview snippets and click-to-navigate functionality
-- **FR-044**: System MUST support search-and-replace functionality within single files (Ctrl+H)
-- **FR-045**: Application MUST highlight all search matches in the document with distinct styling for the active match
+- **FR-042**: System MUST provide in-page search (Ctrl+F) with case-sensitive/insensitive options, whole word matching, and regex support
+- **FR-043**: Application MUST implement cross-file search (Ctrl+Shift+F) searching all files in the active folder
+- **FR-044**: Cross-file search MUST display results grouped by file with preview snippets and click-to-navigate functionality
+- **FR-045**: System MUST support search-and-replace functionality within single files (Ctrl+H)
+- **FR-046**: Application MUST highlight all search matches in the document with distinct styling for the active match
 
 #### Settings and Configuration
 
-- **FR-046**: System MUST store all settings in a local JSON configuration file (e.g., %APPDATA%/MarkRead/settings.json)
-- **FR-047**: Application MUST provide a settings UI (Ctrl+,) for configuring themes, keyboard shortcuts, file watching, auto-reload, and UI preferences
-- **FR-048**: System MUST support workspace-specific settings that override global settings for individual folders
-- **FR-049**: Application MUST validate configuration file on load and repair/reset if corrupted
+- **FR-047**: System MUST store all settings in a local JSON configuration file (e.g., %APPDATA%/MarkRead/settings.json)
+- **FR-048**: Application MUST provide a settings UI (Ctrl+,) for configuring themes, keyboard shortcuts, file watching, auto-reload, and UI preferences
+- **FR-049**: System MUST support workspace-specific settings that override global settings for individual folders
+- **FR-050**: Application MUST validate configuration file on load and repair/reset if corrupted
 
-#### Migration from Current .NET/WPF Implementation
+#### Export and Advanced Features
 
-- **FR-050**: Migration scripts MUST convert existing user settings from .NET configuration to Electron JSON format
-- **FR-051**: Application MUST preserve user data including theme preferences, recent files, folder state, and window position during migration
-- **FR-052**: Old .NET/WPF codebase MUST be moved to `/src.old` folder and clearly marked as deprecated
-- **FR-053**: Installation process MUST detect existing .NET version and offer to import settings and uninstall old version
+- **FR-051**: Application MUST support export to PDF via native browser print-to-PDF functionality
+- **FR-052**: Export MUST preserve markdown formatting, code syntax highlighting, and rendered diagrams in PDF output
 
 ### Key Entities *(include if feature involves data)*
 
@@ -243,18 +243,18 @@ A user with visual sensitivity works in a dark environment. They switch to dark 
 
 ### Measurable Outcomes
 
-- **SC-001**: Users can open and work with 5 folders simultaneously, each with 10 tabs, without performance degradation (measured: folder switch time < 300ms, tab switch time < 100ms)
-- **SC-002**: 90% of common user actions can be completed using only the keyboard, verified through usability testing with power users
-- **SC-003**: Application launches in under 2 seconds on a standard Windows 10 machine (cold start, measured from double-click to first rendered window)
-- **SC-004**: File watcher updates appear in the UI within 1 second of external file modification, with scroll position preserved in 95% of cases
-- **SC-005**: Application handles folders containing 10,000+ markdown files with file tree load time under 3 seconds and smooth scrolling
-- **SC-006**: Theme switching completes within 200ms with no visual flicker or jarring transitions
-- **SC-007**: Split view performance matches single-pane performance (scrolling, searching, zooming all < 16ms frame time for 60 FPS)
-- **SC-008**: Command palette fuzzy search returns relevant results within 50ms for command lists up to 500 commands
-- **SC-009**: Application memory footprint remains under 300MB with 20 tabs open across 3 folders
-- **SC-010**: Native integration works seamlessly: file associations, drag-drop, recent files, and context menus all functional at 100% reliability
-- **SC-011**: Migration from .NET version succeeds for 100% of tested user configurations without data loss
-- **SC-012**: Keyboard shortcut discoverability improves: 80% of surveyed users find and use at least 5 keyboard shortcuts within first week
+- **SC-001**: Complex markdown documents (10+ code blocks, 5+ diagrams, 20+ images) render completely within 500ms on standard hardware
+- **SC-002**: Syntax highlighting displays correctly for 50+ programming languages using existing library configurations
+- **SC-003**: Mermaid diagrams render as formatted graphics (not code) with proper layout in 100% of valid diagram cases
+- **SC-004**: Zoom operations (10%-500% range) complete within 50ms with smooth scaling and maintained scroll position
+- **SC-005**: Scrolling maintains 60 FPS (< 16ms frame time) on documents up to 10,000 lines with mouse, keyboard, and touch input
+- **SC-006**: Tab switching completes within 100ms for up to 20 open tabs
+- **SC-007**: Split view performance matches single-pane performance (scrolling, zooming, searching all maintain 60 FPS)
+- **SC-008**: Application launches in under 2 seconds on standard Windows 10 machine (cold start to first rendered window)
+- **SC-009**: Application memory footprint remains under 300MB with 20 tabs open
+- **SC-010**: 90% of common user actions can be completed using keyboard shortcuts
+- **SC-011**: PDF export preserves all formatting including syntax highlighting and diagrams
+- **SC-012**: Theme switching completes within 200ms with no visual flicker
 
 ## Assumptions
 
@@ -287,11 +287,11 @@ A user with visual sensitivity works in a dark environment. They switch to dark 
 
 ### Dependent Features
 
-- **FR-053 (Migration Scripts)** depends on FR-046 (Settings Storage) being defined and implemented first
 - **FR-018 (Persist Split Layout)** depends on FR-014-017 (Multi-Pane Layout) being functional
-- **FR-043 (Cross-File Search Results)** depends on FR-042 (Cross-File Search Implementation) providing search API
+- **FR-044 (Cross-File Search Results)** depends on FR-043 (Cross-File Search Implementation) providing search API
 - **FR-029 (Global Shortcuts)** depends on FR-010 (Keyboard Navigation) and FR-011 (Configurable Shortcuts) being implemented
 - **FR-032 (Theme Application Speed)** depends on FR-030 (Theme Modes) architecture supporting async theme loading
+- **FR-051-052 (PDF Export)** depends on FR-035-041 (Markdown Rendering) being complete and tested
 
 ## Out of Scope
 
@@ -301,7 +301,7 @@ The following features are explicitly excluded from this redesign phase:
 2. **Collaboration Features**: No real-time co-viewing, comments, or multi-user capabilities
 3. **Cloud Sync**: No synchronization of settings, recent files, or bookmarks across devices
 4. **Plugin System**: No extensibility API or third-party plugin support in initial release
-5. **Export to PDF/HTML**: No file export functionality beyond native browser print-to-PDF
+5. **Migration from .NET/WPF Version**: No automatic migration of settings from current .NET implementation; users configure Electron version from scratch
 6. **Mobile or Web Versions**: Electron application targets Windows desktop only; no responsive mobile web UI
 7. **Git Integration**: No built-in git status indicators, diff views, or commit history integration
 8. **Full-Text Indexing**: No search index building; cross-file search uses real-time file system scanning
@@ -322,11 +322,10 @@ The following features are explicitly excluded from this redesign phase:
 - **Startup Time**: Cold start (launch) must complete within 2 seconds to meet desktop application expectations
 - **Rendering Performance**: Scrolling and interactions must maintain 60 FPS (16ms frame time) on mid-range hardware (Intel i5-8250U equivalent)
 
-### Migration Constraints
+### File Format Constraints
 
-- **Backwards Compatibility**: Must support import of settings from current .NET/WPF version (version 1.x)
-- **No Breaking Changes to File Formats**: Markdown files, images, and folder structures must work identically in both old and new versions
-- **Coexistence Period**: Old .NET version and new Electron version may coexist on user systems during transition; must not conflict (different executable names, separate settings locations)
+- **No Breaking Changes to File Formats**: Markdown files, images, and folder structures must work identically, enabling users to switch between any markdown viewer
+- **Clean Installation**: Electron version installs independently; no automatic migration from .NET version (users reconfigure manually)
 
 ### UX Constraints
 

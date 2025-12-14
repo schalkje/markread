@@ -78,17 +78,17 @@
 ## Feature Readiness
 
 - [x] All functional requirements have clear acceptance criteria
-  - ✓ User stories map to requirements (e.g., Story 1 → FR-005 to FR-008)
+  - ✓ User stories map to requirements (e.g., Story 1 → FR-035 to FR-041)
   - ✓ Each requirement is verifiable through acceptance scenarios
   - ✓ Edge cases provide additional acceptance criteria for boundary conditions
   
 - [x] User scenarios cover primary flows
-  - ✓ P1: Multi-folder navigation (foundational capability)
-  - ✓ P1: Keyboard-driven workflow (core UX differentiator)
-  - ✓ P2: Split views (productivity feature)
-  - ✓ P2: Native integration (OS-level experience)
-  - ✓ P3: File monitoring (existing feature maintained)
-  - ✓ P3: Theme customization (accessibility and comfort)
+  - ✓ P1: Markdown rendering with code and diagrams (core value proposition)
+  - ✓ P2: Zoom, scroll, pan navigation (fundamental reading interactions)
+  - ✓ P3: Multi-tab and document navigation (multi-document workflows)
+  - ✓ P3: Keyboard commands (power user efficiency)
+  - ✓ P4: Multi-folder workspaces (advanced workflows)
+  - ✓ P4: Theme customization (accessibility and comfort)
   
 - [x] Feature meets measurable outcomes defined in Success Criteria
   - ✓ Performance targets: launch < 2s, folder switch < 300ms, tab switch < 100ms
@@ -108,7 +108,9 @@
 ## Notes
 
 - **Strengths**:
-  - Comprehensive user scenarios with clear priorities and independent testability
+  - Priorities correctly reflect core value: P1 rendering, P2 navigation, P3 multi-document
+  - Requirements emphasize reuse of existing JS libraries (Prism.js, Highlight.js, Mermaid, markdown-it)
+  - Migration requirements removed from scope per user request
   - Well-organized requirements covering all major functional areas
   - Strong measurability in success criteria (specific thresholds, percentages, timeframes)
   - Thorough edge case analysis with specific system behaviors
