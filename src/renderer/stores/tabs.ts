@@ -17,10 +17,10 @@ interface TabsState {
   updateTabZoomLevel: (tabId: string, zoomLevel: number) => void;
 }
 
-export const useTabsStore = create<TabsState>((set, get) => ({
+export const useTabsStore = create<TabsState>((set) => ({
   tabs: new Map(),
 
-  addTab: (folderId, tab) => {
+  addTab: (_folderId, tab) => {
     set((state) => {
       const newTabs = new Map(state.tabs);
       newTabs.set(tab.id, tab);
@@ -29,7 +29,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     return tab;
   },
 
-  removeTab: (folderId, tabId) => {
+  removeTab: (_folderId, tabId) => {
     set((state) => {
       const newTabs = new Map(state.tabs);
       newTabs.delete(tabId);
@@ -37,7 +37,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     });
   },
 
-  setActiveTab: (folderId, tabId) => {
+  setActiveTab: (_folderId, _tabId) => {
     // Implementation will be added when integrating with folders store
   },
 

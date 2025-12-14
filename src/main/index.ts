@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron';
-import { join } from 'path';
+
 import { createWindow } from './window-manager';
 import { registerIpcHandlers } from './ipc-handlers';
 import { initLogger } from './logger';
@@ -19,9 +19,6 @@ let mainWindow: BrowserWindow | null = null;
 // T020: Initialize logging
 initLogger();
 
-// T011: Register all IPC handlers
-registerIpcHandlers();
-
 // Single instance lock (FR-028)
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -37,6 +34,9 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(() => {
+    // T011: Register all IPC handlers (must be done after app is ready)
+    registerIpcHandlers();
+
     // T009: Create main window with security config
     mainWindow = createWindow();
 

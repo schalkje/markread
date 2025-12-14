@@ -4,7 +4,8 @@
  */
 
 import { create } from 'zustand';
-import type { Theme, ThemeType } from '@shared/types/entities';
+import type { Theme } from '@shared/types/entities';
+import { ThemeType } from '@shared/types/entities';
 
 interface ThemeState {
   currentTheme: Theme | null;
@@ -18,11 +19,11 @@ interface ThemeState {
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
   currentTheme: null,
-  systemTheme: 'light',
+  systemTheme: ThemeType.Light,
 
   detectSystemTheme: () => {
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    set({ systemTheme: isDark ? 'dark' : 'light' });
+    set({ systemTheme: isDark ? ThemeType.Dark : ThemeType.Light });
   },
 
   initializeTheme: () => {
@@ -32,10 +33,10 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     // Watch for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQuery.addEventListener('change', (e) => {
-      set({ systemTheme: e.matches ? 'dark' : 'light' });
+      set({ systemTheme: e.matches ? ThemeType.Dark : ThemeType.Light });
     });
 
-    applyTheme('light'); // Default theme
+    applyTheme(ThemeType.Light); // Default theme
   },
 
   applyTheme: (themeType) => {

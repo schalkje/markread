@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(pwsh:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run dev:*)",
+      "Bash(node -e:*)",
+      "Bash(npm install:*)",
+      "Bash(npx electron dist/main/index.js)",
+      "Bash(npx electron:*)",
+      "Bash(node_modules/electron/dist/electron.exe:*)"
     ],
     "deny": [],
     "ask": []

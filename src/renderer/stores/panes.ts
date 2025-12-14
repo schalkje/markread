@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import type { Pane, PanelLayout } from '@shared/types/entities';
+import type { Pane } from '@shared/types/entities';
 
 interface PanesState {
   panes: Map<string, Pane>;

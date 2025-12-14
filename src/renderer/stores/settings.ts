@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import type { Settings } from '@shared/types/entities';
+import { LogLevel } from '@shared/types/entities';
 
 // Default settings
 const createDefaultSettings = (): Settings => ({
@@ -52,7 +53,7 @@ const createDefaultSettings = (): Settings => ({
     customCssEnabled: false,
     customCssPath: null,
     loggingEnabled: true,
-    logLevel: 'Info',
+    logLevel: LogLevel.Info,
     logFilePath: '%APPDATA%/MarkRead/logs/app.log',
     logMaxSize: 10485760, // 10MB
     updateCheckFrequency: 'OnStartup',

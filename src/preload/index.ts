@@ -10,6 +10,11 @@ export interface ElectronAPI {
     openFileDialog: (payload?: any) => Promise<any>;
     openFolderDialog: (payload?: any) => Promise<any>;
   };
+  settings: {
+    load: (payload: any) => Promise<any>;
+    save: (payload: any) => Promise<any>;
+    reset: (payload: any) => Promise<any>;
+  };
   // More APIs will be added in later phases
 }
 
@@ -18,6 +23,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     read: (payload: any) => ipcRenderer.invoke('file:read', payload),
     openFileDialog: (payload: any) => ipcRenderer.invoke('file:openFileDialog', payload),
     openFolderDialog: (payload: any) => ipcRenderer.invoke('file:openFolderDialog', payload),
+  },
+  settings: {
+    load: (payload: any) => ipcRenderer.invoke('settings:load', payload),
+    save: (payload: any) => ipcRenderer.invoke('settings:save', payload),
+    reset: (payload: any) => ipcRenderer.invoke('settings:reset', payload),
   },
 } as ElectronAPI);
 
