@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:MarkRead.ViewModels"
+             x:Class="MarkRead.Views.NavigationBar"
+             x:DataType="viewmodels:MainViewModel"
+             HeightRequest="48">
+    
+    <ContentView.Resources>
+        <Style x:Key="NavButton" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="BorderWidth" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="WidthRequest" Value="36" />
+            <Setter Property="HeightRequest" Value="36" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="TextColor" Value="{DynamicResource Gray900}" />
+            <Setter Property="VisualStateManager.VisualStateGroups">
+                <VisualStateGroupList>
+                    <VisualStateGroup x:Name="CommonStates">
+                        <VisualState x:Name="Normal">
+                            <VisualState.Setters>
+                                <Setter Property="BackgroundColor" Value="Transparent" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="PointerOver">
+                            <VisualState.Setters>
+                                <Setter Property="BackgroundColor" Value="{DynamicResource Gray200}" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="Pressed">
+                            <VisualState.Setters>
+                                <Setter Property="BackgroundColor" Value="{DynamicResource Gray300}" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="Disabled">
+                            <VisualState.Setters>
+                                <Setter Property="Opacity" Value="0.4" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateGroupList>
+            </Setter>
+        </Style>
+    </ContentView.Resources>
+    
+    <Border BackgroundColor="{DynamicResource SurfaceColor}"
+            Stroke="{DynamicResource Gray300}"
+            StrokeThickness="0,0,0,1"
+            Padding="8,6">
+        <Grid ColumnDefinitions="Auto,4,Auto,Auto,4,*,Auto,Auto,Auto,Auto,Auto">
+            
+            <!-- Sidebar Toggle -->
+            <Button Grid.Column="0"
+                    Text="&#9776;"
+                    Style="{StaticResource NavButton}"
+                    Command="{Binding ToggleSidebarCommand}"
+                    ToolTipProperties.Text="Toggle Sidebar" />
+            
+            <BoxView Grid.Column="1" WidthRequest="4" Color="Transparent" />
+            
+            <!-- Back Button -->
+            <Button Grid.Column="2"
+                    Text="&#8592;"
+                    Style="{StaticResource NavButton}"
+                    Command="{Binding NavigateBackCommand}"
+                    IsEnabled="{Binding CanNavigateBack}"
+                    ToolTipProperties.Text="Back (Alt+Left)" />
+            
+            <!-- Forward Button -->
+            <Button Grid.Column="3"
+                    Text="&#8594;"
+                    Style="{StaticResource NavButton}"
+                    Command="{Binding NavigateForwardCommand}"
+                    IsEnabled="{Binding CanNavigateForward}"
+                    ToolTipProperties.Text="Forward (Alt+Right)" />
+            
+            <BoxView Grid.Column="4" WidthRequest="4" Color="Transparent" />
+            
+            <!-- Current File Path / Title -->
+            <Border Grid.Column="5"
+                    BackgroundColor="{DynamicResource Gray100}"
+                    Stroke="{DynamicResource Gray300}"
+                    StrokeThickness="1"
+                    Padding="12,6"
+                    Margin="4,0"
+                    StrokeShape="RoundRectangle 4">
+                <Label Text="{Binding CurrentFilePath}"
+                       FontSize="13"
+                       VerticalOptions="Center"
+                       LineBreakMode="TailTruncation"
+                       TextColor="{DynamicResource Gray900}" />
+            </Border>
+            
+            <!-- Open Folder Button -->
+            <Button Grid.Column="6"
+                    Text="&#128193;"
+                    FontSize="18"
+                    Style="{StaticResource NavButton}"
+                    Command="{Binding OpenFolderCommand}"
+                    ToolTipProperties.Text="Open Folder (Ctrl+O)" />
+            
+            <!-- Search Button -->
+            <Button Grid.Column="7"
+                    Text="&#128269;"
+                    FontSize="18"
+                    Style="{StaticResource NavButton}"
+                    Command="{Binding ToggleSearchCommand}"
+                    ToolTipProperties.Text="Search (Ctrl+F)" />
+            
+            <!-- Export/Menu Button -->
+            <Button Grid.Column="8"
+                    Text="&#8942;"
+                    Style="{StaticResource NavButton}"
+                    Command="{Binding ShowMenuCommand}"
+                    ToolTipProperties.Text="Menu" />
+            
+            <!-- Settings Button -->
+            <Button Grid.Column="9"
+                    Text="&#9881;"
+                    Style="{StaticResource NavButton}"
+                    Command="{Binding ShowSettingsCommand}"
+                    ToolTipProperties.Text="Settings" />
+            
+            <!-- Theme Toggle Button -->
+            <Button Grid.Column="10"
+                    Text="&#9728;"
+                    Style="{StaticResource NavButton}"
+                    Command="{Binding ToggleThemeCommand}"
+                    ToolTipProperties.Text="Toggle Theme" />
+            
+        </Grid>
+    </Border>
+    
+</ContentView>

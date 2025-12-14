@@ -10,53 +10,82 @@
     </ContentPage.Behaviors>
 
     <Grid x:Name="MainGrid">
-        <Grid.Behaviors>
-            <behaviors:EdgeSwipeBehavior x:Name="SidebarEdgeSwipe" />
-        </Grid.Behaviors>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition x:Name="SidebarColumn" Width="250" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-
-        <!-- Sidebar -->
-        <Border x:Name="Sidebar" 
-                Grid.Column="0"
-                BackgroundColor="{DynamicResource Gray100Color}"
-                Padding="0">
-            <views:FileTreeView x:Name="FileTree" />
-        </Border>
-
-        <!-- Splitter -->
-        <BoxView x:Name="Splitter"
-                 Grid.Column="1"
-                 WidthRequest="12"
-                 BackgroundColor="{DynamicResource Gray200Color}"
-                 HorizontalOptions="Center">
-            <BoxView.GestureRecognizers>
-                <PanGestureRecognizer PanUpdated="OnSplitterPanUpdated" />
-            </BoxView.GestureRecognizers>
-        </BoxView>
-
-        <!-- Main Content Area -->
-        <Grid x:Name="ContentArea" Grid.Column="2">
-            <Grid.Behaviors>
-                <behaviors:SwipeNavigationBehavior x:Name="TabSwipeNav" />
-            </Grid.Behaviors>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-            
+        <Grid.RowDefinitions>
+            <!-- Navigation Bar -->
+            <RowDefinition Height="Auto" />
             <!-- Tab Bar -->
-            <views:TabBar x:Name="TabBar" Grid.Row="0" />
-            
-            <!-- Search Bar -->
-            <views:SearchBar x:Name="SearchBar" Grid.Row="1" />
-            
-            <!-- Document Content -->
-            <ContentView x:Name="MarkdownViewContainer" Grid.Row="2" />
+            <RowDefinition Height="Auto" />
+            <!-- Main Content with Sidebar -->
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        
+        <!-- Navigation Bar -->
+        <views:NavigationBar x:Name="NavigationBar" Grid.Row="0" />
+        
+        <!-- Tab Bar -->
+        <Border Grid.Row="1" 
+                BackgroundColor="{DynamicResource SurfaceColor}"
+                Stroke="{DynamicResource Gray300}"
+                StrokeThickness="0,0,0,1">
+            <views:TabBar x:Name="TabBar" IsVisible="{Binding Tabs.Count, Converter={StaticResource CountToVisibilityConverter}}" />
+        </Border>
+        
+        <!-- Main Content Area with Sidebar -->
+        <Grid x:Name="ContentGrid" Grid.Row="2">
+            <Grid.Behaviors>
+                <behaviors:EdgeSwipeBehavior x:Name="SidebarEdgeSwipe" />
+            </Grid.Behaviors>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="SidebarColumn" Width="280" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar -->
+            <Border x:Name="Sidebar" 
+                    Grid.Column="0"
+                    BackgroundColor="{DynamicResource SurfaceColor}"
+                    Stroke="{DynamicResource Gray300}"
+                    StrokeThickness="0,0,1,0"
+                    IsVisible="True"
+                    Padding="0">
+                <views:FileTreeView x:Name="FileTree" />
+            </Border>
+
+            <!-- Splitter -->
+            <Border x:Name="Splitter"
+                    Grid.Column="1"
+                    WidthRequest="6"
+                    BackgroundColor="{DynamicResource Gray200}"
+                    HorizontalOptions="Fill">
+                <Border.GestureRecognizers>
+                    <PanGestureRecognizer PanUpdated="OnSplitterPanUpdated" />
+                </Border.GestureRecognizers>
+                <BoxView WidthRequest="1" 
+                         BackgroundColor="{DynamicResource Gray300}"
+                         HorizontalOptions="Center" />
+            </Border>
+
+            <!-- Main Content Area -->
+            <Grid x:Name="ContentArea" 
+                  Grid.Column="2"
+                  BackgroundColor="{DynamicResource BackgroundColor}">
+                <Grid.Behaviors>
+                    <behaviors:SwipeNavigationBehavior x:Name="TabSwipeNav" />
+                </Grid.Behaviors>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                
+                <!-- Search Bar -->
+                <views:SearchBar x:Name="SearchBar" Grid.Row="0" />
+                
+                <!-- Document Content -->
+                <ContentView x:Name="MarkdownViewContainer" 
+                             Grid.Row="1"
+                             BackgroundColor="{DynamicResource BackgroundColor}" />
+            </Grid>
         </Grid>
     </Grid>
 

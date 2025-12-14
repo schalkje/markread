@@ -5,8 +5,9 @@
              xmlns:behaviors="clr-namespace:MarkRead.Behaviors"
              x:Class="MarkRead.Views.TabBar"
              x:DataType="viewmodels:MainViewModel">
-    <Grid BackgroundColor="{DynamicResource Gray100Color}"
-          HeightRequest="48">
+    <Grid BackgroundColor="{DynamicResource SurfaceColor}"
+          HeightRequest="42"
+          Padding="4,0">
         
         <!-- Tab ScrollView for overflow support -->
         <ScrollView Orientation="Horizontal"
@@ -20,12 +21,15 @@
                 
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="viewmodels:TabViewModel">
-                        <Border StrokeThickness="0"
-                                Padding="12,8"
+                        <Border Stroke="{DynamicResource Gray300}"
+                                StrokeThickness="1,1,1,0"
+                                Padding="10,6"
+                                Margin="2,4,0,0"
                                 MinimumWidthRequest="120"
-                                MaximumWidthRequest="240"
+                                MaximumWidthRequest="200"
                                 BackgroundColor="{Binding IsActive, Converter={StaticResource BoolToColorConverter}, 
-                                                          ConverterParameter='active'}">
+                                                          ConverterParameter='active'}"
+                                StrokeShape="RoundRectangle 4,4,0,0">
                             
                             <!-- Add drag behavior for reordering -->
                             <Border.Behaviors>
@@ -33,7 +37,7 @@
                             </Border.Behaviors>
                             
                             <!-- Tab Container -->
-                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
                                 
                                 <!-- Pin Icon (if pinned) -->
                                 <Image Grid.Column="0" 
@@ -46,10 +50,11 @@
                                 <!-- Tab Title -->
                                 <Label Grid.Column="1"
                                        Text="{Binding Title}"
-                                       FontSize="13"
+                                       FontSize="12"
+                                       FontFamily="OpenSansRegular"
                                        LineBreakMode="TailTruncation"
                                        VerticalOptions="Center"
-                                       TextColor="{DynamicResource Gray900Color}"
+                                       TextColor="{DynamicResource Gray900}"
                                        SemanticProperties.Description="{Binding Title}"
                                        SemanticProperties.Hint="Double tap to switch to this tab">
                                     <Label.GestureRecognizers>
@@ -61,12 +66,13 @@
                                 <!-- Close Button -->
                                 <Button Grid.Column="2"
                                         Text="×"
-                                        FontSize="18"
-                                        WidthRequest="44"
-                                        HeightRequest="44"
+                                        FontSize="16"
+                                        WidthRequest="20"
+                                        HeightRequest="20"
                                         Padding="0"
+                                        CornerRadius="2"
                                         BackgroundColor="Transparent"
-                                        TextColor="{DynamicResource Gray600Color}"
+                                        TextColor="{DynamicResource Gray600}"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:MainViewModel}}, Path=CloseTabCommand}"
                                         CommandParameter="{Binding Id}"
                                         VerticalOptions="Center"
@@ -77,9 +83,6 @@
                                             <Setter Property="IsVisible" Value="False" />
                                         </DataTrigger>
                                     </Button.Triggers>
-                                    <Button.Shadow>
-                                        <Shadow Brush="Transparent" Radius="0" />
-                                    </Button.Shadow>
                                 </Button>
                             </Grid>
                             
@@ -103,21 +106,18 @@
         
         <!-- New Tab Button -->
         <Button Text="+"
-                FontSize="18"
-                WidthRequest="40"
-                HeightRequest="40"
+                FontSize="20"
+                WidthRequest="32"
+                HeightRequest="32"
                 Padding="0"
+                CornerRadius="4"
                 BackgroundColor="Transparent"
-                TextColor="{DynamicResource Gray700Color}"
+                TextColor="{DynamicResource Gray700}"
                 Command="{Binding NewTabCommand}"
                 HorizontalOptions="End"
                 VerticalOptions="Center"
-                Margin="0,0,4,0"
+                Margin="8,0,4,0"
                 ToolTipProperties.Text="New tab (Ctrl+T)"
-                SemanticProperties.Hint="Open a new tab. Keyboard shortcut: Control plus T">
-            <Button.Shadow>
-                <Shadow Brush="Transparent" Radius="0" />
-            </Button.Shadow>
-        </Button>
+                SemanticProperties.Hint="Open a new tab. Keyboard shortcut: Control plus T" />
     </Grid>
 </ContentView>

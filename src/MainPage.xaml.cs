@@ -32,7 +32,12 @@ public partial class MainPage : ContentPage
         _searchViewModel = searchViewModel;
         _markdownView = markdownView;
         
+        // Set main BindingContext
+        BindingContext = _mainViewModel;
+        
+        // Set specific binding contexts for child views
         FileTree.BindingContext = _fileTreeViewModel;
+        NavigationBar.BindingContext = _mainViewModel;
         TabBar.BindingContext = _mainViewModel;
         SearchBar.BindingContext = _searchViewModel;
         
@@ -55,6 +60,17 @@ public partial class MainPage : ContentPage
         
         // Wire up FileTreeViewModel events
         _fileTreeViewModel.FileOpened += OnFileOpened;
+        
+        // Subscribe to ViewModel's sidebar visibility changes
+        _mainViewModel.PropertyChanged += OnMainViewModelPropertyChanged;
+    }
+    
+    private void OnMainViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.IsSidebarVisible))
+        {
+            SetSidebarVisibility(_mainViewModel.IsSidebarVisible, animate: true);
+        }
     }
     
     private void OnTabSwipedLeft(object? sender, EventArgs e)
@@ -84,9 +100,10 @@ public partial class MainPage : ContentPage
             SidebarColumn.Width = new GridLength(Math.Clamp(savedWidth, MinSidebarWidth, MaxSidebarWidth));
         }
 
-        // Restore sidebar visibility
-        var isVisible = _settingsService.GetSetting(SidebarVisibleKey, defaultValue: true);
-        SetSidebarVisibility(isVisible, animate: false);
+        // Always show sidebar on startup for debugging
+        SetSidebarVisibility(true, animate: false);
+        
+        System.Diagnostics.Debug.WriteLine($"Sidebar loaded: IsVisible={Sidebar.IsVisible}, Opacity={Sidebar.Opacity}, Width={SidebarColumn.Width}");
     }
 
     private void OnSplitterPanUpdated(object? sender, PanUpdatedEventArgs e)

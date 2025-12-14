@@ -574,5 +574,128 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    // Navigation bar commands
+    [ObservableProperty]
+    private bool _isSidebarVisible = true;
+
+    [ObservableProperty]
+    private string _currentFilePath = "No file open";
+
+    [RelayCommand]
+    private void ToggleSidebar()
+    {
+        IsSidebarVisible = !IsSidebarVisible;
+        _loggingService.LogInfo($"Sidebar toggled: {(IsSidebarVisible ? "visible" : "hidden")}");
+    }
+
+    public bool CanNavigateBack => ActiveTab != null && _navigationService.CanGoBack(ActiveTab.Id);
+    public bool CanNavigateForward => ActiveTab != null && _navigationService.CanGoForward(ActiveTab.Id);
+
+    [RelayCommand]
+    private void NavigateBack()
+    {
+        GoBack();
+        OnPropertyChanged(nameof(CanNavigateBack));
+        OnPropertyChanged(nameof(CanNavigateForward));
+    }
+
+    [RelayCommand]
+    private void NavigateForward()
+    {
+        GoForward();
+        OnPropertyChanged(nameof(CanNavigateBack));
+        OnPropertyChanged(nameof(CanNavigateForward));
+    }
+
+    [RelayCommand]
+    private async Task OpenFolderAsync()
+    {
+        try
+        {
+            // MAUI doesn't have a built-in folder picker yet
+            // For now, use FilePicker to select a markdown file
+            var customFileType = new FilePickerFileType(
+                new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.WinUI, new[] { ".md", ".markdown" } },
+                });
+
+            var options = new PickOptions
+            {
+                PickerTitle = "Select a markdown file to open its folder",
+                FileTypes = customFileType,
+            };
+
+            var result = await FilePicker.Default.PickAsync(options);
+            if (result != null)
+            {
+                var folderPath = System.IO.Path.GetDirectoryName(result.FullPath);
+                if (!string.IsNullOrEmpty(folderPath))
+                {
+                    _loggingService.LogInfo($"File selected: {result.FullPath}, loading folder: {folderPath}");
+                    
+                    // Load the folder into the file tree
+                    await _fileTreeViewModel.LoadFolderCommand.ExecuteAsync(folderPath);
+                    
+                    // Update current file path
+                    CurrentFilePath = result.FullPath;
+                    
+                    // TODO: Open the selected file in the markdown viewer
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogError($"Failed to open folder: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleSearch()
+    {
+        if (_searchViewModel.IsVisible)
+        {
+            HideSearch();
+        }
+        else
+        {
+            ShowSearch();
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowMenuAsync()
+    {
+        _loggingService.LogInfo("Menu requested");
+        // TODO: Show context menu with export, print, etc.
+        await Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private async Task ShowSettingsAsync()
+    {
+        await OpenSettingsAsync();
+    }
+
+    [RelayCommand]
+    private void ToggleTheme()
+    {
+        try
+        {
+            var currentTheme = Application.Current?.UserAppTheme ?? AppTheme.Unspecified;
+            var newTheme = currentTheme == AppTheme.Dark ? AppTheme.Light : AppTheme.Dark;
+            
+            if (Application.Current != null)
+            {
+                Application.Current.UserAppTheme = newTheme;
+                _loggingService.LogInfo($"Theme toggled to: {newTheme}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogError($"Failed to toggle theme: {ex.Message}");
+        }
+    }
+
     public SearchViewModel SearchViewModel => _searchViewModel;
 }

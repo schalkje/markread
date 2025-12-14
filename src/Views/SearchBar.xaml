@@ -7,109 +7,121 @@
              IsVisible="{Binding IsVisible}">
     
     <Border BackgroundColor="{DynamicResource SurfaceColor}"
-            Stroke="{DynamicResource BorderColor}"
+            Stroke="{DynamicResource Gray300}"
             StrokeThickness="0,0,0,1"
-            Padding="12,8">
+            Padding="10,6">
         
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6">
             
             <!-- Search Icon -->
             <Label Grid.Column="0"
-                   Text="🔍"
+                   Text="&#128269;"
                    FontSize="16"
+                   TextColor="{DynamicResource Gray600}"
                    VerticalOptions="Center"
-                   Margin="0,0,8,0"/>
+                   Margin="4,0,0,0"/>
             
             <!-- Search Input -->
             <Entry Grid.Column="1"
                    Text="{Binding Query}"
                    Placeholder="Find in document..."
-                   BackgroundColor="Transparent"
-                   TextColor="{DynamicResource TextPrimaryColor}"
-                   PlaceholderColor="{DynamicResource TextSecondaryColor}"
+                   BackgroundColor="{DynamicResource Gray100}"
+                   TextColor="{DynamicResource Gray900}"
+                   PlaceholderColor="{DynamicResource Gray600}"
+                   FontSize="13"
                    VerticalOptions="Center"
+                   HeightRequest="32"
                    x:Name="SearchEntry"/>
             
             <!-- Match Count -->
             <Label Grid.Column="2"
                    Text="{Binding MatchCountText}"
                    FontSize="12"
-                   TextColor="{DynamicResource TextSecondaryColor}"
+                   TextColor="{DynamicResource Gray700}"
                    VerticalOptions="Center"
-                   Margin="8,0"
+                   Margin="4,0"
                    IsVisible="{Binding MatchCountText, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
             
             <!-- Previous Match Button -->
             <Button Grid.Column="3"
-                    Text="▲"
+                    Text="&#9650;"
                     Command="{Binding PreviousMatchCommand}"
                     BackgroundColor="Transparent"
-                    TextColor="{DynamicResource TextPrimaryColor}"
+                    TextColor="{DynamicResource Gray700}"
                     FontSize="12"
-                    Padding="8,4"
-                    WidthRequest="44"
-                    HeightRequest="44"
+                    Padding="6,4"
+                    WidthRequest="32"
+                    HeightRequest="32"
+                    CornerRadius="4"
                     ToolTipProperties.Text="Previous match (Shift+F3)"/>
             
             <!-- Next Match Button -->
             <Button Grid.Column="4"
-                    Text="▼"
+                    Text="&#9660;"
                     Command="{Binding NextMatchCommand}"
                     BackgroundColor="Transparent"
-                    TextColor="{DynamicResource TextPrimaryColor}"
+                    TextColor="{DynamicResource Gray700}"
                     FontSize="12"
-                    Padding="8,4"
-                    WidthRequest="44"
-                    HeightRequest="44"
+                    Padding="6,4"
+                    WidthRequest="32"
+                    HeightRequest="32"
+                    CornerRadius="4"
                     ToolTipProperties.Text="Next match (F3)"/>
             
             <!-- Options -->
-            <HorizontalStackLayout Grid.Column="5" Spacing="4" Margin="8,0,0,0">
+            <HorizontalStackLayout Grid.Column="5" Spacing="3" Margin="8,0,0,0">
                 
                 <!-- Case Sensitive -->
                 <Button Text="Aa"
                         Command="{Binding ToggleCaseSensitiveCommand}"
                         BackgroundColor="{Binding CaseSensitive, Converter={StaticResource BoolToSearchOptionBackgroundConverter}}"
-                        TextColor="{DynamicResource TextPrimaryColor}"
-                        FontSize="12"
-                        Padding="8,4"
-                        WidthRequest="44"
-                        HeightRequest="44"
+                        TextColor="{DynamicResource Gray700}"
+                        FontSize="11"
+                        FontFamily="OpenSansSemibold"
+                        Padding="6,4"
+                        WidthRequest="32"
+                        HeightRequest="32"
+                        CornerRadius="4"
                         ToolTipProperties.Text="Match case"/>
                 
                 <!-- Whole Word -->
                 <Button Text="ab"
                         Command="{Binding ToggleWholeWordCommand}"
                         BackgroundColor="{Binding WholeWord, Converter={StaticResource BoolToSearchOptionBackgroundConverter}}"
-                        TextColor="{DynamicResource TextPrimaryColor}"
-                        FontSize="12"
-                        Padding="8,4"
-                        WidthRequest="44"
-                        HeightRequest="44"
+                        TextColor="{DynamicResource Gray700}"
+                        FontSize="11"
+                        FontFamily="OpenSansSemibold"
+                        Padding="6,4"
+                        WidthRequest="32"
+                        HeightRequest="32"
+                        CornerRadius="4"
                         ToolTipProperties.Text="Match whole word"/>
                 
                 <!-- Regex -->
                 <Button Text=".*"
                         Command="{Binding ToggleRegexCommand}"
                         BackgroundColor="{Binding UseRegex, Converter={StaticResource BoolToSearchOptionBackgroundConverter}}"
-                        TextColor="{DynamicResource TextPrimaryColor}"
-                        FontSize="12"
-                        Padding="8,4"
-                        WidthRequest="44"
-                        HeightRequest="44"
+                        TextColor="{DynamicResource Gray700}"
+                        FontSize="11"
+                        FontFamily="OpenSansSemibold"
+                        Padding="6,4"
+                        WidthRequest="32"
+                        HeightRequest="32"
+                        CornerRadius="4"
                         ToolTipProperties.Text="Use regular expression"/>
             </HorizontalStackLayout>
             
             <!-- Close Button -->
             <Button Grid.Column="6"
-                    Text="✕"
+                    Text="×"
                     Command="{Binding HideSearchCommand}"
                     BackgroundColor="Transparent"
-                    TextColor="{DynamicResource TextPrimaryColor}"
-                    FontSize="16"
-                    Padding="8,4"
-                    WidthRequest="44"
-                    HeightRequest="44"
+                    TextColor="{DynamicResource Gray700}"
+                    FontSize="18"
+                    Padding="6,4"
+                    WidthRequest="32"
+                    HeightRequest="32"
+                    CornerRadius="4"
                     Margin="8,0,0,0"
                     ToolTipProperties.Text="Close search (Esc)"/>
         </Grid>

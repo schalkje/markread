@@ -19,6 +19,7 @@
             <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
             <converters:BoolToSearchOptionBackgroundConverter x:Key="BoolToSearchOptionBackgroundConverter" />
             <converters:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter" />
+            <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
 
             <!-- Accessibility Converters -->
             <converters:NodeTypeToAccessibilityTextConverter x:Key="NodeTypeToAccessibilityTextConverter" />

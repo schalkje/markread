@@ -55,6 +55,7 @@ public partial class FileTreeViewModel : ObservableObject
         if (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath))
         {
             _loggingService.LogError($"Invalid folder path: {folderPath}", null);
+            System.Diagnostics.Debug.WriteLine($"ERROR: Invalid folder path: {folderPath}");
             return;
         }
 
@@ -62,21 +63,50 @@ public partial class FileTreeViewModel : ObservableObject
         {
             IsLoading = true;
             RootPath = folderPath;
+            
+            System.Diagnostics.Debug.WriteLine($"Loading folder: {folderPath}");
 
             var rootNode = await _fileSystemService.LoadDirectoryAsync(folderPath);
             
+            System.Diagnostics.Debug.WriteLine($"Root node loaded: {rootNode.Name}, Children: {rootNode.Children.Count}");
+            
             Nodes.Clear();
-            Nodes.Add(rootNode);
+            
+            // Flatten the tree structure for display
+            FlattenNodes(rootNode, Nodes);
 
-            _loggingService.LogInfo($"Loaded folder tree: {folderPath}");
+            _loggingService.LogInfo($"Loaded folder tree: {folderPath} with {Nodes.Count} nodes");
+            System.Diagnostics.Debug.WriteLine($"Flattened nodes count: {Nodes.Count}");
+            
+            foreach (var node in Nodes.Take(5))
+            {
+                System.Diagnostics.Debug.WriteLine($"  Node: {node.Name} (Level {node.Level}, Type: {node.Type})");
+            }
         }
         catch (Exception ex)
         {
             _loggingService.LogError($"Failed to load folder: {folderPath}", ex);
+            System.Diagnostics.Debug.WriteLine($"ERROR loading folder: {ex.Message}");
         }
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Flattens the tree structure into a single list for display
+    /// </summary>
+    private void FlattenNodes(FileTreeNode node, ObservableCollection<FileTreeNode> flatList)
+    {
+        flatList.Add(node);
+        
+        if (node.IsExpanded && node.Children.Count > 0)
+        {
+            foreach (var child in node.Children)
+            {
+                FlattenNodes(child, flatList);
+            }
         }
     }
 
@@ -91,6 +121,30 @@ public partial class FileTreeViewModel : ObservableObject
 
         node.IsExpanded = !node.IsExpanded;
         _loggingService.LogInfo($"Toggled node: {node.Name} (expanded: {node.IsExpanded})");
+        
+        // Rebuild the flattened list to show/hide children
+        if (RootPath != null)
+        {
+            RefreshFlattenedView();
+        }
+    }
+
+    /// <summary>
+    /// Refreshes the flattened view of the tree
+    /// </summary>
+    private void RefreshFlattenedView()
+    {
+        if (Nodes.Count == 0) return;
+        
+        // Find root node (should be first)
+        var rootNode = Nodes[0];
+        while (rootNode.Parent != null)
+        {
+            rootNode = rootNode.Parent;
+        }
+        
+        Nodes.Clear();
+        FlattenNodes(rootNode, Nodes);
     }
 
     /// <summary>
