@@ -5,6 +5,12 @@
 **Status**: Draft  
 **Input**: User description: "Electron-based redesign of the application with VS Code-like features, optimized for desktop with single-window + tabs + multi-pane layout, full keyboard model, filesystem watching, native menus, and offline-first approach"
 
+## Clarifications
+
+### Session 2025-12-14
+
+- Q: When implementing cross-file search (FR-043), should the search be asynchronous with progress indication for large folder trees, or should it block until complete? → A: Asynchronous with progress bar and cancel button (search runs in background, user can continue working, shows "X of Y files searched" counter)
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--
@@ -235,8 +241,8 @@ A power user wants to customize MarkRead for their workflow. They press Ctrl+, t
 #### Search Capabilities (Enhanced)
 
 - **FR-042**: System MUST provide in-page search (Ctrl+F) with case-sensitive/insensitive options, whole word matching, and regex support
-- **FR-043**: Application MUST implement cross-file search (Ctrl+Shift+F) searching all files in the active folder
-- **FR-044**: Cross-file search MUST display results grouped by file with preview snippets and click-to-navigate functionality
+- **FR-043**: Application MUST implement asynchronous cross-file search (Ctrl+Shift+F) searching all files in the active folder with progress indication ("X of Y files searched" counter) and cancel button
+- **FR-044**: Cross-file search MUST display results grouped by file with preview snippets and click-to-navigate functionality, updating results incrementally as search progresses
 - **FR-045**: System MUST support search-and-replace functionality within single files (Ctrl+H)
 - **FR-046**: Application MUST highlight all search matches in the document with distinct styling for the active match
 
