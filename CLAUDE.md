@@ -4,7 +4,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-14
 
 ## Active Technologies
 
-- JavaScript/TypeScript with Node.js (Electron framework - specific version NEEDS CLARIFICATION) + Electron (main framework), markdown-it (markdown parsing), Highlight.js (syntax highlighting with automatic language detection), Mermaid.js (diagram rendering), NEEDS CLARIFICATION for file watching library (chokidar or similar) (006-electron-redesign)
+- JavaScript/TypeScript with Node.js + Electron 39.2.7 (main framework), React 18.3.0 (UI framework), Zustand 4.5.0 (state management), markdown-it 14.1.0 (markdown parsing), Highlight.js 11.11.1 (syntax highlighting), Mermaid.js 11.12.2 (diagram rendering), chokidar 5.0.0 (file watching) (006-electron-redesign)
 
 ## Project Structure
 
@@ -19,11 +19,11 @@ npm test; npm run lint
 
 ## Code Style
 
-JavaScript/TypeScript with Node.js (Electron framework - specific version NEEDS CLARIFICATION): Follow standard conventions
+JavaScript/TypeScript with Node.js + Electron + React: Follow standard conventions with React functional components and hooks
 
 ## Recent Changes
 
-- 006-electron-redesign: Added JavaScript/TypeScript with Node.js (Electron framework - specific version NEEDS CLARIFICATION) + Electron (main framework), markdown-it (markdown parsing), Highlight.js (syntax highlighting with automatic language detection), Mermaid.js (diagram rendering), NEEDS CLARIFICATION for file watching library (chokidar or similar)
+- 006-electron-redesign: Added JavaScript/TypeScript with Node.js + Electron 39.2.7 (main framework), React 18.3.0 (UI framework), Zustand 4.5.0 (state management), markdown-it 14.1.0 (markdown parsing), Highlight.js 11.11.1 (syntax highlighting), Mermaid.js 11.12.2 (diagram rendering), chokidar 5.0.0 (file watching)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

@@ -12,7 +12,7 @@ MarkRead uses Electron's secure **invoke/handle** pattern with **context isolati
 ┌─────────────────────────────────────────────────────────────┐
 │  Renderer Process (Chromium)                                │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │  Vue Components & Services                             │ │
+│  │  React Components & Services                           │ │
 │  │    ↓                                                    │ │
 │  │  window.electronAPI.file.read(payload)                 │ │
 │  └────────────────────────────────────────────────────────┘ │

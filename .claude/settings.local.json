@@ -9,7 +9,8 @@
       "Bash(npm install:*)",
       "Bash(npx electron dist/main/index.js)",
       "Bash(npx electron:*)",
-      "Bash(node_modules/electron/dist/electron.exe:*)"
+      "Bash(node_modules/electron/dist/electron.exe:*)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)"
     ],
     "deny": [],
     "ask": []

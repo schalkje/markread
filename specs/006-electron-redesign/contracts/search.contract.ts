@@ -209,59 +209,75 @@ export interface SearchHistoryEntry {
 /**
  * Example: Cross-file search with progress updates
  *
- * // In renderer (SearchPanel.vue):
- * const searchId = ref<string | null>(null);
- * const progress = ref({ filesSearched: 0, totalFiles: 0, results: [] });
+ * // In renderer (SearchPanel.tsx):
+ * const [searchId, setSearchId] = useState<string | null>(null);
+ * const [progress, setProgress] = useState({ filesSearched: 0, totalFiles: 0, results: [] });
  *
  * // Start search
  * const startSearch = async (query: string) => {
+ *   const { currentFolder, settings } = useStore();
  *   const response = await window.electronAPI.search.inFiles({
- *     folderPath: currentFolder.value.path,
+ *     folderPath: currentFolder.path,
  *     query,
  *     options: {
  *       caseSensitive: false,
  *       wholeWord: false,
  *       useRegex: false,
- *       excludePatterns: settings.value.search.excludePatterns,
- *       includeHiddenFiles: settings.value.search.includeHiddenFiles
+ *       excludePatterns: settings.search.excludePatterns,
+ *       includeHiddenFiles: settings.search.includeHiddenFiles
  *     },
- *     maxResults: settings.value.search.globalSearchMaxResults
+ *     maxResults: settings.search.globalSearchMaxResults
  *   });
  *
  *   if (response.success) {
- *     searchId.value = response.searchId;
+ *     setSearchId(response.searchId);
  *   }
  * };
  *
  * // Listen for progress updates
- * window.electronAPI.on('search:progress', (event) => {
- *   if (event.searchId === searchId.value) {
- *     progress.value.filesSearched = event.filesSearched;
- *     progress.value.totalFiles = event.totalFiles;
- *     // Update UI: "X of Y files searched"
- *   }
- * });
+ * useEffect(() => {
+ *   const unsubscribe = window.electronAPI.on('search:progress', (event) => {
+ *     if (event.searchId === searchId) {
+ *       setProgress(prev => ({
+ *         ...prev,
+ *         filesSearched: event.filesSearched,
+ *         totalFiles: event.totalFiles
+ *       }));
+ *       // Update UI: "X of Y files searched"
+ *     }
+ *   });
+ *   return unsubscribe;
+ * }, [searchId]);
  *
  * // Listen for results (incremental)
- * window.electronAPI.on('search:result', (event) => {
- *   if (event.searchId === searchId.value) {
- *     // Add result to UI (grouped by file)
- *     progress.value.results.push(event.result);
- *   }
- * });
+ * useEffect(() => {
+ *   const unsubscribe = window.electronAPI.on('search:result', (event) => {
+ *     if (event.searchId === searchId) {
+ *       // Add result to UI (grouped by file)
+ *       setProgress(prev => ({
+ *         ...prev,
+ *         results: [...prev.results, event.result]
+ *       }));
+ *     }
+ *   });
+ *   return unsubscribe;
+ * }, [searchId]);
  *
  * // Listen for completion
- * window.electronAPI.on('search:completed', (event) => {
- *   if (event.searchId === searchId.value) {
- *     console.log(`Search completed: ${event.totalResults} results in ${event.durationMs}ms`);
- *     searchId.value = null;  // Clear active search
- *   }
- * });
+ * useEffect(() => {
+ *   const unsubscribe = window.electronAPI.on('search:completed', (event) => {
+ *     if (event.searchId === searchId) {
+ *       console.log(`Search completed: ${event.totalResults} results in ${event.durationMs}ms`);
+ *       setSearchId(null);  // Clear active search
+ *     }
+ *   });
+ *   return unsubscribe;
+ * }, [searchId]);
  *
  * // Cancel search
  * const cancelSearch = async () => {
- *   if (searchId.value) {
- *     await window.electronAPI.search.cancel({ searchId: searchId.value });
+ *   if (searchId) {
+ *     await window.electronAPI.search.cancel({ searchId });
  *   }
  * };
  *

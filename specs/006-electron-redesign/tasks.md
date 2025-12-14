@@ -35,7 +35,7 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 **Purpose**: Project initialization and basic structure per [quickstart.md](quickstart.md)
 
 - [ ] T001 Create project structure (src/main/, src/renderer/, src/shared/, src/preload/, tests/, build/)
-- [ ] T002 Initialize package.json with Electron 39.2.7, Vue 3.4.0, TypeScript 5.3.0 dependencies from [research.md](research.md)
+- [ ] T002 Initialize package.json with Electron 39.2.7, React 19.2, TypeScript 5.3.0 dependencies from [research.md](research.md)
 - [ ] T003 [P] Install build tools: electron-vite 2.0.0, electron-builder from [research.md](research.md)
 - [ ] T004 [P] Configure TypeScript: tsconfig.json for main/renderer/shared with strict mode
 - [ ] T005 [P] Setup ESLint and Prettier configs per [research.md](research.md) code quality standards
@@ -58,12 +58,12 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 - [ ] T011 Setup IPC handler registration system in src/main/ipc-handlers.ts with Zod validation per [research.md](research.md) Section 6
 - [ ] T012 [P] Implement Content Security Policy (CSP) for renderer process in src/main/window-manager.ts per [research.md](research.md) Section 6
 
-### Vue 3 & State Management
+### React 18 & State Management
 
-- [ ] T013 Setup Vue 3 app entry in src/renderer/app.vue with Composition API per [research.md](research.md) Section 4
-- [ ] T014 Configure vue-router for tab navigation in src/renderer/router.ts per [research.md](research.md) Section 4
-- [ ] T015 [P] Setup Pinia store structure in src/renderer/stores/ (folders, tabs, panes, settings, theme) per [research.md](research.md) Section 4
-- [ ] T016 Create base layout component with sidebar/content/toolbar structure in src/renderer/components/AppLayout.vue
+- [ ] T013 Setup React 18 app entry in src/renderer/App.tsx with hooks per [research.md](research.md) Section 4
+- [ ] T014 Configure react-router-dom for tab navigation in src/renderer/router.tsx per [research.md](research.md) Section 4
+- [ ] T015 [P] Setup Zustand store structure in src/renderer/stores/ (folders, tabs, panes, settings, theme) per [research.md](research.md) Section 4
+- [ ] T016 Create base layout component with sidebar/content/toolbar structure in src/renderer/components/AppLayout.tsx
 
 ### Shared Types & Error Handling
 
@@ -114,9 +114,9 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### UI Components
 
-- [ ] T037 [US1] Create MarkdownViewer component in src/renderer/components/markdown/MarkdownViewer.vue to display rendered HTML
-- [ ] T038 [US1] Create FileOpener component in src/renderer/components/FileOpener.vue with file dialog integration
-- [ ] T039 [US1] Integrate MarkdownViewer with Pinia tabs store in src/renderer/stores/tabs.ts to track active file
+- [ ] T037 [US1] Create MarkdownViewer component in src/renderer/components/markdown/MarkdownViewer.tsx to display rendered HTML
+- [ ] T038 [US1] Create FileOpener component in src/renderer/components/FileOpener.tsx with file dialog integration
+- [ ] T039 [US1] Integrate MarkdownViewer with Zustand tabs store in src/renderer/stores/tabs.ts to track active file
 - [ ] T040 [US1] Add loading state and error handling to MarkdownViewer component
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can open markdown files and see rich rendering with syntax highlighting and diagrams
@@ -137,21 +137,21 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### Zoom Implementation
 
-- [ ] T044 [P] [US2] Create ZoomControls component in src/renderer/components/editor/ZoomControls.vue with +/- buttons and reset
+- [ ] T044 [P] [US2] Create ZoomControls component in src/renderer/components/editor/ZoomControls.tsx with +/- buttons and reset
 - [ ] T045 [US2] Implement zoom state management in src/renderer/stores/tabs.ts (zoomLevel: 10-2000 per [data-model.md](data-model.md) Tab entity)
 - [ ] T046 [US2] Add keyboard shortcuts for zoom (Ctrl+Plus, Ctrl+Minus, Ctrl+0) in src/renderer/services/keyboard-handler.ts
 - [ ] T047 [US2] Implement CSS transform scaling in MarkdownViewer with scroll position preservation
 
 ### Pan & Scroll
 
-- [ ] T048 [P] [US2] Implement pan functionality with click-drag in src/renderer/components/markdown/MarkdownViewer.vue
+- [ ] T048 [P] [US2] Implement pan functionality with click-drag in src/renderer/components/markdown/MarkdownViewer.tsx
 - [ ] T049 [P] [US2] Add grab cursor styling when panning
 - [ ] T050 [US2] Optimize scroll performance with requestAnimationFrame in src/renderer/services/scroll-optimizer.ts per [research.md](research.md) Section 5
 - [ ] T051 [P] [US2] Add touch gesture support for pinch-zoom and pan
 
 ### Navigation
 
-- [ ] T052 [P] [US2] Create TableOfContents component in src/renderer/components/editor/TableOfContents.vue to extract headings
+- [ ] T052 [P] [US2] Create TableOfContents component in src/renderer/components/editor/TableOfContents.tsx to extract headings
 - [ ] T053 [P] [US2] Implement jump-to-heading functionality with smooth scroll
 - [ ] T054 [P] [US2] Add Ctrl+G shortcut for quick heading navigation
 
@@ -175,7 +175,7 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 - [ ] T058 [P] [US3] Create Tab entity type from [data-model.md](data-model.md) in src/shared/types/tab.d.ts (id, filePath, title, scrollPosition, zoomLevel, searchState)
 - [ ] T059 [US3] Implement tabs store in src/renderer/stores/tabs.ts with Tab[] collection, activeTabId, max 50 tabs (soft 20, hard 50 per [data-model.md](data-model.md))
-- [ ] T060 [P] [US3] Create TabBar component in src/renderer/components/editor/TabBar.vue with close buttons, active state
+- [ ] T060 [P] [US3] Create TabBar component in src/renderer/components/editor/TabBar.tsx with close buttons, active state
 - [ ] T061 [US3] Implement tab switching logic with Ctrl+Tab (next), Ctrl+Shift+Tab (previous), Ctrl+1-9 (jump to index) in src/renderer/services/keyboard-handler.ts
 - [ ] T062 [US3] Add tab close functionality (Ctrl+W) with next tab activation in src/renderer/stores/tabs.ts
 - [ ] T063 [US3] Implement tab limit warnings: soft limit at 20 tabs (warning dialog), hard limit at 50 tabs (block) per [spec.md](spec.md) Clarifications
@@ -191,7 +191,7 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 - [ ] T068 [P] [US3] Create Pane entity type from [data-model.md](data-model.md) in src/shared/types/pane.d.ts (id, tabs, activeTabId, orientation, sizeRatio)
 - [ ] T069 [US3] Implement panes store in src/renderer/stores/panes.ts with split layout management per [data-model.md](data-model.md)
-- [ ] T070 [P] [US3] Create SplitView component in src/renderer/components/editor/SplitView.vue with resizable divider
+- [ ] T070 [P] [US3] Create SplitView component in src/renderer/components/editor/SplitView.tsx with resizable divider
 - [ ] T071 [US3] Add keyboard shortcuts for split: Ctrl+\\ (vertical), Ctrl+K Ctrl+\\ (horizontal) in src/renderer/services/keyboard-handler.ts
 - [ ] T072 [US3] Implement independent scroll/zoom state per pane in src/renderer/stores/panes.ts
 - [ ] T073 [US3] Add responsive stacking for narrow windows (<768px) per [spec.md](spec.md) Edge Cases
@@ -223,7 +223,7 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### Command Palette
 
-- [ ] T083 [P] [US4] Create CommandPalette component in src/renderer/components/command-palette/CommandPalette.vue with fuzzy search
+- [ ] T083 [P] [US4] Create CommandPalette component in src/renderer/components/command-palette/CommandPalette.tsx with fuzzy search
 - [ ] T084 [US4] Implement fuzzy search algorithm for command filtering in src/renderer/services/command-service.ts
 - [ ] T085 [US4] Add keyboard navigation (up/down arrows, Enter to execute, Escape to close) to CommandPalette
 - [ ] T086 [US4] Show keyboard shortcuts next to command names in palette (FR-082)
@@ -233,7 +233,7 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 - [ ] T088 [P] [US4] Create KeyboardShortcut entity type from [data-model.md](data-model.md) in src/shared/types/keyboard.d.ts (id, commandId, keyCombination, isCustom)
 - [ ] T089 [US4] Implement keyboard event handler in src/renderer/services/keyboard-handler.ts with whenClause evaluation
-- [ ] T090 [P] [US4] Create ShortcutsReference component in src/renderer/components/help/ShortcutsReference.vue organized by category (FR-080)
+- [ ] T090 [P] [US4] Create ShortcutsReference component in src/renderer/components/help/ShortcutsReference.tsx organized by category (FR-080)
 - [ ] T091 [US4] Add F1 shortcut to open shortcuts reference (FR-080)
 - [ ] T092 [US4] Implement conflict detection for custom shortcuts in src/renderer/services/keyboard-handler.ts per [spec.md](spec.md) Edge Cases
 
@@ -265,8 +265,8 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 - [ ] T101 [P] [US5] Create FileTreeNode type from [contracts/file-operations.contract.ts](contracts/file-operations.contract.ts) in src/shared/types/file-tree.d.ts
 - [ ] T102 [US5] Implement file:getFolderTree IPC handler in src/main/ipc-handlers.ts with recursive directory traversal per [contracts/file-operations.contract.ts](contracts/file-operations.contract.ts)
-- [ ] T103 [P] [US5] Create FileTree component in src/renderer/components/sidebar/FileTree.vue with expand/collapse
-- [ ] T104 [US5] Implement TanStack Virtual for file tree virtualization (activates at 1000+ files) in src/renderer/components/sidebar/FileTree.vue per [research.md](research.md) Section 7
+- [ ] T103 [P] [US5] Create FileTree component in src/renderer/components/sidebar/FileTree.tsx with expand/collapse
+- [ ] T104 [US5] Implement TanStack Virtual for file tree virtualization (activates at 1000+ files) in src/renderer/components/sidebar/FileTree.tsx per [research.md](research.md) Section 7
 - [ ] T105 [US5] Add file tree expansion state persistence in src/renderer/stores/folders.ts per [data-model.md](data-model.md) FileTreeState
 
 ### File Watching
@@ -279,7 +279,7 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### Folder Switcher UI
 
-- [ ] T111 [P] [US5] Create FolderSwitcher component in src/renderer/components/sidebar/FolderSwitcher.vue with dropdown
+- [ ] T111 [P] [US5] Create FolderSwitcher component in src/renderer/components/sidebar/FolderSwitcher.tsx with dropdown
 - [ ] T112 [US5] Display all open folders in switcher, highlight active folder
 - [ ] T113 [US5] Switch active folder on selection, update file tree and tabs
 
@@ -346,12 +346,12 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### Settings UI
 
-- [ ] T137 [P] [US7] Create SettingsWindow component in src/renderer/components/settings/SettingsWindow.vue with 5 tabs (Appearance, Behavior, Search, Performance, Keyboard) per [data-model.md](data-model.md)
-- [ ] T138 [P] [US7] Create AppearancePanel component in src/renderer/components/settings/AppearancePanel.vue (theme, fonts, line height, sidebar width) per [data-model.md](data-model.md) FR-063-067
-- [ ] T139 [P] [US7] Create BehaviorPanel component in src/renderer/components/settings/BehaviorPanel.vue (auto-reload, tabs, scrolling) per [data-model.md](data-model.md) FR-068-070
-- [ ] T140 [P] [US7] Create SearchPanel component in src/renderer/components/settings/SearchPanel.vue (case sensitive, history, exclusions) per [data-model.md](data-model.md) FR-071-073
-- [ ] T141 [P] [US7] Create PerformancePanel component in src/renderer/components/settings/PerformancePanel.vue (indexing, large file threshold) per [data-model.md](data-model.md) FR-074-075
-- [ ] T142 [P] [US7] Create KeyboardPanel component in src/renderer/components/settings/KeyboardPanel.vue with shortcut customization and conflict detection per [data-model.md](data-model.md) FR-088
+- [ ] T137 [P] [US7] Create SettingsWindow component in src/renderer/components/settings/SettingsWindow.tsx with 5 tabs (Appearance, Behavior, Search, Performance, Keyboard) per [data-model.md](data-model.md)
+- [ ] T138 [P] [US7] Create AppearancePanel component in src/renderer/components/settings/AppearancePanel.tsx (theme, fonts, line height, sidebar width) per [data-model.md](data-model.md) FR-063-067
+- [ ] T139 [P] [US7] Create BehaviorPanel component in src/renderer/components/settings/BehaviorPanel.tsx (auto-reload, tabs, scrolling) per [data-model.md](data-model.md) FR-068-070
+- [ ] T140 [P] [US7] Create SearchPanel component in src/renderer/components/settings/SearchPanel.tsx (case sensitive, history, exclusions) per [data-model.md](data-model.md) FR-071-073
+- [ ] T141 [P] [US7] Create PerformancePanel component in src/renderer/components/settings/PerformancePanel.tsx (indexing, large file threshold) per [data-model.md](data-model.md) FR-074-075
+- [ ] T142 [P] [US7] Create KeyboardPanel component in src/renderer/components/settings/KeyboardPanel.tsx with shortcut customization and conflict detection per [data-model.md](data-model.md) FR-088
 - [ ] T143 [US7] Implement live preview for appearance settings: update active document in real-time (FR-055)
 - [ ] T144 [US7] Add Ctrl+, keyboard shortcut to open settings in src/renderer/services/keyboard-handler.ts
 
@@ -407,9 +407,9 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### Search Implementation
 
-- [ ] T169 [P] Implement in-page search (Ctrl+F) with case-sensitive, whole-word, regex options in src/renderer/components/search/FindBar.vue (FR-042)
+- [ ] T169 [P] Implement in-page search (Ctrl+F) with case-sensitive, whole-word, regex options in src/renderer/components/search/FindBar.tsx (FR-042)
 - [ ] T170 Implement cross-file search (Ctrl+Shift+F) with async progress and cancel in src/main/search-service.ts (FR-043, FR-044)
-- [ ] T171 [P] Create search results panel with file grouping and preview snippets in src/renderer/components/search/SearchResults.vue per [contracts/search.contract.ts](contracts/search.contract.ts)
+- [ ] T171 [P] Create search results panel with file grouping and preview snippets in src/renderer/components/search/SearchResults.tsx per [contracts/search.contract.ts](contracts/search.contract.ts)
 - [ ] T172 [P] Implement search history with max 200 entries in src/renderer/stores/search.ts (FR-071)
 
 ### PDF Export
@@ -512,8 +512,8 @@ Task T064: "Create HistoryEntry type in src/shared/types/tab.d.ts"
 Task T068: "Create Pane entity type in src/shared/types/pane.d.ts"
 
 # Launch all UI components together:
-Task T060: "Create TabBar component in src/renderer/components/editor/TabBar.vue"
-Task T070: "Create SplitView component in src/renderer/components/editor/SplitView.vue"
+Task T060: "Create TabBar component in src/renderer/components/editor/TabBar.tsx"
+Task T070: "Create SplitView component in src/renderer/components/editor/SplitView.tsx"
 ```
 
 ---

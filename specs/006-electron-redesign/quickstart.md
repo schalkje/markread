@@ -14,12 +14,12 @@
 - **npm**: v9+ or **pnpm**: v8+ (recommended for faster installs)
 - **Git**: For version control
 - **Windows 10/11**: Primary development and testing platform
-- **Code editor**: VS Code recommended (with Vue, TypeScript, ESLint extensions)
+- **Code editor**: VS Code recommended (with React, TypeScript, ESLint extensions)
 
 ### Recommended
 
 - **Windows Terminal**: For better command-line experience
-- **Vue DevTools**: Browser extension for debugging
+- **React DevTools**: Browser extension for debugging
 - **Electron DevTools**: Built into Electron, no install needed
 
 ---
@@ -46,12 +46,12 @@ pnpm install
 
 **Key dependencies installed** (from [research.md](research.md)):
 - electron@39.2.7 (Chromium 142, Node 22.20.0)
-- vue@^3.4.0 + vue-router + pinia
+- react@^18.3.0 + react-router-dom + zustand
 - markdown-it@^14.1.0
 - highlight.js@^11.11.1
 - mermaid@^11.12.2
 - chokidar@^5.0.0
-- @tanstack/vue-virtual@^3.0.0
+- @tanstack/react-virtual@^3.0.0
 - @playwright/test (dev)
 
 ### 3. Verify Installation
@@ -81,9 +81,9 @@ npm run dev
 2. Main process compiles to `dist/main/`
 3. Renderer process compiles to `dist/renderer/` with HMR
 4. Electron app launches automatically
-5. Vue DevTools available at `http://localhost:9222`
+5. React DevTools available at `http://localhost:9222`
 
-**Hot Module Replacement (HMR)** active for renderer process (Vue components update without restart).
+**Hot Module Replacement (HMR)** active for renderer process (React components update without restart).
 
 **Main process changes** require app restart (automatic with nodemon).
 
@@ -137,8 +137,8 @@ markread/
 │   │
 │   ├── renderer/              # Chromium renderer process
 │   │   ├── index.html        # HTML entry
-│   │   ├── app.vue           # Root Vue component
-│   │   ├── components/       # Vue SFC components
+│   │   ├── App.tsx           # Root React component
+│   │   ├── components/       # React components
 │   │   ├── services/         # Renderer services
 │   │   └── styles/           # Global styles
 │   │
@@ -178,7 +178,7 @@ markread/
 └── README.md
 ```
 
-**Key principle**: Clear separation between **main** (Node.js/OS APIs) and **renderer** (Vue/UI).
+**Key principle**: Clear separation between **main** (Node.js/OS APIs) and **renderer** (React/UI).
 
 ---
 
@@ -247,8 +247,8 @@ Open a test markdown file with:
 ### 6. Inspect with DevTools
 
 **Renderer DevTools**: Press **F12** or **Ctrl+Shift+I**
-- Vue DevTools panel available
-- Inspect Vue component tree
+- React DevTools panel available
+- Inspect React component tree
 - Check console for errors
 
 **Main Process Debugging**:
@@ -287,41 +287,45 @@ Renderer process **cannot** directly access Node.js APIs. All OS/file system ope
 
 **Security**: `nodeIntegration: false`, `contextIsolation: true` (see [research.md](research.md) Section 6).
 
-### Vue 3 Composition API
+### React 18 Hooks
 
-MarkRead uses Vue 3 with TypeScript:
+MarkRead uses React 18 with TypeScript:
 
-```vue
-<script setup lang="ts">
-import { ref, computed } from 'vue';
+```tsx
+import { useState, useMemo } from 'react';
 import { useSettingsStore } from '@/stores/settings';
 
-const settings = useSettingsStore();
-const zoom = ref(100);
+const MyComponent = () => {
+  const settings = useSettingsStore();
+  const [zoom, setZoom] = useState(100);
 
-const zoomPercentage = computed(() => `${zoom.value}%`);
-</script>
+  const zoomPercentage = useMemo(() => `${zoom}%`, [zoom]);
+
+  return <div>{zoomPercentage}</div>;
+};
 ```
 
-### State Management (Pinia)
+### State Management (Zustand)
 
-Global state managed with Pinia stores:
+Global state managed with Zustand stores:
 
 ```typescript
 // stores/folders.ts
-import { defineStore } from 'pinia';
+import { create } from 'zustand';
 
-export const useFoldersStore = defineStore('folders', {
-  state: () => ({
-    folders: [] as Folder[],
-    activeFolder: null as Folder | null
-  }),
-  actions: {
-    addFolder(folder: Folder) {
-      this.folders.push(folder);
-    }
-  }
-});
+interface FoldersState {
+  folders: Folder[];
+  activeFolder: Folder | null;
+  addFolder: (folder: Folder) => void;
+}
+
+export const useFoldersStore = create<FoldersState>((set) => ({
+  folders: [],
+  activeFolder: null,
+  addFolder: (folder) => set((state) => ({
+    folders: [...state.folders, folder]
+  })),
+}));
 ```
 
 ### Markdown Rendering Pipeline
@@ -391,44 +395,43 @@ contextBridge.exposeInMainWorld('electronAPI', {
 const result = await window.electronAPI.yourFeature.doSomething({ param: 'value' });
 ```
 
-### Add a New Vue Component
+### Add a New React Component
 
-**1. Create component** in `src/renderer/components/YourComponent.vue`:
+**1. Create component** in `src/renderer/components/YourComponent.tsx`:
 
-```vue
-<template>
-  <div class="your-component">
-    <h2>{{ title }}</h2>
-  </div>
-</template>
-
-<script setup lang="ts">
-import { ref } from 'vue';
+```tsx
+import React from 'react';
+import './YourComponent.css';
 
 interface Props {
   title: string;
 }
 
-const props = defineProps<Props>();
-</script>
+export const YourComponent: React.FC<Props> = ({ title }) => {
+  return (
+    <div className="your-component">
+      <h2>{title}</h2>
+    </div>
+  );
+};
+```
 
-<style scoped>
+**2. Create styles** in `src/renderer/components/YourComponent.css`:
+
+```css
 .your-component {
   padding: 1rem;
 }
-</style>
 ```
 
-**2. Import and use** in parent component:
+**3. Import and use** in parent component:
 
-```vue
-<template>
-  <YourComponent title="Hello" />
-</template>
+```tsx
+import { YourComponent } from './YourComponent';
 
-<script setup lang="ts">
-import YourComponent from './YourComponent.vue';
-</script>
+export const ParentComponent = () => {
+  return <YourComponent title="Hello" />;
+};
 ```
 
 ### Add a New Setting
@@ -453,14 +456,23 @@ const DEFAULT_SETTINGS: Settings = {
 };
 ```
 
-**3. Add to Settings UI** in `src/renderer/components/settings/AppearancePanel.vue`:
+**3. Add to Settings UI** in `src/renderer/components/settings/AppearancePanel.tsx`:
 
-```vue
-<template>
-  <SettingRow label="New Setting" description="...">
-    <input v-model="settings.appearance.newSetting" />
-  </SettingRow>
-</template>
+```tsx
+import { useSettingsStore } from '@/stores/settings';
+
+export const AppearancePanel = () => {
+  const { settings, updateSetting } = useSettingsStore();
+
+  return (
+    <SettingRow label="New Setting" description="...">
+      <input
+        value={settings.appearance.newSetting}
+        onChange={(e) => updateSetting('appearance.newSetting', e.target.value)}
+      />
+    </SettingRow>
+  );
+};
 ```
 
 ### Add a Keyboard Shortcut
@@ -512,7 +524,7 @@ commandService.register(COMMANDS.YOUR_COMMAND.id, () => {
 
 ### HMR not working
 
-**Symptom**: Changes to Vue components don't update without restart
+**Symptom**: Changes to React components don't update without restart
 
 **Solutions**:
 1. Ensure file is in `src/renderer/` (HMR only works for renderer)
@@ -618,8 +630,8 @@ Once comfortable with basics:
 - **Spec questions**: See [spec.md](spec.md) or ask in team chat
 - **Technical decisions**: See [research.md](research.md)
 - **Electron docs**: https://www.electronjs.org/docs
-- **Vue 3 docs**: https://vuejs.org/guide
-- **Debugging**: Use Vue DevTools + Chrome DevTools (F12)
+- **React docs**: https://react.dev/
+- **Debugging**: Use React DevTools + Chrome DevTools (F12)
 
 ---
 

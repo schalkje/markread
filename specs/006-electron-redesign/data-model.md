@@ -841,7 +841,7 @@ import type { Folder, Tab, Pane, Command, Theme, Settings } from '@/shared/types
 
 1. **Generate API Contracts**: Define IPC contracts for main-renderer communication
 2. **Implement Validation**: Create Zod schemas for all entities
-3. **Build State Management**: Set up Pinia stores for Vue 3
+3. **Build State Management**: Set up Zustand stores for React 18
 4. **Persistence Layer**: Implement settings and UIState persistence with atomic writes
 
 ---

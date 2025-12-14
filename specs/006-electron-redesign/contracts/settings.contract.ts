@@ -297,8 +297,8 @@ export const ENV_VAR_OVERRIDES = {
  * const result = await window.electronAPI.settings.load({});
  *
  * if (result.success) {
- *   // Initialize Pinia store with settings
- *   settingsStore.setState(result.settings);
+ *   // Initialize Zustand store with settings
+ *   useSettingsStore.getState().setSettings(result.settings);
  *
  *   // Check for warnings (invalid values)
  *   if (result.warnings?.length > 0) {
@@ -307,42 +307,52 @@ export const ENV_VAR_OVERRIDES = {
  * }
  *
  *
- * // Example: User changes theme in Settings UI
- * const updatedSettings = {
- *   appearance: {
- *     ...currentSettings.appearance,
- *     theme: 'dark'
- *   }
+ * // Example: User changes theme in Settings UI (React component)
+ * const SettingsComponent = () => {
+ *   const { settings, setSettings } = useSettingsStore();
+ *
+ *   const handleThemeChange = async (theme: string) => {
+ *     const updatedSettings = {
+ *       appearance: {
+ *         ...settings.appearance,
+ *         theme
+ *       }
+ *     };
+ *
+ *     // Validate first (for live preview)
+ *     const validation = await window.electronAPI.settings.validate({
+ *       settings: updatedSettings,
+ *       category: 'appearance'
+ *     });
+ *
+ *     if (validation.success) {
+ *       // Apply to UI immediately (live preview)
+ *       applyTheme(theme);
+ *
+ *       // Save to disk
+ *       const saveResult = await window.electronAPI.settings.save({
+ *         settings: updatedSettings
+ *       });
+ *     }
+ *   };
  * };
  *
- * // Validate first (for live preview)
- * const validation = await window.electronAPI.settings.validate({
- *   settings: updatedSettings,
- *   category: 'appearance'
- * });
  *
- * if (validation.success) {
- *   // Apply to UI immediately (live preview)
- *   applyTheme('dark');
+ * // Example: Handle settings changed event (using useEffect hook)
+ * useEffect(() => {
+ *   const unsubscribe = window.electronAPI.on('settings:changed', (event) => {
+ *     console.log('Settings updated from:', event.source);
+ *     console.log('Changed categories:', event.changedCategories);
  *
- *   // Save to disk
- *   const saveResult = await window.electronAPI.settings.save({
- *     settings: updatedSettings
+ *     // Update Zustand store
+ *     useSettingsStore.getState().setSettings(event.newSettings);
+ *
+ *     // Re-apply theme if appearance changed
+ *     if (event.changedCategories.includes('appearance')) {
+ *       applyTheme(event.newSettings.appearance.theme);
+ *     }
  *   });
- * }
  *
- *
- * // Example: Handle settings changed event
- * window.electronAPI.on('settings:changed', (event) => {
- *   console.log('Settings updated from:', event.source);
- *   console.log('Changed categories:', event.changedCategories);
- *
- *   // Update Pinia store
- *   settingsStore.setState(event.newSettings);
- *
- *   // Re-apply theme if appearance changed
- *   if (event.changedCategories.includes('appearance')) {
- *     applyTheme(event.newSettings.appearance.theme);
- *   }
- * });
+ *   return unsubscribe;
+ * }, []);
  */

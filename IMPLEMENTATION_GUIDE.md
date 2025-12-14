@@ -24,7 +24,7 @@ git branch --show-current  # Should show: 006-electron-redesign
 
 ## Phase 1: Setup (Tasks T001-T008) - Parallel Execution
 
-**Goal**: Initialize Electron + Vue 3 + TypeScript project structure
+**Goal**: Initialize Electron + React + TypeScript project structure
 
 ### T001: Create Project Structure
 
@@ -57,8 +57,8 @@ Create `package.json` with dependencies from research.md:
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "package": "electron-builder",
-    "lint": "eslint . --ext .ts,.tsx,.vue",
-    "lint:fix": "eslint . --ext .ts,.tsx,.vue --fix",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "type-check": "tsc --noEmit",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
@@ -67,9 +67,10 @@ Create `package.json` with dependencies from research.md:
   },
   "dependencies": {
     "electron": "39.2.7",
-    "vue": "^3.4.0",
-    "vue-router": "^4.3.0",
-    "pinia": "^2.1.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-router-dom": "^6.20.0",
+    "zustand": "^4.5.0",
     "markdown-it": "^14.1.0",
     "markdown-it-task-lists": "^2.1.1",
     "highlight.js": "^11.11.1",
@@ -77,7 +78,7 @@ Create `package.json` with dependencies from research.md:
     "dompurify": "^3.3.1",
     "isomorphic-dompurify": "^2.16.0",
     "chokidar": "^5.0.0",
-    "@tanstack/vue-virtual": "^3.0.0",
+    "@tanstack/react-virtual": "^3.0.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {
@@ -87,13 +88,16 @@ Create `package.json` with dependencies from research.md:
     "electron-builder": "^24.9.0",
     "typescript": "^5.3.0",
     "vite": "^5.0.0",
-    "@vitejs/plugin-vue": "^5.0.0",
+    "@vitejs/plugin-react": "^4.2.0",
     "vitest": "^1.0.0",
     "eslint": "^8.55.0",
     "prettier": "^3.1.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
-    "eslint-plugin-vue": "^9.19.0"
+    "eslint-plugin-react": "^7.33.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0"
   }
 }
 ```
@@ -144,7 +148,7 @@ Create `tsconfig.json`:
       "@shared/*": ["src/shared/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }
 ```
@@ -181,9 +185,10 @@ Create `.eslintrc.json`:
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
-    "plugin:vue/vue3-recommended"
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended"
   ],
-  "parser": "vue-eslint-parser",
+  "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": 2021,
     "parser": "@typescript-eslint/parser",
@@ -193,7 +198,8 @@ Create `.eslintrc.json`:
   "rules": {
     "no-console": "off",
     "@typescript-eslint/no-explicit-any": "warn",
-    "vue/multi-word-component-names": "off"
+    "react/react-in-jsx-scope": "off",
+    "react/prop-types": "off"
   }
 }
 ```
@@ -220,7 +226,7 @@ Create `electron-vite.config.ts`:
 
 ```typescript
 import { defineConfig } from 'electron-vite';
-import vue from '@vitejs/plugin-vue';
+import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
 export default defineConfig({
@@ -249,7 +255,7 @@ export default defineConfig({
         '@shared': resolve(__dirname, 'src/shared'),
       },
     },
-    plugins: [vue()],
+    plugins: [react()],
     build: {
       rollupOptions: {
         input: {
@@ -351,14 +357,14 @@ If successful, Phase 1 is complete!
 - T020: Logging
 
 **Parallel Group 2** (after Group 1):
-- T013: Vue app setup
-- T014: Vue Router
-- T015: Pinia stores
+- T013: React app setup
+- T014: React Router
+- T015: Zustand stores
 
 **Sequential** (depend on above):
 - T010: Preload script (depends on T018 IPC types)
 - T011: IPC handlers (depends on T017, T018 types)
-- T016: Base layout (depends on T013 Vue app)
+- T016: Base layout (depends on T013 React app)
 - T019: Error handler (depends on T020 logging)
 
 I'll create starter files for these tasks next. Would you like me to:
@@ -399,7 +405,7 @@ Update [tasks.md](specs/006-electron-redesign/tasks.md) by changing:
 Example:
 ```markdown
 - [x] T001 Create project structure per implementation plan
-- [x] T002 Initialize package.json with Electron 39.2.7, Vue 3.4.0, TypeScript 5.3.0
+- [x] T002 Initialize package.json with Electron 39.2.7, React 19.2, TypeScript 5.3.0
 - [ ] T003 [P] Install build tools: electron-vite 2.0.0, electron-builder
 ```
 
