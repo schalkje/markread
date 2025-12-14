@@ -1,16 +1,13 @@
-// Simple test to see if electron module loads correctly
+console.log('=== ELECTRON TEST ===');
 const electron = require('electron');
+console.log('electron type:', typeof electron);
+console.log('electron.app type:', typeof electron.app);
+console.log('electron.app:', electron.app);
 
-console.log('Type of electron:', typeof electron);
-console.log('Has app?:', typeof electron.app);
-
-if (typeof electron.app !== 'undefined') {
-  console.log('SUCCESS: Electron module loaded correctly!');
-  electron.app.whenReady().then(() => {
-    console.log('Electron app is ready!');
-    electron.app.quit();
-  });
+if (electron.app) {
+  console.log('SUCCESS: electron.app is available!');
+  electron.app.quit();
 } else {
-  console.log('FAIL: Electron module did not load correctly');
-  console.log('Electron value:', electron);
+  console.log('FAIL: electron.app is undefined');
+  process.exit(1);
 }

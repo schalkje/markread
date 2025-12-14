@@ -1,18 +1,18 @@
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
     build: {
-      outDir: 'out/main'
+      outDir: 'out/main',
+      externalizeDeps: true
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
     build: {
       outDir: 'out/preload',
+      externalizeDeps: true,
       rollupOptions: {
         output: {
           format: 'cjs'
