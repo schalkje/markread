@@ -35,7 +35,7 @@ dotnet restore
 dotnet build
 
 # Run the application
-dotnet run --project src/App/MarkRead.App.csproj
+dotnet run --project src/App/MarkRead.csproj
 ```
 
 See [Getting Started](getting-started.md) for detailed setup.

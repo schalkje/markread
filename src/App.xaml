@@ -11,7 +11,7 @@
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Animations.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            
+
             <!-- Value Converters -->
             <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
             <converters:LevelToIndentConverter x:Key="LevelToIndentConverter" />
@@ -19,7 +19,7 @@
             <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
             <converters:BoolToSearchOptionBackgroundConverter x:Key="BoolToSearchOptionBackgroundConverter" />
             <converters:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter" />
-            
+
             <!-- Accessibility Converters -->
             <converters:NodeTypeToAccessibilityTextConverter x:Key="NodeTypeToAccessibilityTextConverter" />
             <converters:ExpandStateToHintConverter x:Key="ExpandStateToHintConverter" />

@@ -64,7 +64,7 @@ on:
 
 ```yaml
 - name: Build App
-  run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore /maxcpucount:1
+  run: dotnet build src\MarkRead.csproj --configuration Release --no-restore /maxcpucount:1
 ```
 
 **What it does:**
@@ -150,7 +150,7 @@ GitHub Actions:
 ```yaml
 ❌ - name: Update version in projects
      run: |
-       # Manually update MarkRead.App.csproj
+       # Manually update MarkRead.csproj
        (Get-Content $appCsproj) -replace '<Version>[\d\.]+</Version>', "<Version>$version</Version>"
        
        # Manually update MarkRead.Installer.wixproj

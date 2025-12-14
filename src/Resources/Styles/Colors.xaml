@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<?xaml-comp compile="true" ?>
 <ResourceDictionary 
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
@@ -193,80 +192,80 @@
     <!-- ================================================================ -->
     
     <!-- Primary Colors with Theme Binding -->
-    <AppThemeBinding x:Key="BackgroundColor" Light="{StaticResource LightBackground}" Dark="{StaticResource DarkBackground}" />
-    <AppThemeBinding x:Key="SurfaceColor" Light="{StaticResource LightSurface}" Dark="{StaticResource DarkSurface}" />
-    <AppThemeBinding x:Key="SurfaceVariantColor" Light="{StaticResource LightSurfaceVariant}" Dark="{StaticResource DarkSurfaceVariant}" />
-    <AppThemeBinding x:Key="PrimaryColor" Light="{StaticResource LightPrimary}" Dark="{StaticResource DarkPrimary}" />
-    <AppThemeBinding x:Key="PrimaryVariantColor" Light="{StaticResource LightPrimaryVariant}" Dark="{StaticResource DarkPrimaryVariant}" />
-    <AppThemeBinding x:Key="PrimaryHoverColor" Light="{StaticResource LightPrimaryHover}" Dark="{StaticResource DarkPrimaryHover}" />
-    <AppThemeBinding x:Key="SecondaryColor" Light="{StaticResource LightSecondary}" Dark="{StaticResource DarkSecondary}" />
-    <AppThemeBinding x:Key="SecondaryVariantColor" Light="{StaticResource LightSecondaryVariant}" Dark="{StaticResource DarkSecondaryVariant}" />
+    <Color x:Key="BackgroundColor" Value="{AppThemeBinding Light={StaticResource LightBackground}, Dark={StaticResource DarkBackground}}" />
+    <Color x:Key="SurfaceColor" Value="{AppThemeBinding Light={StaticResource LightSurface}, Dark={StaticResource DarkSurface}}" />
+    <Color x:Key="SurfaceVariantColor" Value="{AppThemeBinding Light={StaticResource LightSurfaceVariant}, Dark={StaticResource DarkSurfaceVariant}}" />
+    <Color x:Key="PrimaryColor" Value="{AppThemeBinding Light={StaticResource LightPrimary}, Dark={StaticResource DarkPrimary}}" />
+    <Color x:Key="PrimaryVariantColor" Value="{AppThemeBinding Light={StaticResource LightPrimaryVariant}, Dark={StaticResource DarkPrimaryVariant}}" />
+    <Color x:Key="PrimaryHoverColor" Value="{AppThemeBinding Light={StaticResource LightPrimaryHover}, Dark={StaticResource DarkPrimaryHover}}" />
+    <Color x:Key="SecondaryColor" Value="{AppThemeBinding Light={StaticResource LightSecondary}, Dark={StaticResource DarkSecondary}}" />
+    <Color x:Key="SecondaryVariantColor" Value="{AppThemeBinding Light={StaticResource LightSecondaryVariant}, Dark={StaticResource DarkSecondaryVariant}}" />
     
     <!-- Text Colors with Theme Binding -->
-    <AppThemeBinding x:Key="OnBackgroundColor" Light="{StaticResource LightOnBackground}" Dark="{StaticResource DarkOnBackground}" />
-    <AppThemeBinding x:Key="OnSurfaceColor" Light="{StaticResource LightOnSurface}" Dark="{StaticResource DarkOnSurface}" />
-    <AppThemeBinding x:Key="OnPrimaryColor" Light="{StaticResource LightOnPrimary}" Dark="{StaticResource DarkOnPrimary}" />
-    <AppThemeBinding x:Key="TextPrimaryColor" Light="{StaticResource LightTextPrimary}" Dark="{StaticResource DarkTextPrimary}" />
-    <AppThemeBinding x:Key="TextSecondaryColor" Light="{StaticResource LightTextSecondary}" Dark="{StaticResource DarkTextSecondary}" />
-    <AppThemeBinding x:Key="TextTertiaryColor" Light="{StaticResource LightTextTertiary}" Dark="{StaticResource DarkTextTertiary}" />
-    <AppThemeBinding x:Key="TextDisabledColor" Light="{StaticResource LightTextDisabled}" Dark="{StaticResource DarkTextDisabled}" />
+    <Color x:Key="OnBackgroundColor" Value="{AppThemeBinding Light={StaticResource LightOnBackground}, Dark={StaticResource DarkOnBackground}}" />
+    <Color x:Key="OnSurfaceColor" Value="{AppThemeBinding Light={StaticResource LightOnSurface}, Dark={StaticResource DarkOnSurface}}" />
+    <Color x:Key="OnPrimaryColor" Value="{AppThemeBinding Light={StaticResource LightOnPrimary}, Dark={StaticResource DarkOnPrimary}}" />
+    <Color x:Key="TextPrimaryColor" Value="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+    <Color x:Key="TextSecondaryColor" Value="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+    <Color x:Key="TextTertiaryColor" Value="{AppThemeBinding Light={StaticResource LightTextTertiary}, Dark={StaticResource DarkTextTertiary}}" />
+    <Color x:Key="TextDisabledColor" Value="{AppThemeBinding Light={StaticResource LightTextDisabled}, Dark={StaticResource DarkTextDisabled}}" />
     
     <!-- Border & Divider Colors with Theme Binding -->
-    <AppThemeBinding x:Key="BorderColor" Light="{StaticResource LightBorder}" Dark="{StaticResource DarkBorder}" />
-    <AppThemeBinding x:Key="BorderVariantColor" Light="{StaticResource LightBorderVariant}" Dark="{StaticResource DarkBorderVariant}" />
-    <AppThemeBinding x:Key="DividerColor" Light="{StaticResource LightDivider}" Dark="{StaticResource DarkDivider}" />
-    <AppThemeBinding x:Key="OutlineColor" Light="{StaticResource LightOutline}" Dark="{StaticResource DarkOutline}" />
+    <Color x:Key="BorderColor" Value="{AppThemeBinding Light={StaticResource LightBorder}, Dark={StaticResource DarkBorder}}" />
+    <Color x:Key="BorderVariantColor" Value="{AppThemeBinding Light={StaticResource LightBorderVariant}, Dark={StaticResource DarkBorderVariant}}" />
+    <Color x:Key="DividerColor" Value="{AppThemeBinding Light={StaticResource LightDivider}, Dark={StaticResource DarkDivider}}" />
+    <Color x:Key="OutlineColor" Value="{AppThemeBinding Light={StaticResource LightOutline}, Dark={StaticResource DarkOutline}}" />
     
     <!-- State Colors with Theme Binding -->
-    <AppThemeBinding x:Key="ErrorColor" Light="{StaticResource LightError}" Dark="{StaticResource DarkError}" />
-    <AppThemeBinding x:Key="ErrorHoverColor" Light="{StaticResource LightErrorHover}" Dark="{StaticResource DarkErrorHover}" />
-    <AppThemeBinding x:Key="SuccessColor" Light="{StaticResource LightSuccess}" Dark="{StaticResource DarkSuccess}" />
-    <AppThemeBinding x:Key="SuccessHoverColor" Light="{StaticResource LightSuccessHover}" Dark="{StaticResource DarkSuccessHover}" />
-    <AppThemeBinding x:Key="WarningColor" Light="{StaticResource LightWarning}" Dark="{StaticResource DarkWarning}" />
-    <AppThemeBinding x:Key="WarningHoverColor" Light="{StaticResource LightWarningHover}" Dark="{StaticResource DarkWarningHover}" />
-    <AppThemeBinding x:Key="InfoColor" Light="{StaticResource LightInfo}" Dark="{StaticResource DarkInfo}" />
-    <AppThemeBinding x:Key="InfoHoverColor" Light="{StaticResource LightInfoHover}" Dark="{StaticResource DarkInfoHover}" />
+    <Color x:Key="ErrorColor" Value="{AppThemeBinding Light={StaticResource LightError}, Dark={StaticResource DarkError}}" />
+    <Color x:Key="ErrorHoverColor" Value="{AppThemeBinding Light={StaticResource LightErrorHover}, Dark={StaticResource DarkErrorHover}}" />
+    <Color x:Key="SuccessColor" Value="{AppThemeBinding Light={StaticResource LightSuccess}, Dark={StaticResource DarkSuccess}}" />
+    <Color x:Key="SuccessHoverColor" Value="{AppThemeBinding Light={StaticResource LightSuccessHover}, Dark={StaticResource DarkSuccessHover}}" />
+    <Color x:Key="WarningColor" Value="{AppThemeBinding Light={StaticResource LightWarning}, Dark={StaticResource DarkWarning}}" />
+    <Color x:Key="WarningHoverColor" Value="{AppThemeBinding Light={StaticResource LightWarningHover}, Dark={StaticResource DarkWarningHover}}" />
+    <Color x:Key="InfoColor" Value="{AppThemeBinding Light={StaticResource LightInfo}, Dark={StaticResource DarkInfo}}" />
+    <Color x:Key="InfoHoverColor" Value="{AppThemeBinding Light={StaticResource LightInfoHover}, Dark={StaticResource DarkInfoHover}}" />
     
     <!-- UI Element Colors with Theme Binding -->
-    <AppThemeBinding x:Key="HoverColor" Light="{StaticResource LightHover}" Dark="{StaticResource DarkHover}" />
-    <AppThemeBinding x:Key="PressedColor" Light="{StaticResource LightPressed}" Dark="{StaticResource DarkPressed}" />
-    <AppThemeBinding x:Key="FocusColor" Light="{StaticResource LightFocus}" Dark="{StaticResource DarkFocus}" />
-    <AppThemeBinding x:Key="SelectedColor" Light="{StaticResource LightSelected}" Dark="{StaticResource DarkSelected}" />
-    <AppThemeBinding x:Key="DisabledColor" Light="{StaticResource LightDisabled}" Dark="{StaticResource DarkDisabled}" />
-    <AppThemeBinding x:Key="ShadowColor" Light="{StaticResource LightShadow}" Dark="{StaticResource DarkShadow}" />
+    <Color x:Key="HoverColor" Value="{AppThemeBinding Light={StaticResource LightHover}, Dark={StaticResource DarkHover}}" />
+    <Color x:Key="PressedColor" Value="{AppThemeBinding Light={StaticResource LightPressed}, Dark={StaticResource DarkPressed}}" />
+    <Color x:Key="FocusColor" Value="{AppThemeBinding Light={StaticResource LightFocus}, Dark={StaticResource DarkFocus}}" />
+    <Color x:Key="SelectedColor" Value="{AppThemeBinding Light={StaticResource LightSelected}, Dark={StaticResource DarkSelected}}" />
+    <Color x:Key="DisabledColor" Value="{AppThemeBinding Light={StaticResource LightDisabled}, Dark={StaticResource DarkDisabled}}" />
+    <Color x:Key="ShadowColor" Value="{AppThemeBinding Light={StaticResource LightShadow}, Dark={StaticResource DarkShadow}}" />
     
     <!-- Tab Colors with Theme Binding -->
-    <AppThemeBinding x:Key="TabActiveColor" Light="{StaticResource LightTabActive}" Dark="{StaticResource DarkTabActive}" />
-    <AppThemeBinding x:Key="TabInactiveColor" Light="{StaticResource LightTabInactive}" Dark="{StaticResource DarkTabInactive}" />
-    <AppThemeBinding x:Key="TabHoverColor" Light="{StaticResource LightTabHover}" Dark="{StaticResource DarkTabHover}" />
-    <AppThemeBinding x:Key="TabBorderColor" Light="{StaticResource LightTabBorder}" Dark="{StaticResource DarkTabBorder}" />
+    <Color x:Key="TabActiveColor" Value="{AppThemeBinding Light={StaticResource LightTabActive}, Dark={StaticResource DarkTabActive}}" />
+    <Color x:Key="TabInactiveColor" Value="{AppThemeBinding Light={StaticResource LightTabInactive}, Dark={StaticResource DarkTabInactive}}" />
+    <Color x:Key="TabHoverColor" Value="{AppThemeBinding Light={StaticResource LightTabHover}, Dark={StaticResource DarkTabHover}}" />
+    <Color x:Key="TabBorderColor" Value="{AppThemeBinding Light={StaticResource LightTabBorder}, Dark={StaticResource DarkTabBorder}}" />
     
     <!-- Sidebar Colors with Theme Binding -->
-    <AppThemeBinding x:Key="SidebarBackgroundColor" Light="{StaticResource LightSidebarBackground}" Dark="{StaticResource DarkSidebarBackground}" />
-    <AppThemeBinding x:Key="SidebarHoverColor" Light="{StaticResource LightSidebarHover}" Dark="{StaticResource DarkSidebarHover}" />
-    <AppThemeBinding x:Key="SidebarSelectedColor" Light="{StaticResource LightSidebarSelected}" Dark="{StaticResource DarkSidebarSelected}" />
+    <Color x:Key="SidebarBackgroundColor" Value="{AppThemeBinding Light={StaticResource LightSidebarBackground}, Dark={StaticResource DarkSidebarBackground}}" />
+    <Color x:Key="SidebarHoverColor" Value="{AppThemeBinding Light={StaticResource LightSidebarHover}, Dark={StaticResource DarkSidebarHover}}" />
+    <Color x:Key="SidebarSelectedColor" Value="{AppThemeBinding Light={StaticResource LightSidebarSelected}, Dark={StaticResource DarkSidebarSelected}}" />
     
     <!-- Search Bar Colors with Theme Binding -->
-    <AppThemeBinding x:Key="SearchBarBackground" Light="{StaticResource LightSurface}" Dark="{StaticResource DarkSurface}" />
+    <Color x:Key="SearchBarBackground" Value="{AppThemeBinding Light={StaticResource LightSurface}, Dark={StaticResource DarkSurface}}" />
     
     <!-- Markdown Element Colors with Theme Binding -->
-    <AppThemeBinding x:Key="CodeBlockBackground" Light="{StaticResource LightCodeBlockBackground}" Dark="{StaticResource DarkCodeBlockBackground}" />
-    <AppThemeBinding x:Key="CodeBlockBorderColor" Light="{StaticResource LightCodeBlockBorder}" Dark="{StaticResource DarkCodeBlockBorder}" />
-    <AppThemeBinding x:Key="InlineCodeBackground" Light="{StaticResource LightInlineCodeBackground}" Dark="{StaticResource DarkInlineCodeBackground}" />
-    <AppThemeBinding x:Key="InlineCodeTextColor" Light="{StaticResource LightInlineCodeText}" Dark="{StaticResource DarkInlineCodeText}" />
-    <AppThemeBinding x:Key="LinkColor" Light="{StaticResource LightLinkColor}" Dark="{StaticResource DarkLinkColor}" />
-    <AppThemeBinding x:Key="LinkHoverColor" Light="{StaticResource LightLinkHover}" Dark="{StaticResource DarkLinkHover}" />
-    <AppThemeBinding x:Key="BlockquoteBorder" Light="{StaticResource LightBlockquoteBorder}" Dark="{StaticResource DarkBlockquoteBorder}" />
-    <AppThemeBinding x:Key="BlockquoteBackgroundColor" Light="{StaticResource LightBlockquoteBackground}" Dark="{StaticResource DarkBlockquoteBackground}" />
-    <AppThemeBinding x:Key="TableBorderColor" Light="{StaticResource LightTableBorder}" Dark="{StaticResource DarkTableBorder}" />
-    <AppThemeBinding x:Key="TableHeaderBackgroundColor" Light="{StaticResource LightTableHeaderBackground}" Dark="{StaticResource DarkTableHeaderBackground}" />
+    <Color x:Key="CodeBlockBackground" Value="{AppThemeBinding Light={StaticResource LightCodeBlockBackground}, Dark={StaticResource DarkCodeBlockBackground}}" />
+    <Color x:Key="CodeBlockBorderColor" Value="{AppThemeBinding Light={StaticResource LightCodeBlockBorder}, Dark={StaticResource DarkCodeBlockBorder}}" />
+    <Color x:Key="InlineCodeBackground" Value="{AppThemeBinding Light={StaticResource LightInlineCodeBackground}, Dark={StaticResource DarkInlineCodeBackground}}" />
+    <Color x:Key="InlineCodeTextColor" Value="{AppThemeBinding Light={StaticResource LightInlineCodeText}, Dark={StaticResource DarkInlineCodeText}}" />
+    <Color x:Key="LinkColor" Value="{AppThemeBinding Light={StaticResource LightLinkColor}, Dark={StaticResource DarkLinkColor}}" />
+    <Color x:Key="LinkHoverColor" Value="{AppThemeBinding Light={StaticResource LightLinkHover}, Dark={StaticResource DarkLinkHover}}" />
+    <Color x:Key="BlockquoteBorder" Value="{AppThemeBinding Light={StaticResource LightBlockquoteBorder}, Dark={StaticResource DarkBlockquoteBorder}}" />
+    <Color x:Key="BlockquoteBackgroundColor" Value="{AppThemeBinding Light={StaticResource LightBlockquoteBackground}, Dark={StaticResource DarkBlockquoteBackground}}" />
+    <Color x:Key="TableBorderColor" Value="{AppThemeBinding Light={StaticResource LightTableBorder}, Dark={StaticResource DarkTableBorder}}" />
+    <Color x:Key="TableHeaderBackgroundColor" Value="{AppThemeBinding Light={StaticResource LightTableHeaderBackground}, Dark={StaticResource DarkTableHeaderBackground}}" />
     
     <!-- Syntax Highlighting Colors with Theme Binding -->
-    <AppThemeBinding x:Key="SyntaxKeywordColor" Light="{StaticResource LightSyntaxKeyword}" Dark="{StaticResource DarkSyntaxKeyword}" />
-    <AppThemeBinding x:Key="SyntaxStringColor" Light="{StaticResource LightSyntaxString}" Dark="{StaticResource DarkSyntaxString}" />
-    <AppThemeBinding x:Key="SyntaxCommentColor" Light="{StaticResource LightSyntaxComment}" Dark="{StaticResource DarkSyntaxComment}" />
-    <AppThemeBinding x:Key="SyntaxFunctionColor" Light="{StaticResource LightSyntaxFunction}" Dark="{StaticResource DarkSyntaxFunction}" />
-    <AppThemeBinding x:Key="SyntaxVariableColor" Light="{StaticResource LightSyntaxVariable}" Dark="{StaticResource DarkSyntaxVariable}" />
-    <AppThemeBinding x:Key="SyntaxNumberColor" Light="{StaticResource LightSyntaxNumber}" Dark="{StaticResource DarkSyntaxNumber}" />
+    <Color x:Key="SyntaxKeywordColor" Value="{AppThemeBinding Light={StaticResource LightSyntaxKeyword}, Dark={StaticResource DarkSyntaxKeyword}}" />
+    <Color x:Key="SyntaxStringColor" Value="{AppThemeBinding Light={StaticResource LightSyntaxString}, Dark={StaticResource DarkSyntaxString}}" />
+    <Color x:Key="SyntaxCommentColor" Value="{AppThemeBinding Light={StaticResource LightSyntaxComment}, Dark={StaticResource DarkSyntaxComment}}" />
+    <Color x:Key="SyntaxFunctionColor" Value="{AppThemeBinding Light={StaticResource LightSyntaxFunction}, Dark={StaticResource DarkSyntaxFunction}}" />
+    <Color x:Key="SyntaxVariableColor" Value="{AppThemeBinding Light={StaticResource LightSyntaxVariable}, Dark={StaticResource DarkSyntaxVariable}}" />
+    <Color x:Key="SyntaxNumberColor" Value="{AppThemeBinding Light={StaticResource LightSyntaxNumber}, Dark={StaticResource DarkSyntaxNumber}}" />
 
 </ResourceDictionary>

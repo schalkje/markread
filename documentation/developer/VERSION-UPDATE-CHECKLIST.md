@@ -228,7 +228,7 @@ Usage: `.\validate-release.ps1 -TagVersion "v0.2.0"`
 
 ## Common Mistakes to Avoid
 
-❌ **DON'T** edit version in individual project files (src/MarkRead.App.csproj, installer/MarkRead.Installer.wixproj)
+❌ **DON'T** edit version in individual project files (src/MarkRead.csproj, installer/MarkRead.Installer.wixproj)
 ✅ **DO** edit only `Directory.Build.props`
 
 ❌ **DON'T** create the tag before updating `Directory.Build.props`

@@ -100,7 +100,7 @@ WPF TreeView captures mouse events internally before they reach custom handlers 
 
 #### T100: Install Microsoft.Xaml.Behaviors Package
 **Description**: Add NuGet package for behavior support  
-**File**: `src/MarkRead.App.csproj`  
+**File**: `src/MarkRead.csproj`  
 **Action**: 
 ```xml
 <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />

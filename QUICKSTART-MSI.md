@@ -7,7 +7,7 @@
 ### Files Created/Modified
 
 1. **Project Configuration**
-   - `src/App/MarkRead.App.csproj` - Added version and metadata
+   - `src/App/MarkRead.csproj` - Added version and metadata
    - `installer/MarkRead.Installer.wixproj` - WiX installer project
    - `installer/Package.wxs` - WiX installer definition
    - `markread.sln` - Added installer project to solution
@@ -450,7 +450,7 @@ markread/
 │   └── README.md                  # ✅ Created
 ├── src/
 │   ├── App/
-│   │   └── MarkRead.App.csproj    # ✅ Updated
+│   │   └── MarkRead.csproj    # ✅ Updated
 │   └── ...
 ├── installer/
 │   ├── MarkRead.Installer.wixproj # ✅ Created

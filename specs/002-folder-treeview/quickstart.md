@@ -288,7 +288,7 @@ public partial class TreeViewView : UserControl
 dotnet build
 
 # Run
-dotnet run --project src/App/MarkRead.App.csproj
+dotnet run --project src/App/MarkRead.csproj
 
 # Run tests
 dotnet test tests/unit/TreeViewServiceTests.cs

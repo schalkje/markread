@@ -72,7 +72,7 @@ cd c:\repo\markread
 dotnet restore
 
 # Build the application
-dotnet build src\App\MarkRead.App.csproj --configuration Release
+dotnet build src\App\MarkRead.csproj --configuration Release
 
 # Build the installer
 dotnet build src\Installer\MarkRead.Installer.wixproj --configuration Release
@@ -132,7 +132,7 @@ Test on a clean Windows installation:
 
 **Error: Cannot find file 'icon.ico'**
 - Create the icon file in `assets/icon.ico`
-- Or update the path in `MarkRead.App.csproj`
+- Or update the path in `MarkRead.csproj`
 
 **Error: Cannot find file 'License.rtf'**
 - Should already exist at `assets/License.rtf`

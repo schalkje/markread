@@ -138,7 +138,7 @@ dotnet build markread.sln
 dotnet build --configuration Release
 
 # Specific project
-dotnet build src/App/MarkRead.App.csproj
+dotnet build src/App/MarkRead.csproj
 
 # Verbose output
 dotnet build --verbosity detailed

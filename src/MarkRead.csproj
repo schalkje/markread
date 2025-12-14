@@ -27,15 +27,19 @@
 		<ApplicationId>com.companyname.markread</ApplicationId>
 
 		<!-- Versions -->
-		<ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+		<ApplicationDisplayVersion>0.5.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
-		<!-- MSIX Packaging Configuration -->
-		<WindowsPackageType>MSIX</WindowsPackageType>
+		<!-- Windows Packaging Configuration -->
+		<!-- Debug: Unpackaged for easy local dev, Release: MSIX for distribution -->
+		<WindowsPackageType Condition="'$(Configuration)' == 'Debug'">None</WindowsPackageType>
+		<WindowsPackageType Condition="'$(Configuration)' == 'Release'">MSIX</WindowsPackageType>
+		
+		<!-- MSIX Configuration (only for Release builds) -->
 		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
 		<GenerateAppInstallerFile>false</GenerateAppInstallerFile>
-		<AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
-		<PackageCertificateThumbprint></PackageCertificateThumbprint>
+		<AppxPackageSigningEnabled Condition="'$(Configuration)' == 'Release'">true</AppxPackageSigningEnabled>
+		<PackageCertificateThumbprint Condition="'$(Configuration)' == 'Release'"></PackageCertificateThumbprint>
 		<AppxPackageDir>bin\$(Configuration)\</AppxPackageDir>
 		<AppxBundle>Never</AppxBundle>
 		<EnableMsixTooling>true</EnableMsixTooling>

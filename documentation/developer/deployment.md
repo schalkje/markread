@@ -41,7 +41,7 @@ bin/Release/net8.0-windows/
 Includes .NET runtime (no installation required):
 
 ```powershell
-dotnet publish src/App/MarkRead.App.csproj `
+dotnet publish src/App/MarkRead.csproj `
   --configuration Release `
   --runtime win-x64 `
   --self-contained true `
@@ -53,7 +53,7 @@ dotnet publish src/App/MarkRead.App.csproj `
 Requires .NET 8 installed:
 
 ```powershell
-dotnet publish src/App/MarkRead.App.csproj `
+dotnet publish src/App/MarkRead.csproj `
   --configuration Release `
   --runtime win-x64 `
   --self-contained false `
@@ -63,7 +63,7 @@ dotnet publish src/App/MarkRead.App.csproj `
 ### Single-File Deployment
 
 ```powershell
-dotnet publish src/App/MarkRead.App.csproj `
+dotnet publish src/App/MarkRead.csproj `
   --configuration Release `
   --runtime win-x64 `
   --self-contained true `

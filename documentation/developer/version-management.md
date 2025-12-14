@@ -22,7 +22,7 @@ MSBuild automatically imports `Directory.Build.props` into all `.csproj` and `.w
 
 ### Version Propagation
 
-1. **Application (`src/MarkRead.App.csproj`)**: Inherits `Version`, `AssemblyVersion`, and `FileVersion`
+1. **Application (`src/MarkRead.csproj`)**: Inherits `Version`, `AssemblyVersion`, and `FileVersion`
 2. **Installer (`installer/MarkRead.Installer.wixproj`)**: Inherits `Version` for output filename
 3. **MSI Package (`installer/Package.wxs`)**: Binds to the executable's FileVersion at build time using `!(bind.FileVersion.MarkRead.exe)`
 
@@ -167,7 +167,7 @@ The GitHub Actions workflow validates:
 ## Related Files
 
 - **`Directory.Build.props`** - Central version definition
-- **`src/MarkRead.App.csproj`** - Application project (inherits version)
+- **`src/MarkRead.csproj`** - Application project (inherits version)
 - **`installer/MarkRead.Installer.wixproj`** - Installer project (inherits version)
 - **`installer/Package.wxs`** - WiX package definition (binds to exe version)
 - **`CHANGELOG.md`** - Version history and release notes

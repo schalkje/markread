@@ -64,13 +64,13 @@ dotnet build --configuration Release
 
 ```bash
 # Run from source
-dotnet run --project src/App/MarkRead.App.csproj
+dotnet run --project src/App/MarkRead.csproj
 
 # Run with file argument
-dotnet run --project src/App/MarkRead.App.csproj -- README.md
+dotnet run --project src/App/MarkRead.csproj -- README.md
 
 # Run with folder argument
-dotnet run --project src/App/MarkRead.App.csproj -- ./documentation
+dotnet run --project src/App/MarkRead.csproj -- ./documentation
 ```
 
 ## Development Workflow

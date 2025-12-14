@@ -60,7 +60,7 @@ repo-root/
 │   ├── AssemblyInfo.cs
 │   ├── MainWindow.xaml
 │   ├── MainWindow.xaml.cs
-│   ├── MarkRead.App.csproj
+│   ├── MarkRead.csproj
 │   ├── ThemeManager.cs
 │   ├── bin/
 │   ├── Cli/

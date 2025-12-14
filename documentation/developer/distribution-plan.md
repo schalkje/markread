@@ -12,7 +12,7 @@ This document outlines the complete plan to implement automated distribution for
 
 **Technology Stack:**
 - .NET 8 (WPF + WebView2)
-- Single project: `MarkRead.App.csproj`
+- Single project: `MarkRead.csproj`
 - Dependencies: Markdig, WebView2, HtmlSanitizer
 - Target: Windows 10/11 (net8.0-windows)
 
@@ -51,7 +51,7 @@ graph TD
 ### Components
 
 1. **GitHub Actions Workflow** - `.github/workflows/release.yml`
-2. **Project Configuration** - Enhanced `MarkRead.App.csproj`
+2. **Project Configuration** - Enhanced `MarkRead.csproj`
 3. **Packaging** - MSI installer or MSIX package
 4. **Winget Manifest** - Published to `microsoft/winget-pkgs`
 
@@ -59,7 +59,7 @@ graph TD
 
 ### Phase 1: Project Configuration
 
-#### 1.1 Update MarkRead.App.csproj
+#### 1.1 Update MarkRead.csproj
 
 Add comprehensive metadata for packaging:
 
@@ -181,7 +181,7 @@ jobs:
 
     - name: Publish application (win-x64)
       run: |
-        dotnet publish src/App/MarkRead.App.csproj `
+        dotnet publish src/App/MarkRead.csproj `
           --configuration Release `
           --runtime win-x64 `
           --self-contained true `
@@ -589,7 +589,7 @@ v1.0.0          → Stable, production-ready
 ## Rollout Plan
 
 ### Phase 1: Setup (Week 1)
-- [ ] Update `MarkRead.App.csproj` with metadata
+- [ ] Update `MarkRead.csproj` with metadata
 - [ ] Create application icons
 - [ ] Create `CHANGELOG.md`
 - [ ] Create `LICENSE` if missing

@@ -136,10 +136,10 @@ git clone https://github.com/schalkje/markread.git
 cd markread
 
 # Build
-dotnet build src/App/MarkRead.App.csproj --configuration Release
+dotnet build src/App/MarkRead.csproj --configuration Release
 
 # Run
-dotnet run --project src/App/MarkRead.App.csproj
+dotnet run --project src/App/MarkRead.csproj
 ```
 
 See the [Build Process](../developer/build-process.md) documentation for detailed build instructions.

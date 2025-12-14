@@ -20,7 +20,7 @@ description: "Task list for Folder Structure Treeview implementation"
 **Purpose**: Project initialization and basic structure for treeview feature
 
 - [X] T001 Review existing WPF application structure in src/App/ and src/UI/ to understand integration points
-- [X] T002 Verify .NET 8 SDK and WPF dependencies are properly configured in src/App/MarkRead.App.csproj
+- [X] T002 Verify .NET 8 SDK and WPF dependencies are properly configured in src/App/MarkRead.csproj
 - [X] T003 [P] Create UI/Sidebar/TreeView/ directory structure for new treeview components
 
 ---

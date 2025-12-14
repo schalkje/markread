@@ -58,7 +58,7 @@
    - Converts bool IsExpanded to "Collapse"/"Expand" text (for future use)
 
 ### Files Modified
-1. **`src/MarkRead.App.csproj`**
+1. **`src/MarkRead.csproj`**
    - Added Microsoft.Xaml.Behaviors.Wpf package reference
 
 2. **`src/UI/Sidebar/TreeView/TreeViewViewModel.cs`**

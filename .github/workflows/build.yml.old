@@ -26,7 +26,7 @@ jobs:
     
     - name: Build App
       # Use /maxcpucount:1 to prevent WPF XAML parallel compilation race conditions
-      run: dotnet build src\MarkRead.App.csproj --configuration Release --no-restore /maxcpucount:1
+      run: dotnet build src\MarkRead.csproj --configuration Release --no-restore /maxcpucount:1
     
     - name: Build Tests
       run: dotnet build tests\unit\MarkRead.UnitTests.csproj --configuration Release --no-restore /maxcpucount:1
