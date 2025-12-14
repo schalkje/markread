@@ -128,6 +128,26 @@ A user with visual sensitivity works in a dark environment. They switch to dark 
 
 ---
 
+### User Story 7 - Comprehensive Settings and Help System (Priority: P4)
+
+A power user wants to customize MarkRead for their workflow. They press Ctrl+, to open settings, navigate to Appearance tab, and change the code font to Fira Code with 14pt size. The preview updates immediately. They switch to Behavior tab and enable auto-reload with 500ms debounce. They create a .markread.json file in their work project folder to use dark theme only for that project. When they forget a keyboard shortcut, they press F1 to view the shortcuts reference, finding the command they need. They use Ctrl+Shift+P to open the command palette and execute "Export Settings" to share their configuration with their team.
+
+**Why this priority**: Settings and help make the application flexible and learnable. While not core viewing functionality, they dramatically improve user experience for customization and discoverability. Essential for power users and onboarding new users.
+
+**Independent Test**: Open settings UI - verify all 5 categories load with current values in under 200ms. Change appearance setting - verify live preview updates within 100ms. Create per-folder .markread.json - verify folder-specific settings override globals. Press F1 - verify keyboard shortcuts window opens showing 80+ shortcuts organized by category. Press Ctrl+Shift+P - verify command palette opens with fuzzy search returning results within 50ms. Export settings - verify JSON file contains all categories. Import settings - verify values restore correctly.
+
+**Acceptance Scenarios**:
+
+1. **Given** user presses Ctrl+,, **When** settings UI loads, **Then** all categories (Appearance, Behavior, Search, Performance, Keyboard) display with current values
+2. **Given** user changes content font size in Appearance settings, **When** value updates, **Then** active document preview reflects new font size within 100ms
+3. **Given** folder has .markread.json with "theme": "dark", **When** user opens that folder, **Then** dark theme applies only to that folder's documents
+4. **Given** user presses F1, **When** keyboard shortcuts window opens, **Then** all shortcuts display organized by 8+ categories with search/filter capability
+5. **Given** user presses Ctrl+Shift+P, **When** command palette opens, **Then** fuzzy search returns filtered commands with keyboard shortcuts shown
+6. **Given** user exports settings, **When** export completes, **Then** JSON file contains all categories with current values in valid format
+7. **Given** corrupted settings.json exists, **When** application launches, **Then** system detects corruption, auto-restores from backup, and notifies user
+
+---
+
 ### Edge Cases
 
 - What happens when a folder is opened that contains 10,000+ files? (File tree should load progressively, showing first 1000 files immediately, loading rest in background with virtualization)
@@ -138,6 +158,10 @@ A user with visual sensitivity works in a dark environment. They switch to dark 
 - How does the command palette handle very long command lists (100+ commands)? (Show first 50 matches, virtual scrolling for rest, fuzzy search prioritizes recently used commands)
 - What happens when user switches between folders rapidly (5 folder switches in 2 seconds)? (Debounce folder switches with 300ms delay, queue rapid switches and execute the final one, show loading spinner for transitions >500ms)
 - How does split view work when window is resized to very narrow width (400px)? (Automatically stack splits vertically when width < 768px, show scroll indicators, allow manual re-split)
+- What happens when settings.json is corrupted or contains invalid JSON? (System detects corruption on load, attempts to parse with error recovery, restores from automatic backup .settings.json.bak if present, or resets to defaults with notification)
+- How does the application handle conflicting keyboard shortcuts when user customizes bindings? (Settings UI detects conflicts in real-time, highlights conflicting shortcuts in red, prevents saving until conflict resolved, suggests alternative key combinations)
+- What happens if per-folder .markread.json has invalid settings values? (System validates per-folder settings, logs warnings for invalid values, falls back to global settings for invalid entries, continues loading valid entries)
+- How does command palette handle commands that are contextually unavailable (e.g., "Close Tab" when no tabs open)? (Show all commands in palette but gray out unavailable ones, display tooltip explaining why command is unavailable, allow users to see all commands for learning purposes)
 
 ## Requirements *(mandatory)*
 
@@ -228,6 +252,63 @@ A user with visual sensitivity works in a dark environment. They switch to dark 
 - **FR-051**: Application MUST support export to PDF via native browser print-to-PDF functionality
 - **FR-052**: Export MUST preserve markdown formatting, code syntax highlighting, and rendered diagrams in PDF output
 
+#### Settings Management
+
+- **FR-053**: System MUST store settings in JSON files organized by category: settings.json (main), theme-settings.json, ui-state.json, animation-settings.json
+- **FR-054**: Application MUST provide a settings UI (Ctrl+,) with organized tabs/sections for Appearance, Behavior, Search, Performance, and Keyboard settings
+- **FR-055**: Settings UI MUST include live preview for appearance settings (theme, fonts, line height, code highlighting) updating the active document in real-time
+- **FR-056**: System MUST support per-folder configuration via .markread.json files in folder roots that override global settings
+- **FR-057**: Application MUST implement atomic writes with backup/restore for settings files, detecting corruption and auto-restoring from backup
+- **FR-058**: System MUST support environment variable overrides for critical settings (MARKREAD_THEME, MARKREAD_AUTO_RELOAD, MARKREAD_CONFIG_PATH, MARKREAD_LOG_LEVEL)
+- **FR-059**: Application MUST provide factory reset functionality (Settings → Advanced → Reset All Settings) with confirmation dialog
+- **FR-060**: Settings MUST include import/export capability for sharing configurations across machines or teams with options: merge, replace all, or import specific categories
+- **FR-061**: System MUST validate all settings on load, providing error messages for invalid values and falling back to defaults
+- **FR-062**: Application MUST persist window state (position, dimensions, sidebar width) in ui-state.json and restore on launch
+
+#### Appearance Settings Category
+
+- **FR-063**: Settings MUST support theme selection (System/Dark/Light/High Contrast) with follow-system-theme option
+- **FR-064**: Settings MUST allow font customization: content font family and size (8-24pt), code font family (Consolas/Cascadia/Fira Code/JetBrains Mono) and size (8-20pt)
+- **FR-065**: Settings MUST support line height adjustment (1.0-2.5), max content width (full/600/800/1000/custom), content padding (0-100px)
+- **FR-066**: Settings MUST provide syntax highlighting theme selection with separate themes for light and dark modes (5-10 presets)
+- **FR-067**: Settings MUST allow sidebar width customization (150-500px) with resize handle and double-click to reset
+
+#### Behavior Settings Category
+
+- **FR-068**: Settings MUST include auto-reload toggle with debounce time configuration (100-2000ms)
+- **FR-069**: Settings MUST support tab behavior: restore tabs on launch, confirm before closing multiple tabs, default tab behavior (replace current or new tab)
+- **FR-070**: Settings MUST allow file tree visibility toggle, scroll behavior (smooth/instant), and external links behavior (open in browser/ask/copy URL)
+
+#### Search Settings Category
+
+- **FR-071**: Settings MUST include case-sensitive search toggle (default off), search history size (10-200 entries), global search max results (100-5000)
+- **FR-072**: Settings MUST support folder exclusion patterns (e.g., node_modules, .git, bin, obj) with add/remove/edit interface
+- **FR-073**: Settings MUST allow hidden files inclusion toggle for search and file tree display
+
+#### Performance Settings Category
+
+- **FR-074**: Settings MUST include indexing enable/disable toggle for faster cross-file search
+- **FR-075**: Settings MUST support large file threshold configuration (100KB-10MB) to warn or limit rendering for performance
+
+#### Advanced Settings Features
+
+- **FR-076**: Settings MUST support custom CSS file loading with enable/disable toggle and file path configuration
+- **FR-077**: Settings MUST include logging configuration: enable/disable, log level (Error/Warning/Info/Debug), log file path, max log size (1-100MB)
+- **FR-078**: Settings MUST provide update check frequency options (On Startup/Daily/Weekly/Never) and allow pre-release updates toggle
+- **FR-079**: Settings MUST include animation controls: enable/disable animations, animation duration (0-500ms), reduced motion support for accessibility
+
+#### Help System and Documentation Access
+
+- **FR-080**: Application MUST provide an interactive keyboard shortcuts window (F1) displaying all shortcuts organized by category (File, Navigation, Tabs, Search, View, Application)
+- **FR-081**: Keyboard shortcuts window MUST show shortcuts in a grid layout with action name, key combination, and description for each shortcut
+- **FR-082**: Application MUST implement command palette (Ctrl+Shift+P) with fuzzy search across all commands, displaying keyboard shortcuts next to command names
+- **FR-083**: Command palette MUST prioritize recently used commands and support keyboard navigation (up/down arrows, Enter to execute, Escape to close)
+- **FR-084**: System MUST provide tooltip hints showing keyboard shortcuts when hovering over toolbar buttons and menu items
+- **FR-085**: Application MUST include a Help menu with links to: User Guide, Keyboard Shortcuts Reference, About MarkRead, Check for Updates
+- **FR-086**: Help menu MUST provide "Open Documentation Folder" command opening the installed documentation directory in the file system
+- **FR-087**: Application MUST support context-sensitive help showing relevant keyboard shortcuts based on current focus (document, sidebar, search panel)
+- **FR-088**: System MUST allow keyboard shortcut customization via Settings → Keyboard with conflict detection and validation
+
 ### Key Entities *(include if feature involves data)*
 
 - **Folder**: Represents an opened documentation root with properties: path, file tree state, active tab, tab collection, recent files, expansion state
@@ -238,6 +319,11 @@ A user with visual sensitivity works in a dark environment. They switch to dark 
 - **FileWatcher**: Represents a filesystem monitor with properties: watched path, file patterns, debounce interval, change event handlers
 - **RecentItem**: Represents a recent file or folder with properties: path, type (file/folder), last accessed timestamp, display name
 - **KeyboardShortcut**: Represents a key binding with properties: key combination, command ID, when-clause, is-custom flag
+- **Settings**: Represents application configuration with properties organized by category: appearance (theme, fonts, layout), behavior (auto-reload, tabs, scrolling), search (case sensitivity, exclusions), performance (indexing, thresholds)
+- **UIState**: Represents persistent window state with properties: window dimensions, position, sidebar width, active folder, tab collection states, split layout preferences
+- **AnimationSettings**: Represents animation configuration with properties: animations enabled, animation duration, reduced motion flag (accessibility)
+- **FolderExclusionPattern**: Represents a search exclusion rule with properties: pattern (glob or regex), is-enabled flag, description
+- **LogConfiguration**: Represents logging settings with properties: log level (Error/Warning/Info/Debug), log file path, max file size, rotation policy
 
 ## Success Criteria *(mandatory)*
 
@@ -255,6 +341,11 @@ A user with visual sensitivity works in a dark environment. They switch to dark 
 - **SC-010**: 90% of common user actions can be completed using keyboard shortcuts
 - **SC-011**: PDF export preserves all formatting including syntax highlighting and diagrams
 - **SC-012**: Theme switching completes within 200ms with no visual flicker
+- **SC-013**: Settings UI loads all categories and displays current values within 200ms
+- **SC-014**: Settings changes apply immediately with live preview updating within 100ms for appearance settings
+- **SC-015**: Keyboard shortcuts window displays all 80+ shortcuts organized by category, searchable within 50ms
+- **SC-016**: Command palette fuzzy search returns filtered results within 50ms with 100+ commands indexed
+- **SC-017**: Settings import/export operations complete within 500ms with validation of all imported values
 
 ## Assumptions
 
@@ -292,6 +383,12 @@ A user with visual sensitivity works in a dark environment. They switch to dark 
 - **FR-029 (Global Shortcuts)** depends on FR-010 (Keyboard Navigation) and FR-011 (Configurable Shortcuts) being implemented
 - **FR-032 (Theme Application Speed)** depends on FR-030 (Theme Modes) architecture supporting async theme loading
 - **FR-051-052 (PDF Export)** depends on FR-035-041 (Markdown Rendering) being complete and tested
+- **FR-055 (Settings Live Preview)** depends on FR-054 (Settings UI) and FR-035-041 (Markdown Rendering) to display preview
+- **FR-056 (Per-Folder Config)** depends on FR-053 (Settings Storage) to establish base settings schema
+- **FR-057 (Atomic Writes with Backup)** depends on FR-053 (Settings Storage) to define file structure
+- **FR-080-081 (Keyboard Shortcuts Window)** depends on FR-011 (Configurable Shortcuts) and FR-088 (Shortcut Customization) for data source
+- **FR-082-083 (Command Palette)** depends on FR-009 (Command Palette Implementation) and FR-011 (Keyboard Shortcuts) for command registry
+- **FR-088 (Shortcut Customization)** depends on FR-011 (Configurable Shortcuts) to establish customization architecture
 
 ## Out of Scope
 
