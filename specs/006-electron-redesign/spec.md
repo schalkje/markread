@@ -10,6 +10,10 @@
 ### Session 2025-12-14
 
 - Q: When implementing cross-file search (FR-043), should the search be asynchronous with progress indication for large folder trees, or should it block until complete? → A: Asynchronous with progress bar and cancel button (search runs in background, user can continue working, shows "X of Y files searched" counter)
+- Q: When a file is modified externally while the user has made unsaved scroll position or zoom changes in a tab, what should happen? → A: Reload file content automatically but preserve user's scroll position and zoom level (best for read-only viewers)
+- Q: The edge case mentions a 20-tab limit when dragging 100 files. Should there be a hard maximum tab limit enforced across all user actions? → A: Soft limit with warning at 20 tabs, allows up to 50 tabs before hard blocking (balances usability and safety)
+- Q: The spec mentions reusing "Prism.js or Highlight.js from current implementation." Should the Electron version standardize on one library for consistency? → A: Highlight.js (better markdown-it integration, automatic language detection, slightly smaller bundle)
+- Q: The edge case mentions loading 10,000+ files progressively. At what file count should virtualization activate to maintain performance? → A: 1000 files
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -156,11 +160,11 @@ A power user wants to customize MarkRead for their workflow. They press Ctrl+, t
 
 ### Edge Cases
 
-- What happens when a folder is opened that contains 10,000+ files? (File tree should load progressively, showing first 1000 files immediately, loading rest in background with virtualization)
+- What happens when a folder is opened that contains 10,000+ files? (File tree activates virtualization at 1000 files threshold, rendering only visible nodes, loading full tree in background with lazy expansion of folders)
 - How does the application handle circular symbolic links in folder structures? (Detect circular references and skip them with a warning log entry, preventing infinite loops)
 - What happens when multiple MarkRead windows are open and both try to open the same file? (Each window operates independently; file watchers work per-window; no file locking)
 - How does the application behave when a file is deleted while open in a tab? (Tab shows "File not found" message with options: Close Tab, Reload Folder, or Choose New File)
-- What happens if user drags 100 files onto the application simultaneously? (Open first 20 files in tabs, show notification "20 files opened, 80 files skipped (tab limit)", provide "Open All" option in notification)
+- What happens if user drags 100 files onto the application simultaneously? (Open first 20 files in tabs, show warning notification "20 files opened (tab limit warning), 80 files queued", provide "Continue Opening" button to open more up to hard limit of 50 tabs)
 - How does the command palette handle very long command lists (100+ commands)? (Show first 50 matches, virtual scrolling for rest, fuzzy search prioritizes recently used commands)
 - What happens when user switches between folders rapidly (5 folder switches in 2 seconds)? (Debounce folder switches with 300ms delay, queue rapid switches and execute the final one, show loading spinner for transitions >500ms)
 - How does split view work when window is resized to very narrow width (400px)? (Automatically stack splits vertically when width < 768px, show scroll indicators, allow manual re-split)
@@ -186,6 +190,7 @@ A power user wants to customize MarkRead for their workflow. They press Ctrl+, t
 - **FR-006**: Application MUST provide a folder switcher UI element (similar to VS Code's workspace folders) for navigating between open folders
 - **FR-007**: System MUST persist folder state across sessions, including open folders, active folder, tab states, and UI layout preferences
 - **FR-008**: Each folder MUST maintain its own navigation history, recent files list, and file tree expansion state
+- **FR-008a**: File tree MUST implement virtualization for folders containing more than 1000 files, rendering only visible nodes to maintain <100ms initial load time and smooth scrolling performance
 
 #### Keyboard-Driven Interface
 
@@ -194,6 +199,7 @@ A power user wants to customize MarkRead for their workflow. They press Ctrl+, t
 - **FR-011**: Application MUST provide configurable keyboard shortcuts with defaults matching VS Code conventions where applicable
 - **FR-012**: System MUST display an interactive keyboard shortcuts reference (F1 or Help menu) showing current bindings and descriptions
 - **FR-013**: Application MUST support tab jumping with Ctrl+[1-9] for tabs 1-9 and Ctrl+0 for the last tab
+- **FR-013a**: System MUST implement soft tab limit showing warning at 20 open tabs with option to continue, and hard limit blocking new tabs at 50 tabs (with notification explaining memory constraints)
 
 #### Multi-Pane Layout
 
@@ -207,7 +213,7 @@ A power user wants to customize MarkRead for their workflow. They press Ctrl+, t
 
 - **FR-019**: System MUST watch all open folders for file changes (add, modify, delete, rename) and update UI within 1 second
 - **FR-020**: Application MUST debounce rapid file changes (multiple saves within 500ms) and batch updates to prevent flicker
-- **FR-021**: System MUST preserve scroll position and zoom level when reloading files after external modifications
+- **FR-021**: System MUST automatically reload file content when externally modified, preserving user's scroll position and zoom level without prompting (read-only viewer behavior)
 - **FR-022**: Application MUST register as a handler for .md and .markdown file extensions during installation on Windows
 - **FR-023**: System MUST support drag-and-drop for files and folders onto the application window, opening them in new tabs
 - **FR-024**: Application MUST implement Windows Explorer context menu integration ("Open with MarkRead" for files and folders)
@@ -231,7 +237,7 @@ A power user wants to customize MarkRead for their workflow. They press Ctrl+, t
 #### Markdown Rendering (Reusing Current Implementation Libraries)
 
 - **FR-035**: System MUST support GitHub Flavored Markdown including tables, task lists, strikethrough, and autolinks
-- **FR-036**: Application MUST provide syntax highlighting for code blocks with support for 50+ languages using existing libraries (Prism.js or Highlight.js from current implementation)
+- **FR-036**: Application MUST provide syntax highlighting for code blocks with support for 190+ languages using Highlight.js with automatic language detection
 - **FR-037**: System MUST render Mermaid diagrams (flowcharts, sequence diagrams, class diagrams, state diagrams, Gantt charts) using existing Mermaid.js library
 - **FR-038**: Application MUST use existing markdown-it library (or equivalent markdown parser currently in use) for parsing and rendering markdown to HTML
 - **FR-039**: Application MUST sanitize HTML content and prevent script execution for security
@@ -359,7 +365,7 @@ A power user wants to customize MarkRead for their workflow. They press Ctrl+, t
 2. **VS Code Benchmark**: VS Code's UX patterns and keyboard model are the gold standard for desktop productivity apps in the developer/technical writer space (assumption: target users are familiar with or aspire to VS Code workflows)
 3. **Single Instance Model**: Users prefer single-window, multi-tab experience over multiple application windows (assumption: verified by current MarkRead usage patterns and VS Code conventions)
 4. **Offline Operation**: Users work in environments without reliable internet or prefer not to send documentation content over the network (assumption: privacy and offline capability are key differentiators)
-5. **Markdown Rendering Libraries**: Existing rendering libraries (Markdig → markdown-it, Prism.js, Mermaid) provide equivalent or better functionality in Electron environment (assumption: web-based rendering libraries are mature and performant)
+5. **Markdown Rendering Libraries**: Web-based rendering libraries (markdown-it, Highlight.js, Mermaid) provide equivalent or better functionality than current .NET libraries in Electron environment (assumption: these mature libraries offer better language support and smaller bundle size)
 6. **Migration Path**: Users of current .NET/WPF version will accept a one-time migration process if the new version provides significant UX improvements (assumption: improved feature set justifies migration friction)
 7. **Performance Expectations**: Users expect desktop application responsiveness (frame times < 16ms, actions < 100ms) rather than web application tolerance (frame times < 50ms, actions < 300ms) (assumption: desktop context sets higher performance bar)
 8. **Keyboard-First Users**: Target audience includes power users who value keyboard efficiency over mouse convenience (assumption: technical writers and developers prefer keyboard navigation)
@@ -371,7 +377,7 @@ A power user wants to customize MarkRead for their workflow. They press Ctrl+, t
 ### External Dependencies
 
 - **Electron Framework**: Core application shell and Chromium rendering engine (specific version to be determined during planning)
-- **Node.js Ecosystem**: NPM packages for markdown parsing (markdown-it), syntax highlighting (Prism.js or Highlight.js), diagram rendering (Mermaid)
+- **Node.js Ecosystem**: NPM packages for markdown parsing (markdown-it), syntax highlighting (Highlight.js), diagram rendering (Mermaid)
 - **Windows APIs**: File system watcher APIs, file association registry, taskbar jumplist APIs, global shortcut registration
 - **Build Tooling**: Electron Builder or Electron Forge for packaging, code signing, and Windows installer generation
 
