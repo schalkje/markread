@@ -1,44 +1,173 @@
 /**
  * Zustand Store: Tabs
- * Manages open tabs, active tab, and tab-level state
+ * Tasks: T059, T065, T067
+ * Manages open tabs, active tab, navigation history, and tab-level state
  */
 
 import { create } from 'zustand';
-import type { Tab } from '@shared/types/entities';
+import type { Tab, HistoryEntry } from '@shared/types/entities';
 
 interface TabsState {
   tabs: Map<string, Tab>;
+  activeTabId: string | null;
+  tabOrder: string[]; // Ordered list of tab IDs for display
 
-  // Actions
-  addTab: (folderId: string, tab: Tab) => Tab | undefined;
-  removeTab: (folderId: string, tabId: string) => void;
-  setActiveTab: (folderId: string, tabId: string) => void;
+  // Tab limits (T063)
+  softLimit: number; // 20 tabs - show warning
+  hardLimit: number; // 50 tabs - block creation
+
+  // Actions - Tab Management (T059)
+  addTab: (tab: Tab) => Tab | undefined;
+  removeTab: (tabId: string) => void;
+  setActiveTab: (tabId: string) => void;
+  getActiveTab: () => Tab | undefined;
+  getTab: (tabId: string) => Tab | undefined;
+  getAllTabs: () => Tab[];
+
+  // Actions - Tab Navigation (T061)
+  switchToNextTab: () => void;
+  switchToPreviousTab: () => void;
+  switchToTabByIndex: (index: number) => void;
+
+  // Actions - Tab State Updates
   updateTabScrollPosition: (tabId: string, scrollPosition: number) => void;
   updateTabZoomLevel: (tabId: string, zoomLevel: number) => void;
+  updateTabSearchState: (tabId: string, searchState: any) => void;
+
+  // Actions - Navigation History (T065, T067)
+  addHistoryEntry: (tabId: string, entry: HistoryEntry) => void;
+  navigateBack: (tabId: string) => HistoryEntry | null;
+  navigateForward: (tabId: string) => HistoryEntry | null;
+  canNavigateBack: (tabId: string) => boolean;
+  canNavigateForward: (tabId: string) => boolean;
+
+  // Tab limit checks (T063)
+  canAddTab: () => { allowed: boolean; warning?: string; error?: string };
+  getTabCount: () => number;
 }
 
-export const useTabsStore = create<TabsState>((set) => ({
+export const useTabsStore = create<TabsState>((set, get) => ({
   tabs: new Map(),
+  activeTabId: null,
+  tabOrder: [],
+  softLimit: 20,
+  hardLimit: 50,
 
-  addTab: (_folderId, tab) => {
+  // T059: Add tab with limit checking
+  addTab: (tab) => {
+    const { canAddTab, tabs, tabOrder } = get();
+    const check = canAddTab();
+
+    if (!check.allowed) {
+      console.error(check.error);
+      return undefined;
+    }
+
+    if (check.warning) {
+      console.warn(check.warning);
+    }
+
     set((state) => {
       const newTabs = new Map(state.tabs);
-      newTabs.set(tab.id, tab);
-      return { tabs: newTabs };
+      newTabs.set(tab.id, {
+        ...tab,
+        navigationHistory: tab.navigationHistory || [],
+        createdAt: tab.createdAt || Date.now(),
+      });
+
+      return {
+        tabs: newTabs,
+        tabOrder: [...state.tabOrder, tab.id],
+        activeTabId: tab.id, // Newly added tab becomes active
+      };
     });
+
     return tab;
   },
 
-  removeTab: (_folderId, tabId) => {
+  // T062: Remove tab with next tab activation
+  removeTab: (tabId) => {
     set((state) => {
       const newTabs = new Map(state.tabs);
       newTabs.delete(tabId);
-      return { tabs: newTabs };
+
+      const newTabOrder = state.tabOrder.filter((id) => id !== tabId);
+
+      // Determine next active tab
+      let newActiveTabId = state.activeTabId;
+
+      if (state.activeTabId === tabId) {
+        // If removing active tab, activate next tab
+        const currentIndex = state.tabOrder.indexOf(tabId);
+
+        if (newTabOrder.length > 0) {
+          // Try to activate tab after current, or last tab if at end
+          const nextIndex = Math.min(currentIndex, newTabOrder.length - 1);
+          newActiveTabId = newTabOrder[nextIndex];
+        } else {
+          newActiveTabId = null;
+        }
+      }
+
+      return {
+        tabs: newTabs,
+        tabOrder: newTabOrder,
+        activeTabId: newActiveTabId,
+      };
     });
   },
 
-  setActiveTab: (_folderId, _tabId) => {
-    // Implementation will be added when integrating with folders store
+  setActiveTab: (tabId) => {
+    const { tabs } = get();
+    if (tabs.has(tabId)) {
+      set({ activeTabId: tabId });
+    }
+  },
+
+  getActiveTab: () => {
+    const { tabs, activeTabId } = get();
+    return activeTabId ? tabs.get(activeTabId) : undefined;
+  },
+
+  getTab: (tabId) => {
+    const { tabs } = get();
+    return tabs.get(tabId);
+  },
+
+  getAllTabs: () => {
+    const { tabs, tabOrder } = get();
+    return tabOrder.map((id) => tabs.get(id)).filter((tab): tab is Tab => tab !== undefined);
+  },
+
+  // T061: Tab navigation shortcuts
+  switchToNextTab: () => {
+    const { tabOrder, activeTabId } = get();
+    if (tabOrder.length === 0) return;
+
+    const currentIndex = activeTabId ? tabOrder.indexOf(activeTabId) : -1;
+    const nextIndex = (currentIndex + 1) % tabOrder.length;
+    const nextTabId = tabOrder[nextIndex];
+
+    set({ activeTabId: nextTabId });
+  },
+
+  switchToPreviousTab: () => {
+    const { tabOrder, activeTabId } = get();
+    if (tabOrder.length === 0) return;
+
+    const currentIndex = activeTabId ? tabOrder.indexOf(activeTabId) : -1;
+    const prevIndex = currentIndex <= 0 ? tabOrder.length - 1 : currentIndex - 1;
+    const prevTabId = tabOrder[prevIndex];
+
+    set({ activeTabId: prevTabId });
+  },
+
+  switchToTabByIndex: (index) => {
+    const { tabOrder } = get();
+    if (index >= 0 && index < tabOrder.length) {
+      const tabId = tabOrder[index];
+      set({ activeTabId: tabId });
+    }
   },
 
   updateTabScrollPosition: (tabId, scrollPosition) => {
@@ -63,5 +192,110 @@ export const useTabsStore = create<TabsState>((set) => ({
       }
       return state;
     });
+  },
+
+  updateTabSearchState: (tabId, searchState) => {
+    set((state) => {
+      const tab = state.tabs.get(tabId);
+      if (tab) {
+        const newTabs = new Map(state.tabs);
+        newTabs.set(tabId, { ...tab, searchState });
+        return { tabs: newTabs };
+      }
+      return state;
+    });
+  },
+
+  // T065: Navigation history management
+  addHistoryEntry: (tabId, entry) => {
+    set((state) => {
+      const tab = state.tabs.get(tabId);
+      if (!tab) return state;
+
+      const newTabs = new Map(state.tabs);
+      const history = [...tab.navigationHistory];
+
+      // Add new entry
+      history.push(entry);
+
+      // Keep max 50 entries
+      if (history.length > 50) {
+        history.shift();
+      }
+
+      newTabs.set(tabId, { ...tab, navigationHistory: history });
+      return { tabs: newTabs };
+    });
+  },
+
+  // T066: Navigate back in history
+  navigateBack: (tabId) => {
+    const { tabs } = get();
+    const tab = tabs.get(tabId);
+
+    if (!tab || tab.navigationHistory.length === 0) {
+      return null;
+    }
+
+    // Get previous entry (last in history)
+    const previousEntry = tab.navigationHistory[tab.navigationHistory.length - 1];
+
+    // Remove entry from history
+    set((state) => {
+      const newTabs = new Map(state.tabs);
+      const currentTab = newTabs.get(tabId);
+      if (currentTab) {
+        const newHistory = [...currentTab.navigationHistory];
+        newHistory.pop();
+        newTabs.set(tabId, { ...currentTab, navigationHistory: newHistory });
+      }
+      return { tabs: newTabs };
+    });
+
+    return previousEntry;
+  },
+
+  // T066: Navigate forward (not implemented - would need separate forward stack)
+  navigateForward: (tabId) => {
+    // For now, return null (forward navigation requires separate stack)
+    return null;
+  },
+
+  canNavigateBack: (tabId) => {
+    const { tabs } = get();
+    const tab = tabs.get(tabId);
+    return tab ? tab.navigationHistory.length > 0 : false;
+  },
+
+  canNavigateForward: (tabId) => {
+    // For now, always false (would need forward stack)
+    return false;
+  },
+
+  // T063: Tab limit checking
+  canAddTab: () => {
+    const { tabs, softLimit, hardLimit } = get();
+    const count = tabs.size;
+
+    if (count >= hardLimit) {
+      return {
+        allowed: false,
+        error: `Cannot open more than ${hardLimit} tabs. Please close some tabs before opening new ones.`,
+      };
+    }
+
+    if (count >= softLimit) {
+      return {
+        allowed: true,
+        warning: `You have ${count} tabs open. Consider closing some tabs to improve performance.`,
+      };
+    }
+
+    return { allowed: true };
+  },
+
+  getTabCount: () => {
+    const { tabs } = get();
+    return tabs.size;
   },
 }));

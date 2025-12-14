@@ -167,33 +167,33 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### E2E Tests for User Story 3
 
-- [ ] T055 [P] [US3] E2E test for tab switching in tests/e2e/navigation.spec.ts: verify Ctrl+Tab, Ctrl+1-9 shortcuts (SC-006)
-- [ ] T056 [P] [US3] E2E test for navigation history in tests/e2e/navigation.spec.ts: verify Alt+Left/Right, scroll restoration
-- [ ] T057 [P] [US3] E2E test for split view in tests/e2e/navigation.spec.ts: verify independent scroll, zoom per pane
+- [x] T055 [P] [US3] E2E test for tab switching in tests/e2e/tabs.spec.ts: verify Ctrl+Tab, Ctrl+1-9 shortcuts (SC-006)
+- [x] T056 [P] [US3] E2E test for navigation history in tests/e2e/tabs.spec.ts: verify Alt+Left/Right, scroll restoration
+- [x] T057 [P] [US3] E2E test for split view in tests/e2e/tabs.spec.ts: verify independent scroll, zoom per pane
 
 ### Tab Management
 
-- [ ] T058 [P] [US3] Create Tab entity type from [data-model.md](data-model.md) in src/shared/types/tab.d.ts (id, filePath, title, scrollPosition, zoomLevel, searchState)
-- [ ] T059 [US3] Implement tabs store in src/renderer/stores/tabs.ts with Tab[] collection, activeTabId, max 50 tabs (soft 20, hard 50 per [data-model.md](data-model.md))
-- [ ] T060 [P] [US3] Create TabBar component in src/renderer/components/editor/TabBar.tsx with close buttons, active state
-- [ ] T061 [US3] Implement tab switching logic with Ctrl+Tab (next), Ctrl+Shift+Tab (previous), Ctrl+1-9 (jump to index) in src/renderer/services/keyboard-handler.ts
-- [ ] T062 [US3] Add tab close functionality (Ctrl+W) with next tab activation in src/renderer/stores/tabs.ts
-- [ ] T063 [US3] Implement tab limit warnings: soft limit at 20 tabs (warning dialog), hard limit at 50 tabs (block) per [spec.md](spec.md) Clarifications
+- [x] T058 [P] [US3] Tab entity type already exists in src/shared/types/entities.d.ts (id, filePath, title, scrollPosition, zoomLevel, searchState)
+- [x] T059 [US3] Enhanced tabs store in src/renderer/stores/tabs.ts with Tab[] collection, activeTabId, max 50 tabs (soft 20, hard 50 per [data-model.md](data-model.md))
+- [x] T060 [P] [US3] Created TabBar component in src/renderer/components/editor/TabBar.tsx with close buttons, active state
+- [x] T061 [US3] Implemented tab switching logic with Ctrl+Tab (next), Ctrl+Shift+Tab (previous), Ctrl+1-9 (jump to index) in src/renderer/services/keyboard-handler.ts
+- [x] T062 [US3] Added tab close functionality (Ctrl+W) with next tab activation in src/renderer/stores/tabs.ts
+- [x] T063 [US3] Implemented tab limit warnings: soft limit at 20 tabs (warning dialog), hard limit at 50 tabs (block) per [spec.md](spec.md) Clarifications
 
 ### Navigation History
 
-- [ ] T064 [P] [US3] Create HistoryEntry type from [data-model.md](data-model.md) in src/shared/types/tab.d.ts (filePath, scrollPosition, timestamp)
-- [ ] T065 [US3] Implement navigation history stack in src/renderer/stores/tabs.ts (max 50 entries per tab per [data-model.md](data-model.md))
-- [ ] T066 [US3] Add Alt+Left (back) and Alt+Right (forward) keyboard shortcuts in src/renderer/services/keyboard-handler.ts
-- [ ] T067 [US3] Implement scroll position restoration when navigating history
+- [x] T064 [P] [US3] HistoryEntry type already exists in src/shared/types/entities.d.ts (filePath, scrollPosition, timestamp)
+- [x] T065 [US3] Implemented navigation history stack in src/renderer/stores/tabs.ts (max 50 entries per tab per [data-model.md](data-model.md))
+- [x] T066 [US3] Added Alt+Left (back) and Alt+Right (forward) keyboard shortcuts in src/renderer/services/keyboard-handler.ts
+- [x] T067 [US3] Implemented scroll position restoration when navigating history
 
 ### Split View
 
-- [ ] T068 [P] [US3] Create Pane entity type from [data-model.md](data-model.md) in src/shared/types/pane.d.ts (id, tabs, activeTabId, orientation, sizeRatio)
-- [ ] T069 [US3] Implement panes store in src/renderer/stores/panes.ts with split layout management per [data-model.md](data-model.md)
+- [x] T068 [P] [US3] Pane entity type already exists in src/shared/types/entities.d.ts (id, tabs, activeTabId, orientation, sizeRatio)
+- [x] T069 [US3] Implemented panes store in src/renderer/stores/panes.ts with split layout management per [data-model.md](data-model.md)
 - [ ] T070 [P] [US3] Create SplitView component in src/renderer/components/editor/SplitView.tsx with resizable divider
 - [ ] T071 [US3] Add keyboard shortcuts for split: Ctrl+\\ (vertical), Ctrl+K Ctrl+\\ (horizontal) in src/renderer/services/keyboard-handler.ts
-- [ ] T072 [US3] Implement independent scroll/zoom state per pane in src/renderer/stores/panes.ts
+- [x] T072 [US3] Implemented independent scroll/zoom state per pane in src/renderer/stores/panes.ts
 - [ ] T073 [US3] Add responsive stacking for narrow windows (<768px) per [spec.md](spec.md) Edge Cases
 
 **Checkpoint**: All three user stories now work independently - users can open files (US1), navigate them (US2), and manage multiple documents in tabs with split view (US3)

@@ -208,4 +208,118 @@ export function unregisterNavigationShortcuts(): void {
   keyboardHandler.unregister('navigation.tableOfContents');
 }
 
+/**
+ * T061: Register tab switching keyboard shortcuts
+ * - Ctrl+Tab: Next tab
+ * - Ctrl+Shift+Tab: Previous tab
+ * - Ctrl+1-9: Jump to tab by index
+ * - Ctrl+W: Close current tab
+ */
+export function registerTabShortcuts(callbacks: {
+  onNextTab: () => void;
+  onPreviousTab: () => void;
+  onJumpToTab: (index: number) => void;
+  onCloseTab: () => void;
+}): void {
+  // Next tab: Ctrl+Tab
+  keyboardHandler.register({
+    id: 'tabs.next',
+    keys: ['Tab'],
+    ctrlKey: true,
+    handler: () => {
+      callbacks.onNextTab();
+    },
+    description: 'Switch to next tab',
+  });
+
+  // Previous tab: Ctrl+Shift+Tab
+  keyboardHandler.register({
+    id: 'tabs.previous',
+    keys: ['Tab'],
+    ctrlKey: true,
+    shiftKey: true,
+    handler: () => {
+      callbacks.onPreviousTab();
+    },
+    description: 'Switch to previous tab',
+  });
+
+  // Jump to tabs 1-9: Ctrl+1 through Ctrl+9
+  for (let i = 1; i <= 9; i++) {
+    keyboardHandler.register({
+      id: `tabs.jumpTo${i}`,
+      keys: [`Digit${i}`, `${i}`],
+      ctrlKey: true,
+      handler: () => {
+        callbacks.onJumpToTab(i - 1); // 0-indexed
+      },
+      description: `Jump to tab ${i}`,
+    });
+  }
+
+  // Close tab: Ctrl+W
+  keyboardHandler.register({
+    id: 'tabs.close',
+    keys: ['w', 'W'],
+    ctrlKey: true,
+    handler: () => {
+      callbacks.onCloseTab();
+    },
+    description: 'Close current tab',
+  });
+}
+
+/**
+ * Unregister tab shortcuts
+ */
+export function unregisterTabShortcuts(): void {
+  keyboardHandler.unregister('tabs.next');
+  keyboardHandler.unregister('tabs.previous');
+  keyboardHandler.unregister('tabs.close');
+
+  for (let i = 1; i <= 9; i++) {
+    keyboardHandler.unregister(`tabs.jumpTo${i}`);
+  }
+}
+
+/**
+ * T066: Register navigation history keyboard shortcuts
+ * - Alt+Left: Navigate back in history
+ * - Alt+Right: Navigate forward in history
+ */
+export function registerHistoryShortcuts(callbacks: {
+  onNavigateBack: () => void;
+  onNavigateForward: () => void;
+}): void {
+  // Navigate back: Alt+Left
+  keyboardHandler.register({
+    id: 'history.back',
+    keys: ['ArrowLeft'],
+    altKey: true,
+    handler: () => {
+      callbacks.onNavigateBack();
+    },
+    description: 'Navigate back in history',
+  });
+
+  // Navigate forward: Alt+Right
+  keyboardHandler.register({
+    id: 'history.forward',
+    keys: ['ArrowRight'],
+    altKey: true,
+    handler: () => {
+      callbacks.onNavigateForward();
+    },
+    description: 'Navigate forward in history',
+  });
+}
+
+/**
+ * Unregister history shortcuts
+ */
+export function unregisterHistoryShortcuts(): void {
+  keyboardHandler.unregister('history.back');
+  keyboardHandler.unregister('history.forward');
+}
+
 export default keyboardHandler;
