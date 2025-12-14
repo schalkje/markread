@@ -48,7 +48,7 @@ A reviewer reads a long technical specification document on a touch-enabled lapt
 
 **Acceptance Scenarios**:
 
-1. **Given** a document is open at 100% zoom, **When** user presses Ctrl+Plus or Ctrl+Scroll-up, **Then** content zooms in 10% increments up to 500%, maintaining scroll position
+1. **Given** a document is open at 100% zoom, **When** user presses Ctrl+Plus or Ctrl+Scroll-up, **Then** content zooms in 10% increments up to 2000%, maintaining scroll position
 2. **Given** a document is zoomed to 200%, **When** user click-drags on the content, **Then** content pans in all directions, cursor shows pan/grab icon
 3. **Given** a long document is open, **When** user scrolls with mouse wheel or trackpad, **Then** scrolling is smooth at 60 FPS with no stuttering
 4. **Given** a document with multiple headings, **When** user presses Ctrl+G or uses heading navigation, **Then** view jumps to selected heading instantly
