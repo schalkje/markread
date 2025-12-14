@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MarkRead.Views.KeyboardShortcutsPage"
              Title="Keyboard Shortcuts"
-             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
+             BackgroundColor="{StaticResource Gray100Color}">
     
     <Grid Padding="20">
         <ScrollView>

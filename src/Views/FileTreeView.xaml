@@ -12,7 +12,7 @@
         <!-- Search Bar -->
         <Border Grid.Row="0"
                 Padding="8"
-                BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
+                BackgroundColor="{StaticResource Gray100Color}">
             <Entry Text="{Binding SearchQuery}"
                    Placeholder="Type to search files..."
                    ClearButtonVisibility="WhileEditing"
@@ -62,7 +62,7 @@
                                            Text="{Binding Name}"
                                            FontSize="14"
                                            VerticalOptions="Center"
-                                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                                           TextColor="{StaticResource Gray900Color}"
                                            SemanticProperties.Description="{Binding Name}"
                                            SemanticProperties.Hint="{Binding Type, Converter={StaticResource NodeTypeToActionHintConverter}}">
                                         <Label.GestureRecognizers>

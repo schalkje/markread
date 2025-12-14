@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MarkRead.Views.WelcomePage"
              Title="Welcome to MarkRead"
-             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
+             BackgroundColor="{StaticResource Gray100Color}">
     
     <ScrollView>
         <VerticalStackLayout Padding="40" Spacing="32" HorizontalOptions="Center" MaximumWidthRequest="800">
@@ -18,7 +18,7 @@
                        
                 <Label Text="A modern, fast markdown viewer for Windows"
                        FontSize="16"
-                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                       TextColor="{StaticResource Gray600Color}"
                        HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
             
@@ -34,7 +34,7 @@
                         <VerticalStackLayout>
                             <Label Text="Open a folder" FontAttributes="Bold" />
                             <Label Text="Browse markdown files using the sidebar file tree" 
-                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" />
+                                   TextColor="{StaticResource Gray600Color}" />
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                     
@@ -43,7 +43,7 @@
                         <VerticalStackLayout>
                             <Label Text="Open a file" FontAttributes="Bold" />
                             <Label Text="Double-click any .md file to view it with syntax highlighting" 
-                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" />
+                                   TextColor="{StaticResource Gray600Color}" />
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                     
@@ -52,7 +52,7 @@
                         <VerticalStackLayout>
                             <Label Text="Customize themes" FontAttributes="Bold" />
                             <Label Text="Switch between light, dark, or system theme (Ctrl+,)" 
-                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" />
+                                   TextColor="{StaticResource Gray600Color}" />
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
@@ -157,7 +157,7 @@
                 <CheckBox IsChecked="{Binding DontShowAgain}"
                           HorizontalOptions="Center" />
                 <Label Text="Don't show this welcome screen again"
-                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                       TextColor="{StaticResource Gray600Color}"
                        FontSize="12" />
             </VerticalStackLayout>
             

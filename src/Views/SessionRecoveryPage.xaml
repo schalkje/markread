@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MarkRead.Views.SessionRecoveryPage"
              Title="Session Recovery"
-             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
+             BackgroundColor="{StaticResource Gray100Color}">
 
     <Grid RowDefinitions="Auto,*,Auto" Padding="40">
         
@@ -19,7 +19,7 @@
                    FontSize="14"
                    HorizontalOptions="Center"
                    HorizontalTextAlignment="Center"
-                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                   TextColor="{StaticResource Gray600Color}"
                    MaximumWidthRequest="500" />
         </VerticalStackLayout>
 
@@ -27,7 +27,7 @@
         <Border Grid.Row="1"
                 Padding="20"
                 Margin="0,0,0,20"
-                BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray800}}"
+                BackgroundColor="{StaticResource Gray200Color}"
                 StrokeThickness="0"
                 MaximumWidthRequest="600"
                 HorizontalOptions="Center">
@@ -93,8 +93,8 @@
                     Text="Start Fresh"
                     FontSize="16"
                     HeightRequest="50"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray700}}"
-                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"
+                    BackgroundColor="{StaticResource Gray300Color}"
+                    TextColor="{StaticResource Gray900Color}"
                     Clicked="OnStartFreshClicked">
                 <Button.Shadow>
                     <Shadow Brush="Transparent" Radius="0" />
@@ -107,7 +107,7 @@
                     FontSize="16"
                     FontAttributes="Bold"
                     HeightRequest="50"
-                    BackgroundColor="{AppThemeBinding Light=#0078D4, Dark=#0078D4}"
+                    BackgroundColor="{StaticResource PrimaryColor}"
                     TextColor="White"
                     Clicked="OnRestoreClicked">
                 <Button.Shadow>
