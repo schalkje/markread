@@ -111,14 +111,40 @@ public partial class App : Application
 	{
 		try
 		{
+			// FR-018: If no CLI argument and no previously set root, show start view
 			if (_startupArguments == null || !_startupArguments.HasPath)
 			{
+				_loggingService.LogInfo("No startup arguments provided");
+				
+				// Check if there's a previously set root from session
+				var workspaceService = _serviceProvider.GetRequiredService<IWorkspaceService>();
+				var hasExistingRoot = !string.IsNullOrEmpty(workspaceService.RootPath);
+				
+				if (!hasExistingRoot)
+				{
+					_loggingService.LogInfo("No previously set root - showing start view per FR-018");
+					await ShowStartViewAsync();
+				}
 				return;
 			}
 			
 			var path = _startupArguments.GetPrimaryPath();
 			if (string.IsNullOrEmpty(path))
 			{
+				_loggingService.LogWarning("Startup argument path is empty");
+				await ShowStartViewAsync();
+				return;
+			}
+			
+			// Validate the path exists
+			bool pathExists = _startupArguments.IsFilePath ? File.Exists(path) : Directory.Exists(path);
+			
+			if (!pathExists)
+			{
+				_loggingService.LogWarning($"Invalid CLI path argument (non-existent): {path}");
+				await _serviceProvider.GetRequiredService<IDialogService>()
+					.ShowErrorAsync("Invalid Path", $"The specified path does not exist:\n{path}");
+				await ShowStartViewAsync();
 				return;
 			}
 			
@@ -135,9 +161,34 @@ public partial class App : Application
 				await OpenFolderAsync(path);
 			}
 		}
+		catch (UnauthorizedAccessException ex)
+		{
+			_loggingService.LogError($"Access denied to startup path: {ex.Message}");
+			await _serviceProvider.GetRequiredService<IDialogService>()
+				.ShowErrorAsync("Access Denied", "Unable to access the specified path. Please check permissions.");
+			await ShowStartViewAsync();
+		}
 		catch (Exception ex)
 		{
 			_loggingService.LogError($"Failed to handle startup arguments: {ex.Message}");
+			await _serviceProvider.GetRequiredService<IDialogService>()
+				.ShowErrorAsync("Startup Error", $"An error occurred during startup:\n{ex.Message}");
+			await ShowStartViewAsync();
+		}
+	}
+	
+	private async Task ShowStartViewAsync()
+	{
+		try
+		{
+			var welcomePage = _serviceProvider.GetRequiredService<Views.WelcomePage>();
+			welcomePage.SetMode(isStartViewMode: true);
+			await _mainPage.Navigation.PushModalAsync(welcomePage, animated: false);
+			_loggingService.LogInfo("Start view displayed");
+		}
+		catch (Exception ex)
+		{
+			_loggingService.LogError($"Failed to show start view: {ex.Message}");
 		}
 	}
 	
@@ -159,6 +210,18 @@ public partial class App : Application
 				return;
 			}
 			
+			// Set workspace root to parent directory
+			var parentDir = Path.GetDirectoryName(filePath);
+			if (!string.IsNullOrEmpty(parentDir))
+			{
+				var workspaceService = _serviceProvider.GetRequiredService<IWorkspaceService>();
+				await workspaceService.SetRootAsync(parentDir);
+				
+				var fileTreeViewModel = _serviceProvider.GetRequiredService<ViewModels.FileTreeViewModel>();
+				await fileTreeViewModel.LoadFolderCommand.ExecuteAsync(parentDir);
+				_loggingService.LogInfo($"Set workspace root to file parent: {parentDir}");
+			}
+			
 			// Open in new tab
 			_tabService.OpenTab(filePath, setActive: true);
 			_loggingService.LogInfo($"Opened startup file in tab: {filePath}");
@@ -178,6 +241,10 @@ public partial class App : Application
 				_loggingService.LogWarning($"Startup folder does not exist: {folderPath}");
 				return;
 			}
+			
+			// Set workspace root
+			var workspaceService = _serviceProvider.GetRequiredService<IWorkspaceService>();
+			await workspaceService.SetRootAsync(folderPath);
 			
 			// Load folder in file tree
 			var fileTreeViewModel = _serviceProvider.GetRequiredService<ViewModels.FileTreeViewModel>();

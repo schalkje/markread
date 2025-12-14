@@ -76,7 +76,8 @@ public static class MauiProgram
 		services.AddTransient<Views.SettingsPage>();
 		services.AddTransient<Views.SearchBar>();
 		services.AddTransient<Views.KeyboardShortcutsPage>();
-		services.AddTransient<Views.WelcomePage>();
-		services.AddTransient<MainPage>();
+		services.AddTransient<Views.WelcomePage>(); // Used for both start view and welcome info
+		services.AddTransient<Views.SessionRecoveryPage>();
+		services.AddSingleton<MainPage>();
 	}
 }

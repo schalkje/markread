@@ -8,8 +8,26 @@
     <ScrollView>
         <VerticalStackLayout Padding="40" Spacing="32" HorizontalOptions="Center" MaximumWidthRequest="800">
             
-            <!-- Header -->
-            <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+            <!-- Header - Start View Mode -->
+            <VerticalStackLayout Spacing="16" HorizontalOptions="Center" IsVisible="{Binding IsStartViewMode}">
+                <Label Text="📖" 
+                       FontSize="72" 
+                       HorizontalTextAlignment="Center" />
+                       
+                <Label Text="Welcome to MarkRead"
+                       FontSize="32"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       SemanticProperties.HeadingLevel="Level1" />
+                       
+                <Label Text="A modern markdown viewer for exploring your documentation"
+                       FontSize="16"
+                       TextColor="{DynamicResource Gray600Color}"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+            
+            <!-- Header - Welcome Info Mode -->
+            <VerticalStackLayout Spacing="12" HorizontalOptions="Center" IsVisible="{Binding IsWelcomeInfoMode}">
                 <Label Text="📖 Welcome to MarkRead"
                        FontSize="36"
                        FontAttributes="Bold"
@@ -23,7 +41,7 @@
             </VerticalStackLayout>
             
             <!-- Quick Start Section -->
-            <VerticalStackLayout Spacing="16">
+            <VerticalStackLayout Spacing="16" IsVisible="{Binding IsWelcomeInfoMode}">
                 <Label Text="Quick Start"
                        Style="{DynamicResource Heading2}"
                        SemanticProperties.HeadingLevel="Level2" />
@@ -59,7 +77,7 @@
             </VerticalStackLayout>
             
             <!-- Essential Shortcuts Section -->
-            <VerticalStackLayout Spacing="16">
+            <VerticalStackLayout Spacing="16" IsVisible="{Binding IsWelcomeInfoMode}">
                 <Label Text="Essential Keyboard Shortcuts"
                        Style="{DynamicResource Heading2}"
                        SemanticProperties.HeadingLevel="Level2" />
@@ -121,7 +139,7 @@
             </VerticalStackLayout>
             
             <!-- Features Section -->
-            <VerticalStackLayout Spacing="16">
+            <VerticalStackLayout Spacing="16" IsVisible="{Binding IsWelcomeInfoMode}">
                 <Label Text="Key Features"
                        Style="{DynamicResource Heading2}"
                        SemanticProperties.HeadingLevel="Level2" />
@@ -138,8 +156,34 @@
                 </VerticalStackLayout>
             </VerticalStackLayout>
             
-            <!-- Action Buttons -->
-            <HorizontalStackLayout Spacing="16" HorizontalOptions="Center" Margin="0,20,0,0">
+            <!-- Action Buttons - Start View Mode -->
+            <VerticalStackLayout Spacing="16" HorizontalOptions="Center" Margin="0,20,0,0" IsVisible="{Binding IsStartViewMode}">
+                <HorizontalStackLayout Spacing="16" HorizontalOptions="Center">
+                    <Button Text="📁 Open Folder"
+                            Command="{Binding OpenFolderCommand}"
+                            Padding="24,14"
+                            MinimumWidthRequest="160"
+                            FontSize="15"
+                            SemanticProperties.Description="Open a folder to browse markdown files" />
+                            
+                    <Button Text="📄 Open File"
+                            Command="{Binding OpenFileCommand}"
+                            Padding="24,14"
+                            MinimumWidthRequest="160"
+                            FontSize="15"
+                            SemanticProperties.Description="Open a single markdown file" />
+                </HorizontalStackLayout>
+                
+                <Label Text="You can also drag and drop a folder or file onto this window"
+                       TextColor="{DynamicResource Gray600Color}"
+                       FontSize="13"
+                       HorizontalTextAlignment="Center"
+                       Opacity="0.8"
+                       Margin="0,8,0,0" />
+            </VerticalStackLayout>
+            
+            <!-- Action Buttons - Welcome Info Mode -->
+            <HorizontalStackLayout Spacing="16" HorizontalOptions="Center" Margin="0,20,0,0" IsVisible="{Binding IsWelcomeInfoMode}">
                 <Button Text="Open Folder"
                         Command="{Binding OpenFolderCommand}"
                         Padding="20,12"
@@ -153,7 +197,7 @@
             </HorizontalStackLayout>
             
             <!-- Footer -->
-            <VerticalStackLayout Spacing="8" HorizontalOptions="Center" Margin="0,20,0,0">
+            <VerticalStackLayout Spacing="8" HorizontalOptions="Center" Margin="0,20,0,0" IsVisible="{Binding IsWelcomeInfoMode}">
                 <CheckBox IsChecked="{Binding DontShowAgain}"
                           HorizontalOptions="Center" />
                 <Label Text="Don't show this welcome screen again"

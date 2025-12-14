@@ -66,4 +66,14 @@ public interface IWorkspaceService
     /// Gets all tabs belonging to a specific workspace
     /// </summary>
     List<string> GetTabsForWorkspace(string workspaceId);
+    
+    /// <summary>
+    /// Gets the root path of the active workspace, or null if no workspace is active
+    /// </summary>
+    string? RootPath => ActiveWorkspace?.Path;
+    
+    /// <summary>
+    /// Sets the root workspace folder (opens as active workspace)
+    /// </summary>
+    Task SetRootAsync(string folderPath);
 }

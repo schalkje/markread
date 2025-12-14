@@ -163,4 +163,11 @@ public class WorkspaceService : IWorkspaceService
         _loggingService.LogInfo($"Active workspace changed: {workspace.Name}");
         ActiveWorkspaceChanged?.Invoke(this, workspace);
     }
+    
+    public string? RootPath => ActiveWorkspace?.Path;
+    
+    public async Task SetRootAsync(string folderPath)
+    {
+        await Task.Run(() => OpenWorkspace(folderPath, setActive: true));
+    }
 }
