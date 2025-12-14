@@ -1,4 +1,63 @@
+# Dependencies
 node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build output
+dist/
+out/
+build/
+*.tsbuildinfo
+
+# Electron
+release/
+*.exe
+*.dmg
+*.app
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Legacy .NET artifacts
 bin/
 obj/
 .vs/
@@ -11,12 +70,9 @@ obj/
 TestResults/
 *.pdb
 *.cache
-*.log
 *.tlog
 *.lastbuildstate
 *.FileListAbsolute.txt
-.idea/
-.vscode/
 publish/
 /packages/
 /src/**/Generated/
@@ -25,9 +81,6 @@ publish/
 _ReSharper*/
 *.pyc
 __pycache__/
-Thumbs.db
-.DS_Store
-
 
 # Installer artifacts
 *.msi
@@ -43,4 +96,3 @@ BundleArtifacts/
 *.cer
 *_TemporaryKey.*
 certificate-info.txt
-node_modules/.bin/acorn

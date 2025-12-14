@@ -34,14 +34,14 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 **Purpose**: Project initialization and basic structure per [quickstart.md](quickstart.md)
 
-- [ ] T001 Create project structure (src/main/, src/renderer/, src/shared/, src/preload/, tests/, build/)
-- [ ] T002 Initialize package.json with Electron 39.2.7, React 19.2, TypeScript 5.3.0 dependencies from [research.md](research.md)
-- [ ] T003 [P] Install build tools: electron-vite 2.0.0, electron-builder from [research.md](research.md)
-- [ ] T004 [P] Configure TypeScript: tsconfig.json for main/renderer/shared with strict mode
-- [ ] T005 [P] Setup ESLint and Prettier configs per [research.md](research.md) code quality standards
-- [ ] T006 [P] Create electron-vite.config.ts with main/renderer/preload entry points
-- [ ] T007 [P] Configure Playwright E2E testing framework in tests/e2e/ per [research.md](research.md) Section 2
-- [ ] T008 Create build/electron-builder.yml for Windows installer packaging (<150MB target from [plan.md](plan.md))
+- [x] T001 Create project structure (src/main/, src/renderer/, src/shared/, src/preload/, tests/, build/)
+- [x] T002 Initialize package.json with Electron 39.2.7, React 19.2, TypeScript 5.3.0 dependencies from [research.md](research.md)
+- [x] T003 [P] Install build tools: electron-vite 2.0.0, electron-builder from [research.md](research.md)
+- [x] T004 [P] Configure TypeScript: tsconfig.json for main/renderer/shared with strict mode
+- [x] T005 [P] Setup ESLint and Prettier configs per [research.md](research.md) code quality standards
+- [x] T006 [P] Create electron-vite.config.ts with main/renderer/preload entry points
+- [x] T007 [P] Configure Playwright E2E testing framework in tests/e2e/ per [research.md](research.md) Section 2
+- [x] T008 Create build/electron-builder.yml for Windows installer packaging (<150MB target from [plan.md](plan.md))
 
 ---
 
@@ -53,24 +53,24 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### Security & IPC Foundation
 
-- [ ] T009 Create BrowserWindow with security config (nodeIntegration: false, contextIsolation: true, sandbox: true) in src/main/window-manager.ts per [research.md](research.md) Section 6
-- [ ] T010 Implement preload script with contextBridge exposing IPC APIs in src/preload/index.ts per [contracts/README.md](contracts/README.md)
-- [ ] T011 Setup IPC handler registration system in src/main/ipc-handlers.ts with Zod validation per [research.md](research.md) Section 6
-- [ ] T012 [P] Implement Content Security Policy (CSP) for renderer process in src/main/window-manager.ts per [research.md](research.md) Section 6
+- [x] T009 Create BrowserWindow with security config (nodeIntegration: false, contextIsolation: true, sandbox: true) in src/main/window-manager.ts per [research.md](research.md) Section 6
+- [x] T010 Implement preload script with contextBridge exposing IPC APIs in src/preload/index.ts per [contracts/README.md](contracts/README.md)
+- [x] T011 Setup IPC handler registration system in src/main/ipc-handlers.ts with Zod validation per [research.md](research.md) Section 6
+- [x] T012 [P] Implement Content Security Policy (CSP) for renderer process in src/main/window-manager.ts per [research.md](research.md) Section 6
 
 ### React 18 & State Management
 
-- [ ] T013 Setup React 18 app entry in src/renderer/App.tsx with hooks per [research.md](research.md) Section 4
-- [ ] T014 Configure react-router-dom for tab navigation in src/renderer/router.tsx per [research.md](research.md) Section 4
-- [ ] T015 [P] Setup Zustand store structure in src/renderer/stores/ (folders, tabs, panes, settings, theme) per [research.md](research.md) Section 4
-- [ ] T016 Create base layout component with sidebar/content/toolbar structure in src/renderer/components/AppLayout.tsx
+- [x] T013 Setup React 18 app entry in src/renderer/App.tsx with hooks per [research.md](research.md) Section 4
+- [x] T014 Configure react-router-dom for tab navigation in src/renderer/router.tsx per [research.md](research.md) Section 4
+- [x] T015 [P] Setup Zustand store structure in src/renderer/stores/ (folders, tabs, panes, settings, theme) per [research.md](research.md) Section 4
+- [x] T016 Create base layout component with sidebar/content/toolbar structure in src/renderer/components/AppLayout.tsx
 
 ### Shared Types & Error Handling
 
-- [ ] T017 [P] Define TypeScript interfaces for all 13 entities from [data-model.md](data-model.md) in src/shared/types/ (settings.d.ts, folder.d.ts, commands.d.ts, etc.)
-- [ ] T018 [P] Create IPC contract types from [contracts/](contracts/) in src/shared/types/ (file-operations, settings, search, window, ui-state)
-- [ ] T019 Implement global error handler in src/main/index.ts and src/renderer/error-handler.ts
-- [ ] T020 [P] Setup logging infrastructure with LogConfiguration from [data-model.md](data-model.md) in src/main/logger.ts (FR-077)
+- [x] T017 [P] Define TypeScript interfaces for all 13 entities from [data-model.md](data-model.md) in src/shared/types/ (settings.d.ts, folder.d.ts, commands.d.ts, etc.)
+- [x] T018 [P] Create IPC contract types from [contracts/](contracts/) in src/shared/types/ (file-operations, settings, search, window, ui-state)
+- [x] T019 Implement global error handler in src/main/index.ts and src/renderer/error-handler.ts
+- [x] T020 [P] Setup logging infrastructure with LogConfiguration from [data-model.md](data-model.md) in src/main/logger.ts (FR-077)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

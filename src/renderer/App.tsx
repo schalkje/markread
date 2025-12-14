@@ -1,9 +1,9 @@
 import React from 'react';
-import AppLayout from './components/AppLayout';
+import { Router } from './router';
 
-// T013: React root component
+// T013: React root component with Router
 const App: React.FC = () => {
-  return <AppLayout />;
+  return <Router />;
 };
 
 export default App;

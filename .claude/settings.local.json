@@ -10,7 +10,8 @@
       "Bash(npx electron dist/main/index.js)",
       "Bash(npx electron:*)",
       "Bash(node_modules/electron/dist/electron.exe:*)",
-      "Bash(powershell.exe -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)"
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
+      "Bash(git -C C:/repo/markread rev-parse --git-dir)"
     ],
     "deny": [],
     "ask": []
