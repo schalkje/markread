@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MarkRead.Views.SessionRecoveryPage"
              Title="Session Recovery"
-             BackgroundColor="{StaticResource Gray100Color}">
+             BackgroundColor="{DynamicResource Gray100Color}">
 
     <Grid RowDefinitions="Auto,*,Auto" Padding="40">
         
@@ -13,13 +13,13 @@
                    FontSize="24"
                    FontAttributes="Bold"
                    HorizontalOptions="Center"
-                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+                   TextColor="{AppThemeBinding Light={DynamicResource Gray900}, Dark={DynamicResource Gray100}}" />
             
             <Label Text="MarkRead didn't close properly last time. Would you like to restore your previous session?"
                    FontSize="14"
                    HorizontalOptions="Center"
                    HorizontalTextAlignment="Center"
-                   TextColor="{StaticResource Gray600Color}"
+                   TextColor="{DynamicResource Gray600Color}"
                    MaximumWidthRequest="500" />
         </VerticalStackLayout>
 
@@ -27,7 +27,7 @@
         <Border Grid.Row="1"
                 Padding="20"
                 Margin="0,0,0,20"
-                BackgroundColor="{StaticResource Gray200Color}"
+                BackgroundColor="{DynamicResource Gray200Color}"
                 StrokeThickness="0"
                 MaximumWidthRequest="600"
                 HorizontalOptions="Center">
@@ -39,44 +39,44 @@
                 <Label Text="Previous Session Details"
                        FontSize="16"
                        FontAttributes="Bold"
-                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+                       TextColor="{AppThemeBinding Light={DynamicResource Gray900}, Dark={DynamicResource Gray100}}" />
                 
                 <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
                     <!-- Open Tabs -->
                     <Label Grid.Row="0" Grid.Column="0"
                            Text="Open Tabs:"
                            FontSize="14"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource Gray300}}" />
+                           TextColor="{AppThemeBinding Light={DynamicResource Gray700}, Dark={DynamicResource Gray300}}" />
                     <Label Grid.Row="0" Grid.Column="1"
                            x:Name="TabCountLabel"
                            Text="0 tabs"
                            FontSize="14"
                            FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+                           TextColor="{AppThemeBinding Light={DynamicResource Gray900}, Dark={DynamicResource Gray100}}" />
                     
                     <!-- Workspace Folders -->
                     <Label Grid.Row="1" Grid.Column="0"
                            Text="Workspaces:"
                            FontSize="14"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource Gray300}}" />
+                           TextColor="{AppThemeBinding Light={DynamicResource Gray700}, Dark={DynamicResource Gray300}}" />
                     <Label Grid.Row="1" Grid.Column="1"
                            x:Name="WorkspaceCountLabel"
                            Text="0 folders"
                            FontSize="14"
                            FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+                           TextColor="{AppThemeBinding Light={DynamicResource Gray900}, Dark={DynamicResource Gray100}}" />
                     
                     <!-- Last Saved -->
                     <Label Grid.Row="2" Grid.Column="0"
                            Text="Last Saved:"
                            FontSize="14"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource Gray300}}" />
+                           TextColor="{AppThemeBinding Light={DynamicResource Gray700}, Dark={DynamicResource Gray300}}" />
                     <Label Grid.Row="2" Grid.Column="1"
                            x:Name="LastSavedLabel"
                            Text="Unknown"
                            FontSize="14"
                            FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+                           TextColor="{AppThemeBinding Light={DynamicResource Gray900}, Dark={DynamicResource Gray100}}" />
                 </Grid>
             </VerticalStackLayout>
         </Border>
@@ -93,8 +93,8 @@
                     Text="Start Fresh"
                     FontSize="16"
                     HeightRequest="50"
-                    BackgroundColor="{StaticResource Gray300Color}"
-                    TextColor="{StaticResource Gray900Color}"
+                    BackgroundColor="{DynamicResource Gray300Color}"
+                    TextColor="{DynamicResource Gray900Color}"
                     Clicked="OnStartFreshClicked">
                 <Button.Shadow>
                     <Shadow Brush="Transparent" Radius="0" />
@@ -107,7 +107,7 @@
                     FontSize="16"
                     FontAttributes="Bold"
                     HeightRequest="50"
-                    BackgroundColor="{StaticResource PrimaryColor}"
+                    BackgroundColor="{DynamicResource PrimaryColor}"
                     TextColor="White"
                     Clicked="OnRestoreClicked">
                 <Button.Shadow>

@@ -76,104 +76,104 @@
     
     <!-- Heading Styles -->
     <Style x:Key="Heading1" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSize4xl}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSize4xl}"/>
         <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
         <Setter Property="LineHeight" Value="38"/>
         <Setter Property="Margin" Value="0,0,0,16"/>
     </Style>
     
     <Style x:Key="Heading2" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSize3xl}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSize3xl}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
         <Setter Property="LineHeight" Value="32"/>
         <Setter Property="Margin" Value="0,0,0,12"/>
     </Style>
     
     <Style x:Key="Heading3" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSize2xl}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSize2xl}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
         <Setter Property="LineHeight" Value="28"/>
         <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
     
     <Style x:Key="Heading4" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSizeXl}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeXl}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
         <Setter Property="LineHeight" Value="24"/>
         <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
     
     <!-- Body Text Styles -->
     <Style x:Key="BodyLarge" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSizeLg}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeLg}"/>
         <Setter Property="FontWeight" Value="Normal"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
         <Setter Property="LineHeight" Value="24"/>
         <Setter Property="Margin" Value="0,0,0,12"/>
     </Style>
     
     <Style x:Key="BodyBase" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
         <Setter Property="FontWeight" Value="Normal"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
         <Setter Property="LineHeight" Value="21"/>
         <Setter Property="Margin" Value="0,0,0,12"/>
     </Style>
     
     <Style x:Key="BodySmall" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeSm}"/>
         <Setter Property="FontWeight" Value="Normal"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextSecondaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextSecondaryBrush}"/>
         <Setter Property="LineHeight" Value="18"/>
         <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
     
     <!-- Specialized Text Styles -->
     <Style x:Key="Caption" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSizeXs}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeXs}"/>
         <Setter Property="FontWeight" Value="Normal"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextMutedBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextMutedBrush}"/>
         <Setter Property="LineHeight" Value="16"/>
         <Setter Property="Margin" Value="0,0,0,4"/>
     </Style>
     
     <Style x:Key="Label" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeSm}"/>
         <Setter Property="FontWeight" Value="Medium"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
         <Setter Property="LineHeight" Value="18"/>
         <Setter Property="Margin" Value="0,0,0,4"/>
     </Style>
     
     <Style x:Key="Code" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeMonoFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeMonoFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeSm}"/>
         <Setter Property="FontWeight" Value="Normal"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
-        <Setter Property="Background" Value="{StaticResource ThemeSecondaryBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeSecondaryBackgroundBrush}"/>
         <Setter Property="Padding" Value="4,2"/>
         <Setter Property="LineHeight" Value="18"/>
     </Style>
     
     <!-- Link Style -->
     <Style x:Key="Link" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
         <Setter Property="FontWeight" Value="Normal"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextLinkBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextLinkBrush}"/>
         <Setter Property="TextDecorations" Value="Underline"/>
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
@@ -182,20 +182,20 @@
     
     <!-- Window Style -->
     <Style x:Key="DarkThemeWindow" TargetType="{x:Type Window}">
-        <Setter Property="Background" Value="{StaticResource ThemeBackgroundBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
 
     <!-- Button Style -->
     <Style x:Key="DarkThemeButton" TargetType="{x:Type Button}">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
         <Setter Property="FontWeight" Value="Medium"/>
-        <Setter Property="Background" Value="{StaticResource ThemeButtonBackgroundBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeButtonBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="12,8"/>
         <Setter Property="Margin" Value="2"/>
@@ -214,10 +214,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeBorderBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeBorderBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="border" Property="Opacity" Value="0.6"/>
@@ -233,7 +233,7 @@
     <!-- Navigation Button Style (back/forward/search/export) -->
     <Style x:Key="NavigationButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="0"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -251,10 +251,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeBorderBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeBorderBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.4"/>
@@ -268,7 +268,7 @@
     <!-- Window Control Button Style (minimize/maximize) -->
     <Style x:Key="WindowControlButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="0"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -285,10 +285,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeBorderBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeBorderBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -297,7 +297,7 @@
     </Style>
 
     <!-- Close Button Style (red hover) -->
-    <Style x:Key="CloseButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource WindowControlButtonStyle}">
+    <Style x:Key="CloseButtonStyle" TargetType="{x:Type Button}" BasedOn="{DynamicResource WindowControlButtonStyle}">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Button}">
@@ -329,7 +329,7 @@
     <!-- Tab Scroll Button Style (left/right/new) -->
     <Style x:Key="TabScrollButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="0"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -347,10 +347,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeBorderBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeBorderBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.3"/>
@@ -364,7 +364,7 @@
     <!-- Tab Close Button Style (× button on tabs) -->
     <Style x:Key="TabCloseButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextSecondaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextSecondaryBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="0"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -397,11 +397,11 @@
 
     <!-- TextBox Style -->
     <Style x:Key="DarkThemeTextBox" TargetType="{x:Type TextBox}">
-        <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSizeBase}"/>
-        <Setter Property="Background" Value="{StaticResource ThemeInputBackgroundBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource ThemeInputBorderBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ThemeFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeBase}"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeInputBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeInputBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="8,6"/>
         <Setter Property="Template">
@@ -417,7 +417,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsFocused" Value="True">
-                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource ThemeInputFocusBrush}"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource ThemeInputFocusBrush}"/>
                             <Setter TargetName="border" Property="BorderThickness" Value="2"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
@@ -431,16 +431,16 @@
 
     <!-- ListBox Style -->
     <Style x:Key="DarkThemeListBox" TargetType="{x:Type ListBox}">
-        <Setter Property="Background" Value="{StaticResource ThemeBackgroundBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
 
     <!-- ListBoxItem Style -->
     <Style x:Key="DarkThemeListBoxItem" TargetType="{x:Type ListBoxItem}">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
         <Setter Property="Padding" Value="8,4"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -452,10 +452,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeAccentBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
                             <Setter Property="Foreground" Value="White"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -466,16 +466,16 @@
 
     <!-- TreeView Style -->
     <Style x:Key="DarkThemeTreeView" TargetType="{x:Type TreeView}">
-        <Setter Property="Background" Value="{StaticResource ThemeSidebarBackgroundBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeSidebarBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
     </Style>
 
     <!-- TreeViewItem Style -->
     <Style x:Key="DarkThemeTreeViewItem" TargetType="{x:Type TreeViewItem}">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}"/>
         <Setter Property="Padding" Value="4,2"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -498,10 +498,10 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeAccentBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
                             <Setter Property="Foreground" Value="White"/>
                         </Trigger>
                         <Trigger Property="IsExpanded" Value="False">
@@ -515,8 +515,8 @@
 
     <!-- TabControl Style -->
     <Style x:Key="DarkThemeTabControl" TargetType="{x:Type TabControl}">
-        <Setter Property="Background" Value="{StaticResource ThemeBackgroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="0"/>
         <Setter Property="Template">
@@ -550,12 +550,12 @@
     <!-- TabItem Style -->
     <Style x:Key="DarkThemeTabItem" TargetType="{x:Type TabItem}">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextSecondaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextSecondaryBrush}"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0,0,0,2"/>
         <Setter Property="Padding" Value="12,10,12,8"/>
         <Setter Property="Margin" Value="0,0,1,0"/>
-        <Setter Property="FontSize" Value="{StaticResource FontSizeSm}"/>
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeSm}"/>
         <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="MinHeight" Value="36"/>
         <Setter Property="Template">
@@ -577,12 +577,12 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
                             <Setter Property="FontWeight" Value="Medium"/>
-                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource ThemeAccentBrush}"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
                             <Setter Property="Panel.ZIndex" Value="1"/>
                         </Trigger>
                         <MultiTrigger>
@@ -590,7 +590,7 @@
                                 <Condition Property="IsSelected" Value="True"/>
                                 <Condition Property="IsMouseOver" Value="True"/>
                             </MultiTrigger.Conditions>
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -601,12 +601,12 @@
     <!-- Menu Style -->
     <Style x:Key="DarkThemeMenu" TargetType="{x:Type Menu}">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
     </Style>
 
     <!-- MenuItem Style with proper template for top-level and submenu items -->
     <Style x:Key="DarkThemeMenuItem" TargetType="{x:Type MenuItem}">
-        <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -647,7 +647,7 @@
                                     Visibility="Hidden">
                                 <Path x:Name="Glyph"
                                       Data="M0,5.1 L1.7,3.4 L5.2,7 L14.3,0 L16,1.7 L5.2,12.6 z"
-                                      Fill="{StaticResource ThemeTextPrimaryBrush}"
+                                      Fill="{DynamicResource ThemeTextPrimaryBrush}"
                                       FlowDirection="LeftToRight"
                                       Width="12" Height="12"/>
                             </Border>
@@ -666,7 +666,7 @@
                                        Grid.Column="4"
                                        Margin="5,2,2,2"
                                        VerticalAlignment="Center"
-                                       Foreground="{StaticResource ThemeTextSecondaryBrush}"
+                                       Foreground="{DynamicResource ThemeTextSecondaryBrush}"
                                        Text="{TemplateBinding InputGestureText}"
                                        Opacity="0.7"/>
                             
@@ -676,7 +676,7 @@
                                   Margin="10,0,0,0"
                                   VerticalAlignment="Center"
                                   Data="M0,0 L4,3.5 L0,7 Z"
-                                  Fill="{StaticResource ThemeTextPrimaryBrush}"/>
+                                  Fill="{DynamicResource ThemeTextPrimaryBrush}"/>
                             
                             <!-- Submenu popup -->
                             <Popup x:Name="PART_Popup"
@@ -687,8 +687,8 @@
                                    PopupAnimation="Fade"
                                    VerticalOffset="-1">
                                 <Border x:Name="SubMenuBorder"
-                                        Background="{StaticResource ThemeBackgroundBrush}"
-                                        BorderBrush="{StaticResource ThemeBorderBrush}"
+                                        Background="{DynamicResource ThemeBackgroundBrush}"
+                                        BorderBrush="{DynamicResource ThemeBorderBrush}"
                                         BorderThickness="1"
                                         Padding="2">
                                     <ScrollViewer x:Name="SubMenuScrollViewer"
@@ -718,7 +718,7 @@
                         <Trigger Property="Role" Value="TopLevelHeader">
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
                             <Setter Property="Padding" Value="8,6"/>
                             <Setter TargetName="templateRoot" Property="CornerRadius" Value="4"/>
                             <Setter TargetName="RightArrow" Property="Visibility" Value="Collapsed"/>
@@ -732,7 +732,7 @@
                         <Trigger Property="Role" Value="TopLevelItem">
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="Foreground" Value="{StaticResource ThemeTextPrimaryBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ThemeTextPrimaryBrush}"/>
                             <Setter Property="Padding" Value="8,6"/>
                             <Setter TargetName="templateRoot" Property="CornerRadius" Value="4"/>
                             <Setter TargetName="RightArrow" Property="Visibility" Value="Collapsed"/>
@@ -763,7 +763,7 @@
                                 <Condition Property="Role" Value="TopLevelHeader"/>
                                 <Condition Property="IsHighlighted" Value="True"/>
                             </MultiTrigger.Conditions>
-                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </MultiTrigger>
                         
                         <MultiTrigger>
@@ -771,7 +771,7 @@
                                 <Condition Property="Role" Value="TopLevelItem"/>
                                 <Condition Property="IsHighlighted" Value="True"/>
                             </MultiTrigger.Conditions>
-                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </MultiTrigger>
                         
                         <!-- Hover effect for submenu items -->
@@ -780,7 +780,7 @@
                                 <Condition Property="Role" Value="SubmenuHeader"/>
                                 <Condition Property="IsHighlighted" Value="True"/>
                             </MultiTrigger.Conditions>
-                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </MultiTrigger>
                         
                         <MultiTrigger>
@@ -788,12 +788,12 @@
                                 <Condition Property="Role" Value="SubmenuItem"/>
                                 <Condition Property="IsHighlighted" Value="True"/>
                             </MultiTrigger.Conditions>
-                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </MultiTrigger>
                         
                         <!-- Open submenu styling -->
                         <Trigger Property="IsSubmenuOpen" Value="True">
-                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ThemeButtonHoverBrush}"/>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
                         </Trigger>
                         
                         <!-- Disabled state -->
@@ -818,7 +818,7 @@
     
     <!-- Separator style for menu items -->
     <Style x:Key="DarkThemeSeparator" TargetType="{x:Type Separator}">
-        <Setter Property="Background" Value="{StaticResource ThemeBorderBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ThemeBorderBrush}"/>
         <Setter Property="Height" Value="1"/>
         <Setter Property="Margin" Value="8,4"/>
         <Setter Property="Template">

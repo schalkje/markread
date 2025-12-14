@@ -220,7 +220,7 @@
             <!-- Search input with icon (T072) -->
             <TextBox x:Name="SearchTextBox"
                     Grid.Row="1"
-                    Style="{StaticResource SearchInputWithIcon}"
+                    Style="{DynamicResource SearchInputWithIcon}"
                     Margin="16,0,16,12"
                     TextChanged="OnSearchTextChanged"
                     KeyDown="OnSearchKeyDown"/>
@@ -228,7 +228,7 @@
             <!-- Scope selector (T072) -->
             <ComboBox x:Name="ScopeSelector"
                      Grid.Row="2"
-                     Style="{StaticResource ScopeComboBox}"
+                     Style="{DynamicResource ScopeComboBox}"
                      Margin="16,0,16,12"
                      SelectedIndex="0"
                      SelectionChanged="OnScopeChanged">
@@ -241,7 +241,7 @@
             <Grid Grid.Row="3">
                 <!-- Results -->
                 <ListBox x:Name="ResultsList"
-                        ItemContainerStyle="{StaticResource ResultItemStyle}"
+                        ItemContainerStyle="{DynamicResource ResultItemStyle}"
                         Background="Transparent"
                         BorderThickness="0"
                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -251,8 +251,8 @@
                         <DataTemplate>
                             <StackPanel>
                                 <TextBlock Text="{Binding FileName}"
-                                          Style="{StaticResource ResultFileName}"/>
-                                <TextBlock Style="{StaticResource ResultLineInfo}">
+                                          Style="{DynamicResource ResultFileName}"/>
+                                <TextBlock Style="{DynamicResource ResultLineInfo}">
                                     <Run Text="Line "/>
                                     <Run Text="{Binding LineNumber}"/>
                                     <Run Text=" • "/>
@@ -260,7 +260,7 @@
                                     <Run Text=" matches"/>
                                 </TextBlock>
                                 <TextBlock Text="{Binding Preview}"
-                                          Style="{StaticResource ResultPreview}"/>
+                                          Style="{DynamicResource ResultPreview}"/>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

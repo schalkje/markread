@@ -12,7 +12,7 @@
                           IsVisible="{Binding IsRendering}"
                           VerticalOptions="Center"
                           HorizontalOptions="Center"
-                          Color="{StaticResource PrimaryColor}" />
+                          Color="{DynamicResource PrimaryColor}" />
         
         <!-- Error Message -->
         <VerticalStackLayout IsVisible="{Binding HasError}"
@@ -26,7 +26,7 @@
             <Label Text="{Binding ErrorMessage}"
                    FontSize="16"
                    HorizontalOptions="Center"
-                   TextColor="{StaticResource Gray900Color}" />
+                   TextColor="{DynamicResource Gray900Color}" />
             <Button Text="Reload"
                     Command="{Binding ReloadDocumentCommand}"
                     HorizontalOptions="Center" />
@@ -35,7 +35,7 @@
         <!-- HybridWebView for markdown rendering with touch support -->
         <Border x:Name="WebViewContainer"
                 IsVisible="{Binding IsRendering, Converter={StaticResource InvertedBoolConverter}}"
-                BackgroundColor="{StaticResource BackgroundColor}">
+                BackgroundColor="{DynamicResource BackgroundColor}">
             <Border.Behaviors>
                 <behaviors:PinchZoomBehavior x:Name="PinchZoom" />
                 <behaviors:SwipeNavigationBehavior x:Name="SwipeNav" />

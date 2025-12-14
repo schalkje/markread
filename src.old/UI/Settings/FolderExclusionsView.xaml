@@ -114,9 +114,9 @@
         <!-- Exclusions DataGrid -->
         <DataGrid Grid.Row="2"
                   x:Name="ExclusionsDataGrid"
-                  Style="{StaticResource DataGridStyle}"
-                  ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
-                  CellStyle="{StaticResource DataGridCellStyle}"
+                  Style="{DynamicResource DataGridStyle}"
+                  ColumnHeaderStyle="{DynamicResource DataGridColumnHeaderStyle}"
+                  CellStyle="{DynamicResource DataGridCellStyle}"
                   ItemsSource="{Binding}">
             
             <!-- Enabled Checkbox Column -->
@@ -152,7 +152,7 @@
                         <DataTemplate>
                             <Border>
                                 <Border.Style>
-                                    <Style TargetType="Border" BasedOn="{StaticResource BadgeStyle}">
+                                    <Style TargetType="Border" BasedOn="{DynamicResource BadgeStyle}">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsBuiltIn}" Value="True">
                                                 <Setter Property="Background" Value="{DynamicResource ThemeButtonHoverBrush}"/>
@@ -208,7 +208,7 @@
                                     Padding="8,4"
                                     FontSize="12">
                                 <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource DefaultButton}">
+                                    <Style TargetType="Button" BasedOn="{DynamicResource DefaultButton}">
                                         <Setter Property="IsEnabled" Value="True"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsBuiltIn}" Value="True">

@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:MarkRead.ViewModels"
              xmlns:models="clr-namespace:MarkRead.Models"
              xmlns:behaviors="clr-namespace:MarkRead.Behaviors"
              x:Class="MarkRead.Views.FileTreeView"
-             x:DataType="viewmodels:FileTreeViewModel"
-             Title="Files">
+             x:DataType="viewmodels:FileTreeViewModel">
     
     <Grid RowDefinitions="Auto,*">
         <!-- Search Bar -->
         <Border Grid.Row="0"
                 Padding="8"
-                BackgroundColor="{StaticResource Gray100Color}">
+                BackgroundColor="{DynamicResource Gray100Color}">
             <Entry Text="{Binding SearchQuery}"
                    Placeholder="Type to search files..."
                    ClearButtonVisibility="WhileEditing"
@@ -62,7 +61,7 @@
                                            Text="{Binding Name}"
                                            FontSize="14"
                                            VerticalOptions="Center"
-                                           TextColor="{StaticResource Gray900Color}"
+                                           TextColor="{DynamicResource Gray900Color}"
                                            SemanticProperties.Description="{Binding Name}"
                                            SemanticProperties.Hint="{Binding Type, Converter={StaticResource NodeTypeToActionHintConverter}}">
                                         <Label.GestureRecognizers>
@@ -107,4 +106,4 @@
         </ScrollView>
     </Grid>
     
-</ContentPage>
+</ContentView>

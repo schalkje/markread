@@ -147,7 +147,7 @@ var firstThree = items[..3];
         <Border Grid.Row="0" 
                 Background="{DynamicResource HeaderBackground}">
             <TextBlock Text="MarkRead" 
-                       Style="{StaticResource HeaderStyle}" />
+                       Style="{DynamicResource HeaderStyle}" />
         </Border>
         
         <!-- Content -->

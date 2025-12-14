@@ -3,20 +3,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MarkRead.Views.KeyboardShortcutsPage"
              Title="Keyboard Shortcuts"
-             BackgroundColor="{StaticResource Gray100Color}">
+             BackgroundColor="{DynamicResource Gray100Color}">
     
     <Grid Padding="20">
         <ScrollView>
             <VerticalStackLayout Spacing="24">
                 <!-- Header -->
                 <Label Text="Keyboard Shortcuts"
-                       Style="{StaticResource Heading1}"
+                       Style="{DynamicResource Heading1}"
                        HorizontalOptions="Center" />
                 
                 <!-- General Section -->
                 <VerticalStackLayout Spacing="12">
                     <Label Text="General"
-                           Style="{StaticResource Heading2}" />
+                           Style="{DynamicResource Heading2}" />
                     
                     <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
                         <Label Grid.Row="0" Grid.Column="0" Text="F1" FontFamily="Consolas" />
@@ -36,7 +36,7 @@
                 <!-- Tab Management Section -->
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Tab Management"
-                           Style="{StaticResource Heading2}" />
+                           Style="{DynamicResource Heading2}" />
                     
                     <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
                         <Label Grid.Row="0" Grid.Column="0" Text="Ctrl+T" FontFamily="Consolas" />
@@ -68,7 +68,7 @@
                 <!-- Navigation Section -->
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Navigation"
-                           Style="{StaticResource Heading2}" />
+                           Style="{DynamicResource Heading2}" />
                     
                     <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
                         <Label Grid.Row="0" Grid.Column="0" Text="Alt+Left" FontFamily="Consolas" />
@@ -91,7 +91,7 @@
                 <!-- Search Section -->
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Search"
-                           Style="{StaticResource Heading2}" />
+                           Style="{DynamicResource Heading2}" />
                     
                     <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
                         <Label Grid.Row="0" Grid.Column="0" Text="Ctrl+F" FontFamily="Consolas" />
@@ -111,7 +111,7 @@
                 <!-- Editing Section -->
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Editing &amp; Clipboard"
-                           Style="{StaticResource Heading2}" />
+                           Style="{DynamicResource Heading2}" />
                     
                     <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
                         <Label Grid.Row="0" Grid.Column="0" Text="Ctrl+Shift+C" FontFamily="Consolas" />
@@ -125,7 +125,7 @@
                 <!-- Accessibility Section -->
                 <VerticalStackLayout Spacing="12">
                     <Label Text="Accessibility"
-                           Style="{StaticResource Heading2}" />
+                           Style="{DynamicResource Heading2}" />
                     
                     <Grid ColumnDefinitions="2*,3*" RowSpacing="8">
                         <Label Grid.Row="0" Grid.Column="0" Text="Alt+Shift+T" FontFamily="Consolas" />

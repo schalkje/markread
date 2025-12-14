@@ -4,7 +4,7 @@ using Microsoft.Maui.Controls;
 
 namespace MarkRead.Views;
 
-public partial class FileTreeView : ContentPage
+public partial class FileTreeView : ContentView
 {
     private FileTreeViewModel? _viewModel;
     private readonly TreeViewKeyboardBehavior _keyboardBehavior;

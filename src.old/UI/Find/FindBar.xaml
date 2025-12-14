@@ -99,7 +99,7 @@
         </Style>
 
         <!-- Close button style (T071) -->
-        <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource NavigationButton}">
+        <Style x:Key="CloseButton" TargetType="Button" BasedOn="{DynamicResource NavigationButton}">
             <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="Normal"/>
         </Style>
@@ -140,7 +140,7 @@
             <!-- Modern search input (T071) - fills available space -->
             <TextBox x:Name="SearchTextBox"
                     Grid.Column="1"
-                    Style="{StaticResource ModernSearchInput}"
+                    Style="{DynamicResource ModernSearchInput}"
                     MinWidth="200"
                     MaxWidth="600"
                     VerticalAlignment="Center"
@@ -160,7 +160,7 @@
             <!-- Previous button (T071) -->
             <Button Grid.Column="3"
                    Content="▲"
-                   Style="{StaticResource NavigationButton}"
+                   Style="{DynamicResource NavigationButton}"
                    Margin="4,0"
                    ToolTip="Previous match (Shift+F3)"
                    Click="OnPreviousClicked"/>
@@ -168,7 +168,7 @@
             <!-- Next button (T071) -->
             <Button Grid.Column="4"
                    Content="▼"
-                   Style="{StaticResource NavigationButton}"
+                   Style="{DynamicResource NavigationButton}"
                    Margin="4,0"
                    ToolTip="Next match (F3)"
                    Click="OnNextClicked"/>
@@ -176,7 +176,7 @@
             <!-- Close button (T071) -->
             <Button Grid.Column="5"
                    Content="×"
-                   Style="{StaticResource CloseButton}"
+                   Style="{DynamicResource CloseButton}"
                    Margin="8,0,0,0"
                    ToolTip="Close (Esc)"
                    Click="OnCloseClicked"/>

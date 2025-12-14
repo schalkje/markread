@@ -77,7 +77,7 @@
                     Background="Transparent"
                     BorderThickness="0"
                     Padding="0"
-                    ItemContainerStyle="{StaticResource SettingsTabItemStyle}">
+                    ItemContainerStyle="{DynamicResource SettingsTabItemStyle}">
             
             <!-- Viewer Settings Tab -->
             <TabItem Header="Viewer">

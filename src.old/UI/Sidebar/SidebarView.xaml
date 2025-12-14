@@ -94,7 +94,7 @@
                                                               Width="12"
                                                               Height="12"
                                                               Fill="{DynamicResource ThemeTextSecondaryBrush}"
-                                                              Data="{StaticResource ChevronRightIcon}"
+                                                              Data="{DynamicResource ChevronRightIcon}"
                                                               Stretch="Uniform"
                                                               HorizontalAlignment="Center"
                                                               VerticalAlignment="Center"/>
@@ -103,7 +103,7 @@
                                                               Width="12"
                                                               Height="12"
                                                               Fill="{DynamicResource ThemeTextSecondaryBrush}"
-                                                              Data="{StaticResource ChevronDownIcon}"
+                                                              Data="{DynamicResource ChevronDownIcon}"
                                                               Stretch="Uniform"
                                                               HorizontalAlignment="Center"
                                                               VerticalAlignment="Center"
@@ -146,19 +146,19 @@
                                 <!-- Show expander for folders with children -->
                                 <Trigger Property="HasItems" Value="True">
                                     <Setter TargetName="Expander" Property="Visibility" Value="Visible"/>
-                                    <Setter TargetName="ItemIcon" Property="Data" Value="{StaticResource FolderClosedIcon}"/>
+                                    <Setter TargetName="ItemIcon" Property="Data" Value="{DynamicResource FolderClosedIcon}"/>
                                     <Setter TargetName="ItemIcon" Property="Fill" Value="{DynamicResource ThemeFolderIconBrush}"/>
                                 </Trigger>
 
                                 <!-- Change folder icon when expanded -->
                                 <Trigger Property="IsExpanded" Value="True">
                                     <Setter TargetName="ItemsHost" Property="Visibility" Value="Visible"/>
-                                    <Setter TargetName="ItemIcon" Property="Data" Value="{StaticResource FolderOpenIcon}"/>
+                                    <Setter TargetName="ItemIcon" Property="Data" Value="{DynamicResource FolderOpenIcon}"/>
                                 </Trigger>
 
                                 <!-- File icon for leaf items -->
                                 <Trigger Property="HasItems" Value="False">
-                                    <Setter TargetName="ItemIcon" Property="Data" Value="{StaticResource MarkdownFileIcon}"/>
+                                    <Setter TargetName="ItemIcon" Property="Data" Value="{DynamicResource MarkdownFileIcon}"/>
                                     <Setter TargetName="ItemIcon" Property="Fill" Value="{DynamicResource ThemeFileIconBrush}"/>
                                 </Trigger>
 
@@ -216,7 +216,7 @@
                   BorderThickness="0"
                   Padding="8,4"
                   SelectedItemChanged="FileTreeView_SelectedItemChanged"
-                  ItemContainerStyle="{StaticResource TreeViewItemStyle}">
+                  ItemContainerStyle="{DynamicResource TreeViewItemStyle}">
         </TreeView>
 
         <!-- Empty State -->
@@ -230,7 +230,7 @@
                 <Path Width="48"
                       Height="48"
                       Fill="{DynamicResource ThemeTextSecondaryBrush}"
-                      Data="{StaticResource FolderOpenIcon}"
+                      Data="{DynamicResource FolderOpenIcon}"
                       Stretch="Uniform"
                       Opacity="0.3"
                       Margin="0,0,0,12"/>

@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MarkRead.Views.WelcomePage"
              Title="Welcome to MarkRead"
-             BackgroundColor="{StaticResource Gray100Color}">
+             BackgroundColor="{DynamicResource Gray100Color}">
     
     <ScrollView>
         <VerticalStackLayout Padding="40" Spacing="32" HorizontalOptions="Center" MaximumWidthRequest="800">
@@ -18,14 +18,14 @@
                        
                 <Label Text="A modern, fast markdown viewer for Windows"
                        FontSize="16"
-                       TextColor="{StaticResource Gray600Color}"
+                       TextColor="{DynamicResource Gray600Color}"
                        HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
             
             <!-- Quick Start Section -->
             <VerticalStackLayout Spacing="16">
                 <Label Text="Quick Start"
-                       Style="{StaticResource Heading2}"
+                       Style="{DynamicResource Heading2}"
                        SemanticProperties.HeadingLevel="Level2" />
                        
                 <VerticalStackLayout Spacing="12">
@@ -34,7 +34,7 @@
                         <VerticalStackLayout>
                             <Label Text="Open a folder" FontAttributes="Bold" />
                             <Label Text="Browse markdown files using the sidebar file tree" 
-                                   TextColor="{StaticResource Gray600Color}" />
+                                   TextColor="{DynamicResource Gray600Color}" />
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                     
@@ -43,7 +43,7 @@
                         <VerticalStackLayout>
                             <Label Text="Open a file" FontAttributes="Bold" />
                             <Label Text="Double-click any .md file to view it with syntax highlighting" 
-                                   TextColor="{StaticResource Gray600Color}" />
+                                   TextColor="{DynamicResource Gray600Color}" />
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                     
@@ -52,7 +52,7 @@
                         <VerticalStackLayout>
                             <Label Text="Customize themes" FontAttributes="Bold" />
                             <Label Text="Switch between light, dark, or system theme (Ctrl+,)" 
-                                   TextColor="{StaticResource Gray600Color}" />
+                                   TextColor="{DynamicResource Gray600Color}" />
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
@@ -61,7 +61,7 @@
             <!-- Essential Shortcuts Section -->
             <VerticalStackLayout Spacing="16">
                 <Label Text="Essential Keyboard Shortcuts"
-                       Style="{StaticResource Heading2}"
+                       Style="{DynamicResource Heading2}"
                        SemanticProperties.HeadingLevel="Level2" />
                        
                 <Grid ColumnDefinitions="150,*" RowSpacing="12" ColumnSpacing="16">
@@ -123,7 +123,7 @@
             <!-- Features Section -->
             <VerticalStackLayout Spacing="16">
                 <Label Text="Key Features"
-                       Style="{StaticResource Heading2}"
+                       Style="{DynamicResource Heading2}"
                        SemanticProperties.HeadingLevel="Level2" />
                        
                 <VerticalStackLayout Spacing="8">
@@ -147,7 +147,7 @@
                         
                 <Button Text="View All Shortcuts"
                         Command="{Binding ViewShortcutsCommand}"
-                        Style="{StaticResource SecondaryButton}"
+                        Style="{DynamicResource SecondaryButton}"
                         Padding="20,12"
                         SemanticProperties.Description="View complete list of keyboard shortcuts" />
             </HorizontalStackLayout>
@@ -157,7 +157,7 @@
                 <CheckBox IsChecked="{Binding DontShowAgain}"
                           HorizontalOptions="Center" />
                 <Label Text="Don't show this welcome screen again"
-                       TextColor="{StaticResource Gray600Color}"
+                       TextColor="{DynamicResource Gray600Color}"
                        FontSize="12" />
             </VerticalStackLayout>
             

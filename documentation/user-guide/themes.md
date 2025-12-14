@@ -497,8 +497,8 @@ Each theme has a XAML resource dictionary defining:
     <SolidColorBrush x:Key="AccentBrush" Color="#0066CC"/>
     
     <Style x:Key="LightThemeButton" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
         <!-- ... hover states, transitions, etc. -->
     </Style>
 </ResourceDictionary>

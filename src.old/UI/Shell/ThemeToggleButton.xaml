@@ -62,10 +62,10 @@
 
     <Grid>
         <Button Name="ThemeToggleBtn" 
-                Style="{StaticResource ThemeToggleButtonStyle}"
+                Style="{DynamicResource ThemeToggleButtonStyle}"
                 Click="ThemeToggleBtn_Click">
             <Path Name="ThemeIcon" 
-                  Data="{StaticResource SystemThemeIcon}"
+                  Data="{DynamicResource SystemThemeIcon}"
                   Fill="{DynamicResource ForegroundBrush}" 
                   Stretch="Uniform"
                   Width="16" 
@@ -83,7 +83,7 @@
                                  Storyboard.TargetProperty="Angle"
                                  From="0" To="360" 
                                  Duration="0:0:0.3"
-                                 EasingFunction="{StaticResource {x:Static SystemParameters.MenuPopupAnimationKey}}"/>
+                                 EasingFunction="{DynamicResource {x:Static SystemParameters.MenuPopupAnimationKey}}"/>
             </Storyboard>
         </Grid.Resources>
     </Grid>

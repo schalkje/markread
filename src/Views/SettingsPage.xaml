@@ -6,7 +6,7 @@
              x:Class="MarkRead.Views.SettingsPage"
              x:DataType="vm:SettingsViewModel"
              Title="Settings"
-             BackgroundColor="{StaticResource BackgroundColor}">
+             BackgroundColor="{DynamicResource BackgroundColor}">
 
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="24">
@@ -16,14 +16,14 @@
                 Text="Settings"
                 FontSize="28"
                 FontAttributes="Bold"
-                TextColor="{StaticResource TextPrimaryColor}"
+                TextColor="{DynamicResource TextPrimaryColor}"
                 Margin="0,0,0,8" />
 
             <!-- Theme Section -->
             <Border 
-                BackgroundColor="{StaticResource SurfaceColor}"
+                BackgroundColor="{DynamicResource SurfaceColor}"
                 StrokeThickness="1"
-                Stroke="{StaticResource BorderColor}"
+                Stroke="{DynamicResource BorderColor}"
                 Padding="16">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="8"/>
@@ -35,7 +35,7 @@
                         Text="Appearance"
                         FontSize="18"
                         FontAttributes="Bold"
-                        TextColor="{StaticResource TextPrimaryColor}" />
+                        TextColor="{DynamicResource TextPrimaryColor}" />
 
                     <!-- Theme Toggle Button -->
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
@@ -43,29 +43,29 @@
                             Grid.Column="0"
                             Text="Theme"
                             FontSize="16"
-                            TextColor="{StaticResource TextPrimaryColor}"
+                            TextColor="{DynamicResource TextPrimaryColor}"
                             VerticalOptions="Center" />
 
                         <Label 
                             Grid.Column="1"
                             Text="{Binding SelectedTheme}"
                             FontSize="14"
-                            TextColor="{StaticResource TextSecondaryColor}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
                             VerticalOptions="Center" />
 
                         <Button 
                             Grid.Column="2"
                             Text="{Binding ThemeDisplayText}"
                             Command="{Binding CycleThemeCommand}"
-                            BackgroundColor="{StaticResource PrimaryColor}"
-                            TextColor="{StaticResource OnPrimaryColor}"
+                            BackgroundColor="{DynamicResource PrimaryColor}"
+                            TextColor="{DynamicResource OnPrimaryColor}"
                             Padding="20,8"
                             CornerRadius="6"
                             FontSize="14"
                             HorizontalOptions="End"
                             IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}">
                             <Button.Shadow>
-                                <Shadow Brush="{StaticResource ShadowColor}"
+                                <Shadow Brush="{DynamicResource ShadowColor}"
                                         Offset="0,2"
                                         Radius="4"
                                         Opacity="0.3" />
@@ -79,9 +79,9 @@
                             Text="☀️ Light"
                             Command="{Binding SetThemeCommand}"
                             CommandParameter="{x:Static models:ThemeType.Light}"
-                            BackgroundColor="{StaticResource SurfaceVariantColor}"
-                            TextColor="{StaticResource TextPrimaryColor}"
-                            BorderColor="{StaticResource BorderColor}"
+                            BackgroundColor="{DynamicResource SurfaceVariantColor}"
+                            TextColor="{DynamicResource TextPrimaryColor}"
+                            BorderColor="{DynamicResource BorderColor}"
                             BorderWidth="1"
                             Padding="16,8"
                             CornerRadius="6"
@@ -91,9 +91,9 @@
                             Text="🌙 Dark"
                             Command="{Binding SetThemeCommand}"
                             CommandParameter="{x:Static models:ThemeType.Dark}"
-                            BackgroundColor="{StaticResource SurfaceVariantColor}"
-                            TextColor="{StaticResource TextPrimaryColor}"
-                            BorderColor="{StaticResource BorderColor}"
+                            BackgroundColor="{DynamicResource SurfaceVariantColor}"
+                            TextColor="{DynamicResource TextPrimaryColor}"
+                            BorderColor="{DynamicResource BorderColor}"
                             BorderWidth="1"
                             Padding="16,8"
                             CornerRadius="6"
@@ -103,9 +103,9 @@
                             Text="💻 System"
                             Command="{Binding SetThemeCommand}"
                             CommandParameter="{x:Static models:ThemeType.System}"
-                            BackgroundColor="{StaticResource SurfaceVariantColor}"
-                            TextColor="{StaticResource TextPrimaryColor}"
-                            BorderColor="{StaticResource BorderColor}"
+                            BackgroundColor="{DynamicResource SurfaceVariantColor}"
+                            TextColor="{DynamicResource TextPrimaryColor}"
+                            BorderColor="{DynamicResource BorderColor}"
                             BorderWidth="1"
                             Padding="16,8"
                             CornerRadius="6"
@@ -115,7 +115,7 @@
                     <!-- Theme Description -->
                     <Label 
                         FontSize="12"
-                        TextColor="{StaticResource TextSecondaryColor}"
+                        TextColor="{DynamicResource TextSecondaryColor}"
                         Margin="0,4,0,0">
                         <Label.FormattedText>
                             <FormattedString>
@@ -130,9 +130,9 @@
 
             <!-- Behavior Section -->
             <Border 
-                BackgroundColor="{StaticResource SurfaceColor}"
+                BackgroundColor="{DynamicResource SurfaceColor}"
                 StrokeThickness="1"
-                Stroke="{StaticResource BorderColor}"
+                Stroke="{DynamicResource BorderColor}"
                 Padding="16">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="8"/>
@@ -144,7 +144,7 @@
                         Text="Behavior"
                         FontSize="18"
                         FontAttributes="Bold"
-                        TextColor="{StaticResource TextPrimaryColor}" />
+                        TextColor="{DynamicResource TextPrimaryColor}" />
 
                     <!-- Startup Behavior -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -152,18 +152,18 @@
                             <Label 
                                 Text="Startup Behavior"
                                 FontSize="16"
-                                TextColor="{StaticResource TextPrimaryColor}" />
+                                TextColor="{DynamicResource TextPrimaryColor}" />
                             <Label 
                                 Text="Choose what happens when the app starts"
                                 FontSize="12"
-                                TextColor="{StaticResource TextSecondaryColor}" />
+                                TextColor="{DynamicResource TextSecondaryColor}" />
                         </VerticalStackLayout>
 
                         <Picker 
                             Grid.Column="1"
                             SelectedItem="{Binding StartupBehavior, Mode=TwoWay}"
-                            BackgroundColor="{StaticResource SurfaceVariantColor}"
-                            TextColor="{StaticResource TextPrimaryColor}"
+                            BackgroundColor="{DynamicResource SurfaceVariantColor}"
+                            TextColor="{DynamicResource TextPrimaryColor}"
                             WidthRequest="200"
                             VerticalOptions="Center">
                             <Picker.Items>
@@ -180,11 +180,11 @@
                             <Label 
                                 Text="Default Zoom Level"
                                 FontSize="16"
-                                TextColor="{StaticResource TextPrimaryColor}" />
+                                TextColor="{DynamicResource TextPrimaryColor}" />
                             <Label 
                                 Text="{Binding DefaultZoom, StringFormat='{0:P0}'}"
                                 FontSize="12"
-                                TextColor="{StaticResource TextSecondaryColor}" />
+                                TextColor="{DynamicResource TextSecondaryColor}" />
                         </VerticalStackLayout>
 
                         <Slider 
@@ -200,9 +200,9 @@
 
             <!-- Advanced Section -->
             <Border 
-                BackgroundColor="{StaticResource SurfaceColor}"
+                BackgroundColor="{DynamicResource SurfaceColor}"
                 StrokeThickness="1"
-                Stroke="{StaticResource BorderColor}"
+                Stroke="{DynamicResource BorderColor}"
                 Padding="16">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="8"/>
@@ -214,24 +214,24 @@
                         Text="Advanced"
                         FontSize="18"
                         FontAttributes="Bold"
-                        TextColor="{StaticResource TextPrimaryColor}" />
+                        TextColor="{DynamicResource TextPrimaryColor}" />
 
                     <!-- Excluded Folders -->
                     <VerticalStackLayout Spacing="8">
                         <Label 
                             Text="Excluded Folders"
                             FontSize="16"
-                            TextColor="{StaticResource TextPrimaryColor}" />
+                            TextColor="{DynamicResource TextPrimaryColor}" />
                         <Label 
                             Text="Enter folder names to exclude from file tree (one per line)"
                             FontSize="12"
-                            TextColor="{StaticResource TextSecondaryColor}"
+                            TextColor="{DynamicResource TextSecondaryColor}"
                             Margin="0,0,0,8" />
                         <Editor 
                             Text="{Binding ExcludedFoldersText, Mode=TwoWay}"
                             HeightRequest="120"
-                            BackgroundColor="{StaticResource SurfaceVariantColor}"
-                            TextColor="{StaticResource TextPrimaryColor}"
+                            BackgroundColor="{DynamicResource SurfaceVariantColor}"
+                            TextColor="{DynamicResource TextPrimaryColor}"
                             FontFamily="Consolas, Courier New"
                             FontSize="12" />
                     </VerticalStackLayout>
@@ -244,14 +244,14 @@
                     Grid.Column="0"
                     Text="Save Settings"
                     Command="{Binding SaveSettingsCommand}"
-                    BackgroundColor="{StaticResource PrimaryColor}"
-                    TextColor="{StaticResource OnPrimaryColor}"
+                    BackgroundColor="{DynamicResource PrimaryColor}"
+                    TextColor="{DynamicResource OnPrimaryColor}"
                     Padding="16,12"
                     CornerRadius="6"
                     FontSize="14"
                     IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}">
                     <Button.Shadow>
-                        <Shadow Brush="{StaticResource ShadowColor}"
+                        <Shadow Brush="{DynamicResource ShadowColor}"
                                 Offset="0,2"
                                 Radius="4"
                                 Opacity="0.3" />
@@ -263,8 +263,8 @@
                     Text="Reset to Defaults"
                     Command="{Binding ResetToDefaultsCommand}"
                     BackgroundColor="Transparent"
-                    TextColor="{StaticResource ErrorColor}"
-                    BorderColor="{StaticResource ErrorColor}"
+                    TextColor="{DynamicResource ErrorColor}"
+                    BorderColor="{DynamicResource ErrorColor}"
                     BorderWidth="1"
                     Padding="16,12"
                     CornerRadius="6"
@@ -273,9 +273,9 @@
 
             <!-- About Section -->
             <Border 
-                BackgroundColor="{StaticResource SurfaceColor}"
+                BackgroundColor="{DynamicResource SurfaceColor}"
                 StrokeThickness="1"
-                Stroke="{StaticResource BorderColor}"
+                Stroke="{DynamicResource BorderColor}"
                 Padding="16">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="8"/>
@@ -286,23 +286,23 @@
                         Text="About"
                         FontSize="18"
                         FontAttributes="Bold"
-                        TextColor="{StaticResource TextPrimaryColor}" />
+                        TextColor="{DynamicResource TextPrimaryColor}" />
 
                     <Label 
                         Text="MarkRead"
                         FontSize="16"
                         FontAttributes="Bold"
-                        TextColor="{StaticResource TextPrimaryColor}" />
+                        TextColor="{DynamicResource TextPrimaryColor}" />
 
                     <Label 
                         Text="Modern Markdown Viewer"
                         FontSize="14"
-                        TextColor="{StaticResource TextSecondaryColor}" />
+                        TextColor="{DynamicResource TextSecondaryColor}" />
 
                     <Label 
                         Text="Version 1.0.0"
                         FontSize="12"
-                        TextColor="{StaticResource TextTertiaryColor}"
+                        TextColor="{DynamicResource TextTertiaryColor}"
                         Margin="0,4,0,0" />
                 </VerticalStackLayout>
             </Border>

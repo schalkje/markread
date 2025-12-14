@@ -22,7 +22,7 @@
         <!-- Sidebar -->
         <Border x:Name="Sidebar" 
                 Grid.Column="0"
-                BackgroundColor="{StaticResource Gray100Color}"
+                BackgroundColor="{DynamicResource Gray100Color}"
                 Padding="0">
             <views:FileTreeView x:Name="FileTree" />
         </Border>
@@ -31,7 +31,7 @@
         <BoxView x:Name="Splitter"
                  Grid.Column="1"
                  WidthRequest="12"
-                 BackgroundColor="{StaticResource Gray200Color}"
+                 BackgroundColor="{DynamicResource Gray200Color}"
                  HorizontalOptions="Center">
             <BoxView.GestureRecognizers>
                 <PanGestureRecognizer PanUpdated="OnSplitterPanUpdated" />

@@ -388,7 +388,7 @@ Use **WinUI 3 controls** on Windows platform with conditional XAML and platform-
     <!-- Windows-specific properties -->
     <ContentPage.Resources>
         <OnPlatform x:Key="CardBackground" x:TypeArguments="Color">
-            <On Platform="Windows" Value="{StaticResource SystemAltHighColor}" />
+            <On Platform="Windows" Value="{DynamicResource SystemAltHighColor}" />
             <On Platform="iOS,Android" Value="White" />
         </OnPlatform>
     </ContentPage.Resources>
