@@ -76,6 +76,9 @@ Rationale: A responsive application provides a better user experience.
 ## Development Guidelines
 
 - Keep things simple: Don't over-engineer solutions.
+- Use DRY principle.
+- Use SOLID principle.
+- Use Clean Architecture.
 - Focus on features that matter: Build what you actually need.
 - Test important functionality: Not everything needs tests, but core features should work reliably.
 - Document decisions: Write down why you chose certain approaches when it's not obvious.
