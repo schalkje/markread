@@ -1,0 +1,289 @@
+/**
+ * SplitView Styles
+ * Task: T070
+ */
+
+.split-view {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Split pane container */
+.split-pane {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.split-pane--vertical {
+  flex-direction: row;
+}
+
+.split-pane--horizontal {
+  flex-direction: column;
+}
+
+.split-pane__child {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Individual pane (leaf node) */
+.pane {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--pane-bg, #ffffff);
+  border: 1px solid var(--border-color, #d0d7de);
+  position: relative;
+  overflow: hidden;
+}
+
+.pane__content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Empty state when no tab is active */
+.pane__empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary, #57606a);
+  text-align: center;
+  padding: 2rem;
+}
+
+.pane__empty-state p {
+  margin: 0.5rem 0;
+  font-size: 14px;
+}
+
+.pane__empty-hint {
+  font-size: 12px;
+  color: var(--text-tertiary, #8c959f);
+}
+
+/* Table of Contents toggle button */
+.pane__toc-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--button-bg, #f3f3f3);
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-primary, #24292f);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  z-index: 10;
+}
+
+.pane__toc-toggle:hover {
+  background: var(--button-hover-bg, #e6e6e6);
+  border-color: var(--border-hover-color, #afb8c1);
+}
+
+.pane__toc-toggle:active {
+  background: var(--button-active-bg, #d0d7de);
+}
+
+/* Table of Contents panel */
+.pane__toc-panel {
+  position: absolute;
+  top: 60px;
+  right: 12px;
+  width: 300px;
+  max-height: calc(100% - 80px);
+  background: var(--panel-bg, #ffffff);
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  overflow: hidden;
+}
+
+/* Resizable divider between panes */
+.split-divider {
+  flex-shrink: 0;
+  background: var(--divider-bg, #d0d7de);
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+.split-divider--vertical {
+  width: 6px;
+  cursor: col-resize;
+  margin: 0 2px;
+}
+
+.split-divider--horizontal {
+  height: 6px;
+  cursor: row-resize;
+  margin: 2px 0;
+}
+
+.split-divider:hover {
+  background: var(--divider-hover-bg, #0969da);
+}
+
+.split-divider--dragging {
+  background: var(--accent-color, #0969da);
+}
+
+/* Divider handle (visual indicator) */
+.split-divider__handle {
+  position: absolute;
+  background: transparent;
+  border-radius: 2px;
+}
+
+.split-divider--vertical .split-divider__handle {
+  width: 2px;
+  height: 40px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--divider-handle-bg, rgba(0, 0, 0, 0.1));
+}
+
+.split-divider--horizontal .split-divider__handle {
+  width: 40px;
+  height: 2px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--divider-handle-bg, rgba(0, 0, 0, 0.1));
+}
+
+.split-divider:hover .split-divider__handle {
+  background: var(--divider-handle-hover-bg, rgba(255, 255, 255, 0.3));
+}
+
+/* Responsive behavior - stack panes vertically on narrow screens */
+@media (max-width: 768px) {
+  .split-pane--vertical {
+    flex-direction: column;
+  }
+
+  .split-divider--vertical {
+    width: 100%;
+    height: 6px;
+    cursor: row-resize;
+    margin: 2px 0;
+  }
+
+  .split-divider--vertical .split-divider__handle {
+    width: 40px;
+    height: 2px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .pane__toc-panel {
+    width: calc(100% - 24px);
+    max-height: 50vh;
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .pane {
+    --pane-bg: #0d1117;
+    --border-color: #30363d;
+    --border-hover-color: #484f58;
+    --text-primary: #e6edf3;
+    --text-secondary: #7d8590;
+    --text-tertiary: #484f58;
+    --button-bg: #21262d;
+    --button-hover-bg: #30363d;
+    --button-active-bg: #161b22;
+    --panel-bg: #161b22;
+    --divider-bg: #30363d;
+    --divider-hover-bg: #58a6ff;
+    --accent-color: #58a6ff;
+    --divider-handle-bg: rgba(255, 255, 255, 0.1);
+    --divider-handle-hover-bg: rgba(255, 255, 255, 0.3);
+  }
+
+  .pane__toc-panel {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .split-divider {
+    background: var(--border-color, #000);
+    width: 2px;
+  }
+
+  .split-divider--horizontal {
+    height: 2px;
+  }
+
+  .split-divider:hover,
+  .split-divider--dragging {
+    background: var(--accent-color, #0000ff);
+  }
+
+  .pane {
+    border-width: 2px;
+  }
+}
+
+/* Ensure proper z-index stacking */
+.pane {
+  isolation: isolate;
+}
+
+.pane__toc-toggle {
+  z-index: 10;
+}
+
+.pane__toc-panel {
+  z-index: 100;
+}
+
+/* Animation for TOC panel */
+@media (prefers-reduced-motion: no-preference) {
+  .pane__toc-panel {
+    animation: slideInRight 0.2s ease-out;
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
+/* Disable animations if user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .split-divider,
+  .pane__toc-toggle,
+  .pane__toc-panel {
+    transition: none;
+  }
+}

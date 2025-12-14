@@ -191,10 +191,10 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 - [x] T068 [P] [US3] Pane entity type already exists in src/shared/types/entities.d.ts (id, tabs, activeTabId, orientation, sizeRatio)
 - [x] T069 [US3] Implemented panes store in src/renderer/stores/panes.ts with split layout management per [data-model.md](data-model.md)
-- [ ] T070 [P] [US3] Create SplitView component in src/renderer/components/editor/SplitView.tsx with resizable divider
-- [ ] T071 [US3] Add keyboard shortcuts for split: Ctrl+\\ (vertical), Ctrl+K Ctrl+\\ (horizontal) in src/renderer/services/keyboard-handler.ts
+- [x] T070 [P] [US3] Created SplitView component in src/renderer/components/editor/SplitView.tsx with resizable divider
+- [x] T071 [US3] Added keyboard shortcuts for split: Ctrl+\\ (vertical), Ctrl+K Ctrl+\\ (horizontal) with chord support in src/renderer/services/keyboard-handler.ts
 - [x] T072 [US3] Implemented independent scroll/zoom state per pane in src/renderer/stores/panes.ts
-- [ ] T073 [US3] Add responsive stacking for narrow windows (<768px) per [spec.md](spec.md) Edge Cases
+- [x] T073 [US3] Added responsive stacking for narrow windows (<768px) in SplitView.css per [spec.md](spec.md) Edge Cases
 
 **Checkpoint**: All three user stories now work independently - users can open files (US1), navigate them (US2), and manage multiple documents in tabs with split view (US3)
 
