@@ -100,47 +100,55 @@ npm install --save-dev electron-playwright-helpers  # Optional utilities
 
 ## 4. UI Framework for Renderer Process
 
-**Decision**: Vue 3 (Composition API with TypeScript)
+**Decision**: React 18 (with TypeScript)
 **Installation**:
 ```bash
-npm install vue@^3.4.0
-npm install vue-router@^4.3.0  # Tab/navigation management
-npm install pinia@^2.1.0       # State management
+npm install react@^18.3.0 react-dom@^18.3.0
+npm install react-router-dom@^6.20.0  # Tab/navigation management
+npm install zustand@^4.5.0             # State management
 npm install --save-dev electron-vite@^2.0.0  # Build tool
+npm install --save-dev @types/react @types/react-dom
 ```
 
 **Rationale**:
 
 ### Bundle Size (Target: <150MB installer)
-- Vue core: ~80KB minified + gzipped (vs React ~100KB with ReactDOM)
+- React core + ReactDOM: ~100KB minified + gzipped
 - Electron baseline: ~115MB ("Hello World" app)
-- Total estimated: ~120-125MB with Vue + markdown libraries, comfortably under 150MB target
+- Total estimated: ~120-125MB with React + markdown libraries, comfortably under 150MB target
 
 ### Performance (Target: 60 FPS scrolling)
-- Efficient virtual DOM with fine-grained reactivity system
-- Benchmark ranking: Second only to Svelte in raw speed
-- Lower memory footprint than React in long-running applications
-- Lighter runtime provides headroom for 60 FPS with large documents
+- Efficient virtual DOM with concurrent rendering features (React 18)
+- React Compiler (experimental) provides automatic memoization
+- Mature performance optimization patterns well-documented
+- Proven at scale in desktop applications (VS Code webview extensions, Discord, Slack)
 
-### Development Velocity (Solo Developer)
-- Template syntax more intuitive than React's JSX
-- Single-File Components (.vue) combine template, script, styles - reduces context switching
-- Excellent TypeScript support with Composition API
-- Vue DevTools provide excellent debugging in Electron
-- Comprehensive official documentation with Electron-specific guides
-- Mature ecosystem: vue-router, pinia, markdown-it integration
+### Development Velocity
+- Industry-standard framework with massive ecosystem
+- Excellent TypeScript support with strong typing
+- React DevTools provide excellent debugging in Electron
+- Comprehensive documentation with extensive Electron-specific examples
+- Mature ecosystem: react-router-dom, zustand, markdown-it integration
+- Large developer community for troubleshooting
 
 ### Electron-Specific Advantages
-- Official Electron integration patterns documented
-- electron-vite: Official build tool with out-of-the-box Vue support
-- Large number of Vue + Electron reference projects (e.g., actual-budget)
-- Vue reactivity works seamlessly with Electron IPC patterns
+- Official Electron integration patterns well-documented
+- electron-vite: Official build tool with out-of-the-box React support
+- Large number of React + Electron reference projects (VS Code, Slack, Discord, Figma)
+- React hooks work seamlessly with Electron IPC patterns
+- Concurrent features (Suspense, transitions) useful for async file operations
+
+### State Management Choice: Zustand
+- Lightweight (1KB vs Pinia's 25KB)
+- Simple, hook-based API - no providers/context boilerplate
+- Excellent TypeScript inference
+- Perfect for Electron's small-to-medium state needs
 
 **Alternatives considered**:
-- **React** - Rejected: Larger bundle (100KB+ with ReactDOM), steeper learning curve (JSX/hooks), more boilerplate for solo developer
-- **Preact** - Compelling at 4KB if bundle size becomes critical, but Vue's 80KB acceptable within 150MB target
-- **Svelte** - Rejected: Despite 2.1KB initial bundle, component scaling penalty (apps with >19 TodoMVC components become heavier than Vue due to per-component compilation), markdown viewer's complex UI would negate size advantage
-- **Vanilla JavaScript/TypeScript** - Rejected: 3-5x slower development velocity for complex multi-tab/multi-pane UI, manual DOM manipulation undermines 60 FPS target
+- **Vue 3** - Rejected: Smaller ecosystem, less familiarity, Single-File Components add build complexity
+- **Preact** - Compelling at 4KB if bundle size becomes critical, but React's 100KB acceptable within 150MB target
+- **Svelte** - Rejected: Despite 2.1KB initial bundle, component scaling penalty for complex UIs
+- **Vanilla JavaScript/TypeScript** - Rejected: 3-5x slower development velocity for complex multi-tab/multi-pane UI
 
 **Build Tool**: electron-vite provides official Electron + Vite integration with fast HMR, optimized production builds
 
@@ -160,7 +168,7 @@ npm install --save-dev electron-vite@^2.0.0  # Build tool
 - **Tree shaking**: Use ES modules, mark packages as sideEffects: false
 - **Dependency audit**: Minimize dependencies, use lighter alternatives where possible
 
-**Projection**: ~120-125MB total (Electron 115MB + Vue 80KB + Highlight.js 480KB/100KB subset + markdown-it 100KB + Mermaid 500KB + app code 2-5MB)
+**Projection**: ~120-125MB total (Electron 115MB + React 100KB + Highlight.js 480KB/100KB subset + markdown-it 100KB + Mermaid 500KB + app code 2-5MB)
 
 ### Memory (<300MB with 20 tabs target)
 - **WebContents lifecycle**: Destroy closed tabs immediately, avoid dangling references
@@ -168,7 +176,7 @@ npm install --save-dev electron-vite@^2.0.0  # Build tool
 - **Tab discarding**: Implement Chrome Memory Saver approach (discard background tabs under memory pressure)
 - **Highlight.js lazy loading**: Load language packs on-demand to reduce initial memory
 
-**Estimated Usage**: 80-120MB for typical sessions (Vue adds 5-8MB runtime overhead)
+**Estimated Usage**: 80-120MB for typical sessions (React adds 5-8MB runtime overhead)
 
 ### 60 FPS Scrolling
 - **Web Workers**: Offload markdown parsing to background threads
@@ -242,12 +250,12 @@ const clean = DOMPurify.sanitize(html, {
 
 **Decision**: TanStack Virtual v3 (framework-agnostic)
 **Installation**: `npm install @tanstack/virtual-core` (5KB gzipped)
-**Vue Integration**: `npm install @tanstack/vue-virtual`
+**React Integration**: `npm install @tanstack/react-virtual`
 
 **Rationale**:
 - **Performance**: Renders 1,000 items in ~50ms, maintains 60 FPS with 10,000+ items
 - **Memory**: ~2-3MB with virtualization vs ~50MB without for large lists
-- **Framework-agnostic**: Works with Vue, React, Svelte, vanilla JS
+- **Framework-agnostic**: Works with React, Vue, Svelte, vanilla JS
 - **Popularity**: 5.5M+ downloads/week, proven in production
 
 **Use Cases**:
@@ -256,8 +264,8 @@ const clean = DOMPurify.sanitize(html, {
 - Long markdown documents (10,000+ lines)
 
 **Alternatives considered**:
-- react-window - Rejected: React-only, TanStack supports Vue natively
-- vue-virtual-scroller - Valid alternative for Vue-only, but TanStack more actively maintained
+- react-window - Valid alternative, but TanStack has better TypeScript support
+- react-virtuoso - Strong alternative with excellent DX, TanStack chosen for lighter weight
 
 ---
 
@@ -596,7 +604,7 @@ const sanitizePath = (imagePath) => {
 - [x] Electron version selection (v39.2.7)
 - [x] Testing framework selection (Playwright)
 - [x] File watching library selection (chokidar v5)
-- [x] UI framework selection (Vue 3)
+- [x] UI framework selection (React 18)
 
 ### Phase 1: Security & Core Rendering (Next)
 1. BrowserWindow configuration with context isolation
@@ -627,9 +635,10 @@ const sanitizePath = (imagePath) => {
 {
   "dependencies": {
     "electron": "39.2.7",
-    "vue": "^3.4.0",
-    "vue-router": "^4.3.0",
-    "pinia": "^2.1.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-router-dom": "^6.20.0",
+    "zustand": "^4.5.0",
     "markdown-it": "^14.1.0",
     "markdown-it-task-lists": "^2.1.1",
     "highlight.js": "^11.11.1",
@@ -637,14 +646,16 @@ const sanitizePath = (imagePath) => {
     "dompurify": "^3.3.1",
     "isomorphic-dompurify": "^2.16.0",
     "chokidar": "^5.0.0",
-    "@tanstack/vue-virtual": "^3.0.0"
+    "@tanstack/react-virtual": "^3.0.0"
   },
   "devDependencies": {
     "@playwright/test": "latest",
     "electron-playwright-helpers": "latest",
     "electron-vite": "^2.0.0",
     "typescript": "^5.3.0",
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0"
   }
 }
 ```
@@ -656,7 +667,7 @@ const sanitizePath = (imagePath) => {
 | Component | Size | Notes |
 |-----------|------|-------|
 | Electron base | ~115MB | "Hello World" baseline |
-| Vue 3 | ~80KB | Core framework |
+| React 18 | ~100KB | Core framework + ReactDOM |
 | Highlight.js | ~100KB | Common languages bundle (40 languages) |
 | markdown-it | ~100KB | Parser + GFM plugins |
 | Mermaid | ~500KB | Diagram rendering |
@@ -671,7 +682,7 @@ const sanitizePath = (imagePath) => {
 
 | Scenario | Memory | Notes |
 |----------|--------|-------|
-| Empty app | ~60MB | Electron + Vue baseline |
+| Empty app | ~60MB | Electron + React baseline |
 | 1 tab (simple doc) | ~80MB | +20MB for markdown rendering |
 | 20 tabs (typical) | ~200-250MB | ✅ Under 300MB target |
 | 50 tabs (hard limit) | ~500MB | Warning threshold |
@@ -701,6 +712,6 @@ None. All "NEEDS CLARIFICATION" items from Technical Context have been resolved:
 - ✅ Electron version: v39.2.7
 - ✅ Testing framework: Playwright
 - ✅ File watching: chokidar v5
-- ✅ UI framework: Vue 3
+- ✅ UI framework: React 18
 
 Proceed to Phase 1: Design & Contracts.

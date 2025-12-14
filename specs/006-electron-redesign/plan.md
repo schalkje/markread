@@ -150,7 +150,7 @@ src/
 │
 ├── renderer/                # Renderer process (Chromium, UI)
 │   ├── index.html          # Main window HTML entry
-│   ├── app.tsx             # React/Vue root component (TBD in Phase 0)
+│   ├── App.tsx             # React root component
 │   ├── components/         # UI components
 │   │   ├── editor/         # Editor pane, tabs, split views
 │   │   ├── sidebar/        # File tree, folder switcher
@@ -208,7 +208,7 @@ The structure follows Electron best practices with clear separation between main
 
 This structure supports:
 - TypeScript throughout (main, renderer, shared, preload)
-- Component-based UI architecture (folder TBD in Phase 0: React, Vue, or vanilla)
+- Component-based UI architecture using React 18 with TypeScript
 - Service layer for markdown rendering, themes, search, and navigation
 - Comprehensive testing at all levels (e2e, integration, unit)
 - Build tooling for Windows installer generation and code signing

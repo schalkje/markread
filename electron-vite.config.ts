@@ -1,5 +1,5 @@
 import { defineConfig } from 'electron-vite';
-import vue from '@vitejs/plugin-vue';
+import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
 export default defineConfig({
@@ -28,7 +28,7 @@ export default defineConfig({
         '@shared': resolve(__dirname, 'src/shared'),
       },
     },
-    plugins: [vue()],
+    plugins: [react()],
     build: {
       rollupOptions: {
         input: {

@@ -1,13 +1,12 @@
 /**
- * Pinia Store: Settings
+ * Zustand Store: Settings
  * Manages application settings with validation and persistence
  */
 
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { create } from 'zustand';
 import type { Settings } from '@shared/types/entities';
 
-// Default settings (will be replaced with actual defaults from main process)
+// Default settings
 const createDefaultSettings = (): Settings => ({
   version: '1.0.0',
   appearance: {
@@ -64,22 +63,34 @@ const createDefaultSettings = (): Settings => ({
   },
 });
 
-export const useSettingsStore = defineStore('settings', () => {
-  // State
-  const settings = ref<Settings>(createDefaultSettings());
-  const isLoading = ref(false);
-  const isDirty = ref(false);
+interface SettingsState {
+  settings: Settings;
+  isLoading: boolean;
+  isDirty: boolean;
 
   // Actions
-  const loadSettings = async () => {
-    isLoading.value = true;
+  loadSettings: () => Promise<void>;
+  saveSettings: () => Promise<boolean>;
+  updateAppearance: (updates: Partial<Settings['appearance']>) => void;
+  updateBehavior: (updates: Partial<Settings['behavior']>) => void;
+  updateSearch: (updates: Partial<Settings['search']>) => void;
+  updatePerformance: (updates: Partial<Settings['performance']>) => void;
+  updateAdvanced: (updates: Partial<Settings['advanced']>) => void;
+  resetSettings: () => Promise<boolean>;
+}
+
+export const useSettingsStore = create<SettingsState>((set, get) => ({
+  settings: createDefaultSettings(),
+  isLoading: false,
+  isDirty: false,
+
+  loadSettings: async () => {
+    set({ isLoading: true });
     try {
       const result = await window.electronAPI.settings.load({});
       if (result.success && result.settings) {
-        settings.value = result.settings;
-        isDirty.value = false;
+        set({ settings: result.settings, isDirty: false });
 
-        // Log warnings if any
         if (result.warnings && result.warnings.length > 0) {
           console.warn('Settings validation warnings:', result.warnings);
         }
@@ -89,18 +100,16 @@ export const useSettingsStore = defineStore('settings', () => {
     } catch (error) {
       console.error('Error loading settings:', error);
     } finally {
-      isLoading.value = false;
+      set({ isLoading: false });
     }
-  };
+  },
 
-  const saveSettings = async () => {
+  saveSettings: async () => {
+    const { settings } = get();
     try {
-      const result = await window.electronAPI.settings.save({
-        settings: settings.value,
-      });
-
+      const result = await window.electronAPI.settings.save({ settings });
       if (result.success) {
-        isDirty.value = false;
+        set({ isDirty: false });
         return true;
       } else {
         console.error('Failed to save settings:', result.error);
@@ -110,42 +119,63 @@ export const useSettingsStore = defineStore('settings', () => {
       console.error('Error saving settings:', error);
       return false;
     }
-  };
+  },
 
-  const updateAppearance = (updates: Partial<Settings['appearance']>) => {
-    settings.value.appearance = { ...settings.value.appearance, ...updates };
-    isDirty.value = true;
-  };
+  updateAppearance: (updates) => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        appearance: { ...state.settings.appearance, ...updates },
+      },
+      isDirty: true,
+    }));
+  },
 
-  const updateBehavior = (updates: Partial<Settings['behavior']>) => {
-    settings.value.behavior = { ...settings.value.behavior, ...updates };
-    isDirty.value = true;
-  };
+  updateBehavior: (updates) => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        behavior: { ...state.settings.behavior, ...updates },
+      },
+      isDirty: true,
+    }));
+  },
 
-  const updateSearch = (updates: Partial<Settings['search']>) => {
-    settings.value.search = { ...settings.value.search, ...updates };
-    isDirty.value = true;
-  };
+  updateSearch: (updates) => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        search: { ...state.settings.search, ...updates },
+      },
+      isDirty: true,
+    }));
+  },
 
-  const updatePerformance = (updates: Partial<Settings['performance']>) => {
-    settings.value.performance = { ...settings.value.performance, ...updates };
-    isDirty.value = true;
-  };
+  updatePerformance: (updates) => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        performance: { ...state.settings.performance, ...updates },
+      },
+      isDirty: true,
+    }));
+  },
 
-  const updateAdvanced = (updates: Partial<Settings['advanced']>) => {
-    settings.value.advanced = { ...settings.value.advanced, ...updates };
-    isDirty.value = true;
-  };
+  updateAdvanced: (updates) => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        advanced: { ...state.settings.advanced, ...updates },
+      },
+      isDirty: true,
+    }));
+  },
 
-  const resetSettings = async () => {
+  resetSettings: async () => {
     try {
-      const result = await window.electronAPI.settings.reset({
-        confirm: true,
-      });
-
+      const result = await window.electronAPI.settings.reset({ confirm: true });
       if (result.success && result.settings) {
-        settings.value = result.settings;
-        isDirty.value = false;
+        set({ settings: result.settings, isDirty: false });
         return true;
       } else {
         console.error('Failed to reset settings:', result.error);
@@ -155,40 +185,5 @@ export const useSettingsStore = defineStore('settings', () => {
       console.error('Error resetting settings:', error);
       return false;
     }
-  };
-
-  const validateSettings = async (
-    settingsToValidate: Partial<Settings>,
-    category?: keyof Settings
-  ) => {
-    try {
-      const result = await window.electronAPI.settings.validate({
-        settings: settingsToValidate,
-        category,
-      });
-
-      return result;
-    } catch (error) {
-      console.error('Error validating settings:', error);
-      return { success: false, errors: [], warnings: [] };
-    }
-  };
-
-  return {
-    // State
-    settings,
-    isLoading,
-    isDirty,
-
-    // Actions
-    loadSettings,
-    saveSettings,
-    updateAppearance,
-    updateBehavior,
-    updateSearch,
-    updatePerformance,
-    updateAdvanced,
-    resetSettings,
-    validateSettings,
-  };
-});
+  },
+}));

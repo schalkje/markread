@@ -13,13 +13,13 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/renderer/*"],
       "@shared/*": ["src/shared/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }

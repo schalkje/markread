@@ -16,7 +16,8 @@
 }
 
 html,
-body {
+body,
+#root {
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -29,6 +30,107 @@ body {
   line-height: 1.6;
   color: var(--color-foreground);
   background: var(--color-background);
+}
+
+/* App Layout */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+.sidebar {
+  width: 250px;
+  background: var(--color-sidebar-bg);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sidebar-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sidebar-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.toolbar {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar button {
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  background: #f5f5f5;
+}
+
+.editor-area {
+  flex: 1;
+  overflow: auto;
+}
+
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 48px;
+}
+
+.welcome h1 {
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+
+.welcome p {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.open-btn {
+  padding: 12px 24px;
+  font-size: 16px;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.open-btn:hover {
+  background: #0052a3;
+}
+
+.markdown-viewer {
+  padding: 24px;
 }
 
 /* Scrollbar styling */
