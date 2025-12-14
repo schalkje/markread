@@ -386,7 +386,7 @@ A power user wants to customize MarkRead for their workflow. They press Ctrl+, t
 - **Asset Migration**: Existing icon designs, color schemes, and visual assets must be adapted for Electron environment
 - **Settings Schema**: Definition of configuration file structure compatible with Electron's preferences system
 - **Documentation Update**: All user-facing documentation must be updated to reflect Electron UI patterns and capabilities
-- **Testing Infrastructure**: New automated testing approach for Electron (Spectron or Playwright) replacing .NET testing tools
+- **Testing Infrastructure**: New automated testing approach for Electron (Playwright) replacing .NET testing tools
 
 ### Dependent Features
 
