@@ -1,12 +1,12 @@
 /**
  * MarkdownViewer Styles
- * Tasks: T037, T040
+ * Tasks: T037, T040, T047, T049
  */
 
 .markdown-viewer {
   width: 100%;
   height: 100%;
-  padding: 2rem;
+  padding: 0;
   overflow-y: auto;
   overflow-x: auto;
   background: var(--color-bg-primary, #ffffff);
@@ -14,6 +14,37 @@
   font-family: var(--font-content, 'Segoe UI', system-ui, -apple-system, sans-serif);
   font-size: 16px;
   line-height: 1.6;
+  position: relative;
+}
+
+/* T047: Content wrapper for zoom transform */
+.markdown-viewer__content {
+  padding: 2rem;
+  transform-origin: top left;
+  transition: transform 0.1s ease-out;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+/* T049: Grab cursor when zoomed in */
+.markdown-viewer--grab {
+  cursor: grab;
+}
+
+.markdown-viewer--grab .markdown-viewer__content {
+  cursor: grab;
+}
+
+.markdown-viewer--grabbing {
+  cursor: grabbing;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.markdown-viewer--grabbing .markdown-viewer__content {
+  cursor: grabbing;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* Loading state */

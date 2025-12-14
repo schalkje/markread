@@ -131,29 +131,29 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### E2E Tests for User Story 2
 
-- [ ] T041 [P] [US2] E2E test for zoom functionality in tests/e2e/navigation.spec.ts: verify 10%-2000% range, scroll preservation (SC-004)
-- [ ] T042 [P] [US2] E2E test for pan in tests/e2e/navigation.spec.ts: verify click-drag panning when zoomed
-- [ ] T043 [P] [US2] E2E test for smooth scrolling in tests/e2e/navigation.spec.ts: verify 60 FPS (SC-005)
+- [x] T041 [P] [US2] E2E test for zoom functionality in tests/e2e/navigation.spec.ts: verify 10%-2000% range, scroll preservation (SC-004)
+- [x] T042 [P] [US2] E2E test for pan in tests/e2e/navigation.spec.ts: verify click-drag panning when zoomed
+- [x] T043 [P] [US2] E2E test for smooth scrolling in tests/e2e/navigation.spec.ts: verify 60 FPS (SC-005)
 
 ### Zoom Implementation
 
-- [ ] T044 [P] [US2] Create ZoomControls component in src/renderer/components/editor/ZoomControls.tsx with +/- buttons and reset
-- [ ] T045 [US2] Implement zoom state management in src/renderer/stores/tabs.ts (zoomLevel: 10-2000 per [data-model.md](data-model.md) Tab entity)
-- [ ] T046 [US2] Add keyboard shortcuts for zoom (Ctrl+Plus, Ctrl+Minus, Ctrl+0) in src/renderer/services/keyboard-handler.ts
-- [ ] T047 [US2] Implement CSS transform scaling in MarkdownViewer with scroll position preservation
+- [x] T044 [P] [US2] Create ZoomControls component in src/renderer/components/editor/ZoomControls.tsx with +/- buttons and reset
+- [x] T045 [US2] Implement zoom state management in src/renderer/stores/tabs.ts (zoomLevel: 10-2000 per [data-model.md](data-model.md) Tab entity)
+- [x] T046 [US2] Add keyboard shortcuts for zoom (Ctrl+Plus, Ctrl+Minus, Ctrl+0) in src/renderer/services/keyboard-handler.ts
+- [x] T047 [US2] Implement CSS transform scaling in MarkdownViewer with scroll position preservation
 
 ### Pan & Scroll
 
-- [ ] T048 [P] [US2] Implement pan functionality with click-drag in src/renderer/components/markdown/MarkdownViewer.tsx
-- [ ] T049 [P] [US2] Add grab cursor styling when panning
-- [ ] T050 [US2] Optimize scroll performance with requestAnimationFrame in src/renderer/services/scroll-optimizer.ts per [research.md](research.md) Section 5
+- [x] T048 [P] [US2] Implement pan functionality with click-drag in src/renderer/components/markdown/MarkdownViewer.tsx
+- [x] T049 [P] [US2] Add grab cursor styling when panning
+- [x] T050 [US2] Optimize scroll performance with requestAnimationFrame in src/renderer/services/scroll-optimizer.ts per [research.md](research.md) Section 5
 - [ ] T051 [P] [US2] Add touch gesture support for pinch-zoom and pan
 
 ### Navigation
 
-- [ ] T052 [P] [US2] Create TableOfContents component in src/renderer/components/editor/TableOfContents.tsx to extract headings
-- [ ] T053 [P] [US2] Implement jump-to-heading functionality with smooth scroll
-- [ ] T054 [P] [US2] Add Ctrl+G shortcut for quick heading navigation
+- [x] T052 [P] [US2] Create TableOfContents component in src/renderer/components/editor/TableOfContents.tsx to extract headings
+- [x] T053 [P] [US2] Implement jump-to-heading functionality with smooth scroll
+- [x] T054 [P] [US2] Add Ctrl+G shortcut for quick heading navigation
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - users can open files (US1) and navigate them smoothly with zoom/pan/scroll (US2)
 
