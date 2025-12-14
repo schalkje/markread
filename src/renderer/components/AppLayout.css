@@ -1,0 +1,137 @@
+/**
+ * AppLayout Component Styles
+ * Tasks: T016, T039
+ */
+
+.app-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  background: var(--color-bg-sidebar, #f6f8fa);
+  border-right: 1px solid var(--color-border-default, #d0d7de);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border-default, #d0d7de);
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--color-text-primary, #24292f);
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-placeholder {
+  padding: 1rem;
+  color: #666;
+}
+
+.sidebar-tabs {
+  padding: 1rem;
+}
+
+.sidebar-tabs h3 {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  color: var(--color-text-primary, #24292f);
+}
+
+.sidebar-tab {
+  padding: 0.5rem;
+  cursor: pointer;
+  background: transparent;
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+  transition: background 0.2s;
+}
+
+.sidebar-tab:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-tab--active {
+  background: #e1e4e8;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.toolbar {
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-toolbar, #ffffff);
+  border-bottom: 1px solid var(--color-border-default, #d0d7de);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toolbar button {
+  padding: 0.5rem 1rem;
+  background: var(--color-btn-bg, #f6f8fa);
+  color: var(--color-btn-text, #24292f);
+  border: 1px solid var(--color-border-default, #d0d7de);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toolbar button:hover {
+  background: var(--color-btn-hover-bg, #e1e4e8);
+}
+
+.toolbar button:active {
+  background: var(--color-btn-active-bg, #d0d7de);
+}
+
+.editor-area {
+  flex: 1;
+  overflow: hidden;
+  background: var(--color-bg-editor, #ffffff);
+}
+
+/* Welcome Screen */
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 2rem;
+}
+
+.welcome h1 {
+  font-size: 2.5rem;
+  color: var(--color-text-primary, #24292f);
+  margin-bottom: 1rem;
+}
+
+.welcome p {
+  font-size: 1.125rem;
+  color: var(--color-text-secondary, #57606a);
+  margin-bottom: 2rem;
+}
+
+.welcome .file-opener {
+  margin-top: 1rem;
+}

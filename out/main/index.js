@@ -1,4 +1,26 @@
 "use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 const electron = require("electron");
 const path = require("path");
 const promises = require("fs/promises");
@@ -103,6 +125,43 @@ function registerIpcHandlers() {
       return {
         success: true,
         folderPath: result.filePaths[0]
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("file:resolvePath", async (_event, payload) => {
+    try {
+      const ResolvePathSchema = zod.z.object({
+        basePath: zod.z.string().min(1),
+        relativePath: zod.z.string().min(1)
+      });
+      const { basePath, relativePath } = validatePayload(ResolvePathSchema, payload);
+      const path2 = await import("path");
+      const fs = await import("fs/promises");
+      const baseDir = path2.dirname(basePath);
+      const absolutePath = path2.resolve(baseDir, relativePath);
+      const normalizedAbsolute = path2.normalize(absolutePath);
+      if (normalizedAbsolute.includes("..")) {
+        return {
+          success: false,
+          error: 'Path traversal detected - relative paths with ".." are not allowed'
+        };
+      }
+      let exists = false;
+      try {
+        await fs.access(normalizedAbsolute);
+        exists = true;
+      } catch {
+        exists = false;
+      }
+      return {
+        success: true,
+        absolutePath: normalizedAbsolute,
+        exists
       };
     } catch (error) {
       return {

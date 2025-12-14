@@ -6,12 +6,7 @@ export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
     build: {
-      outDir: 'out/main',
-      rollupOptions: {
-        output: {
-          format: 'cjs'
-        }
-      }
+      outDir: 'out/main'
     }
   },
   preload: {

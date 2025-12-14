@@ -1,24 +1,74 @@
-import React, { useState } from 'react';
+/**
+ * AppLayout Component
+ * Tasks: T016, T039
+ *
+ * Base layout with sidebar/content/toolbar structure
+ * Integrates MarkdownViewer with tabs store
+ */
+
+import React, { useState, useEffect } from 'react';
+import { useTabsStore } from '../stores/tabs';
+import { MarkdownViewer } from './markdown/MarkdownViewer';
+import { FileOpener } from './FileOpener';
+import './AppLayout.css';
 
 // T016: Base layout component with sidebar/content/toolbar structure
+// T039: Integrated with Zustand tabs store
 const AppLayout: React.FC = () => {
   const [showSidebar, setShowSidebar] = useState(true);
   const [currentFile, setCurrentFile] = useState<string | null>(null);
+  const [currentContent, setCurrentContent] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { tabs } = useTabsStore();
 
   const toggleSidebar = () => {
     setShowSidebar(!showSidebar);
   };
 
-  const openFile = async () => {
-    try {
-      const result = await window.electronAPI.file.openFileDialog({});
-      if (result.success && result.filePaths && result.filePaths.length > 0) {
-        setCurrentFile(result.filePaths[0]);
-      }
-    } catch (error) {
-      console.error('Failed to open file:', error);
-    }
+  /**
+   * T039: Handle file opened from FileOpener component
+   * Updates current file state and loads content
+   */
+  const handleFileOpened = async (filePath: string, content: string) => {
+    setCurrentFile(filePath);
+    setCurrentContent(content);
+    setError(null);
   };
+
+  /**
+   * Load file content when currentFile changes
+   * This handles cases where file is selected from tabs
+   */
+  useEffect(() => {
+    if (!currentFile) {
+      setCurrentContent('');
+      return;
+    }
+
+    const loadFile = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const result = await window.electronAPI?.file?.read({ filePath: currentFile });
+
+        if (result?.success && result.content) {
+          setCurrentContent(result.content);
+        } else {
+          setError(result?.error || 'Failed to load file');
+        }
+      } catch (err) {
+        console.error('Error loading file:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadFile();
+  }, [currentFile]);
 
   return (
     <div className="app-layout">
@@ -29,15 +79,37 @@ const AppLayout: React.FC = () => {
           </div>
           <div className="sidebar-content">
             {/* File tree will go here (Phase 7) */}
-            <p>File tree (Phase 7)</p>
+            <p className="sidebar-placeholder">
+              File tree (Phase 7)
+            </p>
+
+            {/* Show open tabs */}
+            {tabs.size > 0 && (
+              <div className="sidebar-tabs">
+                <h3>
+                  Open Files ({tabs.size})
+                </h3>
+                {Array.from(tabs.values()).map((tab) => (
+                  <div
+                    key={tab.id}
+                    className={`sidebar-tab ${currentFile === tab.filePath ? 'sidebar-tab--active' : ''}`}
+                    onClick={() => setCurrentFile(tab.filePath)}
+                  >
+                    {tab.title}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
 
       <div className="main-content">
         <div className="toolbar">
-          <button onClick={openFile}>Open File</button>
-          <button onClick={toggleSidebar}>Toggle Sidebar</button>
+          <FileOpener onFileOpened={handleFileOpened} />
+          <button onClick={toggleSidebar}>
+            Toggle Sidebar
+          </button>
         </div>
 
         <div className="editor-area">
@@ -45,16 +117,16 @@ const AppLayout: React.FC = () => {
             <div className="welcome">
               <h1>Welcome to MarkRead</h1>
               <p>Open a markdown file to get started</p>
-              <button onClick={openFile} className="open-btn">
-                Open File
-              </button>
+              <FileOpener onFileOpened={handleFileOpened} />
             </div>
           ) : (
-            <div className="markdown-viewer">
-              {/* Markdown viewer will go here (Phase 3 - US1) */}
-              <p>File: {currentFile}</p>
-              <p>Markdown viewer coming in Phase 3 (User Story 1)</p>
-            </div>
+            <MarkdownViewer
+              content={currentContent}
+              filePath={currentFile}
+              isLoading={isLoading}
+              error={error}
+              onRenderComplete={() => console.log('Markdown rendered successfully')}
+            />
           )}
         </div>
       </div>

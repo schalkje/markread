@@ -86,38 +86,38 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 > **NOTE: Write these tests FIRST with Playwright, ensure they FAIL before implementation**
 
-- [ ] T021 [P] [US1] E2E test for markdown rendering in tests/e2e/rendering.spec.ts: verify GFM, code blocks, diagrams render correctly
-- [ ] T022 [P] [US1] E2E test for syntax highlighting in tests/e2e/rendering.spec.ts: verify 5+ languages display with colors
-- [ ] T023 [P] [US1] E2E test for Mermaid diagrams in tests/e2e/rendering.spec.ts: verify diagram appears as graphic not code
-- [ ] T024 [P] [US1] E2E test for performance in tests/e2e/rendering.spec.ts: verify complex doc renders <500ms (SC-001)
+- [x] T021 [P] [US1] E2E test for markdown rendering in tests/e2e/rendering.spec.ts: verify GFM, code blocks, diagrams render correctly
+- [x] T022 [P] [US1] E2E test for syntax highlighting in tests/e2e/rendering.spec.ts: verify 5+ languages display with colors
+- [x] T023 [P] [US1] E2E test for Mermaid diagrams in tests/e2e/rendering.spec.ts: verify diagram appears as graphic not code
+- [x] T024 [P] [US1] E2E test for performance in tests/e2e/rendering.spec.ts: verify complex doc renders <500ms (SC-001)
 
 ### Core Rendering Pipeline
 
-- [ ] T025 [US1] Configure markdown-it v14.1.0 with GFM plugins (task lists, tables, linkify) in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 9
-- [ ] T026 [US1] Integrate Highlight.js v11.11.1 with markdown-it highlight callback in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 10
-- [ ] T027 [P] [US1] Register 40 common languages for Highlight.js (JavaScript, Python, TypeScript, etc.) in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 10
-- [ ] T028 [US1] Implement custom markdown-it fence rule for Mermaid diagrams in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 11
-- [ ] T029 [US1] Configure Mermaid v11.12.2 with securityLevel: 'strict' in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 11
-- [ ] T030 [US1] Integrate DOMPurify v3.3.1 sanitization after markdown-it rendering in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 12
+- [x] T025 [US1] Configure markdown-it v14.1.0 with GFM plugins (task lists, tables, linkify) in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 9
+- [x] T026 [US1] Integrate Highlight.js v11.11.1 with markdown-it highlight callback in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 10
+- [x] T027 [P] [US1] Register 40 common languages for Highlight.js (JavaScript, Python, TypeScript, etc.) in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 10
+- [x] T028 [US1] Implement custom markdown-it fence rule for Mermaid diagrams in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 11
+- [x] T029 [US1] Configure Mermaid v11.12.2 with securityLevel: 'strict' in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 11
+- [x] T030 [US1] Integrate DOMPurify v3.3.1 sanitization after markdown-it rendering in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 12
 
 ### Image & Link Resolution
 
-- [ ] T031 [P] [US1] Implement custom markdown-it image renderer with file:// path resolution in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 13
-- [ ] T032 [P] [US1] Add path sanitization to prevent directory traversal in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 13
-- [ ] T033 [P] [US1] Add rel="noopener noreferrer" to external links via DOMPurify hook in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 12
+- [x] T031 [P] [US1] Implement custom markdown-it image renderer with file:// path resolution in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 13
+- [x] T032 [P] [US1] Add path sanitization to prevent directory traversal in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 13
+- [x] T033 [P] [US1] Add rel="noopener noreferrer" to external links via DOMPurify hook in src/renderer/services/markdown-renderer.ts per [research.md](research.md) Section 12
 
 ### File Operations & IPC
 
-- [ ] T034 [US1] Implement file:read IPC handler in src/main/ipc-handlers.ts per [contracts/file-operations.contract.ts](contracts/file-operations.contract.ts)
-- [ ] T035 [US1] Implement file:openFileDialog IPC handler in src/main/ipc-handlers.ts per [contracts/file-operations.contract.ts](contracts/file-operations.contract.ts)
-- [ ] T036 [US1] Implement file:resolvePath IPC handler for image resolution in src/main/ipc-handlers.ts per [contracts/file-operations.contract.ts](contracts/file-operations.contract.ts)
+- [x] T034 [US1] Implement file:read IPC handler in src/main/ipc-handlers.ts per [contracts/file-operations.contract.ts](contracts/file-operations.contract.ts)
+- [x] T035 [US1] Implement file:openFileDialog IPC handler in src/main/ipc-handlers.ts per [contracts/file-operations.contract.ts](contracts/file-operations.contract.ts)
+- [x] T036 [US1] Implement file:resolvePath IPC handler for image resolution in src/main/ipc-handlers.ts per [contracts/file-operations.contract.ts](contracts/file-operations.contract.ts)
 
 ### UI Components
 
-- [ ] T037 [US1] Create MarkdownViewer component in src/renderer/components/markdown/MarkdownViewer.tsx to display rendered HTML
-- [ ] T038 [US1] Create FileOpener component in src/renderer/components/FileOpener.tsx with file dialog integration
-- [ ] T039 [US1] Integrate MarkdownViewer with Zustand tabs store in src/renderer/stores/tabs.ts to track active file
-- [ ] T040 [US1] Add loading state and error handling to MarkdownViewer component
+- [x] T037 [US1] Create MarkdownViewer component in src/renderer/components/markdown/MarkdownViewer.tsx to display rendered HTML
+- [x] T038 [US1] Create FileOpener component in src/renderer/components/FileOpener.tsx with file dialog integration
+- [x] T039 [US1] Integrate MarkdownViewer with Zustand tabs store in src/renderer/stores/tabs.ts to track active file
+- [x] T040 [US1] Add loading state and error handling to MarkdownViewer component
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can open markdown files and see rich rendering with syntax highlighting and diagrams
 

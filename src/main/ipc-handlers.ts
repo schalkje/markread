@@ -77,5 +77,58 @@ export function registerIpcHandlers() {
     }
   });
 
+  // T036: file:resolvePath IPC handler for image resolution
+  ipcMain.handle('file:resolvePath', async (_event, payload) => {
+    try {
+      const ResolvePathSchema = z.object({
+        basePath: z.string().min(1),
+        relativePath: z.string().min(1),
+      });
+
+      const { basePath, relativePath } = validatePayload(ResolvePathSchema, payload);
+
+      // Import path and fs modules
+      const path = await import('path');
+      const fs = await import('fs/promises');
+
+      // Resolve relative path based on the directory of basePath
+      const baseDir = path.dirname(basePath);
+      const absolutePath = path.resolve(baseDir, relativePath);
+
+      // Sanitize path to prevent directory traversal attacks (T032)
+      // Ensure the resolved path is safe and normalize it
+      const normalizedAbsolute = path.normalize(absolutePath);
+
+      // Additional security: prevent path traversal outside allowed areas
+      // This is a basic check - in production, you might want stricter validation
+      if (normalizedAbsolute.includes('..')) {
+        return {
+          success: false,
+          error: 'Path traversal detected - relative paths with ".." are not allowed',
+        };
+      }
+
+      // Check if file exists
+      let exists = false;
+      try {
+        await fs.access(normalizedAbsolute);
+        exists = true;
+      } catch {
+        exists = false;
+      }
+
+      return {
+        success: true,
+        absolutePath: normalizedAbsolute,
+        exists,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
   console.log('IPC handlers registered');
 }

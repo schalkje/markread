@@ -1,0 +1,61 @@
+/**
+ * FileOpener Component Styles
+ * Task: T038
+ */
+
+.file-opener {
+  display: inline-block;
+}
+
+.file-opener__button {
+  padding: 0.75rem 1.5rem;
+  background: #0969da;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.file-opener__button:hover:not(:disabled) {
+  background: #0860ca;
+}
+
+.file-opener__button:active:not(:disabled) {
+  background: #0757ba;
+}
+
+.file-opener__button:disabled {
+  background: #94d3a2;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.file-opener__error {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #ffebe9;
+  border: 1px solid #ff8182;
+  border-radius: 6px;
+  color: #cf222e;
+}
+
+.file-opener__error p {
+  margin: 0 0 0.5rem 0;
+}
+
+.file-opener__error button {
+  padding: 0.25rem 0.75rem;
+  background: white;
+  color: #cf222e;
+  border: 1px solid #cf222e;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.file-opener__error button:hover {
+  background: #ffebe9;
+}
