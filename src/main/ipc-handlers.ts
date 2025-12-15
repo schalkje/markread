@@ -1,5 +1,6 @@
 import { ipcMain, dialog } from 'electron';
-import { readFile, stat } from 'fs/promises';
+import { readFile, stat, readdir } from 'fs/promises';
+import * as path from 'path';
 import { z } from 'zod';
 
 // T011: IPC handler registration system with Zod validation (research.md Section 6)
@@ -121,6 +122,127 @@ export function registerIpcHandlers() {
         success: true,
         absolutePath: normalizedAbsolute,
         exists,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // T102: file:getFolderTree IPC handler for file tree sidebar
+  ipcMain.handle('file:getFolderTree', async (_event, payload) => {
+    try {
+      const GetFolderTreeSchema = z.object({
+        folderPath: z.string().min(1),
+        includeHidden: z.boolean(),
+        maxDepth: z.number().optional(),
+      });
+
+      const { folderPath, includeHidden, maxDepth } = validatePayload(
+        GetFolderTreeSchema,
+        payload
+      );
+
+      // Validate that the folder path exists
+      try {
+        const stats = await stat(folderPath);
+        if (!stats.isDirectory()) {
+          return {
+            success: false,
+            error: 'Path is not a directory',
+          };
+        }
+      } catch (error: any) {
+        return {
+          success: false,
+          error: `Folder not found: ${error.message}`,
+        };
+      }
+
+      let totalFiles = 0;
+
+      // Recursive function to build file tree
+      async function buildTree(
+        dirPath: string,
+        currentDepth: number = 0
+      ): Promise<any> {
+        const name = path.basename(dirPath);
+        const node: any = {
+          name,
+          path: dirPath,
+          type: 'directory',
+          children: [],
+        };
+
+        // Check max depth
+        if (maxDepth !== undefined && currentDepth >= maxDepth) {
+          return node;
+        }
+
+        try {
+          const entries = await readdir(dirPath, { withFileTypes: true });
+
+          for (const entry of entries) {
+            // Skip hidden files if not included
+            if (!includeHidden && entry.name.startsWith('.')) {
+              continue;
+            }
+
+            const fullPath = path.join(dirPath, entry.name);
+
+            if (entry.isDirectory()) {
+              // Recursively process subdirectories
+              const childNode = await buildTree(fullPath, currentDepth + 1);
+              if (childNode.children && childNode.children.length > 0) {
+                // Only include directories that contain markdown files
+                node.children.push(childNode);
+              }
+            } else if (entry.isFile() && isMarkdownFile(entry.name)) {
+              // Include markdown files
+              totalFiles++;
+              const stats = await stat(fullPath);
+              node.children.push({
+                name: entry.name,
+                path: fullPath,
+                type: 'file',
+                size: stats.size,
+                modificationTime: stats.mtimeMs,
+              });
+            }
+          }
+
+          // Sort children: directories first, then files, alphabetically
+          node.children.sort((a: any, b: any) => {
+            if (a.type === b.type) {
+              return a.name.localeCompare(b.name, undefined, {
+                numeric: true,
+                sensitivity: 'base',
+              });
+            }
+            return a.type === 'directory' ? -1 : 1;
+          });
+        } catch (error: any) {
+          // If we can't read a directory (permissions, etc), return empty
+          console.error(`Error reading directory ${dirPath}:`, error.message);
+        }
+
+        return node;
+      }
+
+      // Helper to check if file is markdown
+      function isMarkdownFile(fileName: string): boolean {
+        const ext = path.extname(fileName).toLowerCase();
+        return ext === '.md' || ext === '.markdown';
+      }
+
+      const tree = await buildTree(folderPath);
+
+      return {
+        success: true,
+        tree,
+        totalFiles,
       };
     } catch (error: any) {
       return {

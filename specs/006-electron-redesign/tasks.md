@@ -264,7 +264,7 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 ### File Tree
 
 - [x] T101 [P] [US5] FileTreeNode type defined in src/renderer/components/sidebar/FileTree.tsx (name, path, type, children, depth)
-- [ ] T102 [US5] Implement file:getFolderTree IPC handler in src/main/ipc-handlers.ts (component uses mock data, IPC pending)
+- [x] T102 [US5] Implement file:getFolderTree IPC handler in src/main/ipc-handlers.ts (component uses mock data, IPC pending)
 - [x] T103 [P] [US5] Created FileTree component in src/renderer/components/sidebar/FileTree.tsx with expand/collapse functionality
 - [x] T104 [US5] Virtualization detection for 1000+ files implemented (TanStack Virtual integration pending, infrastructure ready)
 - [x] T105 [US5] File tree expansion state persistence implemented via folders store updateFileTreeState()

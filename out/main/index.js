@@ -25,6 +25,23 @@ const electron = require("electron");
 const path = require("path");
 const promises = require("fs/promises");
 const zod = require("zod");
+function _interopNamespaceDefault(e) {
+  const n = Object.create(null, { [Symbol.toStringTag]: { value: "Module" } });
+  if (e) {
+    for (const k in e) {
+      if (k !== "default") {
+        const d = Object.getOwnPropertyDescriptor(e, k);
+        Object.defineProperty(n, k, d.get ? d : {
+          enumerable: true,
+          get: () => e[k]
+        });
+      }
+    }
+  }
+  n.default = e;
+  return Object.freeze(n);
+}
+const path__namespace = /* @__PURE__ */ _interopNamespaceDefault(path);
 function createWindow() {
   const win = new electron.BrowserWindow({
     width: 1200,
@@ -162,6 +179,98 @@ function registerIpcHandlers() {
         success: true,
         absolutePath: normalizedAbsolute,
         exists
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("file:getFolderTree", async (_event, payload) => {
+    try {
+      let isMarkdownFile = function(fileName) {
+        const ext = path__namespace.extname(fileName).toLowerCase();
+        return ext === ".md" || ext === ".markdown";
+      };
+      const GetFolderTreeSchema = zod.z.object({
+        folderPath: zod.z.string().min(1),
+        includeHidden: zod.z.boolean(),
+        maxDepth: zod.z.number().optional()
+      });
+      const { folderPath, includeHidden, maxDepth } = validatePayload(
+        GetFolderTreeSchema,
+        payload
+      );
+      try {
+        const stats = await promises.stat(folderPath);
+        if (!stats.isDirectory()) {
+          return {
+            success: false,
+            error: "Path is not a directory"
+          };
+        }
+      } catch (error) {
+        return {
+          success: false,
+          error: `Folder not found: ${error.message}`
+        };
+      }
+      let totalFiles = 0;
+      async function buildTree(dirPath, currentDepth = 0) {
+        const name = path__namespace.basename(dirPath);
+        const node = {
+          name,
+          path: dirPath,
+          type: "directory",
+          children: []
+        };
+        if (maxDepth !== void 0 && currentDepth >= maxDepth) {
+          return node;
+        }
+        try {
+          const entries = await promises.readdir(dirPath, { withFileTypes: true });
+          for (const entry of entries) {
+            if (!includeHidden && entry.name.startsWith(".")) {
+              continue;
+            }
+            const fullPath = path__namespace.join(dirPath, entry.name);
+            if (entry.isDirectory()) {
+              const childNode = await buildTree(fullPath, currentDepth + 1);
+              if (childNode.children && childNode.children.length > 0) {
+                node.children.push(childNode);
+              }
+            } else if (entry.isFile() && isMarkdownFile(entry.name)) {
+              totalFiles++;
+              const stats = await promises.stat(fullPath);
+              node.children.push({
+                name: entry.name,
+                path: fullPath,
+                type: "file",
+                size: stats.size,
+                modificationTime: stats.mtimeMs
+              });
+            }
+          }
+          node.children.sort((a, b) => {
+            if (a.type === b.type) {
+              return a.name.localeCompare(b.name, void 0, {
+                numeric: true,
+                sensitivity: "base"
+              });
+            }
+            return a.type === "directory" ? -1 : 1;
+          });
+        } catch (error) {
+          console.error(`Error reading directory ${dirPath}:`, error.message);
+        }
+        return node;
+      }
+      const tree = await buildTree(folderPath);
+      return {
+        success: true,
+        tree,
+        totalFiles
       };
     } catch (error) {
       return {

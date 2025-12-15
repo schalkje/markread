@@ -9,6 +9,11 @@ export interface ElectronAPI {
     read: (payload: { filePath: string }) => Promise<any>;
     openFileDialog: (payload?: any) => Promise<any>;
     openFolderDialog: (payload?: any) => Promise<any>;
+    getFolderTree: (payload: {
+      folderPath: string;
+      includeHidden: boolean;
+      maxDepth?: number;
+    }) => Promise<any>;
   };
   settings: {
     load: (payload: any) => Promise<any>;
@@ -23,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     read: (payload: any) => ipcRenderer.invoke('file:read', payload),
     openFileDialog: (payload: any) => ipcRenderer.invoke('file:openFileDialog', payload),
     openFolderDialog: (payload: any) => ipcRenderer.invoke('file:openFolderDialog', payload),
+    getFolderTree: (payload: any) => ipcRenderer.invoke('file:getFolderTree', payload),
   },
   settings: {
     load: (payload: any) => ipcRenderer.invoke('settings:load', payload),
