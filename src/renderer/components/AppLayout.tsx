@@ -6,7 +6,7 @@
  * Integrates MarkdownViewer with tabs store
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { useFoldersStore } from '../stores/folders';
 import { MarkdownViewer } from './markdown/MarkdownViewer';
@@ -14,6 +14,7 @@ import { FileOpener } from './FileOpener';
 import { FolderOpener } from './FolderOpener';
 import { FileTree } from './sidebar/FileTree';
 import { FolderSwitcher } from './sidebar/FolderSwitcher';
+import { useFileAutoReload, useFileWatcher } from '../hooks/useFileWatcher';
 import './AppLayout.css';
 
 // T016: Base layout component with sidebar/content/toolbar structure
@@ -27,10 +28,39 @@ const AppLayout: React.FC = () => {
 
   const { tabs } = useTabsStore();
   const { folders, activeFolderId } = useFoldersStore();
+  const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
 
   const toggleSidebar = () => {
     setShowSidebar(!showSidebar);
   };
+
+  // T110: Auto-reload current file when it changes on disk
+  const handleFileReload = useCallback(async (filePath: string) => {
+    try {
+      const result = await window.electronAPI?.file?.read({ filePath });
+      if (result?.success && result.content) {
+        setCurrentContent(result.content);
+        console.log('File auto-reloaded:', filePath);
+      }
+    } catch (err) {
+      console.error('Error reloading file:', err);
+      setError('File was modified but failed to reload');
+    }
+  }, []);
+
+  useFileAutoReload(currentFile, handleFileReload);
+
+  // T110: Handle file changes to refresh file tree
+  useFileWatcher(
+    (event) => {
+      // Refresh file tree when files are added, changed, or removed
+      console.log(`File tree update triggered by: ${event.eventType} ${event.filePath}`);
+      setFileTreeKey((prev) => prev + 1); // Force FileTree to reload
+    },
+    (error) => {
+      console.error('File watch error:', error);
+    }
+  );
 
   /**
    * T039: Handle file opened from FileOpener component
@@ -97,6 +127,7 @@ const AppLayout: React.FC = () => {
             {/* T101-T105: File Tree */}
             {activeFolderId ? (
               <FileTree
+                key={fileTreeKey}
                 folderId={activeFolderId}
                 onFileSelect={(filePath) => setCurrentFile(filePath)}
                 onFileOpen={async (filePath) => {

@@ -1,7 +1,8 @@
-import { ipcMain, dialog } from 'electron';
+import { ipcMain, dialog, BrowserWindow } from 'electron';
 import { readFile, stat, readdir } from 'fs/promises';
 import * as path from 'path';
 import { z } from 'zod';
+import { startWatching, stopWatching } from './file-watcher';
 
 // T011: IPC handler registration system with Zod validation (research.md Section 6)
 
@@ -16,7 +17,7 @@ const ReadFilePayloadSchema = z.object({
 });
 
 // Export registration function
-export function registerIpcHandlers() {
+export function registerIpcHandlers(mainWindow: BrowserWindow) {
   // T034: file:read IPC handler
   ipcMain.handle('file:read', async (_event, payload) => {
     try {
@@ -258,6 +259,70 @@ export function registerIpcHandlers() {
         success: true,
         tree,
         totalFiles,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // T108: file:watchFolder IPC handler
+  ipcMain.handle('file:watchFolder', async (_event, payload) => {
+    try {
+      const WatchFolderSchema = z.object({
+        folderPath: z.string().min(1),
+        filePatterns: z.array(z.string()),
+        ignorePatterns: z.array(z.string()),
+        debounceMs: z.number().min(100).max(2000),
+      });
+
+      const { folderPath, filePatterns, ignorePatterns, debounceMs } = validatePayload(
+        WatchFolderSchema,
+        payload
+      );
+
+      // Generate unique watcher ID
+      const watcherId = `watcher-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+      // Start watching
+      await startWatching(
+        {
+          watcherId,
+          folderPath,
+          filePatterns,
+          ignorePatterns,
+          debounceMs,
+        },
+        mainWindow
+      );
+
+      return {
+        success: true,
+        watcherId,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // T108: file:stopWatching IPC handler
+  ipcMain.handle('file:stopWatching', async (_event, payload) => {
+    try {
+      const StopWatchingSchema = z.object({
+        watcherId: z.string().min(1),
+      });
+
+      const { watcherId } = validatePayload(StopWatchingSchema, payload);
+
+      await stopWatching(watcherId);
+
+      return {
+        success: true,
       };
     } catch (error: any) {
       return {

@@ -14,12 +14,20 @@ export interface ElectronAPI {
       includeHidden: boolean;
       maxDepth?: number;
     }) => Promise<any>;
+    watchFolder: (payload: {
+      folderPath: string;
+      filePatterns: string[];
+      ignorePatterns: string[];
+      debounceMs: number;
+    }) => Promise<any>;
+    stopWatching: (payload: { watcherId: string }) => Promise<any>;
   };
   settings: {
     load: (payload: any) => Promise<any>;
     save: (payload: any) => Promise<any>;
     reset: (payload: any) => Promise<any>;
   };
+  on: (channel: string, callback: (event: any, ...args: any[]) => void) => void;
   // More APIs will be added in later phases
 }
 
@@ -29,11 +37,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openFileDialog: (payload: any) => ipcRenderer.invoke('file:openFileDialog', payload),
     openFolderDialog: (payload: any) => ipcRenderer.invoke('file:openFolderDialog', payload),
     getFolderTree: (payload: any) => ipcRenderer.invoke('file:getFolderTree', payload),
+    watchFolder: (payload: any) => ipcRenderer.invoke('file:watchFolder', payload),
+    stopWatching: (payload: any) => ipcRenderer.invoke('file:stopWatching', payload),
   },
   settings: {
     load: (payload: any) => ipcRenderer.invoke('settings:load', payload),
     save: (payload: any) => ipcRenderer.invoke('settings:save', payload),
     reset: (payload: any) => ipcRenderer.invoke('settings:reset', payload),
+  },
+  on: (channel: string, callback: (event: any, ...args: any[]) => void) => {
+    // T109: Allow renderer to listen for file:changed events
+    const validChannels = ['file:changed', 'file:watchError', 'folder:changed'];
+    if (validChannels.includes(channel)) {
+      ipcRenderer.on(channel, callback);
+    }
   },
 } as ElectronAPI);
 

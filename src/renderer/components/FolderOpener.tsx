@@ -84,6 +84,24 @@ export const FolderOpener: React.FC<FolderOpenerProps> = ({ onFolderOpened }) =>
       // Add folder to store
       addFolder(newFolder);
 
+      // T108: Start watching the folder for file changes
+      try {
+        const watchResult = await window.electronAPI?.file?.watchFolder({
+          folderPath,
+          filePatterns: ['**/*.md', '**/*.markdown'],
+          ignorePatterns: ['**/node_modules/**', '**/.git/**'],
+          debounceMs: 300,
+        });
+
+        if (watchResult?.success && watchResult.watcherId) {
+          console.log(`Started watching folder: ${folderPath} (ID: ${watchResult.watcherId})`);
+          // Store watcher ID in folder (we could extend the Folder type to include this)
+        }
+      } catch (err) {
+        console.error('Failed to start watching folder:', err);
+        // Non-fatal error - folder still opens, just without watching
+      }
+
       // Notify parent
       onFolderOpened?.(folderPath);
 

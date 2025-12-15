@@ -3,6 +3,7 @@ import { app, BrowserWindow } from 'electron';
 import { createWindow } from './window-manager';
 import { registerIpcHandlers } from './ipc-handlers';
 import { initLogger } from './logger';
+import { stopAllWatchers } from './file-watcher';
 
 // T019: Global error handler
 process.on('uncaughtException', (error) => {
@@ -34,11 +35,11 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(() => {
-    // T011: Register all IPC handlers (must be done after app is ready)
-    registerIpcHandlers();
-
     // T009: Create main window with security config
     mainWindow = createWindow();
+
+    // T011: Register all IPC handlers (must be done after window is created)
+    registerIpcHandlers(mainWindow);
 
     app.on('activate', () => {
       // On macOS re-create window when dock icon is clicked
@@ -53,4 +54,9 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// T107: Cleanup file watchers on app quit
+app.on('before-quit', async () => {
+  await stopAllWatchers();
 });

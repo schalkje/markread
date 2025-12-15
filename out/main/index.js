@@ -92,13 +92,113 @@ function createWindow() {
   });
   return win;
 }
+let chokidar = null;
+async function getChokidar() {
+  if (!chokidar) {
+    chokidar = await import("chokidar");
+  }
+  return chokidar;
+}
+const activeWatchers = /* @__PURE__ */ new Map();
+async function startWatching(config, window) {
+  if (activeWatchers.has(config.watcherId)) {
+    await stopWatching(config.watcherId);
+  }
+  try {
+    const { watch } = await getChokidar();
+    const watcher = watch(config.filePatterns, {
+      cwd: config.folderPath,
+      ignored: [
+        ...config.ignorePatterns,
+        "**/node_modules/**",
+        "**/.git/**",
+        "**/dist/**",
+        "**/out/**",
+        "**/.DS_Store"
+      ],
+      persistent: true,
+      ignoreInitial: true,
+      // Don't emit events for existing files
+      awaitWriteFinish: {
+        stabilityThreshold: config.debounceMs,
+        pollInterval: 100
+      }
+    });
+    const debounceTimers = /* @__PURE__ */ new Map();
+    const sendEvent = (eventType, filePath) => {
+      const absolutePath = path__namespace.resolve(config.folderPath, filePath);
+      window.webContents.send("file:changed", {
+        watcherId: config.watcherId,
+        filePath: absolutePath,
+        eventType,
+        modificationTime: Date.now()
+      });
+    };
+    const debouncedSend = (eventType, filePath) => {
+      const key = `${eventType}:${filePath}`;
+      if (debounceTimers.has(key)) {
+        clearTimeout(debounceTimers.get(key));
+      }
+      const timer = setTimeout(() => {
+        sendEvent(eventType, filePath);
+        debounceTimers.delete(key);
+      }, config.debounceMs);
+      debounceTimers.set(key, timer);
+    };
+    watcher.on("add", (filePath) => {
+      console.log(`File added: ${filePath}`);
+      debouncedSend("add", filePath);
+    }).on("change", (filePath) => {
+      console.log(`File changed: ${filePath}`);
+      debouncedSend("change", filePath);
+    }).on("unlink", (filePath) => {
+      console.log(`File removed: ${filePath}`);
+      debouncedSend("unlink", filePath);
+    }).on("error", (error) => {
+      console.error(`Watcher error for ${config.watcherId}:`, error);
+      window.webContents.send("file:watchError", {
+        watcherId: config.watcherId,
+        error: error.message
+      });
+    });
+    activeWatchers.set(config.watcherId, {
+      watcher,
+      config
+    });
+    console.log(`Started watching folder: ${config.folderPath} (ID: ${config.watcherId})`);
+  } catch (error) {
+    console.error(`Failed to start watcher ${config.watcherId}:`, error);
+    throw error;
+  }
+}
+async function stopWatching(watcherId) {
+  const activeWatcher = activeWatchers.get(watcherId);
+  if (!activeWatcher) {
+    console.warn(`Watcher ${watcherId} not found`);
+    return;
+  }
+  try {
+    await activeWatcher.watcher.close();
+    activeWatchers.delete(watcherId);
+    console.log(`Stopped watching: ${watcherId}`);
+  } catch (error) {
+    console.error(`Error stopping watcher ${watcherId}:`, error);
+    throw error;
+  }
+}
+async function stopAllWatchers() {
+  const watcherIds = Array.from(activeWatchers.keys());
+  await Promise.all(
+    watcherIds.map((id) => stopWatching(id))
+  );
+}
 function validatePayload(schema, payload) {
   return schema.parse(payload);
 }
 const ReadFilePayloadSchema = zod.z.object({
   filePath: zod.z.string().min(1)
 });
-function registerIpcHandlers() {
+function registerIpcHandlers(mainWindow2) {
   electron.ipcMain.handle("file:read", async (_event, payload) => {
     try {
       const { filePath } = validatePayload(ReadFilePayloadSchema, payload);
@@ -290,6 +390,57 @@ function registerIpcHandlers() {
       };
     }
   });
+  electron.ipcMain.handle("file:watchFolder", async (_event, payload) => {
+    try {
+      const WatchFolderSchema = zod.z.object({
+        folderPath: zod.z.string().min(1),
+        filePatterns: zod.z.array(zod.z.string()),
+        ignorePatterns: zod.z.array(zod.z.string()),
+        debounceMs: zod.z.number().min(100).max(2e3)
+      });
+      const { folderPath, filePatterns, ignorePatterns, debounceMs } = validatePayload(
+        WatchFolderSchema,
+        payload
+      );
+      const watcherId = `watcher-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      await startWatching(
+        {
+          watcherId,
+          folderPath,
+          filePatterns,
+          ignorePatterns,
+          debounceMs
+        },
+        mainWindow2
+      );
+      return {
+        success: true,
+        watcherId
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("file:stopWatching", async (_event, payload) => {
+    try {
+      const StopWatchingSchema = zod.z.object({
+        watcherId: zod.z.string().min(1)
+      });
+      const { watcherId } = validatePayload(StopWatchingSchema, payload);
+      await stopWatching(watcherId);
+      return {
+        success: true
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
   console.log("IPC handlers registered");
 }
 const defaultConfig = {
@@ -321,8 +472,8 @@ if (!gotTheLock) {
     }
   });
   electron.app.whenReady().then(() => {
-    registerIpcHandlers();
     mainWindow = createWindow();
+    registerIpcHandlers(mainWindow);
     electron.app.on("activate", () => {
       if (electron.BrowserWindow.getAllWindows().length === 0) {
         mainWindow = createWindow();
@@ -334,4 +485,7 @@ electron.app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     electron.app.quit();
   }
+});
+electron.app.on("before-quit", async () => {
+  await stopAllWatchers();
 });
