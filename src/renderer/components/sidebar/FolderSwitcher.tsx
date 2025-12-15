@@ -10,6 +10,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useFoldersStore } from '../../stores/folders';
+import type { Folder } from '@shared/types/entities';
 import './FolderSwitcher.css';
 
 export interface FolderSwitcherProps {
@@ -30,6 +31,7 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
   const activeFolderId = useFoldersStore((state) => state.activeFolderId);
   const setActiveFolder = useFoldersStore((state) => state.setActiveFolder);
   const removeFolder = useFoldersStore((state) => state.removeFolder);
+  const addFolder = useFoldersStore((state) => state.addFolder);
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -65,6 +67,55 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
     e.stopPropagation();
     removeFolder(folderId);
     onFolderClose?.(folderId);
+  };
+
+  // T098: Handle opening a new folder
+  const handleOpenFolder = async () => {
+    setIsOpen(false);
+
+    try {
+      const result = await window.electronAPI?.file?.openFolderDialog({});
+
+      if (!result?.success || !result.folderPath) {
+        // User cancelled or error occurred
+        return;
+      }
+
+      const folderPath = result.folderPath;
+      const folderName = folderPath.split(/[\\/]/).pop() || 'Untitled';
+
+      const newFolder: Folder = {
+        id: `folder-${Date.now()}`,
+        path: folderPath,
+        displayName: folderName,
+        fileTreeState: {
+          expandedDirectories: new Set<string>(),
+          scrollPosition: 0,
+          selectedPath: null,
+        },
+        activeFolderId: null,
+        tabCollection: [],
+        activeTabId: null,
+        recentFiles: [],
+        splitLayout: {
+          rootPane: {
+            id: 'pane-root',
+            tabs: [],
+            activeTabId: null,
+            orientation: 'vertical',
+            sizeRatio: 1.0,
+            splitChildren: null,
+          },
+          layoutType: 'single',
+        },
+        createdAt: Date.now(),
+        lastAccessedAt: Date.now(),
+      };
+
+      addFolder(newFolder);
+    } catch (err) {
+      console.error('Error opening folder:', err);
+    }
   };
 
   if (folders.length === 0) {
@@ -127,11 +178,7 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
           <div className="folder-switcher__divider" />
           <button
             className="folder-switcher__add"
-            onClick={() => {
-              setIsOpen(false);
-              // TODO: Trigger folder open dialog
-              console.log('Open folder dialog');
-            }}
+            onClick={handleOpenFolder}
           >
             <span className="folder-switcher__add-icon">+</span>
             <span>Open Folder...</span>

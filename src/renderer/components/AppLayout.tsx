@@ -10,6 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { MarkdownViewer } from './markdown/MarkdownViewer';
 import { FileOpener } from './FileOpener';
+import { FolderOpener } from './FolderOpener';
 import './AppLayout.css';
 
 // T016: Base layout component with sidebar/content/toolbar structure
@@ -35,6 +36,15 @@ const AppLayout: React.FC = () => {
     setCurrentFile(filePath);
     setCurrentContent(content);
     setError(null);
+  };
+
+  /**
+   * T098: Handle folder opened from FolderOpener component
+   */
+  const handleFolderOpened = async (folderPath: string) => {
+    console.log('Folder opened:', folderPath);
+    // Folder is added to store by FolderOpener component
+    // Future: Load file tree for the folder
   };
 
   /**
@@ -107,6 +117,7 @@ const AppLayout: React.FC = () => {
       <div className="main-content">
         <div className="toolbar">
           <FileOpener onFileOpened={handleFileOpened} />
+          <FolderOpener onFolderOpened={handleFolderOpened} />
           <button onClick={toggleSidebar}>
             Toggle Sidebar
           </button>
@@ -116,8 +127,11 @@ const AppLayout: React.FC = () => {
           {!currentFile ? (
             <div className="welcome">
               <h1>Welcome to MarkRead</h1>
-              <p>Open a markdown file to get started</p>
-              <FileOpener onFileOpened={handleFileOpened} />
+              <p>Open a markdown file or folder to get started</p>
+              <div className="welcome-buttons">
+                <FileOpener onFileOpened={handleFileOpened} />
+                <FolderOpener onFolderOpened={handleFolderOpened} />
+              </div>
             </div>
           ) : (
             <MarkdownViewer

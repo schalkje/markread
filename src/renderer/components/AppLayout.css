@@ -132,6 +132,9 @@
   margin-bottom: 2rem;
 }
 
-.welcome .file-opener {
-  margin-top: 1rem;
+.welcome-buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
 }

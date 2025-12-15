@@ -134,11 +134,22 @@ function registerIpcHandlers() {
       };
     }
   });
-  electron.ipcMain.handle("file:openFolderDialog", async (_event, _payload) => {
+  electron.ipcMain.handle("file:openFolderDialog", async (_event, payload) => {
     try {
-      const result = await electron.dialog.showOpenDialog({
-        properties: ["openDirectory"]
+      const OpenFolderPayloadSchema = zod.z.object({
+        defaultPath: zod.z.string().optional()
       });
+      const { defaultPath } = validatePayload(OpenFolderPayloadSchema, payload);
+      const result = await electron.dialog.showOpenDialog({
+        properties: ["openDirectory"],
+        defaultPath
+      });
+      if (result.canceled || result.filePaths.length === 0) {
+        return {
+          success: true,
+          folderPath: void 0
+        };
+      }
       return {
         success: true,
         folderPath: result.filePaths[0]

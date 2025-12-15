@@ -59,12 +59,27 @@ export function registerIpcHandlers() {
     }
   });
 
-  // T098: file:openFolderDialog IPC handler (Phase 7, stubbed for now)
-  ipcMain.handle('file:openFolderDialog', async (_event, _payload) => {
+  // T098: file:openFolderDialog IPC handler
+  ipcMain.handle('file:openFolderDialog', async (_event, payload) => {
     try {
+      const OpenFolderPayloadSchema = z.object({
+        defaultPath: z.string().optional(),
+      });
+
+      const { defaultPath } = validatePayload(OpenFolderPayloadSchema, payload);
+
       const result = await dialog.showOpenDialog({
         properties: ['openDirectory'],
+        defaultPath,
       });
+
+      // Handle user cancellation
+      if (result.canceled || result.filePaths.length === 0) {
+        return {
+          success: true,
+          folderPath: undefined,
+        };
+      }
 
       return {
         success: true,
