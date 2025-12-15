@@ -1,0 +1,145 @@
+/**
+ * Folder Switcher Component
+ * Tasks: T111-T113
+ *
+ * Dropdown to switch between open folders with:
+ * - List of all open folders
+ * - Active folder highlighting
+ * - Folder close buttons
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
+import { useFoldersStore } from '../../stores/folders';
+import './FolderSwitcher.css';
+
+export interface FolderSwitcherProps {
+  /** Callback when folder is switched */
+  onFolderChange?: (folderId: string) => void;
+  /** Callback when folder is closed */
+  onFolderClose?: (folderId: string) => void;
+}
+
+/**
+ * T111: Folder switcher component with dropdown
+ */
+export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
+  onFolderChange,
+  onFolderClose,
+}) => {
+  const folders = useFoldersStore((state) => state.folders);
+  const activeFolderId = useFoldersStore((state) => state.activeFolderId);
+  const setActiveFolder = useFoldersStore((state) => state.setActiveFolder);
+  const removeFolder = useFoldersStore((state) => state.removeFolder);
+
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const activeFolder = folders.find((f) => f.id === activeFolderId);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // T113: Switch active folder on selection
+  const handleFolderSelect = (folderId: string) => {
+    setActiveFolder(folderId);
+    setIsOpen(false);
+    onFolderChange?.(folderId);
+  };
+
+  // Handle folder close
+  const handleFolderClose = (e: React.MouseEvent, folderId: string) => {
+    e.stopPropagation();
+    removeFolder(folderId);
+    onFolderClose?.(folderId);
+  };
+
+  if (folders.length === 0) {
+    return (
+      <div className="folder-switcher folder-switcher--empty">
+        <span className="folder-switcher__label">No folders open</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="folder-switcher" ref={dropdownRef} data-testid="folder-switcher">
+      {/* T112: Display active folder */}
+      <button
+        className="folder-switcher__button"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+      >
+        <span className="folder-switcher__icon">📁</span>
+        <span className="folder-switcher__name">
+          {activeFolder?.displayName || 'Select folder'}
+        </span>
+        <span className="folder-switcher__chevron">
+          {isOpen ? '▲' : '▼'}
+        </span>
+      </button>
+
+      {/* Dropdown list */}
+      {isOpen && (
+        <div className="folder-switcher__dropdown" data-testid="folder-switcher-dropdown">
+          {folders.map((folder) => (
+            <div
+              key={folder.id}
+              className={`folder-switcher__item ${folder.id === activeFolderId ? 'folder-switcher__item--active' : ''}`}
+              onClick={() => handleFolderSelect(folder.id)}
+              data-testid={`folder-item-${folder.id}`}
+            >
+              <span className="folder-switcher__item-icon">📁</span>
+              <div className="folder-switcher__item-info">
+                <span className="folder-switcher__item-name">
+                  {folder.displayName}
+                </span>
+                <span className="folder-switcher__item-path" title={folder.path}>
+                  {folder.path}
+                </span>
+              </div>
+              <button
+                className="folder-switcher__close"
+                onClick={(e) => handleFolderClose(e, folder.id)}
+                title="Close folder"
+                aria-label={`Close ${folder.displayName}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+
+          {/* Add folder button */}
+          <div className="folder-switcher__divider" />
+          <button
+            className="folder-switcher__add"
+            onClick={() => {
+              setIsOpen(false);
+              // TODO: Trigger folder open dialog
+              console.log('Open folder dialog');
+            }}
+          >
+            <span className="folder-switcher__add-icon">+</span>
+            <span>Open Folder...</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default FolderSwitcher;
