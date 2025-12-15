@@ -52,61 +52,46 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
-  // Load tree data (in real implementation, this would call IPC)
+  // T102: Load tree data from IPC handler
   useEffect(() => {
     if (!folder) return;
 
-    // Mock tree data for demonstration
-    const mockTree: FileTreeNode[] = [
-      {
-        name: 'docs',
-        path: `${folder.path}/docs`,
-        type: 'directory',
-        depth: 0,
-        children: [
-          {
-            name: 'README.md',
-            path: `${folder.path}/docs/README.md`,
-            type: 'file',
-            depth: 1,
-          },
-          {
-            name: 'getting-started.md',
-            path: `${folder.path}/docs/getting-started.md`,
-            type: 'file',
-            depth: 1,
-          },
-        ],
-      },
-      {
-        name: 'guides',
-        path: `${folder.path}/guides`,
-        type: 'directory',
-        depth: 0,
-        children: [
-          {
-            name: 'installation.md',
-            path: `${folder.path}/guides/installation.md`,
-            type: 'file',
-            depth: 1,
-          },
-          {
-            name: 'configuration.md',
-            path: `${folder.path}/guides/configuration.md`,
-            type: 'file',
-            depth: 1,
-          },
-        ],
-      },
-      {
-        name: 'index.md',
-        path: `${folder.path}/index.md`,
-        type: 'file',
-        depth: 0,
-      },
-    ];
+    const loadFileTree = async () => {
+      try {
+        // Call file:getFolderTree IPC handler
+        const result = await window.electronAPI?.file?.getFolderTree({
+          folderPath: folder.path,
+          includeHidden: false,
+          maxDepth: undefined, // No limit
+        });
 
-    setTreeData(mockTree);
+        if (!result?.success || !result.tree) {
+          console.error('Failed to load file tree:', result?.error);
+          setTreeData([]);
+          return;
+        }
+
+        // Convert the tree structure to include depth for rendering
+        const addDepth = (node: any, depth: number = 0): FileTreeNode => ({
+          name: node.name,
+          path: node.path,
+          type: node.type,
+          depth,
+          children: node.children?.map((child: any) => addDepth(child, depth + 1)),
+        });
+
+        const treeWithDepth = result.tree.children?.map((child: any) =>
+          addDepth(child, 0)
+        ) || [];
+
+        setTreeData(treeWithDepth);
+      } catch (error) {
+        console.error('Error loading file tree:', error);
+        setTreeData([]);
+      }
+    };
+
+    loadFileTree();
 
     // T105: Restore expansion state
     if (folder.fileTreeState.expandedDirectories) {

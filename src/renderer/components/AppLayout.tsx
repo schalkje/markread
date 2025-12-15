@@ -8,9 +8,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTabsStore } from '../stores/tabs';
+import { useFoldersStore } from '../stores/folders';
 import { MarkdownViewer } from './markdown/MarkdownViewer';
 import { FileOpener } from './FileOpener';
 import { FolderOpener } from './FolderOpener';
+import { FileTree } from './sidebar/FileTree';
+import { FolderSwitcher } from './sidebar/FolderSwitcher';
 import './AppLayout.css';
 
 // T016: Base layout component with sidebar/content/toolbar structure
@@ -23,6 +26,7 @@ const AppLayout: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const { tabs } = useTabsStore();
+  const { folders, activeFolderId } = useFoldersStore();
 
   const toggleSidebar = () => {
     setShowSidebar(!showSidebar);
@@ -86,12 +90,33 @@ const AppLayout: React.FC = () => {
         <div className="sidebar">
           <div className="sidebar-header">
             <h2>MarkRead</h2>
+            {/* T111-T113: Folder Switcher */}
+            {folders.length > 0 && <FolderSwitcher />}
           </div>
           <div className="sidebar-content">
-            {/* File tree will go here (Phase 7) */}
-            <p className="sidebar-placeholder">
-              File tree (Phase 7)
-            </p>
+            {/* T101-T105: File Tree */}
+            {activeFolderId ? (
+              <FileTree
+                folderId={activeFolderId}
+                onFileSelect={(filePath) => setCurrentFile(filePath)}
+                onFileOpen={async (filePath) => {
+                  // Load and open the file
+                  try {
+                    const result = await window.electronAPI?.file?.read({ filePath });
+                    if (result?.success && result.content) {
+                      await handleFileOpened(filePath, result.content);
+                    }
+                  } catch (err) {
+                    console.error('Error opening file:', err);
+                  }
+                }}
+              />
+            ) : (
+              <div className="sidebar-placeholder">
+                <p>No folder open</p>
+                <p className="sidebar-hint">Open a folder to see files</p>
+              </div>
+            )}
 
             {/* Show open tabs */}
             {tabs.size > 0 && (
