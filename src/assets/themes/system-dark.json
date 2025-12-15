@@ -1,0 +1,25 @@
+{
+  "id": "system-dark",
+  "name": "System Dark",
+  "type": "dark",
+  "colorMappings": {
+    "background": "#0d1117",
+    "foreground": "#e6edf3",
+    "accent": "#58a6ff",
+    "sidebarBackground": "#161b22",
+    "sidebarForeground": "#e6edf3",
+    "sidebarBorder": "#30363d",
+    "tabBackground": "#21262d",
+    "tabActiveBackground": "#0d1117",
+    "tabForeground": "#e6edf3",
+    "tabBorder": "#30363d",
+    "contentBackground": "#0d1117",
+    "contentForeground": "#e6edf3",
+    "markdownHeading": "#58a6ff",
+    "markdownLink": "#58a6ff",
+    "markdownCodeBackground": "#161b22",
+    "markdownBlockquoteBackground": "#161b22"
+  },
+  "syntaxHighlightTheme": "github-dark",
+  "mermaidTheme": "dark"
+}

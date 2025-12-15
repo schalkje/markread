@@ -1,0 +1,25 @@
+{
+  "id": "system-light",
+  "name": "System Light",
+  "type": "light",
+  "colorMappings": {
+    "background": "#ffffff",
+    "foreground": "#24292f",
+    "accent": "#0969da",
+    "sidebarBackground": "#f6f8fa",
+    "sidebarForeground": "#24292f",
+    "sidebarBorder": "#d0d7de",
+    "tabBackground": "#e6e6e6",
+    "tabActiveBackground": "#ffffff",
+    "tabForeground": "#24292f",
+    "tabBorder": "#d0d7de",
+    "contentBackground": "#ffffff",
+    "contentForeground": "#24292f",
+    "markdownHeading": "#0969da",
+    "markdownLink": "#0969da",
+    "markdownCodeBackground": "#f6f8fa",
+    "markdownBlockquoteBackground": "#f6f8fa"
+  },
+  "syntaxHighlightTheme": "github",
+  "mermaidTheme": "default"
+}

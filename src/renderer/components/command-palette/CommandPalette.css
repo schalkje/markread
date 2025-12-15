@@ -1,0 +1,289 @@
+/**
+ * Command Palette Styles
+ * Tasks: T083-T087
+ */
+
+.command-palette-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.command-palette {
+  width: 600px;
+  max-width: 90vw;
+  max-height: 60vh;
+  background: var(--palette-bg, #ffffff);
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Search input area */
+.command-palette__search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color, #d0d7de);
+  background: var(--palette-search-bg, #f6f8fa);
+}
+
+.command-palette__search-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary, #57606a);
+}
+
+.command-palette__input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  color: var(--text-primary, #24292f);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.command-palette__input::placeholder {
+  color: var(--text-tertiary, #8c959f);
+}
+
+/* Results list */
+.command-palette__results {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.command-palette__results::-webkit-scrollbar {
+  width: 8px;
+}
+
+.command-palette__results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.command-palette__results::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #d0d7de);
+  border-radius: 4px;
+}
+
+.command-palette__results::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, #afb8c1);
+}
+
+/* Empty state */
+.command-palette__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: var(--text-secondary, #57606a);
+  font-size: 14px;
+}
+
+/* Command item */
+.command-palette__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  border-bottom: 1px solid var(--border-light, #eaeef2);
+}
+
+.command-palette__item:last-child {
+  border-bottom: none;
+}
+
+.command-palette__item:hover {
+  background: var(--item-hover-bg, #f6f8fa);
+}
+
+.command-palette__item--selected {
+  background: var(--item-selected-bg, #ddf4ff);
+  border-color: var(--accent-color, #0969da);
+}
+
+.command-palette__icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.command-palette__label {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary, #24292f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-palette__category {
+  flex-shrink: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-tertiary, #8c959f);
+  background: var(--category-bg, #eaeef2);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.command-palette__shortcut {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-secondary, #57606a);
+  font-family: 'Consolas', 'Monaco', monospace;
+  background: var(--shortcut-bg, #f6f8fa);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color, #d0d7de);
+}
+
+/* Footer with keyboard hints */
+.command-palette__footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color, #d0d7de);
+  background: var(--palette-footer-bg, #f6f8fa);
+  font-size: 12px;
+  color: var(--text-secondary, #57606a);
+}
+
+.command-palette__hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.command-palette__hint kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  background: var(--kbd-bg, #ffffff);
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 3px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .command-palette-backdrop {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .command-palette {
+    --palette-bg: #161b22;
+    --palette-search-bg: #0d1117;
+    --palette-footer-bg: #0d1117;
+    --border-color: #30363d;
+    --border-light: #21262d;
+    --text-primary: #e6edf3;
+    --text-secondary: #7d8590;
+    --text-tertiary: #484f58;
+    --item-hover-bg: #21262d;
+    --item-selected-bg: #1f6feb;
+    --accent-color: #58a6ff;
+    --category-bg: #21262d;
+    --shortcut-bg: #21262d;
+    --kbd-bg: #0d1117;
+    --scrollbar-thumb: #484f58;
+    --scrollbar-thumb-hover: #6e7681;
+  }
+
+  .command-palette {
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .command-palette {
+    border-width: 2px;
+  }
+
+  .command-palette__item {
+    border-bottom-width: 2px;
+  }
+
+  .command-palette__item--selected {
+    outline: 2px solid var(--accent-color, #0000ff);
+    outline-offset: -2px;
+  }
+
+  .command-palette__shortcut,
+  .command-palette__hint kbd {
+    border-width: 2px;
+  }
+}
+
+/* Responsive behavior */
+@media (max-width: 768px) {
+  .command-palette {
+    width: 100%;
+    max-width: calc(100vw - 32px);
+    max-height: 70vh;
+  }
+
+  .command-palette-backdrop {
+    padding-top: 10vh;
+  }
+
+  .command-palette__item {
+    padding: 16px;
+  }
+
+  .command-palette__category {
+    display: none; /* Hide on mobile to save space */
+  }
+}
+
+/* Animations - disable if reduced motion preferred */
+@media (prefers-reduced-motion: reduce) {
+  .command-palette-backdrop,
+  .command-palette,
+  .command-palette__item {
+    animation: none;
+    transition: none;
+  }
+}
