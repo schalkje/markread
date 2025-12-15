@@ -25,3 +25,19 @@ Keep the images as specified, and follow or improve existing color schemes.
 Theming dark vs light, with the option to add a high contrast should be core.
 
 Really look at the existing feature documentation and at the implementation to grasp all functionality and moder UI features and map them on the best practices from vscode.
+
+## Title bar
+
+Should us a custom title bar like in vscode.
+
+For Markread this one title bar should contain 3 sections:
+- left:
+    - Menu: File, Edit, ...
+    - browse buttons < and >    
+- middle:
+    - name of the active folder (or file when a file has been opened directly)    
+- right
+    - theme button: sun (make light) / moon (make dark)
+    - search button (default: search in file)
+    - download button
+    - windows buttons: minimize, maximize,windowed, close

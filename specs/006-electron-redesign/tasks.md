@@ -407,10 +407,10 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### Search Implementation
 
-- [ ] T169 [P] Implement in-page search (Ctrl+F) with case-sensitive, whole-word, regex options in src/renderer/components/search/FindBar.tsx (FR-042)
-- [ ] T170 Implement cross-file search (Ctrl+Shift+F) with async progress and cancel in src/main/search-service.ts (FR-043, FR-044)
-- [ ] T171 [P] Create search results panel with file grouping and preview snippets in src/renderer/components/search/SearchResults.tsx per [contracts/search.contract.ts](contracts/search.contract.ts)
-- [ ] T172 [P] Implement search history with max 200 entries in src/renderer/stores/search.ts (FR-071)
+- [x] T169 [P] Implement in-page search (Ctrl+F) with case-sensitive, whole-word, regex options in src/renderer/components/search/FindBar.tsx (FR-042)
+- [x] T170 Implement cross-file search (Ctrl+Shift+F) with async progress and cancel in src/main/search-service.ts (FR-043, FR-044)
+- [x] T171 [P] Create search results panel with file grouping and preview snippets in src/renderer/components/search/SearchResults.tsx per [contracts/search.contract.ts](contracts/search.contract.ts)
+- [x] T172 [P] Implement search history with max 200 entries in src/renderer/stores/search.ts (FR-071)
 
 ### PDF Export
 
