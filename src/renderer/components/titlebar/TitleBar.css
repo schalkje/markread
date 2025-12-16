@@ -173,6 +173,15 @@
   background-color: var(--menu-item-hover, rgba(255, 255, 255, 0.1));
 }
 
+.title-bar__dropdown-item--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.title-bar__dropdown-item--disabled:hover {
+  background-color: transparent;
+}
+
 .title-bar__dropdown-separator {
   height: 1px;
   background-color: var(--menu-separator, #454545);

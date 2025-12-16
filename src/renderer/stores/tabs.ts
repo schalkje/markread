@@ -90,6 +90,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       newTabs.set(tab.id, {
         ...tab,
         navigationHistory: tab.navigationHistory || [],
+        forwardHistory: tab.forwardHistory || [],
         createdAt: tab.createdAt || Date.now(),
       });
 
@@ -241,7 +242,12 @@ export const useTabsStore = create<TabsState>((set, get) => ({
         history.shift();
       }
 
-      newTabs.set(tabId, { ...tab, navigationHistory: history });
+      // Clear forward history when navigating to a new location
+      newTabs.set(tabId, {
+        ...tab,
+        navigationHistory: history,
+        forwardHistory: []
+      });
       return { tabs: newTabs };
     });
   },
@@ -258,14 +264,32 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     // Get previous entry (last in history)
     const previousEntry = tab.navigationHistory[tab.navigationHistory.length - 1];
 
-    // Remove entry from history
+    // Save current state to forward history before going back
+    const currentEntry: HistoryEntry = {
+      filePath: tab.filePath,
+      scrollPosition: tab.scrollPosition,
+      timestamp: Date.now(),
+    };
+
+    // Update history stacks
     set((state) => {
       const newTabs = new Map(state.tabs);
       const currentTab = newTabs.get(tabId);
       if (currentTab) {
-        const newHistory = [...currentTab.navigationHistory];
-        newHistory.pop();
-        newTabs.set(tabId, { ...currentTab, navigationHistory: newHistory });
+        const newBackHistory = [...currentTab.navigationHistory];
+        newBackHistory.pop();
+
+        const newForwardHistory = [...currentTab.forwardHistory, currentEntry];
+        // Keep max 50 entries in forward history
+        if (newForwardHistory.length > 50) {
+          newForwardHistory.shift();
+        }
+
+        newTabs.set(tabId, {
+          ...currentTab,
+          navigationHistory: newBackHistory,
+          forwardHistory: newForwardHistory
+        });
       }
       return { tabs: newTabs };
     });
@@ -273,10 +297,49 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     return previousEntry;
   },
 
-  // T066: Navigate forward (not implemented - would need separate forward stack)
+  // T066: Navigate forward in history
   navigateForward: (tabId) => {
-    // For now, return null (forward navigation requires separate stack)
-    return null;
+    const { tabs } = get();
+    const tab = tabs.get(tabId);
+
+    if (!tab || tab.forwardHistory.length === 0) {
+      return null;
+    }
+
+    // Get next entry (last in forward history)
+    const nextEntry = tab.forwardHistory[tab.forwardHistory.length - 1];
+
+    // Save current state to back history before going forward
+    const currentEntry: HistoryEntry = {
+      filePath: tab.filePath,
+      scrollPosition: tab.scrollPosition,
+      timestamp: Date.now(),
+    };
+
+    // Update history stacks
+    set((state) => {
+      const newTabs = new Map(state.tabs);
+      const currentTab = newTabs.get(tabId);
+      if (currentTab) {
+        const newForwardHistory = [...currentTab.forwardHistory];
+        newForwardHistory.pop();
+
+        const newBackHistory = [...currentTab.navigationHistory, currentEntry];
+        // Keep max 50 entries in back history
+        if (newBackHistory.length > 50) {
+          newBackHistory.shift();
+        }
+
+        newTabs.set(tabId, {
+          ...currentTab,
+          navigationHistory: newBackHistory,
+          forwardHistory: newForwardHistory
+        });
+      }
+      return { tabs: newTabs };
+    });
+
+    return nextEntry;
   },
 
   canNavigateBack: (tabId) => {
@@ -286,8 +349,9 @@ export const useTabsStore = create<TabsState>((set, get) => ({
   },
 
   canNavigateForward: (tabId) => {
-    // For now, always false (would need forward stack)
-    return false;
+    const { tabs } = get();
+    const tab = tabs.get(tabId);
+    return tab ? tab.forwardHistory.length > 0 : false;
   },
 
   // T063: Tab limit checking
@@ -396,11 +460,14 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       scrollPosition: 0,
       zoomLevel: 100,
       searchState: null,
+      modificationTimestamp: Date.now(),
+      isDirty: false,
+      renderCache: null,
       navigationHistory: [],
+      forwardHistory: [],
       createdAt: Date.now(),
       folderId: folderId || null,
       isDirectFile: !folderId,
-      isDirty: false,
     };
 
     return addTab(newTab);

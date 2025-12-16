@@ -25,6 +25,7 @@ export interface ElectronAPI {
       basePath: string;
       relativePath: string;
     }) => Promise<any>;
+    getDirectoryListing: (payload: { directoryPath: string }) => Promise<any>;
     exportToPDF: (payload: { filePath: string; htmlContent: string }) => Promise<any>;
   };
   settings: {
@@ -63,6 +64,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     watchFolder: (payload: any) => ipcRenderer.invoke('file:watchFolder', payload),
     stopWatching: (payload: any) => ipcRenderer.invoke('file:stopWatching', payload),
     resolvePath: (payload: any) => ipcRenderer.invoke('file:resolvePath', payload),
+    getDirectoryListing: (payload: any) => ipcRenderer.invoke('file:getDirectoryListing', payload),
     exportToPDF: (payload: any) => ipcRenderer.invoke('file:exportToPDF', payload),
   },
   settings: {

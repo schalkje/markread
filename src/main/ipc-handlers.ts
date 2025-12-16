@@ -106,17 +106,23 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
       const { basePath, relativePath } = validatePayload(ResolvePathSchema, payload);
 
+      console.log('[resolvePath] Input:', { basePath, relativePath });
+
       // Import path and fs modules
       const path = await import('path');
       const fs = await import('fs/promises');
 
       // Resolve relative path based on the directory of basePath
       const baseDir = path.dirname(basePath);
+      console.log('[resolvePath] Base directory:', baseDir);
+
       const absolutePath = path.resolve(baseDir, relativePath);
+      console.log('[resolvePath] Resolved absolute path:', absolutePath);
 
       // Sanitize path to prevent directory traversal attacks (T032)
       // Ensure the resolved path is safe and normalize it
       const normalizedAbsolute = path.normalize(absolutePath);
+      console.log('[resolvePath] Normalized path:', normalizedAbsolute);
 
       // Additional security: prevent path traversal outside allowed areas
       // This is a basic check - in production, you might want stricter validation
@@ -127,21 +133,126 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         };
       }
 
-      // Check if file exists
+      // Check if path exists and what type it is
       let exists = false;
+      let isDirectory = false;
       try {
-        await fs.access(normalizedAbsolute);
+        const stats = await fs.stat(normalizedAbsolute);
         exists = true;
+        isDirectory = stats.isDirectory();
       } catch {
         exists = false;
       }
+
+      console.log('[resolvePath] Path info:', { exists, isDirectory });
+
+      // If it's a directory, try to find README.md
+      if (exists && isDirectory) {
+        const readmePath = path.join(normalizedAbsolute, 'README.md');
+        try {
+          await fs.access(readmePath);
+          console.log('[resolvePath] Found README.md in directory');
+          return {
+            success: true,
+            absolutePath: readmePath,
+            exists: true,
+            isDirectory: false,
+          };
+        } catch {
+          // No README.md, return directory info for dynamic listing
+          console.log('[resolvePath] No README.md, returning directory for listing');
+          return {
+            success: true,
+            absolutePath: normalizedAbsolute,
+            exists: true,
+            isDirectory: true,
+          };
+        }
+      }
+
+      console.log('[resolvePath] Returning:', { success: true, absolutePath: normalizedAbsolute, exists, isDirectory });
 
       return {
         success: true,
         absolutePath: normalizedAbsolute,
         exists,
+        isDirectory,
       };
     } catch (error: any) {
+      console.error('[resolvePath] Error:', error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // Get directory listing for dynamic markdown generation
+  ipcMain.handle('file:getDirectoryListing', async (_event, payload) => {
+    try {
+      const DirectoryListingSchema = z.object({
+        directoryPath: z.string().min(1),
+      });
+
+      const { directoryPath } = validatePayload(DirectoryListingSchema, payload);
+
+      const path = await import('path');
+      const fs = await import('fs/promises');
+
+      // Helper to extract first heading from a markdown file
+      const extractFirstHeading = async (filePath: string): Promise<string | null> => {
+        try {
+          const content = await fs.readFile(filePath, 'utf-8');
+          const lines = content.split('\n');
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('#')) {
+              // Remove the # characters and any leading/trailing whitespace
+              return trimmed.replace(/^#+\s*/, '').trim();
+            }
+          }
+          return null;
+        } catch {
+          return null;
+        }
+      };
+
+      // Read directory contents
+      const entries = await fs.readdir(directoryPath, { withFileTypes: true });
+
+      // Filter and sort: directories first, then files, alphabetically
+      const directories = entries
+        .filter(entry => entry.isDirectory())
+        .map(entry => ({
+          name: entry.name,
+          isDirectory: true,
+          title: null,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      // Process files: extract first heading for title
+      const fileEntries = entries
+        .filter(entry => entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.markdown')));
+
+      const files = await Promise.all(
+        fileEntries.map(async (entry) => {
+          const filePath = path.join(directoryPath, entry.name);
+          const title = await extractFirstHeading(filePath);
+          return {
+            name: entry.name,
+            isDirectory: false,
+            title: title || entry.name.replace(/\.(md|markdown)$/i, ''),
+          };
+        })
+      );
+      files.sort((a, b) => a.name.localeCompare(b.name));
+
+      return {
+        success: true,
+        items: [...directories, ...files],
+      };
+    } catch (error: any) {
+      console.error('[getDirectoryListing] Error:', error.message);
       return {
         success: false,
         error: error.message,

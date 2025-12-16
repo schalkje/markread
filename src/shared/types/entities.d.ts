@@ -59,7 +59,8 @@ export interface Tab {
   modificationTimestamp: number;     // File's last modified time
   isDirty: boolean;                  // File changed externally
   renderCache: string | null;        // Cached rendered HTML
-  navigationHistory: HistoryEntry[]; // Navigation stack (max 50)
+  navigationHistory: HistoryEntry[]; // Back navigation stack (max 50)
+  forwardHistory: HistoryEntry[];    // Forward navigation stack (max 50)
   createdAt: number;                 // Unix timestamp (ms)
   folderId: string | null;           // ID of folder this tab belongs to (T063d - FR-013e)
   isDirectFile: boolean;             // True if file opened directly, not from folder (T063g - FR-013g)

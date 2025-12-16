@@ -77,6 +77,7 @@ export const FileOpener: React.FC<FileOpenerProps> = ({ onFileOpened }) => {
         isDirty: false,
         renderCache: null,
         navigationHistory: [],
+        forwardHistory: [],
         createdAt: Date.now(),
         folderId: null, // No folder for directly opened files
         isDirectFile: true, // T063g - Mark as direct file

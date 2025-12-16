@@ -80,7 +80,7 @@ For Markread this one title bar should contain 3 sections:
 
 # Layout
 
-- [ ] When there are no active files and no folders; display the main screen, but hide the foldertree or the tab bar.
+- [x] When there are no active files and no folders; display the main screen, but hide the foldertree or the tab bar.
 - [ ] Make sure each tab has it's own history queue that van be traveled back and forward
 - [ ] Remove the Go menu, and add the options Back, Forward to the view menu
 - [ ] Add to view menu the option to go home next to back and forward; it should go to the first page in the history of this tab

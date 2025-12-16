@@ -18,6 +18,7 @@ import { TabBar } from './editor/TabBar';
 import { Toast } from './common/Toast';
 import { TitleBar } from './titlebar/TitleBar';
 import { useFileAutoReload, useFileWatcher } from '../hooks/useFileWatcher';
+import { registerHistoryShortcuts, unregisterHistoryShortcuts } from '../services/keyboard-handler';
 import type { Folder } from '@shared/types/entities.d.ts';
 import './AppLayout.css';
 
@@ -176,6 +177,148 @@ const AppLayout: React.FC = () => {
     }
   );
 
+  // T066: Register navigation history keyboard shortcuts (Alt+Left, Alt+Right)
+  useEffect(() => {
+    const handleNavigateBack = async () => {
+      const { activeTabId, navigateBack } = useTabsStore.getState();
+      if (activeTabId) {
+        const entry = navigateBack(activeTabId);
+        if (entry) {
+          // Navigate to the history entry
+          setCurrentFile(entry.filePath);
+          // Load the file content
+          const result = await window.electronAPI?.file?.read({ filePath: entry.filePath });
+          if (result?.success && result.content) {
+            setCurrentContent(result.content);
+
+            // Get fresh tabs after navigation state update
+            const { tabs } = useTabsStore.getState();
+            const activeTab = tabs.get(activeTabId);
+            if (activeTab) {
+              const fileName = entry.filePath.split(/[/\\]/).pop() || 'Untitled';
+              const updatedTab = {
+                ...activeTab,
+                filePath: entry.filePath,
+                title: fileName,
+                scrollPosition: entry.scrollPosition,
+              };
+              tabs.set(activeTabId, updatedTab);
+              useTabsStore.setState({ tabs: new Map(tabs) });
+            }
+          }
+        }
+      }
+    };
+
+    const handleNavigateForward = async () => {
+      const { activeTabId, navigateForward } = useTabsStore.getState();
+      if (activeTabId) {
+        const entry = navigateForward(activeTabId);
+        if (entry) {
+          // Navigate to the history entry
+          setCurrentFile(entry.filePath);
+          // Load the file content
+          const result = await window.electronAPI?.file?.read({ filePath: entry.filePath });
+          if (result?.success && result.content) {
+            setCurrentContent(result.content);
+
+            // Get fresh tabs after navigation state update
+            const { tabs } = useTabsStore.getState();
+            const activeTab = tabs.get(activeTabId);
+            if (activeTab) {
+              const fileName = entry.filePath.split(/[/\\]/).pop() || 'Untitled';
+              const updatedTab = {
+                ...activeTab,
+                filePath: entry.filePath,
+                title: fileName,
+                scrollPosition: entry.scrollPosition,
+              };
+              tabs.set(activeTabId, updatedTab);
+              useTabsStore.setState({ tabs: new Map(tabs) });
+            }
+          }
+        }
+      }
+    };
+
+    const handleNavigateToHistory = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const entry = customEvent.detail;
+      if (entry && entry.filePath) {
+        // Navigate to the history entry
+        setCurrentFile(entry.filePath);
+        // Load the file content
+        const result = await window.electronAPI?.file?.read({ filePath: entry.filePath });
+        if (result?.success && result.content) {
+          setCurrentContent(result.content);
+
+          // Update the active tab to reflect the new file
+          const { activeTabId, tabs } = useTabsStore.getState();
+          if (activeTabId) {
+            const activeTab = tabs.get(activeTabId);
+            if (activeTab) {
+              const fileName = entry.filePath.split(/[/\\]/).pop() || 'Untitled';
+              const updatedTab = {
+                ...activeTab,
+                filePath: entry.filePath,
+                title: fileName,
+                scrollPosition: entry.scrollPosition,
+              };
+              tabs.set(activeTabId, updatedTab);
+              useTabsStore.setState({ tabs: new Map(tabs) });
+            }
+          }
+        }
+      }
+    };
+
+    const handleShowDirectoryListing = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { directoryPath, content, virtualPath } = customEvent.detail;
+
+      console.log('[DirectoryListing] Showing directory:', directoryPath);
+
+      // Mark as manually loaded
+      contentLoadedManually.current = true;
+
+      // Set the virtual file path and generated content
+      setCurrentFile(virtualPath);
+      setCurrentContent(content);
+
+      // Update the active tab to reflect the directory view
+      const { activeTabId, tabs } = useTabsStore.getState();
+      if (activeTabId) {
+        const activeTab = tabs.get(activeTabId);
+        if (activeTab) {
+          const dirName = directoryPath.split(/[/\\]/).pop() || 'Directory';
+          const updatedTab = {
+            ...activeTab,
+            filePath: virtualPath,
+            title: dirName,
+          };
+          tabs.set(activeTabId, updatedTab);
+          useTabsStore.setState({ tabs: new Map(tabs) });
+        }
+      }
+    };
+
+    registerHistoryShortcuts({
+      onNavigateBack: handleNavigateBack,
+      onNavigateForward: handleNavigateForward,
+    });
+
+    // Listen for navigate-to-history events (for Home navigation)
+    window.addEventListener('navigate-to-history', handleNavigateToHistory);
+    // Listen for directory listing events
+    window.addEventListener('show-directory-listing', handleShowDirectoryListing);
+
+    return () => {
+      unregisterHistoryShortcuts();
+      window.removeEventListener('navigate-to-history', handleNavigateToHistory);
+      window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
+    };
+  }, []);
+
   /**
    * T039: Handle file opened from FileOpener component
    * Updates current file state and loads content
@@ -203,6 +346,7 @@ const AppLayout: React.FC = () => {
         isDirty: false,
         renderCache: null,
         navigationHistory: [],
+        forwardHistory: [],
         createdAt: Date.now(),
         folderId: activeFolderId, // Connect to active folder if available
         isDirectFile: !activeFolderId, // Mark as direct file if no active folder
@@ -226,12 +370,38 @@ const AppLayout: React.FC = () => {
         setIsLoading(false);
         setError(null);
 
+        // T065: Add current location to navigation history before navigating
+        const { activeTabId, tabs, addHistoryEntry } = useTabsStore.getState();
+
+        if (activeTabId) {
+          const currentTab = tabs.get(activeTabId);
+
+          // Only add to history if:
+          // 1. Current tab exists
+          // 2. Current tab has a filePath set (not empty/new tab)
+          // 3. Navigating to a different file
+          if (currentTab && currentTab.filePath && currentTab.filePath !== filePath) {
+            console.log('[LinkClick] Adding history entry:', currentTab.filePath);
+            addHistoryEntry(activeTabId, {
+              filePath: currentTab.filePath,
+              scrollPosition: currentTab.scrollPosition,
+              timestamp: Date.now(),
+            });
+          } else {
+            console.log('[LinkClick] Skipped history:', {
+              hasTab: !!currentTab,
+              currentFilePath: currentTab?.filePath,
+              newFilePath: filePath,
+              sameFile: currentTab?.filePath === filePath
+            });
+          }
+        }
+
         // Update file and content atomically (React will batch these)
         setCurrentFile(filePath);
         setCurrentContent(result.content);
 
         // Update the active tab to reflect the new file
-        const { activeTabId, tabs } = useTabsStore.getState();
         if (activeTabId) {
           const activeTab = tabs.get(activeTabId);
           if (activeTab) {
@@ -342,6 +512,7 @@ const AppLayout: React.FC = () => {
                 isDirty: false,
                 renderCache: null,
                 navigationHistory: [],
+                forwardHistory: [],
                 createdAt: Date.now(),
                 folderId: folderId, // Use the folder ID we just got
                 isDirectFile: false, // This is from a folder, not a direct file
@@ -609,12 +780,38 @@ const AppLayout: React.FC = () => {
                           setIsLoading(false);
                           setError(null);
 
+                          // T065: Add current location to navigation history before navigating
+                          const { activeTabId, tabs, addHistoryEntry } = useTabsStore.getState();
+
+                          if (activeTabId) {
+                            const currentTab = tabs.get(activeTabId);
+
+                            // Only add to history if:
+                            // 1. Current tab exists
+                            // 2. Current tab has a filePath set (not empty/new tab)
+                            // 3. Navigating to a different file
+                            if (currentTab && currentTab.filePath && currentTab.filePath !== filePath) {
+                              console.log('[FileTree] Adding history entry:', currentTab.filePath);
+                              addHistoryEntry(activeTabId, {
+                                filePath: currentTab.filePath,
+                                scrollPosition: currentTab.scrollPosition,
+                                timestamp: Date.now(),
+                              });
+                            } else {
+                              console.log('[FileTree] Skipped history:', {
+                                hasTab: !!currentTab,
+                                currentFilePath: currentTab?.filePath,
+                                newFilePath: filePath,
+                                sameFile: currentTab?.filePath === filePath
+                              });
+                            }
+                          }
+
                           // Update file and content atomically
                           setCurrentFile(filePath);
                           setCurrentContent(result.content);
 
                           // Update active tab to reflect the new file being viewed
-                          const { activeTabId, tabs } = useTabsStore.getState();
                           if (activeTabId) {
                             const activeTab = tabs.get(activeTabId);
                             if (activeTab) {

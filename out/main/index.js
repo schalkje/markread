@@ -395,11 +395,15 @@ function registerIpcHandlers(mainWindow2) {
         relativePath: zod.z.string().min(1)
       });
       const { basePath, relativePath } = validatePayload(ResolvePathSchema, payload);
+      console.log("[resolvePath] Input:", { basePath, relativePath });
       const path2 = await import("path");
       const fs = await import("fs/promises");
       const baseDir = path2.dirname(basePath);
+      console.log("[resolvePath] Base directory:", baseDir);
       const absolutePath = path2.resolve(baseDir, relativePath);
+      console.log("[resolvePath] Resolved absolute path:", absolutePath);
       const normalizedAbsolute = path2.normalize(absolutePath);
+      console.log("[resolvePath] Normalized path:", normalizedAbsolute);
       if (normalizedAbsolute.includes("..")) {
         return {
           success: false,
@@ -407,18 +411,99 @@ function registerIpcHandlers(mainWindow2) {
         };
       }
       let exists = false;
+      let isDirectory = false;
       try {
-        await fs.access(normalizedAbsolute);
+        const stats = await fs.stat(normalizedAbsolute);
         exists = true;
+        isDirectory = stats.isDirectory();
       } catch {
         exists = false;
       }
+      console.log("[resolvePath] Path info:", { exists, isDirectory });
+      if (exists && isDirectory) {
+        const readmePath = path2.join(normalizedAbsolute, "README.md");
+        try {
+          await fs.access(readmePath);
+          console.log("[resolvePath] Found README.md in directory");
+          return {
+            success: true,
+            absolutePath: readmePath,
+            exists: true,
+            isDirectory: false
+          };
+        } catch {
+          console.log("[resolvePath] No README.md, returning directory for listing");
+          return {
+            success: true,
+            absolutePath: normalizedAbsolute,
+            exists: true,
+            isDirectory: true
+          };
+        }
+      }
+      console.log("[resolvePath] Returning:", { success: true, absolutePath: normalizedAbsolute, exists, isDirectory });
       return {
         success: true,
         absolutePath: normalizedAbsolute,
-        exists
+        exists,
+        isDirectory
       };
     } catch (error) {
+      console.error("[resolvePath] Error:", error.message);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("file:getDirectoryListing", async (_event, payload) => {
+    try {
+      const DirectoryListingSchema = zod.z.object({
+        directoryPath: zod.z.string().min(1)
+      });
+      const { directoryPath } = validatePayload(DirectoryListingSchema, payload);
+      const path2 = await import("path");
+      const fs = await import("fs/promises");
+      const extractFirstHeading = async (filePath) => {
+        try {
+          const content = await fs.readFile(filePath, "utf-8");
+          const lines = content.split("\n");
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("#")) {
+              return trimmed.replace(/^#+\s*/, "").trim();
+            }
+          }
+          return null;
+        } catch {
+          return null;
+        }
+      };
+      const entries = await fs.readdir(directoryPath, { withFileTypes: true });
+      const directories = entries.filter((entry) => entry.isDirectory()).map((entry) => ({
+        name: entry.name,
+        isDirectory: true,
+        title: null
+      })).sort((a, b) => a.name.localeCompare(b.name));
+      const fileEntries = entries.filter((entry) => entry.isFile() && (entry.name.endsWith(".md") || entry.name.endsWith(".markdown")));
+      const files = await Promise.all(
+        fileEntries.map(async (entry) => {
+          const filePath = path2.join(directoryPath, entry.name);
+          const title = await extractFirstHeading(filePath);
+          return {
+            name: entry.name,
+            isDirectory: false,
+            title: title || entry.name.replace(/\.(md|markdown)$/i, "")
+          };
+        })
+      );
+      files.sort((a, b) => a.name.localeCompare(b.name));
+      return {
+        success: true,
+        items: [...directories, ...files]
+      };
+    } catch (error) {
+      console.error("[getDirectoryListing] Error:", error.message);
       return {
         success: false,
         error: error.message

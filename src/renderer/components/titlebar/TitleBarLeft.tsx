@@ -4,12 +4,12 @@
  *
  * Left section of title bar:
  * - Burger button (toggles sidebar visibility)
- * - Menu bar (File, Edit, View, Go, Help)
+ * - Menu bar (File, Edit, View, Help)
  * - Back/Forward navigation buttons
  */
 
 import React, { useState } from 'react';
-import { useActiveTabNavigation } from '../../stores/tabs';
+import { useActiveTabNavigation, useTabsStore } from '../../stores/tabs';
 import './TitleBar.css';
 
 interface MenuDropdownProps {
@@ -19,6 +19,7 @@ interface MenuDropdownProps {
     label: string;
     action: () => void;
     separator?: boolean;
+    disabled?: boolean;
   }>;
 }
 
@@ -35,11 +36,14 @@ const MenuDropdown: React.FC<MenuDropdownProps> = ({ isOpen, onClose, items }) =
           ) : (
             <button
               key={index}
-              className="title-bar__dropdown-item"
+              className={`title-bar__dropdown-item${item.disabled ? ' title-bar__dropdown-item--disabled' : ''}`}
               onClick={() => {
-                item.action();
-                onClose();
+                if (!item.disabled) {
+                  item.action();
+                  onClose();
+                }
               }}
+              disabled={item.disabled}
               type="button"
             >
               {item.label}
@@ -122,6 +126,32 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
 
   const viewMenuItems = [
     {
+      label: 'Back',
+      action: () => goBack(),
+      disabled: !canGoBack(),
+    },
+    {
+      label: 'Forward',
+      action: () => goForward(),
+      disabled: !canGoForward(),
+    },
+    {
+      label: 'Home',
+      action: () => {
+        // Navigate to the first file in history (oldest entry)
+        const { activeTabId, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab && tab.navigationHistory.length > 0) {
+            const homeEntry = tab.navigationHistory[0];
+            // Dispatch event to navigate
+            window.dispatchEvent(new CustomEvent('navigate-to-history', { detail: homeEntry }));
+          }
+        }
+      },
+    },
+    { separator: true, label: '', action: () => {} },
+    {
       label: 'Toggle Sidebar',
       action: handleBurgerClick,
     },
@@ -148,24 +178,6 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       label: 'Reset Zoom',
       action: () => {
         window.dispatchEvent(new CustomEvent('menu:zoom-reset'));
-      },
-    },
-  ];
-
-  const goMenuItems = [
-    {
-      label: 'Back',
-      action: () => goBack(),
-    },
-    {
-      label: 'Forward',
-      action: () => goForward(),
-    },
-    { separator: true, label: '', action: () => {} },
-    {
-      label: 'Go to Line...',
-      action: () => {
-        window.dispatchEvent(new CustomEvent('menu:go-to-line'));
       },
     },
   ];
@@ -241,21 +253,6 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
             isOpen={openMenu === 'view'}
             onClose={() => setOpenMenu(null)}
             items={viewMenuItems}
-          />
-        </div>
-
-        <div className="title-bar__menu-item">
-          <button
-            className="title-bar__button"
-            onClick={() => setOpenMenu(openMenu === 'go' ? null : 'go')}
-            type="button"
-          >
-            Go
-          </button>
-          <MenuDropdown
-            isOpen={openMenu === 'go'}
-            onClose={() => setOpenMenu(null)}
-            items={goMenuItems}
           />
         </div>
 

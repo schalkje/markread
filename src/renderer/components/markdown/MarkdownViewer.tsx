@@ -134,8 +134,80 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           });
 
           if (result?.success && result.absolutePath) {
-            console.log(`Opening relative link: ${href} -> ${result.absolutePath}`);
-            onFileLink(result.absolutePath);
+            // Check if it's a directory (no README.md found)
+            if (result.isDirectory) {
+              console.log(`Opening directory: ${result.absolutePath}`);
+
+              // Get directory listing
+              const listingResult = await window.electronAPI?.file?.getDirectoryListing({
+                directoryPath: result.absolutePath,
+              });
+
+              if (listingResult?.success && listingResult.items) {
+                // Extract title from current page for "Back to" link
+                const extractFirstHeading = (markdown: string): string | null => {
+                  const lines = markdown.split('\n');
+                  for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('#')) {
+                      return trimmed.replace(/^#+\s*/, '').trim();
+                    }
+                  }
+                  return null;
+                };
+
+                const currentPageTitle = extractFirstHeading(content) || filePath?.split(/[/\\]/).pop()?.replace(/\.(md|markdown)$/i, '') || 'Previous Page';
+
+                // Generate markdown content for directory listing
+                const dirName = result.absolutePath.split(/[/\\]/).pop() || 'Directory';
+                let markdown = `# ${dirName}\n\n`;
+
+                // Add "Back to" link at the top
+                if (filePath) {
+                  markdown += `[← Back to: ${currentPageTitle}](${filePath})\n\n---\n\n`;
+                }
+
+                // Add directories
+                const directories = listingResult.items.filter((item: any) => item.isDirectory);
+                if (directories.length > 0) {
+                  markdown += '## Folders\n\n';
+                  directories.forEach((item: any) => {
+                    // Use just the item name since links are relative to the directory being viewed
+                    const label = item.title || item.name;
+                    markdown += `- [${label}/](${item.name}/)\n`;
+                  });
+                  markdown += '\n';
+                }
+
+                // Add files
+                const files = listingResult.items.filter((item: any) => !item.isDirectory);
+                if (files.length > 0) {
+                  markdown += '## Files\n\n';
+                  files.forEach((item: any) => {
+                    // Use just the item name since links are relative to the directory being viewed
+                    const label = item.title || item.name;
+                    markdown += `- [${label}](${item.name})\n`;
+                  });
+                }
+
+                // Use the actual directory path with a dummy filename for link resolution
+                // This ensures path.dirname() in the backend gives us the correct directory
+                // Without a filename, path.dirname() would strip the last directory component
+                const virtualFilePath = `${result.absolutePath}/[Directory Index]`;
+
+                // Dispatch custom event with directory content
+                window.dispatchEvent(new CustomEvent('show-directory-listing', {
+                  detail: {
+                    directoryPath: result.absolutePath,
+                    content: markdown,
+                    virtualPath: virtualFilePath,
+                  }
+                }));
+              }
+            } else {
+              console.log(`Opening relative link: ${href} -> ${result.absolutePath}`);
+              onFileLink(result.absolutePath);
+            }
           } else {
             console.warn(`Failed to resolve link: ${href}`, result?.error);
           }
