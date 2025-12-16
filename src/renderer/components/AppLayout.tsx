@@ -15,6 +15,7 @@ import { FolderOpener } from './FolderOpener';
 import { FileTree } from './sidebar/FileTree';
 import { FolderSwitcher } from './sidebar/FolderSwitcher';
 import { TabBar } from './editor/TabBar';
+import { Toast } from './common/Toast';
 import { useFileAutoReload, useFileWatcher } from '../hooks/useFileWatcher';
 import type { Folder } from '@shared/types/entities';
 import './AppLayout.css';
@@ -31,6 +32,9 @@ const AppLayout: React.FC = () => {
   const { tabs } = useTabsStore();
   const { folders, activeFolderId } = useFoldersStore();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
+
+  // Toast notification state
+  const [toast, setToast] = useState<{ message: string; type: 'info' | 'warning' | 'error' | 'success' } | null>(null);
 
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
@@ -230,14 +234,23 @@ const AppLayout: React.FC = () => {
           }
         }
       } else {
-        console.error('Failed to open linked file:', result?.error);
-        setError(`Failed to open file: ${result?.error || 'Unknown error'}`);
-        setIsLoading(false);
+        // Show toast notification for missing file instead of error screen
+        const fileName = filePath.split(/[/\\]/).pop() || 'Unknown file';
+        const errorMsg = result?.error || 'File not found';
+        console.warn('Failed to open linked file:', errorMsg);
+        setToast({
+          message: `Cannot open "${fileName}": ${errorMsg}`,
+          type: 'warning',
+        });
       }
     } catch (err) {
+      // Show toast notification for errors instead of error screen
+      const fileName = filePath.split(/[/\\]/).pop() || 'Unknown file';
       console.error('Error opening linked file:', err);
-      setError(err instanceof Error ? err.message : 'Failed to open linked file');
-      setIsLoading(false);
+      setToast({
+        message: `Cannot open "${fileName}": ${err instanceof Error ? err.message : 'Unknown error'}`,
+        type: 'error',
+      });
     }
   };
 
@@ -680,6 +693,15 @@ const AppLayout: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Toast notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };
