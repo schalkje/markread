@@ -7,12 +7,16 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
     openFolderDialog: (payload) => electron.ipcRenderer.invoke("file:openFolderDialog", payload),
     getFolderTree: (payload) => electron.ipcRenderer.invoke("file:getFolderTree", payload),
     watchFolder: (payload) => electron.ipcRenderer.invoke("file:watchFolder", payload),
-    stopWatching: (payload) => electron.ipcRenderer.invoke("file:stopWatching", payload)
+    stopWatching: (payload) => electron.ipcRenderer.invoke("file:stopWatching", payload),
+    resolvePath: (payload) => electron.ipcRenderer.invoke("file:resolvePath", payload)
   },
   settings: {
     load: (payload) => electron.ipcRenderer.invoke("settings:load", payload),
     save: (payload) => electron.ipcRenderer.invoke("settings:save", payload),
     reset: (payload) => electron.ipcRenderer.invoke("settings:reset", payload)
+  },
+  shell: {
+    openExternal: (url) => electron.ipcRenderer.invoke("shell:openExternal", { url })
   },
   on: (channel, callback) => {
     const validChannels = [

@@ -441,6 +441,29 @@ function registerIpcHandlers(mainWindow2) {
       };
     }
   });
+  electron.ipcMain.handle("shell:openExternal", async (_event, payload) => {
+    try {
+      const OpenExternalSchema = zod.z.object({
+        url: zod.z.string().url()
+      });
+      const { url } = validatePayload(OpenExternalSchema, payload);
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        return {
+          success: false,
+          error: "Only HTTP and HTTPS URLs are allowed"
+        };
+      }
+      await electron.shell.openExternal(url);
+      return {
+        success: true
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
   console.log("IPC handlers registered");
 }
 const defaultConfig = {

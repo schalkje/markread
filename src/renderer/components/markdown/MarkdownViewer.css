@@ -283,3 +283,55 @@
 .markdown-viewer::-webkit-scrollbar-thumb:hover {
   background: var(--color-scrollbar-hover, #afb8c1);
 }
+
+/* Link preview overlay */
+.markdown-viewer__link-preview {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  max-width: 600px;
+  background: var(--color-bg-overlay, rgba(36, 41, 47, 0.95));
+  color: var(--color-text-on-overlay, #ffffff);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: fadeIn 0.15s ease-out;
+  pointer-events: none;
+}
+
+.markdown-viewer__link-preview-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.markdown-viewer__link-preview-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark theme support for link preview */
+@media (prefers-color-scheme: dark) {
+  .markdown-viewer__link-preview {
+    --color-bg-overlay: rgba(240, 246, 252, 0.95);
+    --color-text-on-overlay: #24292f;
+  }
+}

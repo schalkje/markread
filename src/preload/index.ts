@@ -21,11 +21,18 @@ export interface ElectronAPI {
       debounceMs: number;
     }) => Promise<any>;
     stopWatching: (payload: { watcherId: string }) => Promise<any>;
+    resolvePath: (payload: {
+      basePath: string;
+      relativePath: string;
+    }) => Promise<any>;
   };
   settings: {
     load: (payload: any) => Promise<any>;
     save: (payload: any) => Promise<any>;
     reset: (payload: any) => Promise<any>;
+  };
+  shell: {
+    openExternal: (url: string) => Promise<any>;
   };
   on: (channel: string, callback: (event: any, ...args: any[]) => void) => void;
   // More APIs will be added in later phases
@@ -39,11 +46,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getFolderTree: (payload: any) => ipcRenderer.invoke('file:getFolderTree', payload),
     watchFolder: (payload: any) => ipcRenderer.invoke('file:watchFolder', payload),
     stopWatching: (payload: any) => ipcRenderer.invoke('file:stopWatching', payload),
+    resolvePath: (payload: any) => ipcRenderer.invoke('file:resolvePath', payload),
   },
   settings: {
     load: (payload: any) => ipcRenderer.invoke('settings:load', payload),
     save: (payload: any) => ipcRenderer.invoke('settings:save', payload),
     reset: (payload: any) => ipcRenderer.invoke('settings:reset', payload),
+  },
+  shell: {
+    openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', { url }),
   },
   on: (channel: string, callback: (event: any, ...args: any[]) => void) => {
     // T109: Allow renderer to listen for file:changed events and menu commands

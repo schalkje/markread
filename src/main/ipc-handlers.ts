@@ -1,4 +1,4 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron';
+import { ipcMain, dialog, BrowserWindow, shell } from 'electron';
 import { readFile, stat, readdir } from 'fs/promises';
 import * as path from 'path';
 import { z } from 'zod';
@@ -320,6 +320,36 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
       const { watcherId } = validatePayload(StopWatchingSchema, payload);
 
       await stopWatching(watcherId);
+
+      return {
+        success: true,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // shell:openExternal IPC handler for opening external URLs
+  ipcMain.handle('shell:openExternal', async (_event, payload) => {
+    try {
+      const OpenExternalSchema = z.object({
+        url: z.string().url(),
+      });
+
+      const { url } = validatePayload(OpenExternalSchema, payload);
+
+      // Security: Only allow http and https URLs
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        return {
+          success: false,
+          error: 'Only HTTP and HTTPS URLs are allowed',
+        };
+      }
+
+      await shell.openExternal(url);
 
       return {
         success: true,

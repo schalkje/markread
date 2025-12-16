@@ -76,3 +76,28 @@ For Markread this one title bar should contain 3 sections:
     - search button (default: search in file)
     - download button
     - windows buttons: minimize, maximize,windowed, close
+
+
+
+## Mardown features
+
+Can you extend the markdown-it display with these plugins:
+
+https://github.com/markdown-it/markdown-it-footnote
+https://github.com/markdown-it/markdown-it-abbr
+https://github.com/markdown-it/markdown-it-deflist
+https://github.com/markdown-it/markdown-it-mark
+https://github.com/markdown-it/markdown-it-sub
+https://github.com/markdown-it/markdown-it-sup
+markdown-it-task-lists
+markdown-it-container
+markdown-it-github
+markdown-it-table-of-contents
+markdown-it-emoji
+
+## syntax highlighting
+
+Use highlight.js for highlighting code
+
+### Extend with
+https://github.com/arronhunt/highlightjs-copy

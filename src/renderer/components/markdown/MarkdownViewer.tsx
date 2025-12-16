@@ -19,7 +19,7 @@ import './MarkdownViewer.css';
 export interface MarkdownViewerProps {
   /** Markdown content to render */
   content: string;
-  /** File path for resolving relative images */
+  /** File path for resolving relative images and links */
   filePath?: string;
   /** Loading state */
   isLoading?: boolean;
@@ -31,6 +31,8 @@ export interface MarkdownViewerProps {
   onRenderComplete?: () => void;
   /** Callback when scroll position changes */
   onScrollChange?: (scrollTop: number) => void;
+  /** Callback when a file link is clicked */
+  onFileLink?: (filePath: string) => void;
 }
 
 /**
@@ -48,6 +50,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   zoomLevel = 100,
   onRenderComplete,
   onScrollChange,
+  onFileLink,
 }) => {
   const viewerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -58,6 +61,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
+
+  // Link preview state
+  const [hoveredLink, setHoveredLink] = useState<string | null>(null);
 
   // T047: Apply zoom with CSS transform and preserve scroll position
   useEffect(() => {
@@ -95,6 +101,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   useEffect(() => {
     if (!content || isLoading) return;
 
+    let isCancelled = false;
+
     const renderContent = async () => {
       setIsRendering(true);
       setRenderError(null);
@@ -103,35 +111,63 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         // Step 1: Convert markdown to HTML
         const html = renderMarkdown(content);
 
-        // Step 2: Insert HTML into DOM
-        if (contentRef.current) {
-          contentRef.current.innerHTML = html;
-
-          // Step 3: Render Mermaid diagrams
-          await renderMermaidDiagrams(contentRef.current);
-
-          // Step 4: Process images with file:// protocol if filePath provided
-          if (filePath) {
-            await resolveImagePaths(contentRef.current, filePath);
-          }
-
-          // Step 5: Add click handlers for checkboxes (task lists)
-          addTaskListHandlers(contentRef.current);
-
-          // Step 6: Add link handlers for internal navigation
-          addLinkHandlers(contentRef.current);
+        // Check if cancelled before proceeding
+        if (isCancelled) return;
+        if (!contentRef.current) {
+          setIsRendering(false);
+          return;
         }
 
-        setIsRendering(false);
-        onRenderComplete?.();
+        // Step 2: Insert HTML into DOM
+        contentRef.current.innerHTML = html;
+
+        // Step 3: Render Mermaid diagrams
+        await renderMermaidDiagrams(contentRef.current);
+
+        // Check if cancelled after async operation
+        if (isCancelled) return;
+        if (!contentRef.current) {
+          setIsRendering(false);
+          return;
+        }
+
+        // Step 4: Process images with file:// protocol if filePath provided
+        if (filePath) {
+          await resolveImagePaths(contentRef.current, filePath);
+        }
+
+        // Check if cancelled after async operation
+        if (isCancelled) return;
+        if (!contentRef.current) {
+          setIsRendering(false);
+          return;
+        }
+
+        // Step 5: Add click handlers for checkboxes (task lists)
+        addTaskListHandlers(contentRef.current);
+
+        // Step 6: Add link handlers for internal navigation
+        addLinkHandlers(contentRef.current);
+
+        if (!isCancelled) {
+          setIsRendering(false);
+          onRenderComplete?.();
+        }
       } catch (err) {
-        console.error('Markdown rendering error:', err);
-        setRenderError(err instanceof Error ? err.message : 'Failed to render markdown');
-        setIsRendering(false);
+        if (!isCancelled) {
+          console.error('Markdown rendering error:', err);
+          setRenderError(err instanceof Error ? err.message : 'Failed to render markdown');
+          setIsRendering(false);
+        }
       }
     };
 
     renderContent();
+
+    // Cleanup function to cancel pending operations
+    return () => {
+      isCancelled = true;
+    };
   }, [content, filePath, isLoading, onRenderComplete]);
 
   // T048: Pan functionality with mouse drag
@@ -222,37 +258,73 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   };
 
   /**
-   * Add handlers for internal links (same-document anchors)
+   * Add handlers for internal links (same-document anchors), relative file links, and link preview
    */
   const addLinkHandlers = (container: HTMLElement) => {
-    const links = container.querySelectorAll('a[href^="#"]');
-    links.forEach((link) => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const href = link.getAttribute('href');
-        if (href) {
+    // Get all links
+    const allLinks = container.querySelectorAll('a[href]');
+
+    allLinks.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (!href) return;
+
+      // Add hover handlers for link preview
+      link.addEventListener('mouseenter', () => {
+        setHoveredLink(href);
+      });
+
+      link.addEventListener('mouseleave', () => {
+        setHoveredLink(null);
+      });
+
+      // Handle internal links (same-document anchors)
+      if (href.startsWith('#')) {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
           const target = container.querySelector(href);
           target?.scrollIntoView({ behavior: 'smooth' });
-        }
-      });
-    });
+        });
+        return;
+      }
 
-    // External links: ensure they open in default browser (T033)
-    const externalLinks = container.querySelectorAll('a[href^="http"]');
-    externalLinks.forEach((link) => {
-      link.setAttribute('rel', 'noopener noreferrer');
-      link.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const href = link.getAttribute('href');
-        if (href) {
+      // Handle external links: ensure they open in default browser (T033)
+      if (href.startsWith('http://') || href.startsWith('https://')) {
+        link.setAttribute('rel', 'noopener noreferrer');
+        link.addEventListener('click', async (e) => {
+          e.preventDefault();
           // Open in system default browser via Electron shell
           try {
             await window.electronAPI?.shell?.openExternal(href);
           } catch (err) {
             console.error('Failed to open external link:', err);
           }
-        }
-      });
+        });
+        return;
+      }
+
+      // Handle relative file links (markdown files, etc.)
+      if (filePath && onFileLink) {
+        link.addEventListener('click', async (e) => {
+          e.preventDefault();
+
+          try {
+            // Resolve relative path using IPC
+            const result = await window.electronAPI?.file?.resolvePath({
+              basePath: filePath,
+              relativePath: href,
+            });
+
+            if (result?.success && result.absolutePath) {
+              console.log(`Opening relative link: ${href} -> ${result.absolutePath}`);
+              onFileLink(result.absolutePath);
+            } else {
+              console.warn(`Failed to resolve link: ${href}`, result?.error);
+            }
+          } catch (err) {
+            console.error(`Error resolving link: ${href}`, err);
+          }
+        });
+      }
     });
   };
 
@@ -275,7 +347,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         <div className="markdown-viewer__error">
           <h3>Failed to Render Markdown</h3>
           <p>{error || renderError}</p>
-          <button onClick={() => setRenderError(null)}>Retry</button>
+          <button onClick={() => setRenderError(null)} type="button">Retry</button>
         </div>
       </div>
     );
@@ -302,6 +374,14 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       <div className="markdown-viewer__content" ref={contentRef}>
         {/* Content will be injected here */}
       </div>
+
+      {/* Link preview overlay in bottom-left corner */}
+      {hoveredLink && (
+        <div className="markdown-viewer__link-preview">
+          <span className="markdown-viewer__link-preview-icon">🔗</span>
+          <span className="markdown-viewer__link-preview-url">{hoveredLink}</span>
+        </div>
+      )}
     </div>
   );
 };

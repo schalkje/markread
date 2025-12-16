@@ -6,7 +6,7 @@
  * Integrates MarkdownViewer with tabs store
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { useFoldersStore } from '../stores/folders';
 import { MarkdownViewer } from './markdown/MarkdownViewer';
@@ -32,9 +32,17 @@ const AppLayout: React.FC = () => {
   const { folders, activeFolderId } = useFoldersStore();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
 
+  // Ref to track if content was manually set (to avoid double-loading)
+  const contentLoadedManually = useRef(false);
+
   const toggleSidebar = () => {
     setShowSidebar(!showSidebar);
   };
+
+  // Memoize callback to prevent unnecessary re-renders
+  const handleRenderComplete = useCallback(() => {
+    console.log('Markdown rendered successfully');
+  }, []);
 
   // Menu command handlers
   useEffect(() => {
@@ -187,6 +195,53 @@ const AppLayout: React.FC = () => {
   };
 
   /**
+   * Handle link clicks from markdown content (relative file links)
+   * Updates the current tab to show the linked file
+   */
+  const handleLinkClick = async (filePath: string) => {
+    try {
+      const result = await window.electronAPI?.file?.read({ filePath });
+      if (result?.success && result.content) {
+        // Mark that content was manually loaded to prevent double-loading
+        contentLoadedManually.current = true;
+
+        // Clear loading and error states
+        setIsLoading(false);
+        setError(null);
+
+        // Update file and content atomically (React will batch these)
+        setCurrentFile(filePath);
+        setCurrentContent(result.content);
+
+        // Update the active tab to reflect the new file
+        const { activeTabId, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const activeTab = tabs.get(activeTabId);
+          if (activeTab) {
+            const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
+            const updatedTab = {
+              ...activeTab,
+              filePath: filePath,
+              title: fileName,
+              modificationTimestamp: Date.now(),
+            };
+            tabs.set(activeTabId, updatedTab);
+            useTabsStore.setState({ tabs: new Map(tabs) });
+          }
+        }
+      } else {
+        console.error('Failed to open linked file:', result?.error);
+        setError(`Failed to open file: ${result?.error || 'Unknown error'}`);
+        setIsLoading(false);
+      }
+    } catch (err) {
+      console.error('Error opening linked file:', err);
+      setError(err instanceof Error ? err.message : 'Failed to open linked file');
+      setIsLoading(false);
+    }
+  };
+
+  /**
    * T098: Handle folder opened from FolderOpener component
    * Auto-opens the first markdown file in the folder
    */
@@ -286,6 +341,12 @@ const AppLayout: React.FC = () => {
   useEffect(() => {
     if (!currentFile) {
       setCurrentContent('');
+      return;
+    }
+
+    // Skip loading if content was manually set (e.g., from link click)
+    if (contentLoadedManually.current) {
+      contentLoadedManually.current = false;
       return;
     }
 
@@ -501,23 +562,44 @@ const AppLayout: React.FC = () => {
                   <FileTree
                     key={fileTreeKey}
                     folderId={activeFolderId}
-                    onFileSelect={(filePath) => {
-                      setCurrentFile(filePath);
+                    onFileSelect={async (filePath) => {
+                      try {
+                        // Load file content first
+                        const result = await window.electronAPI?.file?.read({ filePath });
+                        if (result?.success && result.content) {
+                          // Mark as manually loaded
+                          contentLoadedManually.current = true;
 
-                      // Update active tab to reflect the new file being viewed
-                      const { activeTabId, tabs } = useTabsStore.getState();
-                      if (activeTabId) {
-                        const activeTab = tabs.get(activeTabId);
-                        if (activeTab) {
-                          const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
-                          const updatedTab = {
-                            ...activeTab,
-                            filePath: filePath,
-                            title: fileName,
-                          };
-                          tabs.set(activeTabId, updatedTab);
-                          useTabsStore.setState({ tabs: new Map(tabs) });
+                          // Clear loading and error states
+                          setIsLoading(false);
+                          setError(null);
+
+                          // Update file and content atomically
+                          setCurrentFile(filePath);
+                          setCurrentContent(result.content);
+
+                          // Update active tab to reflect the new file being viewed
+                          const { activeTabId, tabs } = useTabsStore.getState();
+                          if (activeTabId) {
+                            const activeTab = tabs.get(activeTabId);
+                            if (activeTab) {
+                              const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
+                              const updatedTab = {
+                                ...activeTab,
+                                filePath: filePath,
+                                title: fileName,
+                              };
+                              tabs.set(activeTabId, updatedTab);
+                              useTabsStore.setState({ tabs: new Map(tabs) });
+                            }
+                          }
+                        } else {
+                          setError('Failed to load file');
                         }
+                      } catch (err) {
+                        console.error('Error loading file from tree:', err);
+                        setError('Failed to load file');
+                        setIsLoading(false);
                       }
                     }}
                     onFileOpen={async (filePath) => {
@@ -587,11 +669,13 @@ const AppLayout: React.FC = () => {
             </div>
           ) : (
             <MarkdownViewer
+              key={currentFile || 'no-file'}
               content={currentContent}
               filePath={currentFile}
               isLoading={isLoading}
               error={error}
-              onRenderComplete={() => console.log('Markdown rendered successfully')}
+              onRenderComplete={handleRenderComplete}
+              onFileLink={handleLinkClick}
             />
           )}
         </div>
