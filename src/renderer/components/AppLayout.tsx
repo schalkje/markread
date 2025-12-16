@@ -16,8 +16,9 @@ import { FileTree } from './sidebar/FileTree';
 import { FolderSwitcher } from './sidebar/FolderSwitcher';
 import { TabBar } from './editor/TabBar';
 import { Toast } from './common/Toast';
+import { TitleBar } from './titlebar/TitleBar';
 import { useFileAutoReload, useFileWatcher } from '../hooks/useFileWatcher';
-import type { Folder } from '@shared/types/entities';
+import type { Folder } from '@shared/types/entities.d.ts';
 import './AppLayout.css';
 
 // T016: Base layout component with sidebar/content/toolbar structure
@@ -39,9 +40,21 @@ const AppLayout: React.FC = () => {
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
 
-  const toggleSidebar = () => {
+  const toggleSidebar = useCallback(() => {
     setShowSidebar(!showSidebar);
-  };
+  }, [showSidebar]);
+
+  // Listen for toggle-sidebar events from TitleBar
+  useEffect(() => {
+    const handleToggleSidebar = () => {
+      setShowSidebar((prev) => !prev);
+    };
+
+    window.addEventListener('toggle-sidebar', handleToggleSidebar);
+    return () => {
+      window.removeEventListener('toggle-sidebar', handleToggleSidebar);
+    };
+  }, []);
 
   // Memoize callback to prevent unnecessary re-renders
   const handleRenderComplete = useCallback(() => {
@@ -388,10 +401,14 @@ const AppLayout: React.FC = () => {
 
   return (
     <div className="app-layout">
-      {showSidebar && (
-        <div className="sidebar">
-          <div className="sidebar-header">
-            <h2>MarkRead</h2>
+      {/* T159: Custom Title Bar */}
+      <TitleBar />
+
+      <div className="app-layout__content">
+        {showSidebar && (
+          <div className="sidebar">
+            <div className="sidebar-header">
+              <h2>MarkRead</h2>
             {/* T111-T113: Folder Switcher */}
             {folders.length > 0 && <FolderSwitcher />}
           </div>
@@ -638,11 +655,11 @@ const AppLayout: React.FC = () => {
               );
             })()}
           </div>
-        </div>
-      )}
+          </div>
+        )}
 
-      <div className="main-content">
-        <div className="toolbar">
+        <div className="main-content">
+          <div className="toolbar">
           <FileOpener onFileOpened={handleFileOpened} />
           <FolderOpener onFolderOpened={handleFolderOpened} />
           <button onClick={toggleSidebar} type="button">
@@ -691,6 +708,7 @@ const AppLayout: React.FC = () => {
               onFileLink={handleLinkClick}
             />
           )}
+        </div>
         </div>
       </div>
 

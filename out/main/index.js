@@ -48,6 +48,10 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    frame: false,
+    // T159k: Remove default frame for custom title bar
+    titleBarStyle: "hidden",
+    // T159k: Hide title bar
     webPreferences: {
       // Security best practices from research.md Section 6
       nodeIntegration: false,
@@ -456,6 +460,59 @@ function registerIpcHandlers(mainWindow2) {
       await electron.shell.openExternal(url);
       return {
         success: true
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("window:minimize", async () => {
+    try {
+      mainWindow2.minimize();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("window:maximize", async () => {
+    try {
+      if (mainWindow2.isMaximized()) {
+        mainWindow2.unmaximize();
+      } else {
+        mainWindow2.maximize();
+      }
+      return {
+        success: true,
+        isMaximized: mainWindow2.isMaximized()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("window:close", async () => {
+    try {
+      mainWindow2.close();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("window:isMaximized", async () => {
+    try {
+      return {
+        success: true,
+        isMaximized: mainWindow2.isMaximized()
       };
     } catch (error) {
       return {

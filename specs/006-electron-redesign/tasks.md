@@ -409,18 +409,18 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### Native Integration
 
-- [ ] T159 [P] Create custom title bar component in src/renderer/components/titlebar/TitleBar.tsx with three sections (FR-026)
-- [ ] T159a [P] Implement left section of title bar: nurger button (toggles sidepane visibility), menu bar (File, Edit, View, Go, Help) and back/forward buttons in src/renderer/components/titlebar/TitleBarLeft.tsx (FR-026)
-- [ ] T159b [P] Implement middle section of title bar: display active folder name or file name in src/renderer/components/titlebar/TitleBarMiddle.tsx (FR-026)
-- [ ] T159c [P] Implement right section of title bar: theme toggle, search button, download button, window controls in src/renderer/components/titlebar/TitleBarRight.tsx (FR-026)
-- [ ] T159d [P] Add File menu with "Open File" and "Open Folder" commands (FR-026a)
+- [x] T159 [P] Create custom title bar component in src/renderer/components/titlebar/TitleBar.tsx with three sections (FR-026)
+- [x] T159a [P] Implement left section of title bar: burger button (toggles sidepane visibility), menu bar (File, Edit, View, Go, Help) and back/forward buttons in src/renderer/components/titlebar/TitleBarLeft.tsx (FR-026)
+- [x] T159b [P] Implement middle section of title bar: display active folder name or file name in src/renderer/components/titlebar/TitleBarMiddle.tsx (FR-026)
+- [x] T159c [P] Implement right section of title bar: theme toggle, search button, download button, window controls in src/renderer/components/titlebar/TitleBarRight.tsx (FR-026)
+- [x] T159d [P] Add File menu with "Open File" and "Open Folder" commands (FR-026a)
 - [ ] T159e [US1] Implement file:openFile IPC handler for "Open File" command in src/main/ipc-handlers.ts (FR-026a)
-- [ ] T159f [US5] Update file:openFolderDialog IPC handler integration for "Open Folder" command (FR-026a)
-- [ ] T159g [US1] Connect theme toggle button to theme switching functionality (FR-026)
-- [ ] T159h [US1] Connect search button to search panel (Ctrl+F or Ctrl+Shift+F) (FR-026)
-- [ ] T159i [US1] Connect download button to PDF export functionality (FR-026)
-- [ ] T159j [P] Implement window control buttons (minimize, maximize/restore, close) using Electron IPC in TitleBarRight.tsx (FR-027)
-- [ ] T159k Configure BrowserWindow with frame: false and titleBarStyle: 'hidden' in src/main/window-manager.ts for custom title bar
+- [x] T159f [US5] Update file:openFolderDialog IPC handler integration for "Open Folder" command (FR-026a)
+- [x] T159g [US1] Connect theme toggle button to theme switching functionality (FR-026)
+- [x] T159h [US1] Connect search button to search panel (Ctrl+F or Ctrl+Shift+F) (FR-026)
+- [x] T159i [US1] Connect download button to PDF export functionality (FR-026)
+- [x] T159j [P] Implement window control buttons (minimize, maximize/restore, close) using Electron IPC in TitleBarRight.tsx (FR-027)
+- [x] T159k Configure BrowserWindow with frame: false and titleBarStyle: 'hidden' in src/main/window-manager.ts for custom title bar
 - [ ] T160 [P] Register .md and .markdown file associations on Windows in src/main/index.ts (FR-022)
 - [ ] T161 [P] Implement Windows Explorer context menu "Open with MarkRead" in build/installer.nsi or electron-builder.yml (FR-024)
 - [ ] T162 [P] Implement Windows taskbar jumplist with recent files in src/main/index.ts (FR-025)

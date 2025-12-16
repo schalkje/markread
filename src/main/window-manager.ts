@@ -3,12 +3,15 @@ import { join } from 'path';
 
 // T009: Create BrowserWindow with security configuration (research.md Section 6)
 // T012: Implement Content Security Policy
+// T159k: Configure for custom title bar
 export function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    frame: false, // T159k: Remove default frame for custom title bar
+    titleBarStyle: 'hidden', // T159k: Hide title bar
     webPreferences: {
       // Security best practices from research.md Section 6
       nodeIntegration: false, // Prevent direct Node.js access in renderer

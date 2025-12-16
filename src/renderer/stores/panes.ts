@@ -5,7 +5,7 @@
  */
 
 import { create } from 'zustand';
-import type { Pane, PanelLayout } from '@shared/types/entities';
+import type { Pane, PanelLayout } from '@shared/types/entities.d.ts';
 
 interface PanesState {
   // Current layout configuration

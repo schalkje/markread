@@ -362,5 +362,63 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     }
   });
 
+  // T159j: Window control IPC handlers for custom title bar
+  ipcMain.handle('window:minimize', async () => {
+    try {
+      mainWindow.minimize();
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  ipcMain.handle('window:maximize', async () => {
+    try {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
+      return {
+        success: true,
+        isMaximized: mainWindow.isMaximized(),
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  ipcMain.handle('window:close', async () => {
+    try {
+      mainWindow.close();
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  ipcMain.handle('window:isMaximized', async () => {
+    try {
+      return {
+        success: true,
+        isMaximized: mainWindow.isMaximized(),
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
   console.log('IPC handlers registered');
 }

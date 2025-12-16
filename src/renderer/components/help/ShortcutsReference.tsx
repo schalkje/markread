@@ -10,7 +10,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { commandService } from '../../services/command-service';
-import type { Command } from '@shared/types/commands';
+import type { Command } from '@shared/types/commands.d.ts';
 import './ShortcutsReference.css';
 
 export interface ShortcutsReferenceProps {

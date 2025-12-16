@@ -5,8 +5,8 @@
  */
 
 import { create } from 'zustand';
-import type { Theme } from '@shared/types/entities';
-import { ThemeType } from '@shared/types/entities';
+import type { Theme } from '@shared/types/entities.d.ts';
+import { ThemeType } from '@shared/types/entities.d.ts';
 
 interface ThemeState {
   // Available themes
@@ -22,11 +22,15 @@ interface ThemeState {
   // Whether to follow system theme
   followSystemTheme: boolean;
 
+  // Computed
+  availableThemes: Theme[];
+
   // Actions
   initializeTheme: () => void;
   applyTheme: (themeType: ThemeType) => void;
   detectSystemTheme: () => void;
   setActiveTheme: (themeId: string) => void;
+  setTheme: (themeId: string) => void;
   getActiveTheme: () => Theme | undefined;
   registerTheme: (theme: Theme) => void;
   setFollowSystemTheme: (follow: boolean) => void;
@@ -39,6 +43,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   currentTheme: null,
   systemTheme: ThemeType.Light,
   followSystemTheme: true,
+  availableThemes: [],
 
   detectSystemTheme: () => {
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -71,6 +76,16 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     }
   },
 
+  setTheme: (themeId) => {
+    const { themes } = get();
+    const theme = themes.get(themeId);
+    if (theme) {
+      set({ activeThemeId: themeId, currentTheme: theme });
+      // Apply theme to UI
+      // TODO: Apply CSS custom properties from theme.colorMappings
+    }
+  },
+
   getActiveTheme: () => {
     const { themes, activeThemeId, followSystemTheme, systemTheme } = get();
 
@@ -87,7 +102,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     set((state) => {
       const newThemes = new Map(state.themes);
       newThemes.set(theme.id, theme);
-      return { themes: newThemes };
+      return { themes: newThemes, availableThemes: Array.from(newThemes.values()) };
     });
   },
 

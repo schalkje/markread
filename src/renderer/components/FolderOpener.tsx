@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react';
 import { useFoldersStore } from '../stores/folders';
-import type { Folder } from '@shared/types/entities';
+import type { Folder } from '@shared/types/entities.d.ts';
 import './FolderOpener.css';
 
 export interface FolderOpenerProps {

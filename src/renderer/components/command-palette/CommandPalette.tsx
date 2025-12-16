@@ -11,7 +11,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { commandService } from '../../services/command-service';
-import type { Command, CommandContext, CommandSearchResult } from '@shared/types/commands';
+import type { Command, CommandContext, CommandSearchResult } from '@shared/types/commands.d.ts';
 import './CommandPalette.css';
 
 export interface CommandPaletteProps {

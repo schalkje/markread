@@ -5,7 +5,7 @@
  */
 
 import { create } from 'zustand';
-import type { Tab, HistoryEntry } from '@shared/types/entities';
+import type { Tab, HistoryEntry } from '@shared/types/entities.d.ts';
 
 interface TabsState {
   tabs: Map<string, Tab>;
@@ -360,3 +360,36 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     });
   },
 }));
+
+// Convenience methods for active tab navigation (for TitleBar)
+export const useActiveTabNavigation = () => {
+  const { activeTabId, canNavigateBack, canNavigateForward, navigateBack, navigateForward } =
+    useTabsStore();
+
+  return {
+    canGoBack: () => (activeTabId ? canNavigateBack(activeTabId) : false),
+    canGoForward: () => (activeTabId ? canNavigateForward(activeTabId) : false),
+    goBack: () => {
+      if (activeTabId) {
+        const entry = navigateBack(activeTabId);
+        if (entry) {
+          // Dispatch event to navigate to the entry
+          window.dispatchEvent(
+            new CustomEvent('navigate-to-history', { detail: entry })
+          );
+        }
+      }
+    },
+    goForward: () => {
+      if (activeTabId) {
+        const entry = navigateForward(activeTabId);
+        if (entry) {
+          // Dispatch event to navigate to the entry
+          window.dispatchEvent(
+            new CustomEvent('navigate-to-history', { detail: entry })
+          );
+        }
+      }
+    },
+  };
+};

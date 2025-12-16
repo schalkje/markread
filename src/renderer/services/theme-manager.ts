@@ -9,7 +9,7 @@
  * - Mermaid theme synchronization
  */
 
-import type { Theme } from '@shared/types/entities';
+import type { Theme } from '@shared/types/entities.d.ts';
 import { useThemeStore } from '../stores/theme';
 
 // Import theme JSON files (in a real implementation, these would be dynamic imports)

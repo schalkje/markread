@@ -1,11 +1,18 @@
 /**
  * AppLayout Component Styles
- * Tasks: T016, T039
+ * Tasks: T016, T039, T159
  */
 
 .app-layout {
   display: flex;
+  flex-direction: column;
   height: 100vh;
+  overflow: hidden;
+}
+
+.app-layout__content {
+  display: flex;
+  flex: 1;
   overflow: hidden;
 }
 

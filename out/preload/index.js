@@ -18,6 +18,12 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   shell: {
     openExternal: (url) => electron.ipcRenderer.invoke("shell:openExternal", { url })
   },
+  window: {
+    minimize: () => electron.ipcRenderer.invoke("window:minimize"),
+    maximize: () => electron.ipcRenderer.invoke("window:maximize"),
+    close: () => electron.ipcRenderer.invoke("window:close"),
+    isMaximized: () => electron.ipcRenderer.invoke("window:isMaximized")
+  },
   on: (channel, callback) => {
     const validChannels = [
       "file:changed",

@@ -7,6 +7,11 @@ export default defineConfig({
     build: {
       outDir: 'out/main',
       externalizeDeps: true
+    },
+    resolve: {
+      alias: [
+        { find: '@shared', replacement: resolve(__dirname, 'src/shared') }
+      ]
     }
   },
   preload: {
@@ -18,6 +23,11 @@ export default defineConfig({
           format: 'cjs'
         }
       }
+    },
+    resolve: {
+      alias: [
+        { find: '@shared', replacement: resolve(__dirname, 'src/shared') }
+      ]
     }
   },
   renderer: {
@@ -32,9 +42,10 @@ export default defineConfig({
       }
     },
     resolve: {
-      alias: {
-        '@': resolve(__dirname, 'src/renderer')
-      }
+      alias: [
+        { find: '@', replacement: resolve(__dirname, 'src/renderer') },
+        { find: '@shared', replacement: resolve(__dirname, 'src/shared') }
+      ]
     }
   }
 })

@@ -16,7 +16,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTabsStore } from '../../stores/tabs';
 import { useFoldersStore } from '../../stores/folders';
 import { TabContextMenu } from './TabContextMenu';
-import type { Tab } from '@shared/types/entities';
+import type { Tab } from '@shared/types/entities.d.ts';
 import './TabBar.css';
 
 export interface TabBarProps {

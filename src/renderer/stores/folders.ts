@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import type { Folder, FileTreeState, RecentItem, PanelLayout } from '@shared/types/entities';
+import type { Folder, FileTreeState, RecentItem, PanelLayout } from '@shared/types/entities.d.ts';
 
 interface FoldersState {
   folders: Folder[];

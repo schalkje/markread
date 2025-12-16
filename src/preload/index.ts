@@ -34,6 +34,12 @@ export interface ElectronAPI {
   shell: {
     openExternal: (url: string) => Promise<any>;
   };
+  window: {
+    minimize: () => Promise<any>;
+    maximize: () => Promise<any>;
+    close: () => Promise<any>;
+    isMaximized: () => Promise<any>;
+  };
   on: (channel: string, callback: (event: any, ...args: any[]) => void) => void;
   // More APIs will be added in later phases
 }
@@ -55,6 +61,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', { url }),
+  },
+  window: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximize: () => ipcRenderer.invoke('window:maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
   },
   on: (channel: string, callback: (event: any, ...args: any[]) => void) => {
     // T109: Allow renderer to listen for file:changed events and menu commands

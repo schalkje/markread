@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react';
 import { useTabsStore } from '../stores/tabs';
-import type { Tab } from '@shared/types/entities';
+import type { Tab } from '@shared/types/entities.d.ts';
 import './FileOpener.css';
 
 export interface FileOpenerProps {
