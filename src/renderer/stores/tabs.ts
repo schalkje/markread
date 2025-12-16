@@ -90,7 +90,8 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       newTabs.set(tab.id, {
         ...tab,
         navigationHistory: tab.navigationHistory || [],
-        forwardHistory: tab.forwardHistory || [],
+        currentHistoryIndex: tab.currentHistoryIndex ?? -1,
+        forwardHistory: [], // No longer used
         createdAt: tab.createdAt || Date.now(),
       });
 
@@ -225,70 +226,80 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     });
   },
 
-  // T065: Navigation history management
+  // T065: Navigation history management (Linear queue model)
   addHistoryEntry: (tabId, entry) => {
     set((state) => {
       const tab = state.tabs.get(tabId);
       if (!tab) return state;
 
       const newTabs = new Map(state.tabs);
-      const history = [...tab.navigationHistory];
+      let history = [...tab.navigationHistory];
+      let currentIndex = tab.currentHistoryIndex;
 
-      // Add new entry
-      history.push(entry);
-
-      // Keep max 50 entries
-      if (history.length > 50) {
-        history.shift();
+      // Check if the entry we're adding is the same as the current position
+      // This prevents duplicates when navigating from the initial file
+      if (currentIndex >= 0 && currentIndex < history.length) {
+        const currentEntry = history[currentIndex];
+        if (currentEntry.filePath === entry.filePath) {
+          // Same file, just update scroll position at current position
+          history[currentIndex] = entry;
+          newTabs.set(tabId, {
+            ...tab,
+            navigationHistory: history,
+            currentHistoryIndex: currentIndex,
+            forwardHistory: []
+          });
+          return { tabs: newTabs };
+        }
       }
 
-      // Clear forward history when navigating to a new location
+      // If we're not at the end of history, truncate everything after current position
+      // This happens when user navigates back, then clicks a new link
+      if (currentIndex >= 0 && currentIndex < history.length - 1) {
+        history = history.slice(0, currentIndex + 1);
+      }
+
+      // Add new entry to the end
+      history.push(entry);
+      currentIndex = history.length - 1;
+
+      // Keep max 50 entries (remove oldest if needed)
+      if (history.length > 50) {
+        history.shift();
+        currentIndex = Math.max(0, currentIndex - 1);
+      }
+
       newTabs.set(tabId, {
         ...tab,
         navigationHistory: history,
-        forwardHistory: []
+        currentHistoryIndex: currentIndex,
+        forwardHistory: [] // No longer used
       });
       return { tabs: newTabs };
     });
   },
 
-  // T066: Navigate back in history
+  // T066: Navigate back in history (Linear queue model)
   navigateBack: (tabId) => {
     const { tabs } = get();
     const tab = tabs.get(tabId);
 
-    if (!tab || tab.navigationHistory.length === 0) {
-      return null;
+    if (!tab || tab.currentHistoryIndex <= 0) {
+      return null; // Can't go back if at position 0 or no history
     }
 
-    // Get previous entry (last in history)
-    const previousEntry = tab.navigationHistory[tab.navigationHistory.length - 1];
+    // Move back one position in the history queue
+    const newIndex = tab.currentHistoryIndex - 1;
+    const previousEntry = tab.navigationHistory[newIndex];
 
-    // Save current state to forward history before going back
-    const currentEntry: HistoryEntry = {
-      filePath: tab.filePath,
-      scrollPosition: tab.scrollPosition,
-      timestamp: Date.now(),
-    };
-
-    // Update history stacks
+    // Update current history index
     set((state) => {
       const newTabs = new Map(state.tabs);
       const currentTab = newTabs.get(tabId);
       if (currentTab) {
-        const newBackHistory = [...currentTab.navigationHistory];
-        newBackHistory.pop();
-
-        const newForwardHistory = [...currentTab.forwardHistory, currentEntry];
-        // Keep max 50 entries in forward history
-        if (newForwardHistory.length > 50) {
-          newForwardHistory.shift();
-        }
-
         newTabs.set(tabId, {
           ...currentTab,
-          navigationHistory: newBackHistory,
-          forwardHistory: newForwardHistory
+          currentHistoryIndex: newIndex
         });
       }
       return { tabs: newTabs };
@@ -297,43 +308,27 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     return previousEntry;
   },
 
-  // T066: Navigate forward in history
+  // T066: Navigate forward in history (Linear queue model)
   navigateForward: (tabId) => {
     const { tabs } = get();
     const tab = tabs.get(tabId);
 
-    if (!tab || tab.forwardHistory.length === 0) {
-      return null;
+    if (!tab || tab.currentHistoryIndex >= tab.navigationHistory.length - 1) {
+      return null; // Can't go forward if at the end of history
     }
 
-    // Get next entry (last in forward history)
-    const nextEntry = tab.forwardHistory[tab.forwardHistory.length - 1];
+    // Move forward one position in the history queue
+    const newIndex = tab.currentHistoryIndex + 1;
+    const nextEntry = tab.navigationHistory[newIndex];
 
-    // Save current state to back history before going forward
-    const currentEntry: HistoryEntry = {
-      filePath: tab.filePath,
-      scrollPosition: tab.scrollPosition,
-      timestamp: Date.now(),
-    };
-
-    // Update history stacks
+    // Update current history index
     set((state) => {
       const newTabs = new Map(state.tabs);
       const currentTab = newTabs.get(tabId);
       if (currentTab) {
-        const newForwardHistory = [...currentTab.forwardHistory];
-        newForwardHistory.pop();
-
-        const newBackHistory = [...currentTab.navigationHistory, currentEntry];
-        // Keep max 50 entries in back history
-        if (newBackHistory.length > 50) {
-          newBackHistory.shift();
-        }
-
         newTabs.set(tabId, {
           ...currentTab,
-          navigationHistory: newBackHistory,
-          forwardHistory: newForwardHistory
+          currentHistoryIndex: newIndex
         });
       }
       return { tabs: newTabs };
@@ -345,13 +340,13 @@ export const useTabsStore = create<TabsState>((set, get) => ({
   canNavigateBack: (tabId) => {
     const { tabs } = get();
     const tab = tabs.get(tabId);
-    return tab ? tab.navigationHistory.length > 0 : false;
+    return tab ? tab.currentHistoryIndex > 0 : false;
   },
 
   canNavigateForward: (tabId) => {
     const { tabs } = get();
     const tab = tabs.get(tabId);
-    return tab ? tab.forwardHistory.length > 0 : false;
+    return tab ? tab.currentHistoryIndex < tab.navigationHistory.length - 1 : false;
   },
 
   // T063: Tab limit checking
@@ -405,10 +400,11 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     // Create a duplicate tab with a new ID
     const duplicateTab: Tab = {
       ...originalTab,
-      id: `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       title: `${originalTab.title} (Copy)`,
       createdAt: Date.now(),
       navigationHistory: [], // Start with empty history
+      currentHistoryIndex: -1,
     };
 
     return addTab(duplicateTab);
@@ -464,6 +460,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       isDirty: false,
       renderCache: null,
       navigationHistory: [],
+      currentHistoryIndex: -1,
       forwardHistory: [],
       createdAt: Date.now(),
       folderId: folderId || null,
@@ -515,13 +512,33 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 }));
 
 // Convenience methods for active tab navigation (for TitleBar)
+// IMPORTANT: This hook must return reactive values that trigger re-renders
 export const useActiveTabNavigation = () => {
-  const { activeTabId, canNavigateBack, canNavigateForward, navigateBack, navigateForward } =
-    useTabsStore();
+  // Subscribe to the specific parts of state we need
+  const activeTabId = useTabsStore((state) => state.activeTabId);
+  const activeTab = useTabsStore((state) =>
+    state.activeTabId ? state.tabs.get(state.activeTabId) : undefined
+  );
+  const navigateBack = useTabsStore((state) => state.navigateBack);
+  const navigateForward = useTabsStore((state) => state.navigateForward);
+
+  // Compute boolean values that will trigger re-renders when they change
+  const canGoBack = activeTab ? activeTab.currentHistoryIndex > 0 : false;
+  const canGoForward = activeTab
+    ? activeTab.currentHistoryIndex < activeTab.navigationHistory.length - 1
+    : false;
+
+  console.log('[useActiveTabNavigation]', {
+    activeTabId,
+    currentIndex: activeTab?.currentHistoryIndex,
+    historyLength: activeTab?.navigationHistory.length,
+    canGoBack,
+    canGoForward
+  });
 
   return {
-    canGoBack: () => (activeTabId ? canNavigateBack(activeTabId) : false),
-    canGoForward: () => (activeTabId ? canNavigateForward(activeTabId) : false),
+    canGoBack,  // Boolean value, not a function!
+    canGoForward,  // Boolean value, not a function!
     goBack: () => {
       if (activeTabId) {
         const entry = navigateBack(activeTabId);

@@ -124,32 +124,121 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
     },
   ];
 
+  // Get active tab state for Home button and history display
+  const activeTab = useTabsStore((state) =>
+    state.activeTabId ? state.tabs.get(state.activeTabId) : undefined
+  );
+  const isAtHome = !activeTab || activeTab.currentHistoryIndex === 0 || activeTab.navigationHistory.length === 0;
+
+  // Build history items for display (last 5 back, current, next 5 forward)
+  const historyItems = React.useMemo(() => {
+    if (!activeTab || activeTab.navigationHistory.length === 0) {
+      return [{ label: '(No history)', action: () => {}, disabled: true }];
+    }
+
+    const items: Array<{ label: string; action: () => void; disabled?: boolean; separator?: boolean }> = [];
+    const history = activeTab.navigationHistory;
+    const currentIndex = activeTab.currentHistoryIndex;
+
+    // Add "HISTORY:" header
+    items.push({ label: `HISTORY (${currentIndex + 1}/${history.length}):`, action: () => {}, disabled: true });
+
+    // Show up to 5 entries before current
+    const startIndex = Math.max(0, currentIndex - 5);
+    for (let i = startIndex; i < currentIndex; i++) {
+      const entry = history[i];
+      const fileName = entry.filePath.split(/[/\\]/).pop() || 'Unknown';
+      items.push({
+        label: `  ${i}: ${fileName}`,
+        action: () => {
+          // Navigate to this history position
+          const { activeTabId } = useTabsStore.getState();
+          if (activeTabId) {
+            const tab = useTabsStore.getState().tabs.get(activeTabId);
+            if (tab) {
+              const newTabs = new Map(useTabsStore.getState().tabs);
+              newTabs.set(activeTabId, { ...tab, currentHistoryIndex: i });
+              useTabsStore.setState({ tabs: newTabs });
+              window.dispatchEvent(new CustomEvent('navigate-to-history', { detail: entry }));
+            }
+          }
+        },
+      });
+    }
+
+    // Show current entry with marker
+    const currentEntry = history[currentIndex];
+    const currentFileName = currentEntry.filePath.split(/[/\\]/).pop() || 'Unknown';
+    items.push({
+      label: `▶ ${currentIndex}: ${currentFileName} ◀`,
+      action: () => {},
+      disabled: true,
+    });
+
+    // Show up to 5 entries after current
+    const endIndex = Math.min(history.length, currentIndex + 6);
+    for (let i = currentIndex + 1; i < endIndex; i++) {
+      const entry = history[i];
+      const fileName = entry.filePath.split(/[/\\]/).pop() || 'Unknown';
+      items.push({
+        label: `  ${i}: ${fileName}`,
+        action: () => {
+          // Navigate to this history position
+          const { activeTabId } = useTabsStore.getState();
+          if (activeTabId) {
+            const tab = useTabsStore.getState().tabs.get(activeTabId);
+            if (tab) {
+              const newTabs = new Map(useTabsStore.getState().tabs);
+              newTabs.set(activeTabId, { ...tab, currentHistoryIndex: i });
+              useTabsStore.setState({ tabs: newTabs });
+              window.dispatchEvent(new CustomEvent('navigate-to-history', { detail: entry }));
+            }
+          }
+        },
+      });
+    }
+
+    return items;
+  }, [activeTab?.navigationHistory, activeTab?.currentHistoryIndex]);
+
   const viewMenuItems = [
     {
       label: 'Back',
       action: () => goBack(),
-      disabled: !canGoBack(),
+      disabled: !canGoBack,  // Now a boolean, not a function!
     },
     {
       label: 'Forward',
       action: () => goForward(),
-      disabled: !canGoForward(),
+      disabled: !canGoForward,  // Now a boolean, not a function!
     },
     {
       label: 'Home',
       action: () => {
-        // Navigate to the first file in history (oldest entry)
+        // Navigate to the first file in history (position 0 in the queue)
         const { activeTabId, tabs } = useTabsStore.getState();
         if (activeTabId) {
           const tab = tabs.get(activeTabId);
-          if (tab && tab.navigationHistory.length > 0) {
+          if (tab && tab.navigationHistory.length > 0 && tab.currentHistoryIndex !== 0) {
             const homeEntry = tab.navigationHistory[0];
+
+            // Update the history index to 0
+            const newTabs = new Map(tabs);
+            newTabs.set(activeTabId, {
+              ...tab,
+              currentHistoryIndex: 0
+            });
+            useTabsStore.setState({ tabs: newTabs });
+
             // Dispatch event to navigate
             window.dispatchEvent(new CustomEvent('navigate-to-history', { detail: homeEntry }));
           }
         }
       },
+      disabled: isAtHome,  // Now reactive!
     },
+    { separator: true, label: '', action: () => {} },
+    ...historyItems,  // Add history display
     { separator: true, label: '', action: () => {} },
     {
       label: 'Toggle Sidebar',
@@ -277,7 +366,7 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
         <button
           className="title-bar__button title-bar__nav-button"
           onClick={() => goBack()}
-          disabled={!canGoBack()}
+          disabled={!canGoBack}
           title="Go Back"
           type="button"
         >
@@ -286,7 +375,7 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
         <button
           className="title-bar__button title-bar__nav-button"
           onClick={() => goForward()}
-          disabled={!canGoForward()}
+          disabled={!canGoForward}
           title="Go Forward"
           type="button"
         >

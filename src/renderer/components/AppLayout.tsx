@@ -184,6 +184,9 @@ const AppLayout: React.FC = () => {
       if (activeTabId) {
         const entry = navigateBack(activeTabId);
         if (entry) {
+          // Mark as manually loaded to prevent useEffect from loading again
+          contentLoadedManually.current = true;
+
           // Navigate to the history entry
           setCurrentFile(entry.filePath);
           // Load the file content
@@ -215,6 +218,9 @@ const AppLayout: React.FC = () => {
       if (activeTabId) {
         const entry = navigateForward(activeTabId);
         if (entry) {
+          // Mark as manually loaded to prevent useEffect from loading again
+          contentLoadedManually.current = true;
+
           // Navigate to the history entry
           setCurrentFile(entry.filePath);
           // Load the file content
@@ -245,12 +251,18 @@ const AppLayout: React.FC = () => {
       const customEvent = event as CustomEvent;
       const entry = customEvent.detail;
       if (entry && entry.filePath) {
+        console.log('[handleNavigateToHistory] Navigating to:', entry.filePath);
+
+        // Mark as manually loaded to prevent useEffect from loading again
+        contentLoadedManually.current = true;
+
         // Navigate to the history entry
         setCurrentFile(entry.filePath);
         // Load the file content
         const result = await window.electronAPI?.file?.read({ filePath: entry.filePath });
         if (result?.success && result.content) {
           setCurrentContent(result.content);
+          console.log('[handleNavigateToHistory] Content loaded for:', entry.filePath);
 
           // Update the active tab to reflect the new file
           const { activeTabId, tabs } = useTabsStore.getState();
@@ -345,7 +357,12 @@ const AppLayout: React.FC = () => {
         modificationTimestamp: Date.now(),
         isDirty: false,
         renderCache: null,
-        navigationHistory: [],
+        navigationHistory: [{
+          filePath,
+          scrollPosition: 0,
+          timestamp: Date.now(),
+        }],
+        currentHistoryIndex: 0, // Start at position 0 (home)
         forwardHistory: [],
         createdAt: Date.now(),
         folderId: activeFolderId, // Connect to active folder if available
@@ -370,21 +387,18 @@ const AppLayout: React.FC = () => {
         setIsLoading(false);
         setError(null);
 
-        // T065: Add current location to navigation history before navigating
+        // T065: Add NEW location to navigation history
         const { activeTabId, tabs, addHistoryEntry } = useTabsStore.getState();
 
         if (activeTabId) {
           const currentTab = tabs.get(activeTabId);
 
-          // Only add to history if:
-          // 1. Current tab exists
-          // 2. Current tab has a filePath set (not empty/new tab)
-          // 3. Navigating to a different file
+          // Add the NEW file to history if navigating to a different file
           if (currentTab && currentTab.filePath && currentTab.filePath !== filePath) {
-            console.log('[LinkClick] Adding history entry:', currentTab.filePath);
+            console.log('[LinkClick] Adding history entry for new file:', filePath);
             addHistoryEntry(activeTabId, {
-              filePath: currentTab.filePath,
-              scrollPosition: currentTab.scrollPosition,
+              filePath: filePath, // Add the NEW file, not the current one!
+              scrollPosition: 0,  // New file starts at top
               timestamp: Date.now(),
             });
           } else {
@@ -402,18 +416,20 @@ const AppLayout: React.FC = () => {
         setCurrentContent(result.content);
 
         // Update the active tab to reflect the new file
+        // IMPORTANT: Get FRESH state after addHistoryEntry to avoid overwriting history!
         if (activeTabId) {
-          const activeTab = tabs.get(activeTabId);
-          if (activeTab) {
+          const { tabs: freshTabs } = useTabsStore.getState(); // Get fresh state!
+          const freshTab = freshTabs.get(activeTabId);
+          if (freshTab) {
             const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
             const updatedTab = {
-              ...activeTab,
+              ...freshTab, // Use fresh tab with updated history!
               filePath: filePath,
               title: fileName,
               modificationTimestamp: Date.now(),
             };
-            tabs.set(activeTabId, updatedTab);
-            useTabsStore.setState({ tabs: new Map(tabs) });
+            freshTabs.set(activeTabId, updatedTab);
+            useTabsStore.setState({ tabs: new Map(freshTabs) });
           }
         }
       } else {
@@ -511,7 +527,12 @@ const AppLayout: React.FC = () => {
                 modificationTimestamp: Date.now(),
                 isDirty: false,
                 renderCache: null,
-                navigationHistory: [],
+                navigationHistory: [{
+                  filePath: firstFilePath,
+                  scrollPosition: 0,
+                  timestamp: Date.now(),
+                }],
+                currentHistoryIndex: 0, // Start at position 0 (home)
                 forwardHistory: [],
                 createdAt: Date.now(),
                 folderId: folderId, // Use the folder ID we just got
@@ -780,21 +801,18 @@ const AppLayout: React.FC = () => {
                           setIsLoading(false);
                           setError(null);
 
-                          // T065: Add current location to navigation history before navigating
+                          // T065: Add NEW location to navigation history
                           const { activeTabId, tabs, addHistoryEntry } = useTabsStore.getState();
 
                           if (activeTabId) {
                             const currentTab = tabs.get(activeTabId);
 
-                            // Only add to history if:
-                            // 1. Current tab exists
-                            // 2. Current tab has a filePath set (not empty/new tab)
-                            // 3. Navigating to a different file
+                            // Add the NEW file to history if navigating to a different file
                             if (currentTab && currentTab.filePath && currentTab.filePath !== filePath) {
-                              console.log('[FileTree] Adding history entry:', currentTab.filePath);
+                              console.log('[FileTree] Adding history entry for new file:', filePath);
                               addHistoryEntry(activeTabId, {
-                                filePath: currentTab.filePath,
-                                scrollPosition: currentTab.scrollPosition,
+                                filePath: filePath, // Add the NEW file, not the current one!
+                                scrollPosition: 0,  // New file starts at top
                                 timestamp: Date.now(),
                               });
                             } else {
@@ -812,17 +830,19 @@ const AppLayout: React.FC = () => {
                           setCurrentContent(result.content);
 
                           // Update active tab to reflect the new file being viewed
+                          // IMPORTANT: Get FRESH state after addHistoryEntry to avoid overwriting history!
                           if (activeTabId) {
-                            const activeTab = tabs.get(activeTabId);
-                            if (activeTab) {
+                            const { tabs: freshTabs } = useTabsStore.getState(); // Get fresh state!
+                            const freshTab = freshTabs.get(activeTabId);
+                            if (freshTab) {
                               const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
                               const updatedTab = {
-                                ...activeTab,
+                                ...freshTab, // Use fresh tab with updated history!
                                 filePath: filePath,
                                 title: fileName,
                               };
-                              tabs.set(activeTabId, updatedTab);
-                              useTabsStore.setState({ tabs: new Map(tabs) });
+                              freshTabs.set(activeTabId, updatedTab);
+                              useTabsStore.setState({ tabs: new Map(freshTabs) });
                             }
                           }
                         } else {
