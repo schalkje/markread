@@ -180,6 +180,24 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 - [x] T062 [US3] Added tab close functionality (Ctrl+W) with next tab activation in src/renderer/stores/tabs.ts
 - [x] T063 [US3] Implemented tab limit warnings: soft limit at 20 tabs (warning dialog), hard limit at 50 tabs (block) per [spec.md](spec.md) Clarifications
 
+### Enhanced Tab UI (New Requirements)
+
+- [ ] T063a [P] [US3] Add horizontal scroll detection to TabBar component to show/hide navigation buttons (< >) in src/renderer/components/editor/TabBar.tsx (FR-013c)
+- [ ] T063b [P] [US3] Implement tab scroll navigation buttons in TabBar component (FR-013c)
+- [ ] T063c [P] [US3] Create TabContextMenu component in src/renderer/components/editor/TabContextMenu.tsx with options: Close, Duplicate, Move to New Window (FR-013d)
+- [ ] T063d [P] [US3] Add folderId property to Tab entity in src/shared/types/entities.d.ts to track which folder tab belongs to (FR-013e)
+- [ ] T063e [US3] Implement visual folder distinction in TabBar component (color coding, icon, or label per folder) (FR-013e)
+- [ ] T063f [US3] Implement visual styling for active vs inactive folder tabs in TabBar.css (FR-013f)
+- [ ] T063g [P] [US3] Add isDirectFile property to Tab entity in src/shared/types/entities.d.ts (FR-013g)
+- [ ] T063h [US3] Update FolderSwitcher component to display "Direct File" indicator when tab.isDirectFile is true (FR-013g)
+- [ ] T063i [P] [US3] Add inactive state styling to FileTree component when viewing direct file tab (FR-013h)
+- [ ] T063j [P] [US3] Add user-friendly message overlay to FileTree when inactive for direct file tabs (FR-013h)
+- [ ] T063k [P] [US3] Create "Open Folder for This File" button in FileTree component for direct file tabs (FR-013i)
+- [ ] T063l [US3] Implement "Open Folder for This File" functionality to convert direct file tab to folder-connected tab in src/renderer/stores/tabs.ts (FR-013i)
+- [ ] T063m [P] [US3] Implement drag-and-drop tab reordering in TabBar component (FR-013j)
+- [ ] T063n [P] [US3] Add keyboard shortcut for tab reordering (e.g., Ctrl+Shift+Left/Right) in src/renderer/services/keyboard-handler.ts (FR-013j)
+- [ ] T063o [US3] Persist tab order in tabs store and ui-state.json (FR-013k)
+
 ### Navigation History
 
 - [x] T064 [P] [US3] HistoryEntry type already exists in src/shared/types/entities.d.ts (filePath, scrollPosition, timestamp)
@@ -391,11 +409,39 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### Native Integration
 
-- [ ] T159 [P] Implement native Windows menu bar (File, Edit, View, Go, Help) in src/main/menu-builder.ts (FR-026)
+- [ ] T159 [P] Create custom title bar component in src/renderer/components/titlebar/TitleBar.tsx with three sections (FR-026)
+- [ ] T159a [P] Implement left section of title bar: menu bar (File, Edit, View, Go, Help) and back/forward buttons in src/renderer/components/titlebar/TitleBarLeft.tsx (FR-026)
+- [ ] T159b [P] Implement middle section of title bar: display active folder name or file name in src/renderer/components/titlebar/TitleBarMiddle.tsx (FR-026)
+- [ ] T159c [P] Implement right section of title bar: theme toggle, search button, download button, window controls in src/renderer/components/titlebar/TitleBarRight.tsx (FR-026)
+- [ ] T159d [P] Add File menu with "Open File" and "Open Folder" commands (FR-026a)
+- [ ] T159e [US1] Implement file:openFile IPC handler for "Open File" command in src/main/ipc-handlers.ts (FR-026a)
+- [ ] T159f [US5] Update file:openFolderDialog IPC handler integration for "Open Folder" command (FR-026a)
+- [ ] T159g [US1] Connect theme toggle button to theme switching functionality (FR-026)
+- [ ] T159h [US1] Connect search button to search panel (Ctrl+F or Ctrl+Shift+F) (FR-026)
+- [ ] T159i [US1] Connect download button to PDF export functionality (FR-026)
+- [ ] T159j [P] Implement window control buttons (minimize, maximize/restore, close) using Electron IPC in TitleBarRight.tsx (FR-027)
+- [ ] T159k Configure BrowserWindow with frame: false and titleBarStyle: 'hidden' in src/main/window-manager.ts for custom title bar
 - [ ] T160 [P] Register .md and .markdown file associations on Windows in src/main/index.ts (FR-022)
 - [ ] T161 [P] Implement Windows Explorer context menu "Open with MarkRead" in build/installer.nsi or electron-builder.yml (FR-024)
 - [ ] T162 [P] Implement Windows taskbar jumplist with recent files in src/main/index.ts (FR-025)
 - [ ] T163 [P] Register global keyboard shortcut (e.g., Ctrl+Alt+M) in src/main/index.ts (FR-029)
+
+### Multi-Window Support (New Requirements)
+
+- [ ] T163a [P] Update window-manager.ts to support creating multiple BrowserWindow instances (FR-028)
+- [ ] T163b [P] Implement window:createNew IPC handler in src/main/ipc-handlers.ts to spawn new windows (FR-028)
+- [ ] T163c [P] Add "Duplicate" action to tab context menu in TabContextMenu component (FR-028a)
+- [ ] T163d [P] Add "Move to New Window" action to tab context menu in TabContextMenu component (FR-028a)
+- [ ] T163e [US3] Implement tab duplication functionality in src/renderer/stores/tabs.ts (creates copy of tab in same window)
+- [ ] T163f [US3] Implement "Move to New Window" functionality: create new window via IPC and transfer tab state (FR-028a)
+- [ ] T163g [P] Create FileTreeContextMenu component in src/renderer/components/sidebar/FileTreeContextMenu.tsx for file entries (FR-028b)
+- [ ] T163h [P] Add file context menu options: "Open (in current tab)", "Open in New Tab", "Open in New Window" (FR-028b)
+- [ ] T163i [US5] Implement "Open in New Tab" functionality in src/renderer/stores/tabs.ts
+- [ ] T163j [US5] Implement "Open in New Window" functionality for files (create new window, load file)
+- [ ] T163k [P] Create folder context menu in FileTreeContextMenu component (FR-028c)
+- [ ] T163l [P] Add folder context menu options: "Open as New Folder", "Open in New Window" (FR-028c)
+- [ ] T163m [US5] Implement "Open as New Folder" functionality in src/renderer/stores/folders.ts (add to current window)
+- [ ] T163n [US5] Implement "Open in New Window" functionality for folders (create new window, load folder)
 
 ### UI State Persistence
 
@@ -563,21 +609,21 @@ Stories complete independently, integrate at end.
 
 ## Task Summary
 
-**Total Tasks**: 189 tasks
+**Total Tasks**: 229 tasks (+40 new tasks for enhanced tab UI, custom title bar, and multi-window support)
 
 **Breakdown by Phase**:
 - Phase 1 (Setup): 8 tasks
 - Phase 2 (Foundational): 12 tasks
 - Phase 3 (US1 - Markdown Rendering): 20 tasks 🎯 **MVP**
 - Phase 4 (US2 - Zoom/Scroll/Pan): 14 tasks
-- Phase 5 (US3 - Multi-Tab): 19 tasks
+- Phase 5 (US3 - Multi-Tab): 34 tasks (+15 for enhanced tab UI with overflow navigation, context menus, folder distinction, direct file handling, drag-and-drop reordering)
 - Phase 6 (US4 - Keyboard Shortcuts): 16 tasks
 - Phase 7 (US5 - Multi-Folder): 21 tasks
 - Phase 8 (US6 - Themes): 13 tasks
 - Phase 9 (US7 - Settings): 27 tasks
-- Phase 10 (Polish): 39 tasks
+- Phase 10 (Polish): 64 tasks (+25 for custom title bar with 3 sections and multi-window support)
 
-**Parallel Opportunities**: 89 tasks marked [P] can run in parallel with other tasks in their phase
+**Parallel Opportunities**: 117 tasks marked [P] can run in parallel with other tasks in their phase (+28 new parallel tasks)
 
 **Independent Test Criteria**: Each user story has explicit test scenarios from [spec.md](spec.md)
 

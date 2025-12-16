@@ -201,6 +201,19 @@ A power user wants to customize MarkRead for their workflow. They press Ctrl+, t
 - **FR-013**: Application MUST support tab jumping with Ctrl+[1-9] for tabs 1-9 and Ctrl+0 for the last tab
 - **FR-013a**: System MUST implement soft tab limit showing warning at 20 open tabs with option to continue, and hard limit blocking new tabs at 50 tabs (with notification explaining memory constraints)
 
+#### Tab User Interface
+
+- **FR-013b**: System MUST display tabs in a horizontal tab bar, with each tab showing a title and close button
+- **FR-013c**: Application MUST show navigation buttons (< and >) when the number of tabs exceeds the visible area, allowing horizontal scrolling through tabs
+- **FR-013d**: System MUST provide a tab context menu (right-click) with options: Close, Duplicate, Move to New Window
+- **FR-013e**: Application MUST visually distinguish which folder each tab belongs to (e.g., via color coding, icon, or label)
+- **FR-013f**: System MUST visually distinguish tabs that are connected to the active folder versus tabs from other folders or direct files
+- **FR-013g**: When a tab is connected to a directly loaded file (not from a folder), the folder selector MUST display "Direct File" or similar indicator
+- **FR-013h**: When viewing a direct file tab, the file tree MUST be visually inactive/inapplicable with a user-friendly message explaining the state
+- **FR-013i**: System MUST provide an "Open Folder for This File" button when viewing a direct file, which keeps the file open but connects it to the folder where it lives
+- **FR-013j**: Application MUST support tab reordering via drag-and-drop or keyboard shortcuts
+- **FR-013k**: System MUST maintain tab order when persisting folder state across sessions
+
 #### Multi-Pane Layout
 
 - **FR-014**: System MUST support editor splitting with vertical split (Ctrl+\\), horizontal split (Ctrl+K Ctrl+\\), and grid layouts
@@ -221,9 +234,16 @@ A power user wants to customize MarkRead for their workflow. They press Ctrl+, t
 
 #### Native Menus and Window Management
 
-- **FR-026**: Application MUST implement native Windows menu bar with File, Edit, View, Go, Help menus following Windows conventions
-- **FR-027**: System MUST support native window controls (minimize, maximize/restore, close) with standard Windows behavior
-- **FR-028**: Application MUST implement single-instance mode where opening a file/folder reuses the existing window rather than creating a new instance
+- **FR-026**: Application MUST implement custom title bar similar to VS Code with three sections:
+  - Left section: Menu bar (File, Edit, View, Go, Help) and back/forward browse buttons (< and >)
+  - Middle section: Name of the active folder (or file name when a file has been opened directly)
+  - Right section: Theme toggle button (sun/moon icon), search button, download button, and window control buttons (minimize, maximize/windowed, close)
+- **FR-026a**: File menu MUST include "Open File" and "Open Folder" commands
+- **FR-027**: System MUST support native window controls (minimize, maximize/restore, close) with standard Windows behavior integrated into custom title bar
+- **FR-028**: Application MUST support multi-window mode allowing users to open new windows for different contexts
+- **FR-028a**: System MUST provide "Open in New Window" option in tab context menu
+- **FR-028b**: Application MUST provide context menu for files in file tree with options: "Open (in current tab)", "Open in New Tab", "Open in New Window"
+- **FR-028c**: System MUST provide context menu for folders in file tree with options: "Open as New Folder", "Open in New Window"
 - **FR-029**: System MUST support global keyboard shortcuts (e.g., Ctrl+Alt+M to activate MarkRead) registered with the operating system
 
 #### Theme System
