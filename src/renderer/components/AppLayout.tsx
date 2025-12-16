@@ -399,13 +399,19 @@ const AppLayout: React.FC = () => {
     loadFile();
   }, [currentFile]);
 
+  // Check if we should show UI elements
+  const hasTabs = tabs.size > 0;
+  const hasFolders = folders.length > 0;
+  const hasContent = hasTabs || hasFolders;
+
   return (
     <div className="app-layout">
       {/* T159: Custom Title Bar */}
       <TitleBar />
 
       <div className="app-layout__content">
-        {showSidebar && (
+        {/* Only show sidebar if there are tabs or folders */}
+        {showSidebar && hasContent && (
           <div className="sidebar">
             <div className="sidebar-header">
             {/* T111-T113: Folder Switcher */}
@@ -658,25 +664,27 @@ const AppLayout: React.FC = () => {
         )}
 
         <div className="main-content">
-        {/* T060, T063a-T063o: TabBar with enhanced features */}
-        <TabBar
-          onTabClick={(tabId) => {
-            const tab = useTabsStore.getState().getTab(tabId);
-            if (tab) {
-              setCurrentFile(tab.filePath);
-            }
-          }}
-          onTabClose={(tabId) => {
-            // If closing the active tab, switch to another tab
-            const { activeTabId, tabs } = useTabsStore.getState();
-            if (tabId === activeTabId && tabs.size > 1) {
-              const remainingTabs = Array.from(tabs.values()).filter(t => t.id !== tabId);
-              if (remainingTabs.length > 0) {
-                setCurrentFile(remainingTabs[0].filePath);
+        {/* T060, T063a-T063o: TabBar with enhanced features - only show if there are tabs */}
+        {hasTabs && (
+          <TabBar
+            onTabClick={(tabId) => {
+              const tab = useTabsStore.getState().getTab(tabId);
+              if (tab) {
+                setCurrentFile(tab.filePath);
               }
-            }
-          }}
-        />
+            }}
+            onTabClose={(tabId) => {
+              // If closing the active tab, switch to another tab
+              const { activeTabId, tabs } = useTabsStore.getState();
+              if (tabId === activeTabId && tabs.size > 1) {
+                const remainingTabs = Array.from(tabs.values()).filter(t => t.id !== tabId);
+                if (remainingTabs.length > 0) {
+                  setCurrentFile(remainingTabs[0].filePath);
+                }
+              }
+            }}
+          />
+        )}
 
         <div className="editor-area">
           {!currentFile ? (

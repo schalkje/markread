@@ -428,28 +428,28 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### Multi-Window Support (New Requirements)
 
-- [ ] T163a [P] Update window-manager.ts to support creating multiple BrowserWindow instances (FR-028)
-- [ ] T163b [P] Implement window:createNew IPC handler in src/main/ipc-handlers.ts to spawn new windows (FR-028)
-- [ ] T163c [P] Add "Duplicate" action to tab context menu in TabContextMenu component (FR-028a)
-- [ ] T163d [P] Add "Move to New Window" action to tab context menu in TabContextMenu component (FR-028a)
-- [ ] T163e [US3] Implement tab duplication functionality in src/renderer/stores/tabs.ts (creates copy of tab in same window)
-- [ ] T163f [US3] Implement "Move to New Window" functionality: create new window via IPC and transfer tab state (FR-028a)
-- [ ] T163g [P] Create FileTreeContextMenu component in src/renderer/components/sidebar/FileTreeContextMenu.tsx for file entries (FR-028b)
-- [ ] T163h [P] Add file context menu options: "Open (in current tab)", "Open in New Tab", "Open in New Window" (FR-028b)
-- [ ] T163i [US5] Implement "Open in New Tab" functionality in src/renderer/stores/tabs.ts
-- [ ] T163j [US5] Implement "Open in New Window" functionality for files (create new window, load file)
-- [ ] T163k [P] Create folder context menu in FileTreeContextMenu component (FR-028c)
-- [ ] T163l [P] Add folder context menu options: "Open as New Folder", "Open in New Window" (FR-028c)
-- [ ] T163m [US5] Implement "Open as New Folder" functionality in src/renderer/stores/folders.ts (add to current window)
-- [ ] T163n [US5] Implement "Open in New Window" functionality for folders (create new window, load folder)
+- [x] T163a [P] Update window-manager.ts to support creating multiple BrowserWindow instances (FR-028)
+- [x] T163b [P] Implement window:createNew IPC handler in src/main/ipc-handlers.ts to spawn new windows (FR-028)
+- [x] T163c [P] Add "Duplicate" action to tab context menu in TabContextMenu component (FR-028a)
+- [x] T163d [P] Add "Move to New Window" action to tab context menu in TabContextMenu component (FR-028a)
+- [x] T163e [US3] Implement tab duplication functionality in src/renderer/stores/tabs.ts (creates copy of tab in same window)
+- [x] T163f [US3] Implement "Move to New Window" functionality: create new window via IPC and transfer tab state (FR-028a)
+- [x] T163g [P] Create FileTreeContextMenu component in src/renderer/components/sidebar/FileTreeContextMenu.tsx for file entries (FR-028b)
+- [x] T163h [P] Add file context menu options: "Open (in current tab)", "Open in New Tab", "Open in New Window" (FR-028b)
+- [x] T163i [US5] Implement "Open in New Tab" functionality in src/renderer/stores/tabs.ts
+- [x] T163j [US5] Implement "Open in New Window" functionality for files (create new window, load file)
+- [x] T163k [P] Create folder context menu in FileTreeContextMenu component (FR-028c)
+- [x] T163l [P] Add folder context menu options: "Open as New Folder", "Open in New Window" (FR-028c)
+- [x] T163m [US5] Implement "Open as New Folder" functionality in src/renderer/stores/folders.ts (add to current window)
+- [x] T163n [US5] Implement "Open in New Window" functionality for folders (create new window, load folder)
 
 ### UI State Persistence
 
-- [ ] T164 [P] Create UIState entity type from [data-model.md](data-model.md) in src/shared/types/ui-state.d.ts (windowBounds, sidebarWidth, activeFolder, folders, recentItems)
-- [ ] T165 Implement uiState:load and uiState:save IPC handlers in src/main/ipc-handlers.ts per [contracts/ui-state.contract.ts](contracts/ui-state.contract.ts)
-- [ ] T166 Save window bounds on resize/move with 500ms debounce in src/main/window-manager.ts (FR-062)
-- [ ] T167 Restore window bounds, folders, tabs on app launch from ui-state.json (FR-007)
-- [ ] T168 Save split layouts per folder in src/renderer/stores/panes.ts (FR-018)
+- [x] T164 [P] Create UIState entity type from [data-model.md](data-model.md) in src/shared/types/ui-state.d.ts (windowBounds, sidebarWidth, activeFolder, folders, recentItems)
+- [x] T165 Implement uiState:load and uiState:save IPC handlers in src/main/ipc-handlers.ts per [contracts/ui-state.contract.ts](contracts/ui-state.contract.ts)
+- [x] T166 Save window bounds on resize/move with 500ms debounce in src/main/window-manager.ts (FR-062)
+- [x] T167 Restore window bounds, folders, tabs on app launch from ui-state.json (FR-007)
+- [x] T168 Save split layouts per folder in src/renderer/stores/panes.ts (FR-018)
 
 ### Search Implementation
 
@@ -460,7 +460,7 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### PDF Export
 
-- [ ] T173 Implement PDF export via Chromium print-to-PDF in src/main/ipc-handlers.ts (FR-051)
+- [x] T173 Implement PDF export via Chromium print-to-PDF in src/main/ipc-handlers.ts (FR-051)
 - [ ] T174 Ensure PDF preserves syntax highlighting and diagrams (FR-052)
 
 ### Documentation & Testing
