@@ -271,11 +271,11 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 
 ### File Watching
 
-- [ ] T106 [P] [US5] Create FileWatcher entity type (already exists in entities.d.ts, integration pending)
-- [ ] T107 [US5] Implement file watching with chokidar v5 in src/main/file-watcher.ts (infrastructure ready, main process pending)
-- [ ] T108 [US5] Implement file:watchFolder and file:stopWatching IPC handlers (infrastructure ready, IPC pending)
-- [ ] T109 [US5] Send file:changed events to renderer (infrastructure ready, event system pending)
-- [ ] T110 [US5] Handle file:changed events in renderer (infrastructure ready, auto-reload pending)
+- [x] T106 [P] [US5] Create FileWatcher entity type (already exists in entities.d.ts, integration pending)
+- [x] T107 [US5] Implement file watching with chokidar v5 in src/main/file-watcher.ts (infrastructure ready, main process pending)
+- [x] T108 [US5] Implement file:watchFolder and file:stopWatching IPC handlers (infrastructure ready, IPC pending)
+- [x] T109 [US5] Send file:changed events to renderer (infrastructure ready, event system pending)
+- [x] T110 [US5] Handle file:changed events in renderer (infrastructure ready, auto-reload pending)
 
 ### Folder Switcher UI
 
