@@ -184,31 +184,8 @@ const AppLayout: React.FC = () => {
       if (activeTabId) {
         const entry = navigateBack(activeTabId);
         if (entry) {
-          // Mark as manually loaded to prevent useEffect from loading again
-          contentLoadedManually.current = true;
-
-          // Navigate to the history entry
-          setCurrentFile(entry.filePath);
-          // Load the file content
-          const result = await window.electronAPI?.file?.read({ filePath: entry.filePath });
-          if (result?.success && result.content) {
-            setCurrentContent(result.content);
-
-            // Get fresh tabs after navigation state update
-            const { tabs } = useTabsStore.getState();
-            const activeTab = tabs.get(activeTabId);
-            if (activeTab) {
-              const fileName = entry.filePath.split(/[/\\]/).pop() || 'Untitled';
-              const updatedTab = {
-                ...activeTab,
-                filePath: entry.filePath,
-                title: fileName,
-                scrollPosition: entry.scrollPosition,
-              };
-              tabs.set(activeTabId, updatedTab);
-              useTabsStore.setState({ tabs: new Map(tabs) });
-            }
-          }
+          // Dispatch to handleNavigateToHistory for unified handling
+          window.dispatchEvent(new CustomEvent('navigate-to-history', { detail: entry }));
         }
       }
     };
@@ -218,31 +195,8 @@ const AppLayout: React.FC = () => {
       if (activeTabId) {
         const entry = navigateForward(activeTabId);
         if (entry) {
-          // Mark as manually loaded to prevent useEffect from loading again
-          contentLoadedManually.current = true;
-
-          // Navigate to the history entry
-          setCurrentFile(entry.filePath);
-          // Load the file content
-          const result = await window.electronAPI?.file?.read({ filePath: entry.filePath });
-          if (result?.success && result.content) {
-            setCurrentContent(result.content);
-
-            // Get fresh tabs after navigation state update
-            const { tabs } = useTabsStore.getState();
-            const activeTab = tabs.get(activeTabId);
-            if (activeTab) {
-              const fileName = entry.filePath.split(/[/\\]/).pop() || 'Untitled';
-              const updatedTab = {
-                ...activeTab,
-                filePath: entry.filePath,
-                title: fileName,
-                scrollPosition: entry.scrollPosition,
-              };
-              tabs.set(activeTabId, updatedTab);
-              useTabsStore.setState({ tabs: new Map(tabs) });
-            }
-          }
+          // Dispatch to handleNavigateToHistory for unified handling
+          window.dispatchEvent(new CustomEvent('navigate-to-history', { detail: entry }));
         }
       }
     };
@@ -258,26 +212,86 @@ const AppLayout: React.FC = () => {
 
         // Navigate to the history entry
         setCurrentFile(entry.filePath);
-        // Load the file content
-        const result = await window.electronAPI?.file?.read({ filePath: entry.filePath });
-        if (result?.success && result.content) {
-          setCurrentContent(result.content);
-          console.log('[handleNavigateToHistory] Content loaded for:', entry.filePath);
 
-          // Update the active tab to reflect the new file
-          const { activeTabId, tabs } = useTabsStore.getState();
-          if (activeTabId) {
-            const activeTab = tabs.get(activeTabId);
-            if (activeTab) {
-              const fileName = entry.filePath.split(/[/\\]/).pop() || 'Untitled';
-              const updatedTab = {
-                ...activeTab,
-                filePath: entry.filePath,
-                title: fileName,
-                scrollPosition: entry.scrollPosition,
-              };
-              tabs.set(activeTabId, updatedTab);
-              useTabsStore.setState({ tabs: new Map(tabs) });
+        // Check if this is a virtual directory listing path
+        const isDirectoryListing = entry.filePath.includes('[Directory Index]');
+
+        if (isDirectoryListing) {
+          // Re-generate directory listing
+          const directoryPath = entry.filePath.replace(/[/\\]\[Directory Index\]$/, '');
+          console.log('[handleNavigateToHistory] Re-generating directory listing for:', directoryPath);
+
+          const listingResult = await window.electronAPI?.file?.getDirectoryListing({
+            directoryPath: directoryPath,
+          });
+
+          if (listingResult?.success && listingResult.items) {
+            // Generate markdown content for directory listing
+            const dirName = directoryPath.split(/[/\\]/).pop() || 'Directory';
+            let markdown = `# ${dirName}\n\n`;
+
+            // Add directories
+            const directories = listingResult.items.filter((item: any) => item.isDirectory);
+            if (directories.length > 0) {
+              markdown += '## Folders\n\n';
+              directories.forEach((item: any) => {
+                const label = item.title || item.name;
+                markdown += `- [${label}/](${item.name}/)\n`;
+              });
+              markdown += '\n';
+            }
+
+            // Add files
+            const files = listingResult.items.filter((item: any) => !item.isDirectory);
+            if (files.length > 0) {
+              markdown += '## Files\n\n';
+              files.forEach((item: any) => {
+                const label = item.title || item.name;
+                markdown += `- [${label}](${item.name})\n`;
+              });
+            }
+
+            setCurrentContent(markdown);
+            console.log('[handleNavigateToHistory] Directory listing generated');
+
+            // Update the active tab
+            const { activeTabId, tabs } = useTabsStore.getState();
+            if (activeTabId) {
+              const activeTab = tabs.get(activeTabId);
+              if (activeTab) {
+                const updatedTab = {
+                  ...activeTab,
+                  filePath: entry.filePath,
+                  title: dirName,
+                  scrollPosition: entry.scrollPosition,
+                };
+                tabs.set(activeTabId, updatedTab);
+                useTabsStore.setState({ tabs: new Map(tabs) });
+              }
+            }
+          }
+        } else {
+          // Load regular file content
+          const result = await window.electronAPI?.file?.read({ filePath: entry.filePath });
+          if (result?.success && result.content) {
+            setCurrentContent(result.content);
+            console.log('[handleNavigateToHistory] Content loaded for:', entry.filePath);
+
+            // Update the active tab to reflect the new file
+            const { activeTabId, tabs } = useTabsStore.getState();
+            if (activeTabId) {
+              const activeTab = tabs.get(activeTabId);
+              if (activeTab) {
+                const fileName = entry.filePath.split(/[/\\]/).pop() || 'Untitled';
+                const updatedTab = {
+                  ...activeTab,
+                  filePath: entry.filePath,
+                  title: fileName,
+                  scrollPosition: entry.scrollPosition,
+                };
+                tabs.set(activeTabId, updatedTab);
+                useTabsStore.setState({ tabs: new Map(tabs) });
+              }
             }
           }
         }
@@ -297,19 +311,34 @@ const AppLayout: React.FC = () => {
       setCurrentFile(virtualPath);
       setCurrentContent(content);
 
-      // Update the active tab to reflect the directory view
-      const { activeTabId, tabs } = useTabsStore.getState();
+      // Add directory listing to navigation history
+      const { activeTabId, tabs, addHistoryEntry } = useTabsStore.getState();
       if (activeTabId) {
-        const activeTab = tabs.get(activeTabId);
-        if (activeTab) {
+        const currentTab = tabs.get(activeTabId);
+
+        // Add the directory to history if navigating to a different location
+        if (currentTab && currentTab.filePath && currentTab.filePath !== virtualPath) {
+          console.log('[DirectoryListing] Adding history entry for directory:', virtualPath);
+          addHistoryEntry(activeTabId, {
+            filePath: virtualPath,
+            scrollPosition: 0,
+            timestamp: Date.now(),
+          });
+        }
+
+        // Update the active tab to reflect the directory view
+        // IMPORTANT: Get FRESH state after addHistoryEntry to avoid overwriting history!
+        const { tabs: freshTabs } = useTabsStore.getState();
+        const freshTab = freshTabs.get(activeTabId);
+        if (freshTab) {
           const dirName = directoryPath.split(/[/\\]/).pop() || 'Directory';
           const updatedTab = {
-            ...activeTab,
+            ...freshTab, // Use fresh tab with updated history!
             filePath: virtualPath,
             title: dirName,
           };
-          tabs.set(activeTabId, updatedTab);
-          useTabsStore.setState({ tabs: new Map(tabs) });
+          freshTabs.set(activeTabId, updatedTab);
+          useTabsStore.setState({ tabs: new Map(freshTabs) });
         }
       }
     };
