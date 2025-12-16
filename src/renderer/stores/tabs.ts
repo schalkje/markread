@@ -44,6 +44,15 @@ interface TabsState {
   // Tab limit checks (T063)
   canAddTab: () => { allowed: boolean; warning?: string; error?: string };
   getTabCount: () => number;
+
+  // T063m, T063o: Tab reordering
+  reorderTab: (fromIndex: number, toIndex: number) => void;
+
+  // T063c: Tab duplication
+  duplicateTab: (tabId: string) => Tab | undefined;
+
+  // T063l: Convert direct file tab to folder-connected tab
+  convertDirectFileToFolder: (tabId: string, folderPath: string) => void;
 }
 
 export const useTabsStore = create<TabsState>((set, get) => ({
@@ -297,5 +306,57 @@ export const useTabsStore = create<TabsState>((set, get) => ({
   getTabCount: () => {
     const { tabs } = get();
     return tabs.size;
+  },
+
+  // T063m, T063o: Reorder tabs via drag-and-drop
+  reorderTab: (fromIndex, toIndex) => {
+    set((state) => {
+      const newTabOrder = [...state.tabOrder];
+      const [movedTabId] = newTabOrder.splice(fromIndex, 1);
+      newTabOrder.splice(toIndex, 0, movedTabId);
+
+      return { tabOrder: newTabOrder };
+    });
+  },
+
+  // T063c: Duplicate a tab
+  duplicateTab: (tabId) => {
+    const { tabs, addTab } = get();
+    const originalTab = tabs.get(tabId);
+
+    if (!originalTab) {
+      console.error(`Cannot duplicate tab: tab ${tabId} not found`);
+      return undefined;
+    }
+
+    // Create a duplicate tab with a new ID
+    const duplicateTab: Tab = {
+      ...originalTab,
+      id: `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title: `${originalTab.title} (Copy)`,
+      createdAt: Date.now(),
+      navigationHistory: [], // Start with empty history
+    };
+
+    return addTab(duplicateTab);
+  },
+
+  // T063l: Convert direct file tab to folder-connected tab
+  convertDirectFileToFolder: (tabId, folderPath) => {
+    set((state) => {
+      const tab = state.tabs.get(tabId);
+      if (!tab) return state;
+
+      // Find or create folder ID for this path
+      // For now, we'll set a placeholder - this should be integrated with folders store
+      const newTabs = new Map(state.tabs);
+      newTabs.set(tabId, {
+        ...tab,
+        isDirectFile: false,
+        folderId: `folder-${folderPath}`, // This should match actual folder ID
+      });
+
+      return { tabs: newTabs };
+    });
   },
 }));

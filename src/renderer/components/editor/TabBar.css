@@ -1,6 +1,6 @@
 /**
  * TabBar Styles
- * Task: T060
+ * Tasks: T060, T063a-T063f, T063m
  */
 
 .tab-bar {
@@ -10,8 +10,7 @@
   height: 40px;
   background: var(--tab-bar-bg, #f3f3f3);
   border-bottom: 1px solid var(--border-color, #d0d7de);
-  overflow-x: auto;
-  overflow-y: hidden;
+  position: relative;
 }
 
 .tab-bar--empty {
@@ -30,6 +29,40 @@
   flex: 1;
   gap: 2px;
   min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+}
+
+/* T063a-T063b: Navigation buttons */
+.tab-bar__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 100%;
+  padding: 0;
+  background: var(--tab-bar-bg, #f3f3f3);
+  border: none;
+  border-right: 1px solid var(--border-color, #d0d7de);
+  cursor: pointer;
+  color: var(--text-primary, #24292f);
+  font-size: 12px;
+  transition: background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.tab-bar__nav:hover {
+  background: var(--tab-hover-bg, #ddd);
+}
+
+.tab-bar__nav--left {
+  border-left: none;
+}
+
+.tab-bar__nav--right {
+  border-right: none;
+  border-left: 1px solid var(--border-color, #d0d7de);
 }
 
 .tab {
@@ -48,7 +81,39 @@
   color: var(--text-primary, #24292f);
   transition: background-color 0.15s ease;
   position: relative;
+  -webkit-user-select: none;
   user-select: none;
+  flex-shrink: 0;
+}
+
+/* T063e: Folder indicator */
+.tab__folder-indicator {
+  width: 3px;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  background-color: var(--folder-color, #999);
+}
+
+/* T063f: Inactive folder tabs */
+.tab--inactive-folder {
+  opacity: 0.6;
+}
+
+.tab--inactive-folder .tab__title {
+  font-style: italic;
+}
+
+/* Direct file indicator */
+.tab__direct-file-icon {
+  font-size: 12px;
+}
+
+/* T063m: Drag and drop */
+.tab--drag-over {
+  border-left: 2px solid var(--accent-color, #0969da);
+  padding-left: 10px;
 }
 
 .tab:hover {

@@ -15,7 +15,16 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
     reset: (payload) => electron.ipcRenderer.invoke("settings:reset", payload)
   },
   on: (channel, callback) => {
-    const validChannels = ["file:changed", "file:watchError", "folder:changed"];
+    const validChannels = [
+      "file:changed",
+      "file:watchError",
+      "folder:changed",
+      "menu:open-file",
+      "menu:open-folder",
+      "menu:close-current",
+      "menu:close-folder",
+      "menu:close-all"
+    ];
     if (validChannels.includes(channel)) {
       electron.ipcRenderer.on(channel, callback);
     }

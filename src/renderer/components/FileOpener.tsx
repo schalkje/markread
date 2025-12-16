@@ -63,23 +63,27 @@ export const FileOpener: React.FC<FileOpenerProps> = ({ onFileOpened }) => {
 
       const content = readResult.content || '';
 
-      // Step 3: Create tab for the file (T039 - integration with tabs store)
+      // Step 3: Create tab for the file (T039, T063 - integration with tabs store)
       const fileName = filePath.split(/[\\/]/).pop() || 'Untitled';
 
       const newTab: Tab = {
-        id: `tab-${Date.now()}`,
+        id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         filePath,
         title: fileName,
         scrollPosition: 0,
         zoomLevel: 100,
+        searchState: null,
+        modificationTimestamp: Date.now(),
         isDirty: false,
-        isPinned: false,
+        renderCache: null,
         navigationHistory: [],
-        currentHistoryIndex: -1,
+        createdAt: Date.now(),
+        folderId: null, // No folder for directly opened files
+        isDirectFile: true, // T063g - Mark as direct file
       };
 
       // Add tab to store
-      addTab('default', newTab); // Using 'default' folder for now (Phase 1)
+      addTab(newTab);
 
       // Notify parent
       onFileOpened?.(filePath, content);

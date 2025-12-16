@@ -11,6 +11,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFoldersStore } from '../../stores/folders';
+import { useTabsStore } from '../../stores/tabs';
 import './FileTree.css';
 
 export interface FileTreeProps {

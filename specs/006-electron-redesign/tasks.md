@@ -410,7 +410,7 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 ### Native Integration
 
 - [ ] T159 [P] Create custom title bar component in src/renderer/components/titlebar/TitleBar.tsx with three sections (FR-026)
-- [ ] T159a [P] Implement left section of title bar: menu bar (File, Edit, View, Go, Help) and back/forward buttons in src/renderer/components/titlebar/TitleBarLeft.tsx (FR-026)
+- [ ] T159a [P] Implement left section of title bar: nurger button (toggles sidepane visibility), menu bar (File, Edit, View, Go, Help) and back/forward buttons in src/renderer/components/titlebar/TitleBarLeft.tsx (FR-026)
 - [ ] T159b [P] Implement middle section of title bar: display active folder name or file name in src/renderer/components/titlebar/TitleBarMiddle.tsx (FR-026)
 - [ ] T159c [P] Implement right section of title bar: theme toggle, search button, download button, window controls in src/renderer/components/titlebar/TitleBarRight.tsx (FR-026)
 - [ ] T159d [P] Add File menu with "Open File" and "Open Folder" commands (FR-026a)

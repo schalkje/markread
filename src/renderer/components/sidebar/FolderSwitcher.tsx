@@ -10,6 +10,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useFoldersStore } from '../../stores/folders';
+import { useTabsStore } from '../../stores/tabs';
 import type { Folder } from '@shared/types/entities';
 import './FolderSwitcher.css';
 
@@ -33,10 +34,28 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
   const removeFolder = useFoldersStore((state) => state.removeFolder);
   const addFolder = useFoldersStore((state) => state.addFolder);
 
+  // T063h: Get active tab to check if it's a direct file
+  const activeTabId = useTabsStore((state) => state.activeTabId);
+  const tabs = useTabsStore((state) => state.getAllTabs());
+  const activeTab = tabs.find((t) => t.id === activeTabId);
+
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const activeFolder = folders.find((f) => f.id === activeFolderId);
+
+  // T063h: Determine if showing direct file indicator
+  const isDirectFile = activeTab?.isDirectFile === true;
+
+  // Update active folder when active tab changes
+  useEffect(() => {
+    if (activeTab && activeTab.folderId && !activeTab.isDirectFile) {
+      // If the active tab belongs to a folder, make that folder active
+      if (activeFolderId !== activeTab.folderId) {
+        setActiveFolder(activeTab.folderId);
+      }
+    }
+  }, [activeTab, activeFolderId, setActiveFolder]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -55,11 +74,30 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
     };
   }, [isOpen]);
 
-  // T113: Switch active folder on selection
+  // T113: Switch active folder on selection and activate first tab from that folder
   const handleFolderSelect = (folderId: string) => {
     setActiveFolder(folderId);
     setIsOpen(false);
     onFolderChange?.(folderId);
+
+    // Activate the first tab from this folder
+    const folderTabs = tabs.filter(t => t.folderId === folderId && !t.isDirectFile);
+    if (folderTabs.length > 0) {
+      const { setActiveTab } = useTabsStore.getState();
+      setActiveTab(folderTabs[0].id);
+    }
+  };
+
+  // Handle selecting "Direct File" pseudo-folder
+  const handleDirectFileSelect = () => {
+    setIsOpen(false);
+
+    // Activate the first direct file tab
+    const directFileTabs = tabs.filter(t => t.isDirectFile);
+    if (directFileTabs.length > 0) {
+      const { setActiveTab } = useTabsStore.getState();
+      setActiveTab(directFileTabs[0].id);
+    }
   };
 
   // Handle folder close
@@ -148,12 +186,16 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
       <button
         className="folder-switcher__button"
         onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
+        aria-expanded={isOpen ? 'true' : 'false'}
         aria-haspopup="true"
+        type="button"
       >
-        <span className="folder-switcher__icon">📁</span>
+        {/* T063h: Show different icon and text for direct files */}
+        <span className="folder-switcher__icon">
+          {isDirectFile ? '📄' : '📁'}
+        </span>
         <span className="folder-switcher__name">
-          {activeFolder?.displayName || 'Select folder'}
+          {isDirectFile ? 'Direct File' : (activeFolder?.displayName || 'Select folder')}
         </span>
         <span className="folder-switcher__chevron">
           {isOpen ? '▲' : '▼'}
@@ -163,6 +205,37 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
       {/* Dropdown list */}
       {isOpen && (
         <div className="folder-switcher__dropdown" data-testid="folder-switcher-dropdown">
+          {/* Direct File option - show when there are direct file tabs */}
+          {(() => {
+            const directFileTabs = tabs.filter(t => t.isDirectFile);
+            if (directFileTabs.length > 0) {
+              return (
+                <div
+                  className={`folder-switcher__item ${isDirectFile ? 'folder-switcher__item--active' : ''}`}
+                  onClick={handleDirectFileSelect}
+                  data-testid="folder-item-direct-file"
+                >
+                  <span className="folder-switcher__item-icon">📄</span>
+                  <div className="folder-switcher__item-info">
+                    <span className="folder-switcher__item-name">
+                      Direct File
+                    </span>
+                    <span className="folder-switcher__item-path" title="Files opened directly">
+                      {directFileTabs.length} file{directFileTabs.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+          {/* Separator between direct files and folders if both exist */}
+          {tabs.filter(t => t.isDirectFile).length > 0 && folders.length > 0 && (
+            <div className="folder-switcher__divider" />
+          )}
+
+          {/* Regular folders */}
           {folders.map((folder) => (
             <div
               key={folder.id}

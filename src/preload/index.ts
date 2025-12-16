@@ -46,8 +46,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     reset: (payload: any) => ipcRenderer.invoke('settings:reset', payload),
   },
   on: (channel: string, callback: (event: any, ...args: any[]) => void) => {
-    // T109: Allow renderer to listen for file:changed events
-    const validChannels = ['file:changed', 'file:watchError', 'folder:changed'];
+    // T109: Allow renderer to listen for file:changed events and menu commands
+    const validChannels = [
+      'file:changed',
+      'file:watchError',
+      'folder:changed',
+      'menu:open-file',
+      'menu:open-folder',
+      'menu:close-current',
+      'menu:close-folder',
+      'menu:close-all',
+    ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, callback);
     }

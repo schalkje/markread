@@ -314,17 +314,21 @@ export function unregisterNavigationShortcuts(): void {
 }
 
 /**
- * T061: Register tab switching keyboard shortcuts
+ * T061, T063n: Register tab switching keyboard shortcuts
  * - Ctrl+Tab: Next tab
  * - Ctrl+Shift+Tab: Previous tab
  * - Ctrl+1-9: Jump to tab by index
  * - Ctrl+W: Close current tab
+ * - Ctrl+Shift+Left: Move tab left (T063n)
+ * - Ctrl+Shift+Right: Move tab right (T063n)
  */
 export function registerTabShortcuts(callbacks: {
   onNextTab: () => void;
   onPreviousTab: () => void;
   onJumpToTab: (index: number) => void;
   onCloseTab: () => void;
+  onMoveTabLeft?: () => void;
+  onMoveTabRight?: () => void;
 }): void {
   // Next tab: Ctrl+Tab
   keyboardHandler.register({
@@ -372,6 +376,34 @@ export function registerTabShortcuts(callbacks: {
     },
     description: 'Close current tab',
   });
+
+  // T063n: Move tab left: Ctrl+Shift+Left
+  if (callbacks.onMoveTabLeft) {
+    keyboardHandler.register({
+      id: 'tabs.moveLeft',
+      keys: ['ArrowLeft', 'Left'],
+      ctrlKey: true,
+      shiftKey: true,
+      handler: () => {
+        callbacks.onMoveTabLeft?.();
+      },
+      description: 'Move tab left',
+    });
+  }
+
+  // T063n: Move tab right: Ctrl+Shift+Right
+  if (callbacks.onMoveTabRight) {
+    keyboardHandler.register({
+      id: 'tabs.moveRight',
+      keys: ['ArrowRight', 'Right'],
+      ctrlKey: true,
+      shiftKey: true,
+      handler: () => {
+        callbacks.onMoveTabRight?.();
+      },
+      description: 'Move tab right',
+    });
+  }
 }
 
 /**
@@ -381,6 +413,8 @@ export function unregisterTabShortcuts(): void {
   keyboardHandler.unregister('tabs.next');
   keyboardHandler.unregister('tabs.previous');
   keyboardHandler.unregister('tabs.close');
+  keyboardHandler.unregister('tabs.moveLeft'); // T063n
+  keyboardHandler.unregister('tabs.moveRight'); // T063n
 
   for (let i = 1; i <= 9; i++) {
     keyboardHandler.unregister(`tabs.jumpTo${i}`);

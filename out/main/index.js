@@ -453,6 +453,145 @@ let currentConfig = { ...defaultConfig };
 function initLogger(config) {
   console.log("Logger initialized:", currentConfig);
 }
+function createApplicationMenu(mainWindow2) {
+  const isMac = process.platform === "darwin";
+  const template = [
+    // App menu (macOS only)
+    ...isMac ? [
+      {
+        label: "MarkRead",
+        submenu: [
+          { role: "about" },
+          { type: "separator" },
+          { role: "services" },
+          { type: "separator" },
+          { role: "hide" },
+          { role: "hideOthers" },
+          { role: "unhide" },
+          { type: "separator" },
+          { role: "quit" }
+        ]
+      }
+    ] : [],
+    // File menu
+    {
+      label: "File",
+      submenu: [
+        {
+          label: "Open File...",
+          accelerator: "CmdOrCtrl+O",
+          click: () => {
+            mainWindow2.webContents.send("menu:open-file");
+          }
+        },
+        {
+          label: "Open Folder...",
+          accelerator: "CmdOrCtrl+Shift+O",
+          click: () => {
+            mainWindow2.webContents.send("menu:open-folder");
+          }
+        },
+        { type: "separator" },
+        {
+          label: "Close Current",
+          accelerator: "CmdOrCtrl+W",
+          click: () => {
+            mainWindow2.webContents.send("menu:close-current");
+          }
+        },
+        {
+          label: "Close Folder",
+          accelerator: "CmdOrCtrl+Shift+W",
+          click: () => {
+            mainWindow2.webContents.send("menu:close-folder");
+          }
+        },
+        {
+          label: "Close All",
+          accelerator: "CmdOrCtrl+Shift+Alt+W",
+          click: () => {
+            mainWindow2.webContents.send("menu:close-all");
+          }
+        },
+        { type: "separator" },
+        ...isMac ? [{ role: "close" }] : [{ role: "quit" }]
+      ]
+    },
+    // Edit menu
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        ...isMac ? [
+          { role: "pasteAndMatchStyle" },
+          { role: "delete" },
+          { role: "selectAll" },
+          { type: "separator" },
+          {
+            label: "Speech",
+            submenu: [
+              { role: "startSpeaking" },
+              { role: "stopSpeaking" }
+            ]
+          }
+        ] : [
+          { role: "delete" },
+          { type: "separator" },
+          { role: "selectAll" }
+        ]
+      ]
+    },
+    // View menu
+    {
+      label: "View",
+      submenu: [
+        { role: "reload" },
+        { role: "forceReload" },
+        { role: "toggleDevTools" },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { type: "separator" },
+        { role: "togglefullscreen" }
+      ]
+    },
+    // Window menu
+    {
+      label: "Window",
+      submenu: [
+        { role: "minimize" },
+        { role: "zoom" },
+        ...isMac ? [
+          { type: "separator" },
+          { role: "front" },
+          { type: "separator" },
+          { role: "window" }
+        ] : [{ role: "close" }]
+      ]
+    },
+    // Help menu
+    {
+      role: "help",
+      submenu: [
+        {
+          label: "Learn More",
+          click: async () => {
+            const { shell } = await import("electron");
+            await shell.openExternal("https://github.com/yourusername/markread");
+          }
+        }
+      ]
+    }
+  ];
+  const menu = electron.Menu.buildFromTemplate(template);
+  electron.Menu.setApplicationMenu(menu);
+}
 process.on("uncaughtException", (error) => {
   console.error("Uncaught exception:", error);
 });
@@ -474,6 +613,7 @@ if (!gotTheLock) {
   electron.app.whenReady().then(() => {
     mainWindow = createWindow();
     registerIpcHandlers(mainWindow);
+    createApplicationMenu(mainWindow);
     electron.app.on("activate", () => {
       if (electron.BrowserWindow.getAllWindows().length === 0) {
         mainWindow = createWindow();
