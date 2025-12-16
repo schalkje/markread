@@ -83,7 +83,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose }) => {
       container.removeEventListener('scroll', checkScrollNavigation);
       window.removeEventListener('resize', checkScrollNavigation);
     };
-  }, [tabs]);
+  }, [tabs.length]); // Only re-check when number of tabs changes, not when tab content changes
 
   // T063b: Scroll navigation handlers
   const scrollLeft = () => {
@@ -169,11 +169,18 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose }) => {
   };
 
   const getTabTitle = (tab: Tab): string => {
+    // Use tab.title if it exists (for directory listings and custom titles)
+    if (tab.title) {
+      return tab.title;
+    }
+
     // Safety check for filePath
     if (!tab.filePath) {
-      return tab.title || 'Untitled';
+      return 'Untitled';
     }
-    const fileName = tab.filePath.split(/[/\\]/).pop() || tab.title;
+
+    // Extract filename from path and remove .md extension
+    const fileName = tab.filePath.split(/[/\\]/).pop() || 'Untitled';
     return fileName.replace(/\.md$/i, '');
   };
 

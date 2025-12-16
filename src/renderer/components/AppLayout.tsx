@@ -262,7 +262,7 @@ const AppLayout: React.FC = () => {
                 const updatedTab = {
                   ...activeTab,
                   filePath: entry.filePath,
-                  title: dirName,
+                  title: `${dirName}\\`, // Add backslash to indicate directory
                   scrollPosition: entry.scrollPosition,
                 };
                 tabs.set(activeTabId, updatedTab);
@@ -332,10 +332,12 @@ const AppLayout: React.FC = () => {
         const freshTab = freshTabs.get(activeTabId);
         if (freshTab) {
           const dirName = directoryPath.split(/[/\\]/).pop() || 'Directory';
+          const newTitle = `${dirName}\\`;
+          console.log('[DirectoryListing] Setting tab title:', { directoryPath, dirName, newTitle, virtualPath });
           const updatedTab = {
             ...freshTab, // Use fresh tab with updated history!
             filePath: virtualPath,
-            title: dirName,
+            title: newTitle, // Add backslash to indicate directory
           };
           freshTabs.set(activeTabId, updatedTab);
           useTabsStore.setState({ tabs: new Map(freshTabs) });

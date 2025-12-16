@@ -136,6 +136,20 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       return [{ label: '(No history)', action: () => {}, disabled: true }];
     }
 
+    // Helper function to format file/directory names for history display
+    const formatHistoryLabel = (filePath: string): string => {
+      const isDirectoryListing = filePath.includes('[Directory Index]');
+      if (isDirectoryListing) {
+        // Extract directory name and add trailing backslash
+        const dirPath = filePath.replace(/[/\\]\[Directory Index\]$/, '');
+        const dirName = dirPath.split(/[/\\]/).pop() || 'Unknown';
+        return `${dirName}\\`;
+      } else {
+        // Regular file
+        return filePath.split(/[/\\]/).pop() || 'Unknown';
+      }
+    };
+
     const items: Array<{ label: string; action: () => void; disabled?: boolean; separator?: boolean }> = [];
     const history = activeTab.navigationHistory;
     const currentIndex = activeTab.currentHistoryIndex;
@@ -147,9 +161,9 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
     const startIndex = Math.max(0, currentIndex - 5);
     for (let i = startIndex; i < currentIndex; i++) {
       const entry = history[i];
-      const fileName = entry.filePath.split(/[/\\]/).pop() || 'Unknown';
+      const displayName = formatHistoryLabel(entry.filePath);
       items.push({
-        label: `  ${i}: ${fileName}`,
+        label: `  ${i}: ${displayName}`,
         action: () => {
           // Navigate to this history position
           const { activeTabId } = useTabsStore.getState();
@@ -168,9 +182,9 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
 
     // Show current entry with marker
     const currentEntry = history[currentIndex];
-    const currentFileName = currentEntry.filePath.split(/[/\\]/).pop() || 'Unknown';
+    const currentDisplayName = formatHistoryLabel(currentEntry.filePath);
     items.push({
-      label: `▶ ${currentIndex}: ${currentFileName} ◀`,
+      label: `▶ ${currentIndex}: ${currentDisplayName} ◀`,
       action: () => {},
       disabled: true,
     });
@@ -179,9 +193,9 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
     const endIndex = Math.min(history.length, currentIndex + 6);
     for (let i = currentIndex + 1; i < endIndex; i++) {
       const entry = history[i];
-      const fileName = entry.filePath.split(/[/\\]/).pop() || 'Unknown';
+      const displayName = formatHistoryLabel(entry.filePath);
       items.push({
-        label: `  ${i}: ${fileName}`,
+        label: `  ${i}: ${displayName}`,
         action: () => {
           // Navigate to this history position
           const { activeTabId } = useTabsStore.getState();
