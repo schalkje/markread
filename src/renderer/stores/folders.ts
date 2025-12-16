@@ -18,6 +18,8 @@ interface FoldersState {
   updateSplitLayout: (folderId: string, splitLayout: PanelLayout) => void;
   addRecentFile: (folderId: string, item: RecentItem) => void;
   clearRecentFiles: (folderId: string) => void;
+  // T163n: Open folder in new window
+  openFolderInNewWindow: (folderPath: string) => Promise<boolean>;
 }
 
 export const useFoldersStore = create<FoldersState>((set, get) => ({
@@ -100,5 +102,25 @@ export const useFoldersStore = create<FoldersState>((set, get) => ({
     set((state) => ({
       folders: state.folders.map((f) => (f.id === folderId ? { ...f, recentFiles: [] } : f)),
     }));
+  },
+
+  // T163n: Open folder in new window
+  openFolderInNewWindow: async (folderPath) => {
+    try {
+      // Call IPC handler to create new window with folder path
+      const result = await window.electronAPI.window.createNew({
+        folderPath,
+      });
+
+      if (result.success) {
+        return true;
+      } else {
+        console.error('Failed to create new window:', result.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error opening folder in new window:', error);
+      return false;
+    }
   },
 }));

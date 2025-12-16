@@ -25,6 +25,7 @@ export interface ElectronAPI {
       basePath: string;
       relativePath: string;
     }) => Promise<any>;
+    exportToPDF: (payload: { filePath: string; htmlContent: string }) => Promise<any>;
   };
   settings: {
     load: (payload: any) => Promise<any>;
@@ -39,6 +40,15 @@ export interface ElectronAPI {
     maximize: () => Promise<any>;
     close: () => Promise<any>;
     isMaximized: () => Promise<any>;
+    createNew: (payload?: {
+      filePath?: string;
+      folderPath?: string;
+      tabState?: any;
+    }) => Promise<any>;
+  };
+  uiState: {
+    load: () => Promise<any>;
+    save: (payload: { uiState: any }) => Promise<any>;
   };
   on: (channel: string, callback: (event: any, ...args: any[]) => void) => void;
   // More APIs will be added in later phases
@@ -53,6 +63,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     watchFolder: (payload: any) => ipcRenderer.invoke('file:watchFolder', payload),
     stopWatching: (payload: any) => ipcRenderer.invoke('file:stopWatching', payload),
     resolvePath: (payload: any) => ipcRenderer.invoke('file:resolvePath', payload),
+    exportToPDF: (payload: any) => ipcRenderer.invoke('file:exportToPDF', payload),
   },
   settings: {
     load: (payload: any) => ipcRenderer.invoke('settings:load', payload),
@@ -67,6 +78,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     maximize: () => ipcRenderer.invoke('window:maximize'),
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    createNew: (payload: any) => ipcRenderer.invoke('window:createNew', payload),
+  },
+  uiState: {
+    load: () => ipcRenderer.invoke('uiState:load'),
+    save: (payload: any) => ipcRenderer.invoke('uiState:save', payload),
   },
   on: (channel: string, callback: (event: any, ...args: any[]) => void) => {
     // T109: Allow renderer to listen for file:changed events and menu commands
@@ -79,6 +95,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'menu:close-current',
       'menu:close-folder',
       'menu:close-all',
+      'window:initialState',
+      'app:initialState',
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, callback);

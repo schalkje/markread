@@ -1,13 +1,34 @@
 import { BrowserWindow, session } from 'electron';
 import { join } from 'path';
+import { saveUIState } from './ui-state-manager';
 
 // T009: Create BrowserWindow with security configuration (research.md Section 6)
 // T012: Implement Content Security Policy
 // T159k: Configure for custom title bar
-export function createWindow(): BrowserWindow {
+// T163a: Support for multiple BrowserWindow instances
+
+// Track all windows
+const windows = new Map<number, BrowserWindow>();
+
+// T166: Debounce helper for window bounds saving
+let saveWindowBoundsTimeout: NodeJS.Timeout | null = null;
+const SAVE_WINDOW_BOUNDS_DEBOUNCE_MS = 500;
+
+// T167: Window creation with optional bounds restoration
+export interface WindowOptions {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  isMaximized?: boolean;
+}
+
+export function createWindow(options?: WindowOptions): BrowserWindow {
   const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    x: options?.x,
+    y: options?.y,
+    width: options?.width || 1200,
+    height: options?.height || 800,
     minWidth: 800,
     minHeight: 600,
     frame: false, // T159k: Remove default frame for custom title bar
@@ -50,12 +71,72 @@ export function createWindow(): BrowserWindow {
 
   // Show window when ready
   win.once('ready-to-show', () => {
+    // T167: Restore maximized state if needed
+    if (options?.isMaximized) {
+      win.maximize();
+    }
     win.show();
   });
 
-  // T162: Save window bounds on resize/move (will implement in Phase 10)
-  // win.on('resize', debounce(() => saveWindowBounds(win.getBounds()), 500));
-  // win.on('move', debounce(() => saveWindowBounds(win.getBounds()), 500));
+  // T163a: Track this window
+  windows.set(win.id, win);
+
+  // T163a: Clean up when window is closed
+  win.on('closed', () => {
+    windows.delete(win.id);
+  });
+
+  // T166: Save window bounds on resize/move with 500ms debounce
+  const saveWindowBounds = () => {
+    if (saveWindowBoundsTimeout) {
+      clearTimeout(saveWindowBoundsTimeout);
+    }
+
+    saveWindowBoundsTimeout = setTimeout(() => {
+      const bounds = win.getBounds();
+      const isMaximized = win.isMaximized();
+
+      saveUIState({
+        windowBounds: {
+          x: bounds.x,
+          y: bounds.y,
+          width: bounds.width,
+          height: bounds.height,
+          isMaximized,
+        },
+      }).catch((error) => {
+        console.error('Failed to save window bounds:', error);
+      });
+    }, SAVE_WINDOW_BOUNDS_DEBOUNCE_MS);
+  };
+
+  win.on('resize', saveWindowBounds);
+  win.on('move', saveWindowBounds);
 
   return win;
+}
+
+// T163a: Get all windows
+export function getAllWindows(): BrowserWindow[] {
+  return Array.from(windows.values());
+}
+
+// T163a: Get window by ID
+export function getWindowById(id: number): BrowserWindow | undefined {
+  return windows.get(id);
+}
+
+// T163a: Get main window (first created window)
+export function getMainWindow(): BrowserWindow | undefined {
+  const allWindows = Array.from(windows.values());
+  return allWindows.length > 0 ? allWindows[0] : undefined;
+}
+
+// T163a: Close all windows
+export function closeAllWindows(): void {
+  windows.forEach((win) => {
+    if (!win.isDestroyed()) {
+      win.close();
+    }
+  });
 }

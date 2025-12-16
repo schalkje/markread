@@ -408,7 +408,6 @@ const AppLayout: React.FC = () => {
         {showSidebar && (
           <div className="sidebar">
             <div className="sidebar-header">
-              <h2>MarkRead</h2>
             {/* T111-T113: Folder Switcher */}
             {folders.length > 0 && <FolderSwitcher />}
           </div>
@@ -659,14 +658,6 @@ const AppLayout: React.FC = () => {
         )}
 
         <div className="main-content">
-          <div className="toolbar">
-          <FileOpener onFileOpened={handleFileOpened} />
-          <FolderOpener onFolderOpened={handleFolderOpened} />
-          <button onClick={toggleSidebar} type="button">
-            Toggle Sidebar
-          </button>
-        </div>
-
         {/* T060, T063a-T063o: TabBar with enhanced features */}
         <TabBar
           onTabClick={(tabId) => {

@@ -51,6 +51,15 @@ interface TabsState {
   // T063c: Tab duplication
   duplicateTab: (tabId: string) => Tab | undefined;
 
+  // T163f: Move tab to new window
+  moveTabToNewWindow: (tabId: string) => Promise<boolean>;
+
+  // T163i: Open file in new tab
+  openFileInNewTab: (filePath: string, folderId?: string) => Promise<Tab | undefined>;
+
+  // T163j: Open file in new window
+  openFileInNewWindow: (filePath: string, folderId?: string) => Promise<boolean>;
+
   // T063l: Convert direct file tab to folder-connected tab
   convertDirectFileToFolder: (tabId: string, folderPath: string) => void;
 }
@@ -339,6 +348,83 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     };
 
     return addTab(duplicateTab);
+  },
+
+  // T163f: Move tab to new window
+  moveTabToNewWindow: async (tabId) => {
+    const { tabs, removeTab } = get();
+    const tab = tabs.get(tabId);
+
+    if (!tab) {
+      console.error(`Cannot move tab: tab ${tabId} not found`);
+      return false;
+    }
+
+    try {
+      // Call IPC handler to create new window with tab state
+      const result = await window.electronAPI.window.createNew({
+        tabState: tab,
+      });
+
+      if (result.success) {
+        // Remove tab from current window
+        removeTab(tabId);
+        return true;
+      } else {
+        console.error('Failed to create new window:', result.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error moving tab to new window:', error);
+      return false;
+    }
+  },
+
+  // T163i: Open file in new tab
+  openFileInNewTab: async (filePath, folderId) => {
+    const { addTab } = get();
+
+    // Get file name from path
+    const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
+    const title = fileName.replace(/\.md$/i, '');
+
+    // Create new tab
+    const newTab: Tab = {
+      id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      filePath,
+      title,
+      scrollPosition: 0,
+      zoomLevel: 100,
+      searchState: null,
+      navigationHistory: [],
+      createdAt: Date.now(),
+      folderId: folderId || null,
+      isDirectFile: !folderId,
+      isDirty: false,
+    };
+
+    return addTab(newTab);
+  },
+
+  // T163j: Open file in new window
+  openFileInNewWindow: async (filePath, folderId) => {
+    try {
+      // Call IPC handler to create new window with file path
+      const result = await window.electronAPI.window.createNew({
+        filePath,
+        folderPath: folderId,
+      });
+
+      if (result.success) {
+        return true;
+      } else {
+        console.error('Failed to create new window:', result.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error opening file in new window:', error);
+      return false;
+    }
   },
 
   // T063l: Convert direct file tab to folder-connected tab

@@ -3,6 +3,8 @@ import { readFile, stat, readdir } from 'fs/promises';
 import * as path from 'path';
 import { z } from 'zod';
 import { startWatching, stopWatching } from './file-watcher';
+import { createWindow } from './window-manager';
+import { loadUIState, saveUIState } from './ui-state-manager';
 
 // T011: IPC handler registration system with Zod validation (research.md Section 6)
 
@@ -411,6 +413,151 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
       return {
         success: true,
         isMaximized: mainWindow.isMaximized(),
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // T163b: window:createNew IPC handler for spawning new windows
+  ipcMain.handle('window:createNew', async (_event, payload) => {
+    try {
+      const CreateNewWindowSchema = z.object({
+        filePath: z.string().optional(),
+        folderPath: z.string().optional(),
+        tabState: z.any().optional(), // Tab state to transfer
+      });
+
+      const { filePath, folderPath, tabState } = validatePayload(
+        CreateNewWindowSchema,
+        payload
+      );
+
+      // Create new window
+      const newWindow = createWindow();
+
+      // Wait for window to be ready
+      await new Promise<void>((resolve) => {
+        newWindow.once('ready-to-show', () => {
+          resolve();
+        });
+      });
+
+      // If initial state is provided, send it to the new window
+      if (filePath || folderPath || tabState) {
+        newWindow.webContents.send('window:initialState', {
+          filePath,
+          folderPath,
+          tabState,
+        });
+      }
+
+      return {
+        success: true,
+        windowId: newWindow.id,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // T165: uiState:load IPC handler
+  ipcMain.handle('uiState:load', async (_event, _payload) => {
+    try {
+      const uiState = await loadUIState();
+      return {
+        success: true,
+        uiState,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // T165: uiState:save IPC handler
+  ipcMain.handle('uiState:save', async (_event, payload) => {
+    try {
+      const SaveUIStateSchema = z.object({
+        uiState: z.any(), // Partial<UIState>
+      });
+
+      const { uiState } = validatePayload(SaveUIStateSchema, payload);
+
+      await saveUIState(uiState);
+
+      return {
+        success: true,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // T173: PDF export via Chromium print-to-PDF
+  ipcMain.handle('file:exportToPDF', async (_event, payload) => {
+    try {
+      const ExportToPDFSchema = z.object({
+        filePath: z.string().min(1),
+        htmlContent: z.string().min(1),
+      });
+
+      const { filePath, htmlContent } = validatePayload(ExportToPDFSchema, payload);
+
+      // Create a hidden window for PDF generation
+      const pdfWindow = new BrowserWindow({
+        show: false,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+        },
+      });
+
+      // Load the HTML content
+      await pdfWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+
+      // Wait for content to be ready
+      await new Promise<void>((resolve) => {
+        pdfWindow.webContents.once('did-finish-load', () => {
+          // Give time for any async rendering (diagrams, etc)
+          setTimeout(() => resolve(), 500);
+        });
+      });
+
+      // Generate PDF
+      const pdfData = await pdfWindow.webContents.printToPDF({
+        margins: {
+          top: 0.5,
+          right: 0.5,
+          bottom: 0.5,
+          left: 0.5,
+        },
+        printBackground: true,
+        landscape: false,
+        pageSize: 'A4',
+      });
+
+      // Save PDF to disk
+      const fs = await import('fs/promises');
+      await fs.writeFile(filePath, pdfData);
+
+      // Close the hidden window
+      pdfWindow.close();
+
+      return {
+        success: true,
+        filePath,
       };
     } catch (error: any) {
       return {

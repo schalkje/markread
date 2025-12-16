@@ -42,10 +42,104 @@ function _interopNamespaceDefault(e) {
   return Object.freeze(n);
 }
 const path__namespace = /* @__PURE__ */ _interopNamespaceDefault(path);
-function createWindow() {
+function getUIStatePath() {
+  const userDataPath = electron.app.getPath("userData");
+  return path.join(userDataPath, "ui-state.json");
+}
+function getDefaultUIState() {
+  return {
+    version: "1.0.0",
+    windowBounds: {
+      x: 100,
+      y: 100,
+      width: 1200,
+      height: 800,
+      isMaximized: false
+    },
+    sidebarWidth: 250,
+    activeFolder: null,
+    folders: [],
+    recentItems: [],
+    splitLayouts: {}
+  };
+}
+async function loadUIState() {
+  try {
+    const filePath = getUIStatePath();
+    const content = await promises.readFile(filePath, "utf-8");
+    const state = JSON.parse(content);
+    return {
+      ...getDefaultUIState(),
+      ...state
+    };
+  } catch (error) {
+    console.log("UI state file not found or corrupted, using defaults:", error.message);
+    return getDefaultUIState();
+  }
+}
+let saveTimeout = null;
+const SAVE_DEBOUNCE_MS = 500;
+async function saveUIState(state) {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+  return new Promise((resolve, reject) => {
+    saveTimeout = setTimeout(async () => {
+      try {
+        const filePath = getUIStatePath();
+        const dir = path.dirname(filePath);
+        await promises.mkdir(dir, { recursive: true });
+        let currentState;
+        try {
+          currentState = await loadUIState();
+        } catch {
+          currentState = getDefaultUIState();
+        }
+        const mergedState = {
+          ...currentState,
+          ...state
+        };
+        await promises.writeFile(filePath, JSON.stringify(mergedState, null, 2), "utf-8");
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    }, SAVE_DEBOUNCE_MS);
+  });
+}
+async function saveUIStateImmediate(state) {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  try {
+    const filePath = getUIStatePath();
+    const dir = path.dirname(filePath);
+    await promises.mkdir(dir, { recursive: true });
+    let currentState;
+    try {
+      currentState = await loadUIState();
+    } catch {
+      currentState = getDefaultUIState();
+    }
+    const mergedState = {
+      ...currentState,
+      ...state
+    };
+    await promises.writeFile(filePath, JSON.stringify(mergedState, null, 2), "utf-8");
+  } catch (error) {
+    console.error("Failed to save UI state:", error);
+  }
+}
+const windows = /* @__PURE__ */ new Map();
+let saveWindowBoundsTimeout = null;
+const SAVE_WINDOW_BOUNDS_DEBOUNCE_MS = 500;
+function createWindow(options) {
   const win = new electron.BrowserWindow({
-    width: 1200,
-    height: 800,
+    x: options?.x,
+    y: options?.y,
+    width: options?.width || 1200,
+    height: options?.height || 800,
     minWidth: 800,
     minHeight: 600,
     frame: false,
@@ -92,8 +186,37 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
   win.once("ready-to-show", () => {
+    if (options?.isMaximized) {
+      win.maximize();
+    }
     win.show();
   });
+  windows.set(win.id, win);
+  win.on("closed", () => {
+    windows.delete(win.id);
+  });
+  const saveWindowBounds = () => {
+    if (saveWindowBoundsTimeout) {
+      clearTimeout(saveWindowBoundsTimeout);
+    }
+    saveWindowBoundsTimeout = setTimeout(() => {
+      const bounds = win.getBounds();
+      const isMaximized = win.isMaximized();
+      saveUIState({
+        windowBounds: {
+          x: bounds.x,
+          y: bounds.y,
+          width: bounds.width,
+          height: bounds.height,
+          isMaximized
+        }
+      }).catch((error) => {
+        console.error("Failed to save window bounds:", error);
+      });
+    }, SAVE_WINDOW_BOUNDS_DEBOUNCE_MS);
+  };
+  win.on("resize", saveWindowBounds);
+  win.on("move", saveWindowBounds);
   return win;
 }
 let chokidar = null;
@@ -521,6 +644,119 @@ function registerIpcHandlers(mainWindow2) {
       };
     }
   });
+  electron.ipcMain.handle("window:createNew", async (_event, payload) => {
+    try {
+      const CreateNewWindowSchema = zod.z.object({
+        filePath: zod.z.string().optional(),
+        folderPath: zod.z.string().optional(),
+        tabState: zod.z.any().optional()
+        // Tab state to transfer
+      });
+      const { filePath, folderPath, tabState } = validatePayload(
+        CreateNewWindowSchema,
+        payload
+      );
+      const newWindow = createWindow();
+      await new Promise((resolve) => {
+        newWindow.once("ready-to-show", () => {
+          resolve();
+        });
+      });
+      if (filePath || folderPath || tabState) {
+        newWindow.webContents.send("window:initialState", {
+          filePath,
+          folderPath,
+          tabState
+        });
+      }
+      return {
+        success: true,
+        windowId: newWindow.id
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("uiState:load", async (_event, _payload) => {
+    try {
+      const uiState = await loadUIState();
+      return {
+        success: true,
+        uiState
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("uiState:save", async (_event, payload) => {
+    try {
+      const SaveUIStateSchema = zod.z.object({
+        uiState: zod.z.any()
+        // Partial<UIState>
+      });
+      const { uiState } = validatePayload(SaveUIStateSchema, payload);
+      await saveUIState(uiState);
+      return {
+        success: true
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("file:exportToPDF", async (_event, payload) => {
+    try {
+      const ExportToPDFSchema = zod.z.object({
+        filePath: zod.z.string().min(1),
+        htmlContent: zod.z.string().min(1)
+      });
+      const { filePath, htmlContent } = validatePayload(ExportToPDFSchema, payload);
+      const pdfWindow = new electron.BrowserWindow({
+        show: false,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true
+        }
+      });
+      await pdfWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+      await new Promise((resolve) => {
+        pdfWindow.webContents.once("did-finish-load", () => {
+          setTimeout(() => resolve(), 500);
+        });
+      });
+      const pdfData = await pdfWindow.webContents.printToPDF({
+        margins: {
+          top: 0.5,
+          right: 0.5,
+          bottom: 0.5,
+          left: 0.5
+        },
+        printBackground: true,
+        landscape: false,
+        pageSize: "A4"
+      });
+      const fs = await import("fs/promises");
+      await fs.writeFile(filePath, pdfData);
+      pdfWindow.close();
+      return {
+        success: true,
+        filePath
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
   console.log("IPC handlers registered");
 }
 const defaultConfig = {
@@ -690,8 +926,23 @@ if (!gotTheLock) {
       mainWindow.focus();
     }
   });
-  electron.app.whenReady().then(() => {
-    mainWindow = createWindow();
+  electron.app.whenReady().then(async () => {
+    const uiState = await loadUIState();
+    mainWindow = createWindow({
+      x: uiState.windowBounds.x,
+      y: uiState.windowBounds.y,
+      width: uiState.windowBounds.width,
+      height: uiState.windowBounds.height,
+      isMaximized: uiState.windowBounds.isMaximized
+    });
+    mainWindow.webContents.once("did-finish-load", () => {
+      mainWindow?.webContents.send("app:initialState", {
+        folders: uiState.folders,
+        activeFolder: uiState.activeFolder,
+        recentItems: uiState.recentItems,
+        splitLayouts: uiState.splitLayouts
+      });
+    });
     registerIpcHandlers(mainWindow);
     createApplicationMenu(mainWindow);
     electron.app.on("activate", () => {
@@ -708,4 +959,17 @@ electron.app.on("window-all-closed", () => {
 });
 electron.app.on("before-quit", async () => {
   await stopAllWatchers();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    const bounds = mainWindow.getBounds();
+    const isMaximized = mainWindow.isMaximized();
+    await saveUIStateImmediate({
+      windowBounds: {
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+        isMaximized
+      }
+    });
+  }
 });

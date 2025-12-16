@@ -8,7 +8,8 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
     getFolderTree: (payload) => electron.ipcRenderer.invoke("file:getFolderTree", payload),
     watchFolder: (payload) => electron.ipcRenderer.invoke("file:watchFolder", payload),
     stopWatching: (payload) => electron.ipcRenderer.invoke("file:stopWatching", payload),
-    resolvePath: (payload) => electron.ipcRenderer.invoke("file:resolvePath", payload)
+    resolvePath: (payload) => electron.ipcRenderer.invoke("file:resolvePath", payload),
+    exportToPDF: (payload) => electron.ipcRenderer.invoke("file:exportToPDF", payload)
   },
   settings: {
     load: (payload) => electron.ipcRenderer.invoke("settings:load", payload),
@@ -22,7 +23,12 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
     minimize: () => electron.ipcRenderer.invoke("window:minimize"),
     maximize: () => electron.ipcRenderer.invoke("window:maximize"),
     close: () => electron.ipcRenderer.invoke("window:close"),
-    isMaximized: () => electron.ipcRenderer.invoke("window:isMaximized")
+    isMaximized: () => electron.ipcRenderer.invoke("window:isMaximized"),
+    createNew: (payload) => electron.ipcRenderer.invoke("window:createNew", payload)
+  },
+  uiState: {
+    load: () => electron.ipcRenderer.invoke("uiState:load"),
+    save: (payload) => electron.ipcRenderer.invoke("uiState:save", payload)
   },
   on: (channel, callback) => {
     const validChannels = [
@@ -33,7 +39,9 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
       "menu:open-folder",
       "menu:close-current",
       "menu:close-folder",
-      "menu:close-all"
+      "menu:close-all",
+      "window:initialState",
+      "app:initialState"
     ];
     if (validChannels.includes(channel)) {
       electron.ipcRenderer.on(channel, callback);

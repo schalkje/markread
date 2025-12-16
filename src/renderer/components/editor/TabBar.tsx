@@ -36,6 +36,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose }) => {
   const removeTab = useTabsStore((state) => state.removeTab);
   const reorderTab = useTabsStore((state) => state.reorderTab);
   const duplicateTab = useTabsStore((state) => state.duplicateTab);
+  const moveTabToNewWindow = useTabsStore((state) => state.moveTabToNewWindow);
   const tabCount = useTabsStore((state) => state.getTabCount());
   const canAddTab = useTabsStore((state) => state.canAddTab());
 
@@ -124,9 +125,12 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose }) => {
     setContextMenu(null);
   };
 
-  const handleContextMenuMoveToNewWindow = (tabId: string) => {
-    // T163f: This will be implemented with multi-window support
-    console.log('Move to new window:', tabId);
+  const handleContextMenuMoveToNewWindow = async (tabId: string) => {
+    // T163f: Move tab to new window
+    const success = await moveTabToNewWindow(tabId);
+    if (!success) {
+      console.error('Failed to move tab to new window');
+    }
     setContextMenu(null);
   };
 

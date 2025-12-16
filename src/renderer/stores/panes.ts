@@ -35,6 +35,9 @@ interface PanesState {
   // Layout type helpers
   updateLayoutType: () => void;
   getRootPaneId: () => string;
+
+  // T168: Save split layout per folder
+  saveSplitLayout: (folderId: string) => Promise<void>;
 }
 
 // Helper function to find pane in tree
@@ -255,5 +258,32 @@ export const usePanesStore = create<PanesState>((set, get) => ({
   getRootPaneId: () => {
     const { layout } = get();
     return layout.rootPane.id;
+  },
+
+  // T168: Save split layout per folder
+  saveSplitLayout: async (folderId) => {
+    const { layout } = get();
+
+    try {
+      // Load current UI state
+      const result = await window.electronAPI.uiState.load();
+
+      if (result.success && result.uiState) {
+        // Update split layouts for this folder
+        const splitLayouts = {
+          ...result.uiState.splitLayouts,
+          [folderId]: layout,
+        };
+
+        // Save back to UI state
+        await window.electronAPI.uiState.save({
+          uiState: {
+            splitLayouts,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Failed to save split layout:', error);
+    }
   },
 }));
