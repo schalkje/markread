@@ -71,6 +71,93 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     setHoveredLinkRef.current = setHoveredLink;
   }, [setHoveredLink]);
 
+  // Event delegation for link hover and click handling
+  useEffect(() => {
+    const container = contentRef.current;
+    if (!container) return;
+
+    // Handle mouseover for link preview (using event delegation)
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a[href]');
+      if (link) {
+        const href = link.getAttribute('href');
+        if (href) {
+          setHoveredLinkRef.current(href);
+        }
+      }
+    };
+
+    // Handle mouseout for link preview
+    const handleMouseOut = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a[href]');
+      if (link) {
+        setHoveredLinkRef.current(null);
+      }
+    };
+
+    // Handle click for link navigation (using event delegation)
+    const handleClick = async (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a[href]');
+      if (!link) return;
+
+      const href = link.getAttribute('href');
+      if (!href) return;
+
+      e.preventDefault();
+
+      // Handle internal links (same-document anchors)
+      if (href.startsWith('#')) {
+        const targetElement = container.querySelector(href);
+        targetElement?.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+
+      // Handle external links: open in default browser
+      if (href.startsWith('http://') || href.startsWith('https://')) {
+        try {
+          await window.electronAPI?.shell?.openExternal(href);
+        } catch (err) {
+          console.error('Failed to open external link:', err);
+        }
+        return;
+      }
+
+      // Handle relative file links
+      if (filePath && onFileLink) {
+        try {
+          const result = await window.electronAPI?.file?.resolvePath({
+            basePath: filePath,
+            relativePath: href,
+          });
+
+          if (result?.success && result.absolutePath) {
+            console.log(`Opening relative link: ${href} -> ${result.absolutePath}`);
+            onFileLink(result.absolutePath);
+          } else {
+            console.warn(`Failed to resolve link: ${href}`, result?.error);
+          }
+        } catch (err) {
+          console.error(`Error resolving link: ${href}`, err);
+        }
+      }
+    };
+
+    // Add event listeners to container (event delegation)
+    container.addEventListener('mouseover', handleMouseOver);
+    container.addEventListener('mouseout', handleMouseOut);
+    container.addEventListener('click', handleClick);
+
+    // Cleanup
+    return () => {
+      container.removeEventListener('mouseover', handleMouseOver);
+      container.removeEventListener('mouseout', handleMouseOut);
+      container.removeEventListener('click', handleClick);
+    };
+  }, [filePath, onFileLink]);
+
   // T047: Apply zoom with CSS transform and preserve scroll position
   useEffect(() => {
     if (!contentRef.current || !viewerRef.current) return;
@@ -151,9 +238,6 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
         // Step 5: Add click handlers for checkboxes (task lists)
         addTaskListHandlers(contentRef.current);
-
-        // Step 6: Add link handlers for internal navigation
-        addLinkHandlers(contentRef.current);
 
         if (!isCancelled) {
           setIsRendering(false);
@@ -263,76 +347,6 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     });
   };
 
-  /**
-   * Add handlers for internal links (same-document anchors), relative file links, and link preview
-   */
-  const addLinkHandlers = (container: HTMLElement) => {
-    // Get all links
-    const allLinks = container.querySelectorAll('a[href]');
-
-    allLinks.forEach((link) => {
-      const href = link.getAttribute('href');
-      if (!href) return;
-
-      // Add hover handlers for link preview (using ref to ensure current state setter)
-      link.addEventListener('mouseenter', () => {
-        setHoveredLinkRef.current(href);
-      });
-
-      link.addEventListener('mouseleave', () => {
-        setHoveredLinkRef.current(null);
-      });
-
-      // Handle internal links (same-document anchors)
-      if (href.startsWith('#')) {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          const target = container.querySelector(href);
-          target?.scrollIntoView({ behavior: 'smooth' });
-        });
-        return;
-      }
-
-      // Handle external links: ensure they open in default browser (T033)
-      if (href.startsWith('http://') || href.startsWith('https://')) {
-        link.setAttribute('rel', 'noopener noreferrer');
-        link.addEventListener('click', async (e) => {
-          e.preventDefault();
-          // Open in system default browser via Electron shell
-          try {
-            await window.electronAPI?.shell?.openExternal(href);
-          } catch (err) {
-            console.error('Failed to open external link:', err);
-          }
-        });
-        return;
-      }
-
-      // Handle relative file links (markdown files, etc.)
-      if (filePath && onFileLink) {
-        link.addEventListener('click', async (e) => {
-          e.preventDefault();
-
-          try {
-            // Resolve relative path using IPC
-            const result = await window.electronAPI?.file?.resolvePath({
-              basePath: filePath,
-              relativePath: href,
-            });
-
-            if (result?.success && result.absolutePath) {
-              console.log(`Opening relative link: ${href} -> ${result.absolutePath}`);
-              onFileLink(result.absolutePath);
-            } else {
-              console.warn(`Failed to resolve link: ${href}`, result?.error);
-            }
-          } catch (err) {
-            console.error(`Error resolving link: ${href}`, err);
-          }
-        });
-      }
-    });
-  };
 
   // T040: Loading state
   if (isLoading || isRendering) {
