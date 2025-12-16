@@ -65,6 +65,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Link preview state
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
 
+  // Ref to ensure event listeners always have access to current state setter
+  const setHoveredLinkRef = useRef(setHoveredLink);
+  useEffect(() => {
+    setHoveredLinkRef.current = setHoveredLink;
+  }, [setHoveredLink]);
+
   // T047: Apply zoom with CSS transform and preserve scroll position
   useEffect(() => {
     if (!contentRef.current || !viewerRef.current) return;
@@ -268,13 +274,13 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       const href = link.getAttribute('href');
       if (!href) return;
 
-      // Add hover handlers for link preview
+      // Add hover handlers for link preview (using ref to ensure current state setter)
       link.addEventListener('mouseenter', () => {
-        setHoveredLink(href);
+        setHoveredLinkRef.current(href);
       });
 
       link.addEventListener('mouseleave', () => {
-        setHoveredLink(null);
+        setHoveredLinkRef.current(null);
       });
 
       // Handle internal links (same-document anchors)

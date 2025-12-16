@@ -100,4 +100,5 @@ markdown-it-emoji
 Use highlight.js for highlighting code
 
 ### Extend with
+
 https://github.com/arronhunt/highlightjs-copy
