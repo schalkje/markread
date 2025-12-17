@@ -76,8 +76,17 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Track zoom target point for zoom-to-cursor/center behavior
   const zoomTargetRef = useRef<{ x: number; y: number; prevZoom: number } | null>(null);
 
+  // Track current zoom level without triggering re-renders (for smooth wheel zoom)
+  const currentZoomRef = useRef<number>(zoomLevel);
+  const zoomUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Link preview state
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
+
+  // Sync currentZoomRef with zoomLevel prop
+  useEffect(() => {
+    currentZoomRef.current = zoomLevel;
+  }, [zoomLevel]);
 
   // Ref to ensure event listeners always have access to current state setter
   const setHoveredLinkRef = useRef(setHoveredLink);
@@ -251,6 +260,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const viewer = viewerRef.current;
     const content = contentRef.current;
 
+    // Skip if zoom was already applied synchronously (from wheel/touch handler)
+    if (currentZoomRef.current === zoomLevel) {
+      return;
+    }
+
     // Capture scroll position BEFORE applying transform
     const currentScrollLeft = viewer.scrollLeft;
     const currentScrollTop = viewer.scrollTop;
@@ -261,6 +275,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const zoomFactor = zoomLevel / 100;
     content.style.transform = `scale(${zoomFactor})`;
     content.style.transformOrigin = 'top left';
+
+    // Update ref to match
+    currentZoomRef.current = zoomLevel;
 
     // Adjust scroll position after transform
     requestAnimationFrame(() => {
@@ -431,35 +448,66 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     onScrollChange?.(scrollTop);
   };
 
-  // T051i: Mouse wheel zoom with Ctrl+Scroll
+  // T051i: Mouse wheel zoom with Ctrl+Scroll (smooth, synchronous)
   useEffect(() => {
     const container = viewerRef.current;
-    if (!container || !onZoomChange) return;
+    const content = contentRef.current;
+    if (!container || !content || !onZoomChange) return;
 
     const handleWheel = (e: WheelEvent) => {
       // Ctrl+Scroll (without Alt) = Content zoom
       if (e.ctrlKey && !e.altKey) {
         e.preventDefault();
 
+        // Get current zoom from ref (not prop, to avoid re-render delays)
+        const prevZoom = currentZoomRef.current;
+
         // Calculate zoom delta (10% per notch)
         const delta = e.deltaY > 0 ? -10 : 10;
-        const newZoom = Math.max(10, Math.min(2000, zoomLevel + delta));
+        const newZoom = Math.max(10, Math.min(2000, prevZoom + delta));
 
-        // Store zoom target for zoom-to-cursor behavior
-        zoomTargetRef.current = {
-          x: e.clientX,
-          y: e.clientY,
-          prevZoom: zoomLevel,
-        };
+        // No change, skip
+        if (newZoom === prevZoom) return;
 
-        // Update zoom (scroll adjustment will happen in useEffect)
-        onZoomChange(newZoom);
+        // Get cursor position relative to container
+        const rect = container.getBoundingClientRect();
+        const cursorX = e.clientX - rect.left;
+        const cursorY = e.clientY - rect.top;
+
+        // Calculate the point in content coordinates before zoom
+        const beforeX = (cursorX + container.scrollLeft) / (prevZoom / 100);
+        const beforeY = (cursorY + container.scrollTop) / (prevZoom / 100);
+
+        // Apply zoom transform synchronously (no waiting for React)
+        currentZoomRef.current = newZoom;
+        const zoomFactor = newZoom / 100;
+        content.style.transform = `scale(${zoomFactor})`;
+
+        // Adjust scroll position synchronously to keep cursor point stable
+        const afterX = beforeX * (newZoom / 100);
+        const afterY = beforeY * (newZoom / 100);
+        container.scrollLeft = afterX - cursorX;
+        container.scrollTop = afterY - cursorY;
+
+        // Debounce the state update to reduce re-renders
+        if (zoomUpdateTimeoutRef.current) {
+          clearTimeout(zoomUpdateTimeoutRef.current);
+        }
+        zoomUpdateTimeoutRef.current = setTimeout(() => {
+          onZoomChange(newZoom);
+          zoomUpdateTimeoutRef.current = null;
+        }, 100);
       }
     };
 
     container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
-  }, [zoomLevel, onZoomChange]);
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+      if (zoomUpdateTimeoutRef.current) {
+        clearTimeout(zoomUpdateTimeoutRef.current);
+      }
+    };
+  }, [onZoomChange]);
 
   // T051j: Touch pinch-to-zoom
   useEffect(() => {
