@@ -25,7 +25,11 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
     maximize: () => electron.ipcRenderer.invoke("window:maximize"),
     close: () => electron.ipcRenderer.invoke("window:close"),
     isMaximized: () => electron.ipcRenderer.invoke("window:isMaximized"),
-    createNew: (payload) => electron.ipcRenderer.invoke("window:createNew", payload)
+    createNew: (payload) => electron.ipcRenderer.invoke("window:createNew", payload),
+    setGlobalZoom: (payload) => electron.ipcRenderer.invoke("window:setGlobalZoom", payload),
+    // T051b
+    getGlobalZoom: () => electron.ipcRenderer.invoke("window:getGlobalZoom")
+    // T051b
   },
   uiState: {
     load: () => electron.ipcRenderer.invoke("uiState:load"),
@@ -42,7 +46,17 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
       "menu:close-folder",
       "menu:close-all",
       "window:initialState",
-      "app:initialState"
+      "app:initialState",
+      // T051k-view: Content zoom menu events
+      "menu:content-zoom-in",
+      "menu:content-zoom-out",
+      "menu:content-zoom-reset",
+      "menu:content-zoom-preset",
+      // T051k-view: Global zoom menu events
+      "menu:global-zoom-in",
+      "menu:global-zoom-out",
+      "menu:global-zoom-reset",
+      "menu:global-zoom-preset"
     ];
     if (validChannels.includes(channel)) {
       electron.ipcRenderer.on(channel, callback);

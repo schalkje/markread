@@ -31,7 +31,8 @@ const AppLayout: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { tabs } = useTabsStore();
+  const { tabs, activeTabId, updateTabZoomLevel } = useTabsStore();
+  const activeTab = activeTabId ? tabs.get(activeTabId) : null;
   const { folders, activeFolderId } = useFoldersStore();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
 
@@ -136,12 +137,84 @@ const AppLayout: React.FC = () => {
       setCurrentContent('');
     };
 
+    // T051k-view: Content zoom menu handlers
+    const handleContentZoomIn = () => {
+      const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+      if (activeTabId) {
+        const tab = tabs.get(activeTabId);
+        if (tab) {
+          const newZoom = Math.min(2000, (tab.zoomLevel || 100) + 10);
+          updateTabZoomLevel(activeTabId, newZoom);
+        }
+      }
+    };
+
+    const handleContentZoomOut = () => {
+      const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+      if (activeTabId) {
+        const tab = tabs.get(activeTabId);
+        if (tab) {
+          const newZoom = Math.max(10, (tab.zoomLevel || 100) - 10);
+          updateTabZoomLevel(activeTabId, newZoom);
+        }
+      }
+    };
+
+    const handleContentZoomReset = () => {
+      const { activeTabId, updateTabZoomLevel } = useTabsStore.getState();
+      if (activeTabId) {
+        updateTabZoomLevel(activeTabId, 100);
+      }
+    };
+
+    const handleContentZoomPreset = (_event: any, zoom: number) => {
+      const { activeTabId, updateTabZoomLevel } = useTabsStore.getState();
+      if (activeTabId) {
+        updateTabZoomLevel(activeTabId, zoom);
+      }
+    };
+
+    // T051k-view: Global zoom menu handlers
+    const handleGlobalZoomIn = async () => {
+      const { useUIStore } = await import('../stores/ui');
+      const { incrementGlobalZoom } = useUIStore.getState();
+      incrementGlobalZoom(10);
+    };
+
+    const handleGlobalZoomOut = async () => {
+      const { useUIStore } = await import('../stores/ui');
+      const { incrementGlobalZoom } = useUIStore.getState();
+      incrementGlobalZoom(-10);
+    };
+
+    const handleGlobalZoomReset = async () => {
+      const { useUIStore } = await import('../stores/ui');
+      const { resetGlobalZoom } = useUIStore.getState();
+      resetGlobalZoom();
+    };
+
+    const handleGlobalZoomPreset = async (_event: any, zoom: number) => {
+      const { useUIStore } = await import('../stores/ui');
+      const { setGlobalZoom } = useUIStore.getState();
+      setGlobalZoom(zoom);
+    };
+
     // Register event listeners
     window.electronAPI?.on('menu:open-file', handleMenuOpenFile);
     window.electronAPI?.on('menu:open-folder', handleMenuOpenFolder);
     window.electronAPI?.on('menu:close-current', handleMenuCloseCurrent);
     window.electronAPI?.on('menu:close-folder', handleMenuCloseFolder);
     window.electronAPI?.on('menu:close-all', handleMenuCloseAll);
+
+    // T051k-view: Register zoom menu event listeners
+    window.electronAPI?.on('menu:content-zoom-in', handleContentZoomIn);
+    window.electronAPI?.on('menu:content-zoom-out', handleContentZoomOut);
+    window.electronAPI?.on('menu:content-zoom-reset', handleContentZoomReset);
+    window.electronAPI?.on('menu:content-zoom-preset', handleContentZoomPreset);
+    window.electronAPI?.on('menu:global-zoom-in', handleGlobalZoomIn);
+    window.electronAPI?.on('menu:global-zoom-out', handleGlobalZoomOut);
+    window.electronAPI?.on('menu:global-zoom-reset', handleGlobalZoomReset);
+    window.electronAPI?.on('menu:global-zoom-preset', handleGlobalZoomPreset);
 
     // Cleanup (note: electron IPC doesn't have removeListener in this simple implementation)
     return () => {
@@ -951,8 +1024,14 @@ const AppLayout: React.FC = () => {
               filePath={currentFile}
               isLoading={isLoading}
               error={error}
+              zoomLevel={activeTab?.zoomLevel || 100}
               onRenderComplete={handleRenderComplete}
               onFileLink={handleLinkClick}
+              onZoomChange={(newZoom) => {
+                if (activeTabId) {
+                  updateTabZoomLevel(activeTabId, newZoom);
+                }
+              }}
             />
           )}
         </div>

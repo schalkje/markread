@@ -148,6 +148,7 @@ Based on [plan.md](plan.md) Electron desktop application structure:
 - [x] T049 [P] [US2] Add grab cursor styling when panning
 - [x] T050 [US2] Optimize scroll performance with requestAnimationFrame in src/renderer/services/scroll-optimizer.ts per [research.md](research.md) Section 5
 - [ ] T051 [P] [US2] Add touch gesture support for pinch-zoom and pan
+- [ ] T051-comprehensive [US2] Implement comprehensive two-level zoom and pan system per [zoom-pan-design.md](zoom-pan-design.md) (21 tasks: global zoom, enhanced content zoom with mouse wheel/touch, enhanced panning, View menu integration, E2E tests, documentation)
 
 ### Navigation
 

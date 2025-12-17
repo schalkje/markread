@@ -10,6 +10,9 @@ import { saveUIState } from './ui-state-manager';
 // Track all windows
 const windows = new Map<number, BrowserWindow>();
 
+// T051c: Track zoom levels per window (50%-300% = 0.5-3.0 zoom factor)
+const windowZoomLevels = new Map<number, number>();
+
 // T166: Debounce helper for window bounds saving
 let saveWindowBoundsTimeout: NodeJS.Timeout | null = null;
 const SAVE_WINDOW_BOUNDS_DEBOUNCE_MS = 500;
@@ -139,4 +142,53 @@ export function closeAllWindows(): void {
       win.close();
     }
   });
+}
+
+// ============================================================================
+// T051c: Global Zoom Management
+// ============================================================================
+
+/**
+ * Set global zoom level for a window
+ * @param windowId - The BrowserWindow ID
+ * @param zoomFactor - Zoom factor (0.5-3.0 for 50%-300%)
+ * @returns The applied zoom factor
+ */
+export function setGlobalZoom(windowId: number, zoomFactor: number): number {
+  const window = windows.get(windowId);
+  if (!window || window.isDestroyed()) {
+    console.warn(`Window ${windowId} not found or destroyed`);
+    return 1.0;
+  }
+
+  // Clamp to valid range (0.5-3.0)
+  const clampedZoom = Math.max(0.5, Math.min(3.0, zoomFactor));
+
+  // Apply zoom to window's web contents
+  window.webContents.setZoomFactor(clampedZoom);
+
+  // Store zoom level for this window
+  windowZoomLevels.set(windowId, clampedZoom);
+
+  console.log(`Set global zoom for window ${windowId}: ${Math.round(clampedZoom * 100)}%`);
+
+  return clampedZoom;
+}
+
+/**
+ * Get global zoom level for a window
+ * @param windowId - The BrowserWindow ID
+ * @returns The current zoom factor (defaults to 1.0)
+ */
+export function getGlobalZoom(windowId: number): number {
+  return windowZoomLevels.get(windowId) || 1.0;
+}
+
+/**
+ * Restore global zoom for a window from saved state
+ * @param windowId - The BrowserWindow ID
+ * @param zoomFactor - Saved zoom factor
+ */
+export function restoreGlobalZoom(windowId: number, zoomFactor: number): void {
+  setGlobalZoom(windowId, zoomFactor);
 }

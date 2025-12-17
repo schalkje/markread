@@ -1,10 +1,11 @@
 /**
  * TitleBarRight Component
- * Task: T159c, T159j
+ * Task: T159c, T159j, T051k
  *
  * Right section of title bar:
  * - Theme toggle button
  * - Search button
+ * - Content zoom controls (T051k)
  * - Download button (PDF export)
  * - Window controls (minimize, maximize/restore, close)
  */
@@ -12,11 +13,21 @@
 import React, { useState, useEffect } from 'react';
 import { useThemeStore } from '../../stores/theme';
 import { themeManager } from '../../services/theme-manager';
+import { useTabsStore } from '../../stores/tabs';
 import './TitleBar.css';
 
 export const TitleBarRight: React.FC = () => {
   const { currentTheme } = useThemeStore();
   const [isMaximized, setIsMaximized] = useState(false);
+  const [showZoomMenu, setShowZoomMenu] = useState(false);
+
+  // T051k: Get active tab zoom level
+  const activeTab = useTabsStore((state) => {
+    const activeId = state.activeTabId;
+    return activeId ? state.tabs.get(activeId) : null;
+  });
+  const updateTabZoomLevel = useTabsStore((state) => state.updateTabZoomLevel);
+  const contentZoom = activeTab?.zoomLevel || 100;
 
   // Check maximized state on mount
   useEffect(() => {
@@ -48,6 +59,45 @@ export const TitleBarRight: React.FC = () => {
     // Dispatch event to trigger PDF export
     window.dispatchEvent(new CustomEvent('menu:export-pdf'));
   };
+
+  // T051k: Content zoom handlers
+  const handleZoomIn = () => {
+    if (!activeTab) return;
+    const newZoom = Math.min(2000, contentZoom + 10);
+    updateTabZoomLevel(activeTab.id, newZoom);
+  };
+
+  const handleZoomOut = () => {
+    if (!activeTab) return;
+    const newZoom = Math.max(10, contentZoom - 10);
+    updateTabZoomLevel(activeTab.id, newZoom);
+  };
+
+  const handleZoomPreset = (zoom: number) => {
+    if (!activeTab) return;
+    updateTabZoomLevel(activeTab.id, zoom);
+    setShowZoomMenu(false);
+  };
+
+  const handleZoomReset = () => {
+    if (!activeTab) return;
+    updateTabZoomLevel(activeTab.id, 100);
+    setShowZoomMenu(false);
+  };
+
+  // Close zoom menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showZoomMenu && !(e.target as Element).closest('.title-bar__zoom-controls')) {
+        setShowZoomMenu(false);
+      }
+    };
+
+    if (showZoomMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showZoomMenu]);
 
   // T159j: Window control handlers
   const handleMinimize = async () => {
@@ -98,6 +148,60 @@ export const TitleBarRight: React.FC = () => {
       >
         ⬇️
       </button>
+
+      {/* T051k: Content zoom controls */}
+      {activeTab && (
+        <div className="title-bar__zoom-controls">
+          <button
+            className="title-bar__button title-bar__zoom-button"
+            onClick={handleZoomOut}
+            title="Zoom Out (Ctrl+-)"
+            type="button"
+            disabled={contentZoom <= 10}
+          >
+            ⊖
+          </button>
+          <button
+            className="title-bar__button title-bar__zoom-display"
+            onClick={() => setShowZoomMenu(!showZoomMenu)}
+            title="Content Zoom Level - Click for presets"
+            type="button"
+          >
+            {Math.round(contentZoom)}% ▾
+          </button>
+          <button
+            className="title-bar__button title-bar__zoom-button"
+            onClick={handleZoomIn}
+            title="Zoom In (Ctrl+=)"
+            type="button"
+            disabled={contentZoom >= 2000}
+          >
+            ⊕
+          </button>
+
+          {/* Zoom preset menu */}
+          {showZoomMenu && (
+            <div className="title-bar__zoom-menu">
+              <div className="title-bar__zoom-menu-section">
+                <button type="button" onClick={() => handleZoomPreset(10)}>10%</button>
+                <button type="button" onClick={() => handleZoomPreset(25)}>25%</button>
+                <button type="button" onClick={() => handleZoomPreset(50)}>50%</button>
+                <button type="button" onClick={() => handleZoomPreset(75)}>75%</button>
+                <button type="button" onClick={() => handleZoomPreset(100)}>100% (Default)</button>
+                <button type="button" onClick={() => handleZoomPreset(125)}>125%</button>
+                <button type="button" onClick={() => handleZoomPreset(150)}>150%</button>
+                <button type="button" onClick={() => handleZoomPreset(200)}>200%</button>
+                <button type="button" onClick={() => handleZoomPreset(400)}>400%</button>
+                <button type="button" onClick={() => handleZoomPreset(800)}>800%</button>
+              </div>
+              <div className="title-bar__zoom-menu-divider"></div>
+              <div className="title-bar__zoom-menu-section">
+                <button type="button" onClick={handleZoomReset}>Reset to 100%</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Window controls */}
       <div className="title-bar__window-controls">

@@ -116,9 +116,164 @@ export function createApplicationMenu(mainWindow: BrowserWindow): void {
         { role: 'forceReload' as const },
         { role: 'toggleDevTools' as const },
         { type: 'separator' as const },
-        { role: 'resetZoom' as const },
-        { role: 'zoomIn' as const },
-        { role: 'zoomOut' as const },
+        // T051k-view: Document Zoom submenu
+        {
+          label: 'Document Zoom (Content Only)',
+          submenu: [
+            {
+              label: 'Zoom In',
+              accelerator: 'CmdOrCtrl+=',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-in');
+              },
+            },
+            {
+              label: 'Zoom Out',
+              accelerator: 'CmdOrCtrl+-',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-out');
+              },
+            },
+            {
+              label: 'Reset to 100%',
+              accelerator: 'CmdOrCtrl+Shift+0',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-reset');
+              },
+            },
+            { type: 'separator' as const },
+            {
+              label: '10%',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-preset', 10);
+              },
+            },
+            {
+              label: '25%',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-preset', 25);
+              },
+            },
+            {
+              label: '50%',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-preset', 50);
+              },
+            },
+            {
+              label: '75%',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-preset', 75);
+              },
+            },
+            {
+              label: '100% (Default)',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-preset', 100);
+              },
+            },
+            {
+              label: '125%',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-preset', 125);
+              },
+            },
+            {
+              label: '150%',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-preset', 150);
+              },
+            },
+            {
+              label: '200%',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-preset', 200);
+              },
+            },
+            {
+              label: '400%',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-preset', 400);
+              },
+            },
+            {
+              label: '800%',
+              click: () => {
+                mainWindow.webContents.send('menu:content-zoom-preset', 800);
+              },
+            },
+          ],
+        },
+        // T051k-view: Global Zoom submenu
+        {
+          label: 'Window Zoom (Entire UI)',
+          submenu: [
+            {
+              label: 'Zoom In',
+              accelerator: 'CmdOrCtrl+Alt+=',
+              click: () => {
+                mainWindow.webContents.send('menu:global-zoom-in');
+              },
+            },
+            {
+              label: 'Zoom Out',
+              accelerator: 'CmdOrCtrl+Alt+-',
+              click: () => {
+                mainWindow.webContents.send('menu:global-zoom-out');
+              },
+            },
+            {
+              label: 'Reset to 100%',
+              accelerator: 'CmdOrCtrl+Alt+0',
+              click: () => {
+                mainWindow.webContents.send('menu:global-zoom-reset');
+              },
+            },
+            { type: 'separator' as const },
+            {
+              label: '50%',
+              click: () => {
+                mainWindow.webContents.send('menu:global-zoom-preset', 50);
+              },
+            },
+            {
+              label: '75%',
+              click: () => {
+                mainWindow.webContents.send('menu:global-zoom-preset', 75);
+              },
+            },
+            {
+              label: '100% (Default)',
+              click: () => {
+                mainWindow.webContents.send('menu:global-zoom-preset', 100);
+              },
+            },
+            {
+              label: '125%',
+              click: () => {
+                mainWindow.webContents.send('menu:global-zoom-preset', 125);
+              },
+            },
+            {
+              label: '150%',
+              click: () => {
+                mainWindow.webContents.send('menu:global-zoom-preset', 150);
+              },
+            },
+            {
+              label: '200%',
+              click: () => {
+                mainWindow.webContents.send('menu:global-zoom-preset', 200);
+              },
+            },
+            {
+              label: '300%',
+              click: () => {
+                mainWindow.webContents.send('menu:global-zoom-preset', 300);
+              },
+            },
+          ],
+        },
         { type: 'separator' as const },
         { role: 'togglefullscreen' as const },
       ],

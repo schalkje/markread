@@ -234,58 +234,128 @@ class KeyboardHandlerService {
 export const keyboardHandler = new KeyboardHandlerService();
 
 /**
- * T046: Register zoom keyboard shortcuts
- * - Ctrl+Plus: Zoom in
- * - Ctrl+Minus: Zoom out
- * - Ctrl+0: Reset zoom
+ * T051h: Register CONTENT zoom keyboard shortcuts (updated from T046)
+ * - Ctrl+Shift+Plus or Ctrl+=: Zoom in content
+ * - Ctrl+Shift+Minus or Ctrl+-: Zoom out content
+ * - Ctrl+Shift+0: Reset content zoom
  */
-export function registerZoomShortcuts(callbacks: {
+export function registerContentZoomShortcuts(callbacks: {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
 }): void {
-  // Zoom in: Ctrl+Plus or Ctrl+=
+  // Content zoom in: Ctrl+Shift+Plus or Ctrl+= (simpler)
   keyboardHandler.register({
-    id: 'zoom.in',
+    id: 'zoom.content.in',
     keys: ['Plus', '='],
     ctrlKey: true,
-    handler: () => {
-      callbacks.onZoomIn();
+    shiftKey: false, // Accept both with and without Shift
+    handler: (event) => {
+      // Only handle if it's Ctrl+= (no shift) or Ctrl+Shift+Plus
+      if (event.shiftKey || event.key === '=') {
+        callbacks.onZoomIn();
+      }
     },
-    description: 'Zoom in',
+    description: 'Zoom in content (Ctrl+= or Ctrl+Shift+Plus)',
   });
 
-  // Zoom out: Ctrl+Minus
+  // Content zoom out: Ctrl+Shift+Minus or Ctrl+- (simpler)
   keyboardHandler.register({
-    id: 'zoom.out',
-    keys: ['Minus', '-'],
+    id: 'zoom.content.out',
+    keys: ['Minus', '-', '_'],
     ctrlKey: true,
-    handler: () => {
-      callbacks.onZoomOut();
+    shiftKey: false,
+    handler: (event) => {
+      // Only handle if it's Ctrl+- (no shift) or Ctrl+Shift+Minus
+      if (event.shiftKey || event.key === '-') {
+        callbacks.onZoomOut();
+      }
     },
-    description: 'Zoom out',
+    description: 'Zoom out content (Ctrl+- or Ctrl+Shift+Minus)',
   });
 
-  // Zoom reset: Ctrl+0
+  // Content zoom reset: Ctrl+Shift+0
   keyboardHandler.register({
-    id: 'zoom.reset',
+    id: 'zoom.content.reset',
     keys: ['Digit0', '0'],
     ctrlKey: true,
+    shiftKey: true,
     handler: () => {
       callbacks.onZoomReset();
     },
-    description: 'Reset zoom to 100%',
+    description: 'Reset content zoom to 100%',
   });
 }
 
 /**
- * Unregister zoom shortcuts
+ * T051e: Register GLOBAL zoom keyboard shortcuts
+ * - Ctrl+Alt+Plus or Ctrl+Alt+=: Global zoom in
+ * - Ctrl+Alt+Minus or Ctrl+Alt+-: Global zoom out
+ * - Ctrl+Alt+0: Reset global zoom
  */
-export function unregisterZoomShortcuts(): void {
-  keyboardHandler.unregister('zoom.in');
-  keyboardHandler.unregister('zoom.out');
-  keyboardHandler.unregister('zoom.reset');
+export function registerGlobalZoomShortcuts(callbacks: {
+  onGlobalZoomIn: () => void;
+  onGlobalZoomOut: () => void;
+  onGlobalZoomReset: () => void;
+}): void {
+  // Global zoom in: Ctrl+Alt+Plus or Ctrl+Alt+=
+  keyboardHandler.register({
+    id: 'zoom.global.in',
+    keys: ['Plus', '='],
+    ctrlKey: true,
+    altKey: true,
+    handler: () => {
+      callbacks.onGlobalZoomIn();
+    },
+    description: 'Global zoom in (Ctrl+Alt+=)',
+  });
+
+  // Global zoom out: Ctrl+Alt+Minus or Ctrl+Alt+-
+  keyboardHandler.register({
+    id: 'zoom.global.out',
+    keys: ['Minus', '-'],
+    ctrlKey: true,
+    altKey: true,
+    handler: () => {
+      callbacks.onGlobalZoomOut();
+    },
+    description: 'Global zoom out (Ctrl+Alt+-)',
+  });
+
+  // Global zoom reset: Ctrl+Alt+0
+  keyboardHandler.register({
+    id: 'zoom.global.reset',
+    keys: ['Digit0', '0'],
+    ctrlKey: true,
+    altKey: true,
+    handler: () => {
+      callbacks.onGlobalZoomReset();
+    },
+    description: 'Reset global zoom to 100%',
+  });
 }
+
+/**
+ * Unregister content zoom shortcuts
+ */
+export function unregisterContentZoomShortcuts(): void {
+  keyboardHandler.unregister('zoom.content.in');
+  keyboardHandler.unregister('zoom.content.out');
+  keyboardHandler.unregister('zoom.content.reset');
+}
+
+/**
+ * Unregister global zoom shortcuts
+ */
+export function unregisterGlobalZoomShortcuts(): void {
+  keyboardHandler.unregister('zoom.global.in');
+  keyboardHandler.unregister('zoom.global.out');
+  keyboardHandler.unregister('zoom.global.reset');
+}
+
+// Legacy function for backwards compatibility
+export const registerZoomShortcuts = registerContentZoomShortcuts;
+export const unregisterZoomShortcuts = unregisterContentZoomShortcuts;
 
 /**
  * T054: Register navigation keyboard shortcuts

@@ -132,6 +132,7 @@ async function saveUIStateImmediate(state) {
   }
 }
 const windows = /* @__PURE__ */ new Map();
+const windowZoomLevels = /* @__PURE__ */ new Map();
 let saveWindowBoundsTimeout = null;
 const SAVE_WINDOW_BOUNDS_DEBOUNCE_MS = 500;
 function createWindow(options) {
@@ -218,6 +219,21 @@ function createWindow(options) {
   win.on("resize", saveWindowBounds);
   win.on("move", saveWindowBounds);
   return win;
+}
+function setGlobalZoom(windowId, zoomFactor) {
+  const window = windows.get(windowId);
+  if (!window || window.isDestroyed()) {
+    console.warn(`Window ${windowId} not found or destroyed`);
+    return 1;
+  }
+  const clampedZoom = Math.max(0.5, Math.min(3, zoomFactor));
+  window.webContents.setZoomFactor(clampedZoom);
+  windowZoomLevels.set(windowId, clampedZoom);
+  console.log(`Set global zoom for window ${windowId}: ${Math.round(clampedZoom * 100)}%`);
+  return clampedZoom;
+}
+function getGlobalZoom(windowId) {
+  return windowZoomLevels.get(windowId) || 1;
 }
 let chokidar = null;
 async function getChokidar() {
@@ -765,6 +781,57 @@ function registerIpcHandlers(mainWindow2) {
       };
     }
   });
+  electron.ipcMain.handle("window:setGlobalZoom", async (event, payload) => {
+    try {
+      const SetGlobalZoomSchema = zod.z.object({
+        zoomFactor: zod.z.number().min(0.5).max(3)
+        // 50%-300%
+      });
+      const { zoomFactor } = validatePayload(SetGlobalZoomSchema, payload);
+      const senderWindow = electron.BrowserWindow.fromWebContents(event.sender);
+      if (!senderWindow) {
+        return {
+          success: false,
+          zoomFactor: 1,
+          error: "Window not found"
+        };
+      }
+      const appliedZoom = setGlobalZoom(senderWindow.id, zoomFactor);
+      return {
+        success: true,
+        zoomFactor: appliedZoom
+      };
+    } catch (error) {
+      return {
+        success: false,
+        zoomFactor: 1,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("window:getGlobalZoom", async (event, _payload) => {
+    try {
+      const senderWindow = electron.BrowserWindow.fromWebContents(event.sender);
+      if (!senderWindow) {
+        return {
+          success: false,
+          zoomFactor: 1,
+          error: "Window not found"
+        };
+      }
+      const zoomFactor = getGlobalZoom(senderWindow.id);
+      return {
+        success: true,
+        zoomFactor
+      };
+    } catch (error) {
+      return {
+        success: false,
+        zoomFactor: 1,
+        error: error.message
+      };
+    }
+  });
   electron.ipcMain.handle("uiState:load", async (_event, _payload) => {
     try {
       const uiState = await loadUIState();
@@ -955,9 +1022,164 @@ function createApplicationMenu(mainWindow2) {
         { role: "forceReload" },
         { role: "toggleDevTools" },
         { type: "separator" },
-        { role: "resetZoom" },
-        { role: "zoomIn" },
-        { role: "zoomOut" },
+        // T051k-view: Document Zoom submenu
+        {
+          label: "Document Zoom (Content Only)",
+          submenu: [
+            {
+              label: "Zoom In",
+              accelerator: "CmdOrCtrl+=",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-in");
+              }
+            },
+            {
+              label: "Zoom Out",
+              accelerator: "CmdOrCtrl+-",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-out");
+              }
+            },
+            {
+              label: "Reset to 100%",
+              accelerator: "CmdOrCtrl+Shift+0",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-reset");
+              }
+            },
+            { type: "separator" },
+            {
+              label: "10%",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-preset", 10);
+              }
+            },
+            {
+              label: "25%",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-preset", 25);
+              }
+            },
+            {
+              label: "50%",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-preset", 50);
+              }
+            },
+            {
+              label: "75%",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-preset", 75);
+              }
+            },
+            {
+              label: "100% (Default)",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-preset", 100);
+              }
+            },
+            {
+              label: "125%",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-preset", 125);
+              }
+            },
+            {
+              label: "150%",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-preset", 150);
+              }
+            },
+            {
+              label: "200%",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-preset", 200);
+              }
+            },
+            {
+              label: "400%",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-preset", 400);
+              }
+            },
+            {
+              label: "800%",
+              click: () => {
+                mainWindow2.webContents.send("menu:content-zoom-preset", 800);
+              }
+            }
+          ]
+        },
+        // T051k-view: Global Zoom submenu
+        {
+          label: "Window Zoom (Entire UI)",
+          submenu: [
+            {
+              label: "Zoom In",
+              accelerator: "CmdOrCtrl+Alt+=",
+              click: () => {
+                mainWindow2.webContents.send("menu:global-zoom-in");
+              }
+            },
+            {
+              label: "Zoom Out",
+              accelerator: "CmdOrCtrl+Alt+-",
+              click: () => {
+                mainWindow2.webContents.send("menu:global-zoom-out");
+              }
+            },
+            {
+              label: "Reset to 100%",
+              accelerator: "CmdOrCtrl+Alt+0",
+              click: () => {
+                mainWindow2.webContents.send("menu:global-zoom-reset");
+              }
+            },
+            { type: "separator" },
+            {
+              label: "50%",
+              click: () => {
+                mainWindow2.webContents.send("menu:global-zoom-preset", 50);
+              }
+            },
+            {
+              label: "75%",
+              click: () => {
+                mainWindow2.webContents.send("menu:global-zoom-preset", 75);
+              }
+            },
+            {
+              label: "100% (Default)",
+              click: () => {
+                mainWindow2.webContents.send("menu:global-zoom-preset", 100);
+              }
+            },
+            {
+              label: "125%",
+              click: () => {
+                mainWindow2.webContents.send("menu:global-zoom-preset", 125);
+              }
+            },
+            {
+              label: "150%",
+              click: () => {
+                mainWindow2.webContents.send("menu:global-zoom-preset", 150);
+              }
+            },
+            {
+              label: "200%",
+              click: () => {
+                mainWindow2.webContents.send("menu:global-zoom-preset", 200);
+              }
+            },
+            {
+              label: "300%",
+              click: () => {
+                mainWindow2.webContents.send("menu:global-zoom-preset", 300);
+              }
+            }
+          ]
+        },
         { type: "separator" },
         { role: "togglefullscreen" }
       ]

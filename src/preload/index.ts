@@ -46,6 +46,8 @@ export interface ElectronAPI {
       folderPath?: string;
       tabState?: any;
     }) => Promise<any>;
+    setGlobalZoom: (payload: { zoomFactor: number }) => Promise<any>; // T051b
+    getGlobalZoom: () => Promise<any>; // T051b
   };
   uiState: {
     load: () => Promise<any>;
@@ -81,6 +83,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
     createNew: (payload: any) => ipcRenderer.invoke('window:createNew', payload),
+    setGlobalZoom: (payload: any) => ipcRenderer.invoke('window:setGlobalZoom', payload), // T051b
+    getGlobalZoom: () => ipcRenderer.invoke('window:getGlobalZoom'), // T051b
   },
   uiState: {
     load: () => ipcRenderer.invoke('uiState:load'),
@@ -99,6 +103,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'menu:close-all',
       'window:initialState',
       'app:initialState',
+      // T051k-view: Content zoom menu events
+      'menu:content-zoom-in',
+      'menu:content-zoom-out',
+      'menu:content-zoom-reset',
+      'menu:content-zoom-preset',
+      // T051k-view: Global zoom menu events
+      'menu:global-zoom-in',
+      'menu:global-zoom-out',
+      'menu:global-zoom-reset',
+      'menu:global-zoom-preset',
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, callback);

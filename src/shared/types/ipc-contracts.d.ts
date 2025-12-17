@@ -389,6 +389,25 @@ export namespace WindowOperations {
     success: boolean;
     error?: string;
   }
+
+  // T051b: Global zoom operations
+  export interface SetGlobalZoomRequest {
+    zoomFactor: number; // 0.5-3.0 (50%-300%)
+  }
+
+  export interface SetGlobalZoomResponse {
+    success: boolean;
+    zoomFactor: number;
+    error?: string;
+  }
+
+  export interface GetGlobalZoomRequest {}
+
+  export interface GetGlobalZoomResponse {
+    success: boolean;
+    zoomFactor: number;
+    error?: string;
+  }
 }
 
 // ============================================================================
@@ -404,7 +423,7 @@ export namespace UIStateOperations {
   }
 
   export interface SaveUIStateRequest {
-    uiState: any; // Partial<UIState>
+    uiState: any; // Partial<UIState> - includes globalZoomLevel
   }
 
   export interface SaveUIStateResponse {
@@ -448,6 +467,8 @@ export interface ElectronAPI {
     close: (payload: WindowOperations.CloseWindowRequest) => Promise<WindowOperations.CloseWindowResponse>;
     getBounds: (payload: WindowOperations.GetWindowBoundsRequest) => Promise<WindowOperations.GetWindowBoundsResponse>;
     setBounds: (payload: WindowOperations.SetWindowBoundsRequest) => Promise<WindowOperations.SetWindowBoundsResponse>;
+    setGlobalZoom: (payload: WindowOperations.SetGlobalZoomRequest) => Promise<WindowOperations.SetGlobalZoomResponse>;
+    getGlobalZoom: (payload: WindowOperations.GetGlobalZoomRequest) => Promise<WindowOperations.GetGlobalZoomResponse>;
   };
   uiState: {
     load: (payload: UIStateOperations.LoadUIStateRequest) => Promise<UIStateOperations.LoadUIStateResponse>;

@@ -33,6 +33,8 @@ export interface MarkdownViewerProps {
   onScrollChange?: (scrollTop: number) => void;
   /** Callback when a file link is clicked */
   onFileLink?: (filePath: string) => void;
+  /** Callback when zoom level changes (T051i) */
+  onZoomChange?: (newZoom: number) => void;
 }
 
 /**
@@ -51,16 +53,28 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   onRenderComplete,
   onScrollChange,
   onFileLink,
+  onZoomChange,
 }) => {
   const viewerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
 
-  // Pan state (T048)
+  // Pan state (T048, T051l, T051m, T051n)
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+
+  // Touch gesture state (T051j, T051o)
+  const [touchState, setTouchState] = useState<{
+    initialDistance: number | null;
+    initialZoom: number;
+    center: { x: number; y: number } | null;
+  }>({ initialDistance: null, initialZoom: zoomLevel, center: null });
+
+  // Track zoom target point for zoom-to-cursor/center behavior
+  const zoomTargetRef = useRef<{ x: number; y: number; prevZoom: number } | null>(null);
 
   // Link preview state
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
@@ -237,27 +251,50 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const viewer = viewerRef.current;
     const content = contentRef.current;
 
-    // Store current scroll position
-    const scrollTop = viewer.scrollTop;
-    const scrollLeft = viewer.scrollLeft;
-    const scrollHeight = viewer.scrollHeight;
-    const scrollWidth = viewer.scrollWidth;
-
-    // Calculate scroll position ratio (0-1)
-    const scrollTopRatio = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
-    const scrollLeftRatio = scrollWidth > 0 ? scrollLeft / scrollWidth : 0;
+    // Capture scroll position BEFORE applying transform
+    const currentScrollLeft = viewer.scrollLeft;
+    const currentScrollTop = viewer.scrollTop;
+    const currentScrollHeight = viewer.scrollHeight;
+    const currentScrollWidth = viewer.scrollWidth;
 
     // Apply zoom via CSS transform
     const zoomFactor = zoomLevel / 100;
     content.style.transform = `scale(${zoomFactor})`;
     content.style.transformOrigin = 'top left';
 
-    // Restore scroll position (accounting for scale change)
-    // Use requestAnimationFrame to ensure layout has updated
+    // Adjust scroll position after transform
     requestAnimationFrame(() => {
-      if (viewer && viewer.scrollHeight > 0) {
-        viewer.scrollTop = scrollTopRatio * viewer.scrollHeight;
-        viewer.scrollLeft = scrollLeftRatio * viewer.scrollWidth;
+      if (!viewer) return;
+
+      // Check if we have a zoom target point (from mouse/touch zoom)
+      if (zoomTargetRef.current) {
+        const { x, y, prevZoom } = zoomTargetRef.current;
+
+        // Zoom-to-cursor/center algorithm using captured scroll position
+        const rect = viewer.getBoundingClientRect();
+        const cursorX = x - rect.left;
+        const cursorY = y - rect.top;
+
+        const beforeX = (cursorX + currentScrollLeft) / (prevZoom / 100);
+        const beforeY = (cursorY + currentScrollTop) / (prevZoom / 100);
+
+        const afterX = beforeX * (zoomLevel / 100);
+        const afterY = beforeY * (zoomLevel / 100);
+
+        viewer.scrollLeft = afterX - cursorX;
+        viewer.scrollTop = afterY - cursorY;
+
+        // Clear the zoom target after using it
+        zoomTargetRef.current = null;
+      } else {
+        // No zoom target: use ratio-based scroll preservation (for keyboard/button zoom)
+        const scrollTopRatio = currentScrollHeight > 0 ? currentScrollTop / currentScrollHeight : 0;
+        const scrollLeftRatio = currentScrollWidth > 0 ? currentScrollLeft / currentScrollWidth : 0;
+
+        if (viewer.scrollHeight > 0) {
+          viewer.scrollTop = scrollTopRatio * viewer.scrollHeight;
+          viewer.scrollLeft = scrollLeftRatio * viewer.scrollWidth;
+        }
       }
     });
   }, [zoomLevel]);
@@ -336,19 +373,30 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     };
   }, [content, filePath, isLoading, onRenderComplete]);
 
-  // T048: Pan functionality with mouse drag
+  // T048, T051l, T051m: Pan functionality with mouse drag
   const handleMouseDown = (e: React.MouseEvent) => {
     // Only enable panning when zoomed in
     if (zoomLevel <= 100 || !viewerRef.current) return;
 
-    setIsPanning(true);
-    setPanStart({ x: e.clientX, y: e.clientY });
-    setScrollStart({
-      left: viewerRef.current.scrollLeft,
-      top: viewerRef.current.scrollTop,
-    });
+    // T051m: Middle-mouse button (button === 1) always pans
+    // T051l: Left-click (button === 0) pans when Space is pressed
+    // T048: Left-click (button === 0) pans normally when zoomed
+    const shouldPan = e.button === 1 || (e.button === 0 && (isSpacePressed || zoomLevel > 100));
 
-    e.preventDefault();
+    if (shouldPan) {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+      setScrollStart({
+        left: viewerRef.current.scrollLeft,
+        top: viewerRef.current.scrollTop,
+      });
+
+      if (viewerRef.current) {
+        viewerRef.current.style.cursor = 'grabbing';
+      }
+
+      e.preventDefault();
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -365,10 +413,16 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
   const handleMouseUp = () => {
     setIsPanning(false);
+    if (viewerRef.current) {
+      viewerRef.current.style.cursor = isSpacePressed ? 'grab' : (zoomLevel > 100 ? 'grab' : '');
+    }
   };
 
   const handleMouseLeave = () => {
     setIsPanning(false);
+    if (viewerRef.current) {
+      viewerRef.current.style.cursor = isSpacePressed ? 'grab' : (zoomLevel > 100 ? 'grab' : '');
+    }
   };
 
   // Track scroll changes
@@ -376,6 +430,165 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const scrollTop = e.currentTarget.scrollTop;
     onScrollChange?.(scrollTop);
   };
+
+  // T051i: Mouse wheel zoom with Ctrl+Scroll
+  useEffect(() => {
+    const container = viewerRef.current;
+    if (!container || !onZoomChange) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Ctrl+Scroll (without Alt) = Content zoom
+      if (e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+
+        // Calculate zoom delta (10% per notch)
+        const delta = e.deltaY > 0 ? -10 : 10;
+        const newZoom = Math.max(10, Math.min(2000, zoomLevel + delta));
+
+        // Store zoom target for zoom-to-cursor behavior
+        zoomTargetRef.current = {
+          x: e.clientX,
+          y: e.clientY,
+          prevZoom: zoomLevel,
+        };
+
+        // Update zoom (scroll adjustment will happen in useEffect)
+        onZoomChange(newZoom);
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [zoomLevel, onZoomChange]);
+
+  // T051j: Touch pinch-to-zoom
+  useEffect(() => {
+    const container = viewerRef.current;
+    if (!container || !onZoomChange) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const dx = touch2.clientX - touch1.clientX;
+        const dy = touch2.clientY - touch1.clientY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        const centerX = (touch1.clientX + touch2.clientX) / 2;
+        const centerY = (touch1.clientY + touch2.clientY) / 2;
+
+        setTouchState({
+          initialDistance: distance,
+          initialZoom: zoomLevel,
+          center: { x: centerX, y: centerY },
+        });
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && touchState.initialDistance && touchState.center) {
+        e.preventDefault();
+
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const dx = touch2.clientX - touch1.clientX;
+        const dy = touch2.clientY - touch1.clientY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        const scale = distance / touchState.initialDistance;
+        const newZoom = Math.max(10, Math.min(2000, touchState.initialZoom * scale));
+
+        // Store zoom target for zoom-to-center behavior
+        zoomTargetRef.current = {
+          x: touchState.center.x,
+          y: touchState.center.y,
+          prevZoom: zoomLevel,
+        };
+
+        // Update zoom (scroll adjustment will happen in useEffect)
+        onZoomChange(Math.round(newZoom));
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        setTouchState({ initialDistance: null, initialZoom: zoomLevel, center: null });
+      }
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [zoomLevel, onZoomChange, touchState.initialDistance, touchState.initialZoom]);
+
+  // T051l: Space+Drag pan functionality
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat && zoomLevel > 100 && viewerRef.current) {
+        setIsSpacePressed(true);
+        viewerRef.current.style.cursor = 'grab';
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && viewerRef.current) {
+        setIsSpacePressed(false);
+        if (!isPanning) {
+          viewerRef.current.style.cursor = zoomLevel > 100 ? 'grab' : '';
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [zoomLevel, isPanning]);
+
+  // T051n: Arrow key nudge pan
+  useEffect(() => {
+    const container = viewerRef.current;
+    if (!container || zoomLevel <= 100) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle arrow keys when content is zoomed and focused
+      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      e.preventDefault();
+
+      const nudgeAmount = e.shiftKey ? 50 : 10;
+
+      switch (e.key) {
+        case 'ArrowUp':
+          container.scrollTop -= nudgeAmount;
+          break;
+        case 'ArrowDown':
+          container.scrollTop += nudgeAmount;
+          break;
+        case 'ArrowLeft':
+          container.scrollLeft -= nudgeAmount;
+          break;
+        case 'ArrowRight':
+          container.scrollLeft += nudgeAmount;
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zoomLevel]);
 
   /**
    * Resolve relative image paths to absolute file:// URLs

@@ -3,7 +3,7 @@ import { readFile, stat, readdir } from 'fs/promises';
 import * as path from 'path';
 import { z } from 'zod';
 import { startWatching, stopWatching } from './file-watcher';
-import { createWindow } from './window-manager';
+import { createWindow, setGlobalZoom, getGlobalZoom } from './window-manager';
 import { loadUIState, saveUIState } from './ui-state-manager';
 
 // T011: IPC handler registration system with Zod validation (research.md Section 6)
@@ -573,6 +573,69 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     } catch (error: any) {
       return {
         success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // T051d: window:setGlobalZoom IPC handler
+  ipcMain.handle('window:setGlobalZoom', async (event, payload) => {
+    try {
+      const SetGlobalZoomSchema = z.object({
+        zoomFactor: z.number().min(0.5).max(3.0), // 50%-300%
+      });
+
+      const { zoomFactor } = validatePayload(SetGlobalZoomSchema, payload);
+
+      // Get the window that sent this request
+      const senderWindow = BrowserWindow.fromWebContents(event.sender);
+      if (!senderWindow) {
+        return {
+          success: false,
+          zoomFactor: 1.0,
+          error: 'Window not found',
+        };
+      }
+
+      // Apply global zoom
+      const appliedZoom = setGlobalZoom(senderWindow.id, zoomFactor);
+
+      return {
+        success: true,
+        zoomFactor: appliedZoom,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        zoomFactor: 1.0,
+        error: error.message,
+      };
+    }
+  });
+
+  // T051d: window:getGlobalZoom IPC handler
+  ipcMain.handle('window:getGlobalZoom', async (event, _payload) => {
+    try {
+      // Get the window that sent this request
+      const senderWindow = BrowserWindow.fromWebContents(event.sender);
+      if (!senderWindow) {
+        return {
+          success: false,
+          zoomFactor: 1.0,
+          error: 'Window not found',
+        };
+      }
+
+      const zoomFactor = getGlobalZoom(senderWindow.id);
+
+      return {
+        success: true,
+        zoomFactor,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        zoomFactor: 1.0,
         error: error.message,
       };
     }

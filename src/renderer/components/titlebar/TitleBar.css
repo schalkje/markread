@@ -197,3 +197,74 @@
   z-index: 9999;
   background: transparent;
 }
+
+/* T051k: Content zoom controls */
+.title-bar__zoom-controls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-left: 8px;
+}
+
+.title-bar__zoom-button {
+  width: 32px;
+  padding: 0;
+  font-size: 14px;
+}
+
+.title-bar__zoom-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.title-bar__zoom-button:disabled:hover {
+  background-color: transparent;
+}
+
+.title-bar__zoom-display {
+  min-width: 70px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.title-bar__zoom-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--menu-background, #252526);
+  border: 1px solid var(--menu-border, #454545);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  min-width: 160px;
+  z-index: 10000;
+  padding: 4px 0;
+  margin-top: 2px;
+}
+
+.title-bar__zoom-menu-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.title-bar__zoom-menu-section button {
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  transition: background-color 0.1s ease;
+}
+
+.title-bar__zoom-menu-section button:hover {
+  background-color: var(--menu-item-hover, rgba(255, 255, 255, 0.1));
+}
+
+.title-bar__zoom-menu-divider {
+  height: 1px;
+  background-color: var(--menu-separator, #454545);
+  margin: 4px 0;
+}
