@@ -11,6 +11,7 @@
 
 import type { Theme } from '@shared/types/entities.d.ts';
 import { useThemeStore } from '../stores/theme';
+import { loadSyntaxTheme } from './syntax-theme-loader';
 
 // Import theme JSON files (in a real implementation, these would be dynamic imports)
 import systemLightTheme from '../../assets/themes/system-light.json';
@@ -192,20 +193,11 @@ class ThemeManager {
 
   /**
    * T125-T126: Update syntax highlighting theme
+   * Dynamically loads bundled theme CSS (CSP-compliant)
    */
   private updateSyntaxHighlightTheme(highlightTheme: string): void {
-    // Remove existing highlight.js theme link
-    const existingLink = document.getElementById('highlightjs-theme');
-    if (existingLink) {
-      existingLink.remove();
-    }
-
-    // Add new theme link
-    const link = document.createElement('link');
-    link.id = 'highlightjs-theme';
-    link.rel = 'stylesheet';
-    link.href = `https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/${highlightTheme}.min.css`;
-    document.head.appendChild(link);
+    // Load the theme CSS from bundled assets
+    loadSyntaxTheme(highlightTheme);
   }
 
   /**

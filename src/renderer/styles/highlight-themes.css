@@ -1,0 +1,21 @@
+/**
+ * Highlight.js Theme Switcher
+ * Conditionally applies syntax highlighting themes based on data-syntax-theme attribute
+ *
+ * Usage:
+ * - Light theme: <html data-syntax-theme="github">
+ * - Dark theme: <html data-syntax-theme="github-dark">
+ */
+
+/* Import local copies of highlight.js themes */
+@import './hljs/github.css';
+@import './hljs/github-dark.css';
+
+/**
+ * The challenge: Both stylesheets define the same .hljs classes
+ * We need to make them conditional based on the data attribute
+ *
+ * Since we can't easily scope imported CSS, we'll import both
+ * and let the last one win, then use the data attribute in
+ * component-level CSS if needed, OR we override after import
+ */

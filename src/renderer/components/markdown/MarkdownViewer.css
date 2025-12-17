@@ -176,6 +176,58 @@
   border-radius: 0;
 }
 
+/* highlightjs-copy wrapper - prevents horizontal scrollbar issues */
+.markdown-viewer .hljs-copy-wrapper {
+  position: relative;
+  overflow: visible; /* Allow button to show outside */
+  margin-bottom: 16px;
+}
+
+.markdown-viewer .hljs-copy-wrapper > pre {
+  margin-bottom: 0; /* Remove bottom margin since wrapper has it */
+}
+
+/* Copy button styling */
+.markdown-viewer .hljs-copy-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-text-secondary, #57606a);
+  background-color: var(--color-bg-primary, #ffffff);
+  border: 1px solid var(--color-border-default, #d0d7de);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  z-index: 10;
+}
+
+.markdown-viewer .hljs-copy-wrapper:hover .hljs-copy-button,
+.markdown-viewer .hljs-copy-button:focus {
+  opacity: 1;
+}
+
+.markdown-viewer .hljs-copy-button:hover {
+  background-color: var(--color-bg-secondary, #f6f8fa);
+  border-color: var(--color-border-hover-color, #afb8c1);
+}
+
+.markdown-viewer .hljs-copy-button:active {
+  background-color: var(--color-border-default, #d0d7de);
+}
+
+/* Copied state - success feedback */
+.markdown-viewer .hljs-copy-button[data-copied="true"] {
+  color: #1a7f37;
+  border-color: #1a7f37;
+  background-color: #dafbe1;
+  opacity: 1;
+}
+
 /* Tables */
 .markdown-viewer table {
   border-collapse: collapse;

@@ -15,6 +15,8 @@ import mermaid from 'mermaid';
 import DOMPurify from 'isomorphic-dompurify';
 // @ts-ignore - markdown-it-task-lists may not have types
 import taskLists from 'markdown-it-task-lists';
+// @ts-ignore - highlightjs-copy may not have types
+import CopyButtonPlugin from 'highlightjs-copy';
 
 /**
  * T025: Configure markdown-it v14.1.0 with GFM plugins
@@ -27,28 +29,14 @@ const md = new MarkdownIt({
   typographer: true, // Enable smartquotes and other typographic replacements
 
   /**
-   * T026: Integrate Highlight.js with markdown-it
-   * Apply syntax highlighting to code blocks
+   * T026: Prepare code blocks for post-render highlighting
+   * We don't highlight here because highlightjs-copy needs DOM elements
+   * Highlighting is applied in applySyntaxHighlighting() after render
    */
   highlight: (code: string, language: string) => {
-    if (language && hljs.getLanguage(language)) {
-      try {
-        return hljs.highlight(code, {
-          language,
-          ignoreIllegals: true,
-        }).value;
-      } catch (err) {
-        console.error(`Highlight.js error for language "${language}":`, err);
-      }
-    }
-
-    // Fallback: auto-detect language
-    try {
-      return hljs.highlightAuto(code).value;
-    } catch (err) {
-      console.error('Highlight.js auto-detection error:', err);
-      return md.utils.escapeHtml(code);
-    }
+    // Just escape HTML - markdown-it will wrap this in <pre><code class="language-xxx">
+    // The post-render applySyntaxHighlighting() will do actual highlighting
+    return md.utils.escapeHtml(code);
   },
 });
 
@@ -66,6 +54,16 @@ md.use(taskLists, {
   label: true, // Wrap checkbox in label for better UX
   labelAfter: false, // Label before checkbox
 });
+
+/**
+ * Add copy button plugin for code blocks
+ * Provides one-click copy functionality with visual feedback
+ */
+hljs.addPlugin(
+  new CopyButtonPlugin({
+    lang: 'en',
+  })
+);
 
 /**
  * T027: Register 40 common languages for Highlight.js
@@ -351,6 +349,25 @@ export function renderMarkdown(markdown: string): string {
 }
 
 /**
+ * Apply syntax highlighting and copy buttons to code blocks
+ * This must be called AFTER the HTML is inserted into the DOM
+ * because highlightjs-copy plugin works on DOM elements
+ */
+export function applySyntaxHighlighting(container: HTMLElement): void {
+  // Find all code blocks that haven't been processed yet
+  const codeBlocks = container.querySelectorAll('pre code:not(.hljs-processed)');
+
+  codeBlocks.forEach((block) => {
+    // Mark as processed to avoid double-processing
+    block.classList.add('hljs-processed');
+
+    // Apply highlight.js to the element
+    // This will trigger the copy button plugin
+    hljs.highlightElement(block as HTMLElement);
+  });
+}
+
+/**
  * Update Mermaid theme when app theme changes
  * Called from theme store
  */
@@ -363,6 +380,7 @@ export function updateMermaidTheme(theme: 'light' | 'dark'): void {
 export default {
   renderMarkdown,
   renderMermaidDiagrams,
+  applySyntaxHighlighting,
   sanitizeHtml,
   registerLanguage,
   updateMermaidTheme,

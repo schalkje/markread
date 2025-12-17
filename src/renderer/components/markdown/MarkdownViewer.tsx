@@ -13,7 +13,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { renderMarkdown, renderMermaidDiagrams } from '../../services/markdown-renderer';
+import { renderMarkdown, renderMermaidDiagrams, applySyntaxHighlighting } from '../../services/markdown-renderer';
 import './MarkdownViewer.css';
 
 export interface MarkdownViewerProps {
@@ -295,6 +295,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           setIsRendering(false);
           return;
         }
+
+        // Step 3.5: Apply syntax highlighting and copy buttons
+        // This must happen AFTER HTML is in the DOM for highlightjs-copy to work
+        applySyntaxHighlighting(contentRef.current);
 
         // Step 4: Process images with file:// protocol if filePath provided
         if (filePath) {
