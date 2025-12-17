@@ -27,6 +27,10 @@ export interface MarkdownViewerProps {
   error?: string | null;
   /** Zoom level (10-2000) */
   zoomLevel?: number;
+  /** Vertical scroll position to restore */
+  scrollTop?: number;
+  /** Horizontal scroll position to restore */
+  scrollLeft?: number;
   /** Callback when rendering completes */
   onRenderComplete?: () => void;
   /** Callback when scroll position changes */
@@ -50,6 +54,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   isLoading = false,
   error = null,
   zoomLevel = 100,
+  scrollTop,
+  scrollLeft,
   onRenderComplete,
   onScrollChange,
   onFileLink,
@@ -315,6 +321,47 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       }
     });
   }, [zoomLevel]);
+
+  // Restore scroll position from history (when navigating back/forward)
+  useEffect(() => {
+    if (!viewerRef.current) return;
+
+    const viewer = viewerRef.current;
+
+    // Only restore if scrollTop or scrollLeft props are provided AND are non-zero
+    // (zero means "start at top" which is default behavior, not restoration)
+    const shouldRestoreScroll = (scrollTop !== undefined && scrollTop > 0) ||
+                                 (scrollLeft !== undefined && scrollLeft > 0);
+
+    if (shouldRestoreScroll) {
+      // Wait for content to be fully rendered and have scrollable space
+      const attemptRestore = () => {
+        // Check if content has scrollable space
+        const hasVerticalScroll = viewer.scrollHeight > viewer.clientHeight;
+        const hasHorizontalScroll = viewer.scrollWidth > viewer.clientWidth;
+
+        if (hasVerticalScroll || hasHorizontalScroll) {
+          // Content is ready, restore scroll
+          if (scrollTop !== undefined && scrollTop > 0) {
+            viewer.scrollTop = scrollTop;
+            console.log('[MarkdownViewer] Restored scrollTop to:', scrollTop);
+          }
+          if (scrollLeft !== undefined && scrollLeft > 0) {
+            viewer.scrollLeft = scrollLeft;
+            console.log('[MarkdownViewer] Restored scrollLeft to:', scrollLeft);
+          }
+        } else {
+          // Content not ready yet, try again after a short delay
+          setTimeout(attemptRestore, 50);
+        }
+      };
+
+      // Start attempting restoration after zoom is applied
+      requestAnimationFrame(() => {
+        requestAnimationFrame(attemptRestore);
+      });
+    }
+  }, [scrollTop, scrollLeft, filePath, zoomLevel]); // Trigger when navigating to a new page or zoom changes
 
   // Render markdown content
   useEffect(() => {

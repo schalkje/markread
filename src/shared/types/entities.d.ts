@@ -44,7 +44,9 @@ export interface SearchMatch {
 
 export interface HistoryEntry {
   filePath: string;                  // File path at this history point
-  scrollPosition: number;            // Scroll position when navigated away
+  scrollPosition: number;            // Vertical scroll position (scrollTop) when navigated away
+  scrollLeft?: number;               // Horizontal scroll position (optional for backward compatibility)
+  zoomLevel?: number;                // Zoom level at this history point (optional for backward compatibility)
   timestamp: number;                 // When navigation occurred
 }
 
@@ -54,6 +56,7 @@ export interface Tab {
   title: string;                     // Display name in tab bar
   icon?: string;                     // Tab icon identifier
   scrollPosition: number;            // Vertical scroll position in pixels (≥0)
+  scrollLeft?: number;               // Horizontal scroll position in pixels (optional for backward compatibility)
   zoomLevel: number;                 // Zoom percentage (10-2000)
   searchState: SearchState | null;   // Active search state
   modificationTimestamp: number;     // File's last modified time

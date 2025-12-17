@@ -42,6 +42,9 @@ const AppLayout: React.FC = () => {
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
 
+  // Ref to track which file is currently being loaded (prevents race conditions)
+  const loadingFileRef = useRef<string | null>(null);
+
   const toggleSidebar = useCallback(() => {
     setShowSidebar(!showSidebar);
   }, [showSidebar]);
@@ -327,8 +330,8 @@ const AppLayout: React.FC = () => {
             setCurrentContent(markdown);
             console.log('[handleNavigateToHistory] Directory listing generated');
 
-            // Update the active tab
-            const { activeTabId, tabs } = useTabsStore.getState();
+            // Update the active tab and restore zoom level
+            const { activeTabId, tabs, updateTabZoomLevel } = useTabsStore.getState();
             if (activeTabId) {
               const activeTab = tabs.get(activeTabId);
               if (activeTab) {
@@ -337,9 +340,14 @@ const AppLayout: React.FC = () => {
                   filePath: entry.filePath,
                   title: `${dirName}\\`, // Add backslash to indicate directory
                   scrollPosition: entry.scrollPosition,
+                  scrollLeft: entry.scrollLeft || 0, // Restore horizontal scroll from history
+                  zoomLevel: entry.zoomLevel || 100, // Restore zoom from history
                 };
                 tabs.set(activeTabId, updatedTab);
                 useTabsStore.setState({ tabs: new Map(tabs) });
+
+                // Restore zoom level
+                updateTabZoomLevel(activeTabId, entry.zoomLevel || 100);
               }
             }
           }
@@ -350,8 +358,8 @@ const AppLayout: React.FC = () => {
             setCurrentContent(result.content);
             console.log('[handleNavigateToHistory] Content loaded for:', entry.filePath);
 
-            // Update the active tab to reflect the new file
-            const { activeTabId, tabs } = useTabsStore.getState();
+            // Update the active tab and restore zoom level
+            const { activeTabId, tabs, updateTabZoomLevel } = useTabsStore.getState();
             if (activeTabId) {
               const activeTab = tabs.get(activeTabId);
               if (activeTab) {
@@ -361,9 +369,14 @@ const AppLayout: React.FC = () => {
                   filePath: entry.filePath,
                   title: fileName,
                   scrollPosition: entry.scrollPosition,
+                  scrollLeft: entry.scrollLeft || 0, // Restore horizontal scroll from history
+                  zoomLevel: entry.zoomLevel || 100, // Restore zoom from history
                 };
                 tabs.set(activeTabId, updatedTab);
                 useTabsStore.setState({ tabs: new Map(tabs) });
+
+                // Restore zoom level
+                updateTabZoomLevel(activeTabId, entry.zoomLevel || 100);
               }
             }
           }
@@ -385,18 +398,36 @@ const AppLayout: React.FC = () => {
       setCurrentContent(content);
 
       // Add directory listing to navigation history
-      const { activeTabId, tabs, addHistoryEntry } = useTabsStore.getState();
+      const { activeTabId, tabs, addHistoryEntry, updateTabZoomLevel } = useTabsStore.getState();
       if (activeTabId) {
         const currentTab = tabs.get(activeTabId);
 
         // Add the directory to history if navigating to a different location
         if (currentTab && currentTab.filePath && currentTab.filePath !== virtualPath) {
+          // First, update CURRENT file's history entry with current scroll/zoom
+          const viewer = document.querySelector('.markdown-viewer') as HTMLElement;
+          const currentScrollTop = viewer?.scrollTop || currentTab.scrollPosition || 0;
+          const currentScrollLeft = viewer?.scrollLeft || currentTab.scrollLeft || 0;
+          addHistoryEntry(activeTabId, {
+            filePath: currentTab.filePath,
+            scrollPosition: currentScrollTop,
+            scrollLeft: currentScrollLeft,
+            zoomLevel: currentTab.zoomLevel || 100,
+            timestamp: Date.now(),
+          });
+
           console.log('[DirectoryListing] Adding history entry for directory:', virtualPath);
+          // Then add directory to history with reset zoom
           addHistoryEntry(activeTabId, {
             filePath: virtualPath,
             scrollPosition: 0,
+            scrollLeft: 0,
+            zoomLevel: 100,     // Reset zoom to 100%
             timestamp: Date.now(),
           });
+
+          // Reset zoom for directory view
+          updateTabZoomLevel(activeTabId, 100);
         }
 
         // Update the active tab to reflect the directory view
@@ -464,6 +495,8 @@ const AppLayout: React.FC = () => {
         navigationHistory: [{
           filePath,
           scrollPosition: 0,
+          scrollLeft: 0,
+          zoomLevel: 100,
           timestamp: Date.now(),
         }],
         currentHistoryIndex: 0, // Start at position 0 (home)
@@ -492,19 +525,37 @@ const AppLayout: React.FC = () => {
         setError(null);
 
         // T065: Add NEW location to navigation history
-        const { activeTabId, tabs, addHistoryEntry } = useTabsStore.getState();
+        const { activeTabId, tabs, addHistoryEntry, updateTabZoomLevel } = useTabsStore.getState();
 
         if (activeTabId) {
           const currentTab = tabs.get(activeTabId);
 
           // Add the NEW file to history if navigating to a different file
           if (currentTab && currentTab.filePath && currentTab.filePath !== filePath) {
+            // First, update CURRENT file's history entry with current scroll/zoom
+            const viewer = document.querySelector('.markdown-viewer') as HTMLElement;
+            const currentScrollTop = viewer?.scrollTop || currentTab.scrollPosition || 0;
+            const currentScrollLeft = viewer?.scrollLeft || currentTab.scrollLeft || 0;
+            addHistoryEntry(activeTabId, {
+              filePath: currentTab.filePath,
+              scrollPosition: currentScrollTop,
+              scrollLeft: currentScrollLeft,
+              zoomLevel: currentTab.zoomLevel || 100,
+              timestamp: Date.now(),
+            });
+
             console.log('[LinkClick] Adding history entry for new file:', filePath);
+            // Then add NEW file to history with reset zoom
             addHistoryEntry(activeTabId, {
               filePath: filePath, // Add the NEW file, not the current one!
               scrollPosition: 0,  // New file starts at top
+              scrollLeft: 0,      // New file starts at left
+              zoomLevel: 100,     // Reset zoom to 100%
               timestamp: Date.now(),
             });
+
+            // Reset zoom for new file
+            updateTabZoomLevel(activeTabId, 100);
           } else {
             console.log('[LinkClick] Skipped history:', {
               hasTab: !!currentTab,
@@ -634,6 +685,8 @@ const AppLayout: React.FC = () => {
                 navigationHistory: [{
                   filePath: firstFilePath,
                   scrollPosition: 0,
+                  scrollLeft: 0,
+                  zoomLevel: 100,
                   timestamp: Date.now(),
                 }],
                 currentHistoryIndex: 0, // Start at position 0 (home)
@@ -663,6 +716,7 @@ const AppLayout: React.FC = () => {
   useEffect(() => {
     if (!currentFile) {
       setCurrentContent('');
+      loadingFileRef.current = null;
       return;
     }
 
@@ -673,22 +727,35 @@ const AppLayout: React.FC = () => {
     }
 
     const loadFile = async () => {
+      // Track which file we're loading to prevent race conditions
+      const fileToLoad = currentFile;
+      loadingFileRef.current = fileToLoad;
+
       setIsLoading(true);
       setError(null);
 
       try {
-        const result = await window.electronAPI?.file?.read({ filePath: currentFile });
+        const result = await window.electronAPI?.file?.read({ filePath: fileToLoad });
 
-        if (result?.success && result.content) {
-          setCurrentContent(result.content);
-        } else {
-          setError(result?.error || 'Failed to load file');
+        // Only update content if this is still the current file being displayed
+        if (loadingFileRef.current === fileToLoad && currentFile === fileToLoad) {
+          if (result?.success && result.content) {
+            setCurrentContent(result.content);
+          } else {
+            setError(result?.error || 'Failed to load file');
+          }
         }
       } catch (err) {
-        console.error('Error loading file:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        // Only update error if this is still the current file
+        if (loadingFileRef.current === fileToLoad && currentFile === fileToLoad) {
+          console.error('Error loading file:', err);
+          setError(err instanceof Error ? err.message : 'Unknown error');
+        }
       } finally {
-        setIsLoading(false);
+        // Only clear loading if this is still the current file
+        if (loadingFileRef.current === fileToLoad && currentFile === fileToLoad) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -906,19 +973,37 @@ const AppLayout: React.FC = () => {
                           setError(null);
 
                           // T065: Add NEW location to navigation history
-                          const { activeTabId, tabs, addHistoryEntry } = useTabsStore.getState();
+                          const { activeTabId, tabs, addHistoryEntry, updateTabZoomLevel } = useTabsStore.getState();
 
                           if (activeTabId) {
                             const currentTab = tabs.get(activeTabId);
 
                             // Add the NEW file to history if navigating to a different file
                             if (currentTab && currentTab.filePath && currentTab.filePath !== filePath) {
+                              // First, update CURRENT file's history entry with current scroll/zoom
+                              const viewer = document.querySelector('.markdown-viewer') as HTMLElement;
+                              const currentScrollTop = viewer?.scrollTop || currentTab.scrollPosition || 0;
+                              const currentScrollLeft = viewer?.scrollLeft || currentTab.scrollLeft || 0;
+                              addHistoryEntry(activeTabId, {
+                                filePath: currentTab.filePath,
+                                scrollPosition: currentScrollTop,
+                                scrollLeft: currentScrollLeft,
+                                zoomLevel: currentTab.zoomLevel || 100,
+                                timestamp: Date.now(),
+                              });
+
                               console.log('[FileTree] Adding history entry for new file:', filePath);
+                              // Then add NEW file to history with reset zoom
                               addHistoryEntry(activeTabId, {
                                 filePath: filePath, // Add the NEW file, not the current one!
                                 scrollPosition: 0,  // New file starts at top
+                                scrollLeft: 0,      // New file starts at left
+                                zoomLevel: 100,     // Reset zoom to 100%
                                 timestamp: Date.now(),
                               });
+
+                              // Reset zoom for new file
+                              updateTabZoomLevel(activeTabId, 100);
                             } else {
                               console.log('[FileTree] Skipped history:', {
                                 hasTab: !!currentTab,
@@ -989,8 +1074,11 @@ const AppLayout: React.FC = () => {
         {hasTabs && (
           <TabBar
             onTabClick={(tabId) => {
-              const tab = useTabsStore.getState().getTab(tabId);
+              const { getTab, setActiveTab } = useTabsStore.getState();
+              const tab = getTab(tabId);
               if (tab) {
+                // IMPORTANT: Set active tab first, then update file
+                setActiveTab(tabId);
                 setCurrentFile(tab.filePath);
               }
             }}
@@ -1025,6 +1113,8 @@ const AppLayout: React.FC = () => {
               isLoading={isLoading}
               error={error}
               zoomLevel={activeTab?.zoomLevel || 100}
+              scrollTop={activeTab?.scrollPosition}
+              scrollLeft={activeTab?.scrollLeft}
               onRenderComplete={handleRenderComplete}
               onFileLink={handleLinkClick}
               onZoomChange={(newZoom) => {
