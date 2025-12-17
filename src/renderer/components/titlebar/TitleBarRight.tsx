@@ -11,10 +11,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useThemeStore } from '../../stores/theme';
+import { themeManager } from '../../services/theme-manager';
 import './TitleBar.css';
 
 export const TitleBarRight: React.FC = () => {
-  const { currentTheme, availableThemes, setTheme } = useThemeStore();
+  const { currentTheme } = useThemeStore();
   const [isMaximized, setIsMaximized] = useState(false);
 
   // Check maximized state on mount
@@ -32,10 +33,8 @@ export const TitleBarRight: React.FC = () => {
   const handleThemeToggle = () => {
     // Toggle between light and dark themes
     const isDark = currentTheme?.type === 'dark';
-    const newTheme = availableThemes.find((t) => t.type === (isDark ? 'light' : 'dark'));
-    if (newTheme) {
-      setTheme(newTheme.id);
-    }
+    const newThemeId = isDark ? 'system-light' : 'system-dark';
+    themeManager.switchTheme(newThemeId);
   };
 
   // T159h: Search button
