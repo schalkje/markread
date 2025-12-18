@@ -38,6 +38,7 @@ interface TabsState {
   addHistoryEntry: (tabId: string, entry: HistoryEntry) => void;
   navigateBack: (tabId: string) => HistoryEntry | null;
   navigateForward: (tabId: string) => HistoryEntry | null;
+  navigateToIndex: (tabId: string, index: number) => HistoryEntry | null;
   canNavigateBack: (tabId: string) => boolean;
   canNavigateForward: (tabId: string) => boolean;
 
@@ -335,6 +336,33 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     });
 
     return nextEntry;
+  },
+
+  // Navigate to specific history index
+  navigateToIndex: (tabId, index) => {
+    const { tabs } = get();
+    const tab = tabs.get(tabId);
+
+    if (!tab || index < 0 || index >= tab.navigationHistory.length) {
+      return null; // Invalid index
+    }
+
+    const entry = tab.navigationHistory[index];
+
+    // Update current history index
+    set((state) => {
+      const newTabs = new Map(state.tabs);
+      const currentTab = newTabs.get(tabId);
+      if (currentTab) {
+        newTabs.set(tabId, {
+          ...currentTab,
+          currentHistoryIndex: index
+        });
+      }
+      return { tabs: newTabs };
+    });
+
+    return entry;
   },
 
   canNavigateBack: (tabId) => {

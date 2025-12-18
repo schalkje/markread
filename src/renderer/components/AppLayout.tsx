@@ -13,6 +13,7 @@ import { MarkdownViewer } from './markdown/MarkdownViewer';
 import { FileOpener } from './FileOpener';
 import { FolderOpener } from './FolderOpener';
 import { FileTree } from './sidebar/FileTree';
+import { HistoryPanel } from './sidebar/HistoryPanel';
 import { FolderSwitcher } from './sidebar/FolderSwitcher';
 import { TabBar } from './editor/TabBar';
 import { Toast } from './common/Toast';
@@ -36,6 +37,9 @@ const AppLayout: React.FC = () => {
   const { folders, activeFolderId } = useFoldersStore();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
 
+  // Sidebar view state: 'files' or 'history'
+  const [sidebarView, setSidebarView] = useState<'files' | 'history'>('files');
+
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'warning' | 'error' | 'success' } | null>(null);
 
@@ -58,6 +62,19 @@ const AppLayout: React.FC = () => {
     window.addEventListener('toggle-sidebar', handleToggleSidebar);
     return () => {
       window.removeEventListener('toggle-sidebar', handleToggleSidebar);
+    };
+  }, []);
+
+  // Listen for show-history events from TitleBar
+  useEffect(() => {
+    const handleShowHistory = () => {
+      setShowSidebar(true);
+      setSidebarView('history');
+    };
+
+    window.addEventListener('show-history', handleShowHistory);
+    return () => {
+      window.removeEventListener('show-history', handleShowHistory);
     };
   }, []);
 
@@ -258,6 +275,7 @@ const AppLayout: React.FC = () => {
     const handleNavigateBack = async () => {
       const { activeTabId, navigateBack } = useTabsStore.getState();
       if (activeTabId) {
+        // History is already kept in sync by onScrollChange/onZoomChange, just navigate
         const entry = navigateBack(activeTabId);
         if (entry) {
           // Dispatch to handleNavigateToHistory for unified handling
@@ -269,6 +287,7 @@ const AppLayout: React.FC = () => {
     const handleNavigateForward = async () => {
       const { activeTabId, navigateForward } = useTabsStore.getState();
       if (activeTabId) {
+        // History is already kept in sync by onScrollChange/onZoomChange, just navigate
         const entry = navigateForward(activeTabId);
         if (entry) {
           // Dispatch to handleNavigateToHistory for unified handling
@@ -293,7 +312,10 @@ const AppLayout: React.FC = () => {
         const isDirectoryListing = entry.filePath.includes('[Directory Index]');
 
         if (isDirectoryListing) {
-          // Re-generate directory listing
+          // Re-generate directory listing with race condition prevention
+          const fileToLoad = entry.filePath;
+          loadingFileRef.current = fileToLoad;
+
           const directoryPath = entry.filePath.replace(/[/\\]\[Directory Index\]$/, '');
           console.log('[handleNavigateToHistory] Re-generating directory listing for:', directoryPath);
 
@@ -301,84 +323,98 @@ const AppLayout: React.FC = () => {
             directoryPath: directoryPath,
           });
 
-          if (listingResult?.success && listingResult.items) {
-            // Generate markdown content for directory listing
-            const dirName = directoryPath.split(/[/\\]/).pop() || 'Directory';
-            let markdown = `# ${dirName}\n\n`;
+          // Only update content if this is still the file we want to display
+          if (loadingFileRef.current === fileToLoad && currentFile === fileToLoad) {
+            if (listingResult?.success && listingResult.items) {
+              // Generate markdown content for directory listing
+              const dirName = directoryPath.split(/[/\\]/).pop() || 'Directory';
+              let markdown = `# ${dirName}\n\n`;
 
-            // Add directories
-            const directories = listingResult.items.filter((item: any) => item.isDirectory);
-            if (directories.length > 0) {
-              markdown += '## Folders\n\n';
-              directories.forEach((item: any) => {
-                const label = item.title || item.name;
-                markdown += `- [${label}/](${item.name}/)\n`;
-              });
-              markdown += '\n';
-            }
+              // Add directories
+              const directories = listingResult.items.filter((item: any) => item.isDirectory);
+              if (directories.length > 0) {
+                markdown += '## Folders\n\n';
+                directories.forEach((item: any) => {
+                  const label = item.title || item.name;
+                  markdown += `- [${label}/](${item.name}/)\n`;
+                });
+                markdown += '\n';
+              }
 
-            // Add files
-            const files = listingResult.items.filter((item: any) => !item.isDirectory);
-            if (files.length > 0) {
-              markdown += '## Files\n\n';
-              files.forEach((item: any) => {
-                const label = item.title || item.name;
-                markdown += `- [${label}](${item.name})\n`;
-              });
-            }
+              // Add files
+              const files = listingResult.items.filter((item: any) => !item.isDirectory);
+              if (files.length > 0) {
+                markdown += '## Files\n\n';
+                files.forEach((item: any) => {
+                  const label = item.title || item.name;
+                  markdown += `- [${label}](${item.name})\n`;
+                });
+              }
 
-            setCurrentContent(markdown);
-            console.log('[handleNavigateToHistory] Directory listing generated');
+              setCurrentContent(markdown);
+              console.log('[handleNavigateToHistory] Directory listing generated');
 
-            // Update the active tab and restore zoom level
-            const { activeTabId, tabs, updateTabZoomLevel } = useTabsStore.getState();
-            if (activeTabId) {
-              const activeTab = tabs.get(activeTabId);
-              if (activeTab) {
-                const updatedTab = {
-                  ...activeTab,
-                  filePath: entry.filePath,
-                  title: `${dirName}\\`, // Add backslash to indicate directory
-                  scrollPosition: entry.scrollPosition,
-                  scrollLeft: entry.scrollLeft || 0, // Restore horizontal scroll from history
-                  zoomLevel: entry.zoomLevel || 100, // Restore zoom from history
-                };
-                tabs.set(activeTabId, updatedTab);
-                useTabsStore.setState({ tabs: new Map(tabs) });
+              // Update the active tab and restore zoom level
+              const { activeTabId, tabs, updateTabZoomLevel } = useTabsStore.getState();
+              if (activeTabId) {
+                const activeTab = tabs.get(activeTabId);
+                if (activeTab) {
+                  const updatedTab = {
+                    ...activeTab,
+                    filePath: fileToLoad,
+                    title: `${dirName}\\`, // Add backslash to indicate directory
+                    scrollPosition: entry.scrollPosition,
+                    scrollLeft: entry.scrollLeft || 0, // Restore horizontal scroll from history
+                    zoomLevel: entry.zoomLevel || 100, // Restore zoom from history
+                  };
+                  tabs.set(activeTabId, updatedTab);
+                  useTabsStore.setState({ tabs: new Map(tabs) });
 
-                // Restore zoom level
-                updateTabZoomLevel(activeTabId, entry.zoomLevel || 100);
+                  // Restore zoom level
+                  updateTabZoomLevel(activeTabId, entry.zoomLevel || 100);
+                }
               }
             }
+          } else {
+            console.log('[handleNavigateToHistory] Ignoring stale directory listing for:', fileToLoad, '(current:', loadingFileRef.current, ')');
           }
         } else {
-          // Load regular file content
-          const result = await window.electronAPI?.file?.read({ filePath: entry.filePath });
-          if (result?.success && result.content) {
-            setCurrentContent(result.content);
-            console.log('[handleNavigateToHistory] Content loaded for:', entry.filePath);
+          // Load regular file content with race condition prevention
+          const fileToLoad = entry.filePath;
+          loadingFileRef.current = fileToLoad;
 
-            // Update the active tab and restore zoom level
-            const { activeTabId, tabs, updateTabZoomLevel } = useTabsStore.getState();
-            if (activeTabId) {
-              const activeTab = tabs.get(activeTabId);
-              if (activeTab) {
-                const fileName = entry.filePath.split(/[/\\]/).pop() || 'Untitled';
-                const updatedTab = {
-                  ...activeTab,
-                  filePath: entry.filePath,
-                  title: fileName,
-                  scrollPosition: entry.scrollPosition,
-                  scrollLeft: entry.scrollLeft || 0, // Restore horizontal scroll from history
-                  zoomLevel: entry.zoomLevel || 100, // Restore zoom from history
-                };
-                tabs.set(activeTabId, updatedTab);
-                useTabsStore.setState({ tabs: new Map(tabs) });
+          const result = await window.electronAPI?.file?.read({ filePath: fileToLoad });
 
-                // Restore zoom level
-                updateTabZoomLevel(activeTabId, entry.zoomLevel || 100);
+          // Only update content if this is still the file we want to display
+          if (loadingFileRef.current === fileToLoad && currentFile === fileToLoad) {
+            if (result?.success && result.content) {
+              setCurrentContent(result.content);
+              console.log('[handleNavigateToHistory] Content loaded for:', fileToLoad);
+
+              // Update the active tab and restore zoom level
+              const { activeTabId, tabs, updateTabZoomLevel } = useTabsStore.getState();
+              if (activeTabId) {
+                const activeTab = tabs.get(activeTabId);
+                if (activeTab) {
+                  const fileName = fileToLoad.split(/[/\\]/).pop() || 'Untitled';
+                  const updatedTab = {
+                    ...activeTab,
+                    filePath: fileToLoad,
+                    title: fileName,
+                    scrollPosition: entry.scrollPosition,
+                    scrollLeft: entry.scrollLeft || 0, // Restore horizontal scroll from history
+                    zoomLevel: entry.zoomLevel || 100, // Restore zoom from history
+                  };
+                  tabs.set(activeTabId, updatedTab);
+                  useTabsStore.setState({ tabs: new Map(tabs) });
+
+                  // Restore zoom level
+                  updateTabZoomLevel(activeTabId, entry.zoomLevel || 100);
+                }
               }
             }
+          } else {
+            console.log('[handleNavigateToHistory] Ignoring stale load for:', fileToLoad, '(current:', loadingFileRef.current, ')');
           }
         }
       }
@@ -779,10 +815,48 @@ const AppLayout: React.FC = () => {
             <div className="sidebar-header">
             {/* T111-T113: Folder Switcher */}
             {folders.length > 0 && <FolderSwitcher />}
+
+            {/* Sidebar view toggle: Files / History */}
+            {tabs.size > 0 && (
+              <div className="sidebar-view-toggle">
+                <button
+                  className={`sidebar-view-toggle__button ${sidebarView === 'files' ? 'sidebar-view-toggle__button--active' : ''}`}
+                  onClick={() => setSidebarView('files')}
+                  title="Show File Tree"
+                  type="button"
+                >
+                  📁 Files
+                </button>
+                <button
+                  className={`sidebar-view-toggle__button ${sidebarView === 'history' ? 'sidebar-view-toggle__button--active' : ''}`}
+                  onClick={() => setSidebarView('history')}
+                  title="Show Navigation History"
+                  type="button"
+                >
+                  🕐 History
+                </button>
+              </div>
+            )}
           </div>
           <div className="sidebar-content">
-            {/* T101-T105: File Tree */}
-            {(() => {
+            {/* Show History Panel when history view is active */}
+            {sidebarView === 'history' && tabs.size > 0 && (
+              <HistoryPanel
+                onHistoryEntryClick={(index) => {
+                  // Navigate to the selected history entry
+                  const { activeTabId, navigateToIndex } = useTabsStore.getState();
+                  if (activeTabId) {
+                    const entry = navigateToIndex(activeTabId, index);
+                    if (entry) {
+                      window.dispatchEvent(new CustomEvent('navigate-to-history', { detail: entry }));
+                    }
+                  }
+                }}
+              />
+            )}
+
+            {/* Show File Tree when files view is active */}
+            {sidebarView === 'files' && (() => {
               const activeTabId = useTabsStore.getState().activeTabId;
               const activeTab = tabs.size > 0 ? Array.from(tabs.values()).find(t => t.id === activeTabId) : null;
               const isDirectFile = activeTab?.isDirectFile === true;
@@ -1117,9 +1191,65 @@ const AppLayout: React.FC = () => {
               scrollLeft={activeTab?.scrollLeft}
               onRenderComplete={handleRenderComplete}
               onFileLink={handleLinkClick}
-              onZoomChange={(newZoom) => {
+              onScrollChange={(scrollTop, scrollLeft) => {
+                // Save scroll positions to BOTH tab state AND current history entry
                 if (activeTabId) {
+                  const { tabs, updateTabScrollPosition } = useTabsStore.getState();
+                  const tab = tabs.get(activeTabId);
+                  if (tab) {
+                    // Update vertical scroll in tab state
+                    updateTabScrollPosition(activeTabId, scrollTop);
+
+                    // Update both scroll positions in tab state and current history entry
+                    const newTabs = new Map(tabs);
+                    const history = tab.navigationHistory;
+                    const currentIndex = tab.currentHistoryIndex;
+
+                    // Update current history entry immediately (not just on navigation)
+                    if (history && currentIndex >= 0 && currentIndex < history.length) {
+                      history[currentIndex] = {
+                        ...history[currentIndex],
+                        scrollPosition: scrollTop,
+                        scrollLeft: scrollLeft,
+                        zoomLevel: tab.zoomLevel || 100,
+                      };
+                    }
+
+                    newTabs.set(activeTabId, {
+                      ...tab,
+                      scrollLeft,
+                      navigationHistory: history
+                    });
+                    useTabsStore.setState({ tabs: newTabs });
+                  }
+                }
+              }}
+              onZoomChange={(newZoom) => {
+                // Save zoom to BOTH tab state AND current history entry
+                if (activeTabId) {
+                  const { tabs, updateTabZoomLevel } = useTabsStore.getState();
                   updateTabZoomLevel(activeTabId, newZoom);
+
+                  // Also update current history entry immediately
+                  const tab = tabs.get(activeTabId);
+                  if (tab) {
+                    const history = tab.navigationHistory;
+                    const currentIndex = tab.currentHistoryIndex;
+
+                    if (history && currentIndex >= 0 && currentIndex < history.length) {
+                      history[currentIndex] = {
+                        ...history[currentIndex],
+                        zoomLevel: newZoom,
+                      };
+
+                      const newTabs = new Map(tabs);
+                      newTabs.set(activeTabId, {
+                        ...tab,
+                        navigationHistory: history
+                      });
+                      useTabsStore.setState({ tabs: newTabs });
+                    }
+                  }
                 }
               }}
             />

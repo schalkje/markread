@@ -124,96 +124,11 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
     },
   ];
 
-  // Get active tab state for Home button and history display
+  // Get active tab state for Home button
   const activeTab = useTabsStore((state) =>
     state.activeTabId ? state.tabs.get(state.activeTabId) : undefined
   );
   const isAtHome = !activeTab || activeTab.currentHistoryIndex === 0 || activeTab.navigationHistory.length === 0;
-
-  // Build history items for display (last 5 back, current, next 5 forward)
-  const historyItems = React.useMemo(() => {
-    if (!activeTab || activeTab.navigationHistory.length === 0) {
-      return [{ label: '(No history)', action: () => {}, disabled: true }];
-    }
-
-    // Helper function to format file/directory names for history display
-    const formatHistoryLabel = (filePath: string): string => {
-      const isDirectoryListing = filePath.includes('[Directory Index]');
-      if (isDirectoryListing) {
-        // Extract directory name and add trailing backslash
-        const dirPath = filePath.replace(/[/\\]\[Directory Index\]$/, '');
-        const dirName = dirPath.split(/[/\\]/).pop() || 'Unknown';
-        return `${dirName}\\`;
-      } else {
-        // Regular file
-        return filePath.split(/[/\\]/).pop() || 'Unknown';
-      }
-    };
-
-    const items: Array<{ label: string; action: () => void; disabled?: boolean; separator?: boolean }> = [];
-    const history = activeTab.navigationHistory;
-    const currentIndex = activeTab.currentHistoryIndex;
-
-    // Add "HISTORY:" header
-    items.push({ label: `HISTORY (${currentIndex + 1}/${history.length}):`, action: () => {}, disabled: true });
-
-    // Show up to 5 entries before current
-    const startIndex = Math.max(0, currentIndex - 5);
-    for (let i = startIndex; i < currentIndex; i++) {
-      const entry = history[i];
-      const displayName = formatHistoryLabel(entry.filePath);
-      items.push({
-        label: `  ${i}: ${displayName}`,
-        action: () => {
-          // Navigate to this history position
-          const { activeTabId } = useTabsStore.getState();
-          if (activeTabId) {
-            const tab = useTabsStore.getState().tabs.get(activeTabId);
-            if (tab) {
-              const newTabs = new Map(useTabsStore.getState().tabs);
-              newTabs.set(activeTabId, { ...tab, currentHistoryIndex: i });
-              useTabsStore.setState({ tabs: newTabs });
-              window.dispatchEvent(new CustomEvent('navigate-to-history', { detail: entry }));
-            }
-          }
-        },
-      });
-    }
-
-    // Show current entry with marker
-    const currentEntry = history[currentIndex];
-    const currentDisplayName = formatHistoryLabel(currentEntry.filePath);
-    items.push({
-      label: `▶ ${currentIndex}: ${currentDisplayName} ◀`,
-      action: () => {},
-      disabled: true,
-    });
-
-    // Show up to 5 entries after current
-    const endIndex = Math.min(history.length, currentIndex + 6);
-    for (let i = currentIndex + 1; i < endIndex; i++) {
-      const entry = history[i];
-      const displayName = formatHistoryLabel(entry.filePath);
-      items.push({
-        label: `  ${i}: ${displayName}`,
-        action: () => {
-          // Navigate to this history position
-          const { activeTabId } = useTabsStore.getState();
-          if (activeTabId) {
-            const tab = useTabsStore.getState().tabs.get(activeTabId);
-            if (tab) {
-              const newTabs = new Map(useTabsStore.getState().tabs);
-              newTabs.set(activeTabId, { ...tab, currentHistoryIndex: i });
-              useTabsStore.setState({ tabs: newTabs });
-              window.dispatchEvent(new CustomEvent('navigate-to-history', { detail: entry }));
-            }
-          }
-        },
-      });
-    }
-
-    return items;
-  }, [activeTab?.navigationHistory, activeTab?.currentHistoryIndex]);
 
   const viewMenuItems = [
     {
@@ -252,7 +167,12 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       disabled: isAtHome,  // Now reactive!
     },
     { separator: true, label: '', action: () => {} },
-    ...historyItems,  // Add history display
+    {
+      label: 'Show History',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('show-history'));
+      },
+    },
     { separator: true, label: '', action: () => {} },
     {
       label: 'Toggle Sidebar',

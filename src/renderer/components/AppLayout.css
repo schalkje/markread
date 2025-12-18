@@ -29,12 +29,57 @@
 .sidebar-header {
   padding: 1rem;
   border-bottom: 1px solid var(--color-border-default, #d0d7de);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .sidebar-header h2 {
   margin: 0;
   font-size: 1.25rem;
   color: var(--color-text-primary, #24292f);
+}
+
+/* Sidebar view toggle */
+.sidebar-view-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--toggle-bg, #f0f2f5);
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.sidebar-view-toggle__button {
+  flex: 1;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #57606a);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.sidebar-view-toggle__button:hover {
+  background: var(--toggle-button-hover, rgba(0, 0, 0, 0.05));
+  color: var(--text-primary, #24292f);
+}
+
+.sidebar-view-toggle__button--active {
+  background: var(--accent-color, #0969da);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-view-toggle__button--active:hover {
+  background: var(--accent-color-hover, #0860ca);
+  color: #ffffff;
 }
 
 .sidebar-content {

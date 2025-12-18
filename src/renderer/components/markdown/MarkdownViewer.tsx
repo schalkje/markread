@@ -34,7 +34,7 @@ export interface MarkdownViewerProps {
   /** Callback when rendering completes */
   onRenderComplete?: () => void;
   /** Callback when scroll position changes */
-  onScrollChange?: (scrollTop: number) => void;
+  onScrollChange?: (scrollTop: number, scrollLeft: number) => void;
   /** Callback when a file link is clicked */
   onFileLink?: (filePath: string) => void;
   /** Callback when zoom level changes (T051i) */
@@ -334,24 +334,55 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
                                  (scrollLeft !== undefined && scrollLeft > 0);
 
     if (shouldRestoreScroll) {
-      // Wait for content to be fully rendered and have scrollable space
-      const attemptRestore = () => {
-        // Check if content has scrollable space
-        const hasVerticalScroll = viewer.scrollHeight > viewer.clientHeight;
-        const hasHorizontalScroll = viewer.scrollWidth > viewer.clientWidth;
+      let retryCount = 0;
+      const maxRetries = 20; // Try for up to 1 second (20 * 50ms)
+      let lastScrollHeight = 0;
+      let stableCount = 0;
+      let cancelled = false; // Cancellation flag
 
-        if (hasVerticalScroll || hasHorizontalScroll) {
-          // Content is ready, restore scroll
-          if (scrollTop !== undefined && scrollTop > 0) {
-            viewer.scrollTop = scrollTop;
-            console.log('[MarkdownViewer] Restored scrollTop to:', scrollTop);
-          }
-          if (scrollLeft !== undefined && scrollLeft > 0) {
-            viewer.scrollLeft = scrollLeft;
-            console.log('[MarkdownViewer] Restored scrollLeft to:', scrollLeft);
+      // Wait for content to be fully rendered and stable
+      const attemptRestore = () => {
+        // Abort if cancelled (user navigated away)
+        if (cancelled) {
+          console.log('[MarkdownViewer] Scroll restoration cancelled');
+          return;
+        }
+
+        retryCount++;
+
+        // Check if content dimensions have stabilized
+        const currentScrollHeight = viewer.scrollHeight;
+        const hasScrollableContent = currentScrollHeight > viewer.clientHeight;
+
+        // Content is stable if height hasn't changed for 2 consecutive checks
+        if (currentScrollHeight === lastScrollHeight && hasScrollableContent) {
+          stableCount++;
+        } else {
+          stableCount = 0;
+          lastScrollHeight = currentScrollHeight;
+        }
+
+        // Restore when content is stable OR we've reached max retries
+        if (stableCount >= 2 || retryCount >= maxRetries) {
+          // Check if we can scroll to the desired position
+          const canScrollToPosition = scrollTop ? (currentScrollHeight - viewer.clientHeight >= scrollTop) : true;
+
+          if (canScrollToPosition || retryCount >= maxRetries) {
+            // Content is ready (or we've waited long enough), restore scroll
+            if (scrollTop !== undefined && scrollTop > 0) {
+              viewer.scrollTop = scrollTop;
+              console.log('[MarkdownViewer] Restored scrollTop to:', scrollTop, `(after ${retryCount} attempts, scrollHeight: ${currentScrollHeight})`);
+            }
+            if (scrollLeft !== undefined && scrollLeft > 0) {
+              viewer.scrollLeft = scrollLeft;
+              console.log('[MarkdownViewer] Restored scrollLeft to:', scrollLeft);
+            }
+          } else {
+            // Content not tall enough yet, keep trying
+            setTimeout(attemptRestore, 50);
           }
         } else {
-          // Content not ready yet, try again after a short delay
+          // Content still changing, keep trying
           setTimeout(attemptRestore, 50);
         }
       };
@@ -360,6 +391,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       requestAnimationFrame(() => {
         requestAnimationFrame(attemptRestore);
       });
+
+      // Cleanup: Cancel restoration if component unmounts or dependencies change
+      return () => {
+        cancelled = true;
+      };
     }
   }, [scrollTop, scrollLeft, filePath, zoomLevel]); // Trigger when navigating to a new page or zoom changes
 
@@ -492,7 +528,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Track scroll changes
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
-    onScrollChange?.(scrollTop);
+    const scrollLeft = e.currentTarget.scrollLeft;
+    onScrollChange?.(scrollTop, scrollLeft);
   };
 
   // T051i: Mouse wheel zoom with Ctrl+Scroll (smooth, synchronous)
