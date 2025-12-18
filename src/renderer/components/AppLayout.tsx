@@ -302,18 +302,24 @@ const AppLayout: React.FC = () => {
       if (entry && entry.filePath) {
         console.log('[handleNavigateToHistory] Navigating to:', entry.filePath);
 
+        // Check if this is a virtual directory listing path
+        const isDirectoryListing = entry.filePath.includes('[Directory Index]');
+
+        // For regular files, let the sync effect + file load effect handle it
+        // Only manually handle directory listings
+        if (!isDirectoryListing) {
+          console.log('[handleNavigateToHistory] Regular file - letting sync effect handle it');
+          return;
+        }
+
         // Mark as manually loaded to prevent useEffect from loading again
         contentLoadedManually.current = true;
 
         // Navigate to the history entry
         setCurrentFile(entry.filePath);
 
-        // Check if this is a virtual directory listing path
-        const isDirectoryListing = entry.filePath.includes('[Directory Index]');
-
-        if (isDirectoryListing) {
-          // Re-generate directory listing with race condition prevention
-          const fileToLoad = entry.filePath;
+        // Re-generate directory listing with race condition prevention
+        const fileToLoad = entry.filePath;
           loadingFileRef.current = fileToLoad;
 
           const directoryPath = entry.filePath.replace(/[/\\]\[Directory Index\]$/, '');
@@ -378,45 +384,6 @@ const AppLayout: React.FC = () => {
           } else {
             console.log('[handleNavigateToHistory] Ignoring stale directory listing for:', fileToLoad, '(current:', loadingFileRef.current, ')');
           }
-        } else {
-          // Load regular file content with race condition prevention
-          const fileToLoad = entry.filePath;
-          loadingFileRef.current = fileToLoad;
-
-          const result = await window.electronAPI?.file?.read({ filePath: fileToLoad });
-
-          // Only update content if this is still the file we want to display
-          if (loadingFileRef.current === fileToLoad && currentFile === fileToLoad) {
-            if (result?.success && result.content) {
-              setCurrentContent(result.content);
-              console.log('[handleNavigateToHistory] Content loaded for:', fileToLoad);
-
-              // Update the active tab and restore zoom level
-              const { activeTabId, tabs, updateTabZoomLevel } = useTabsStore.getState();
-              if (activeTabId) {
-                const activeTab = tabs.get(activeTabId);
-                if (activeTab) {
-                  const fileName = fileToLoad.split(/[/\\]/).pop() || 'Untitled';
-                  const updatedTab = {
-                    ...activeTab,
-                    filePath: fileToLoad,
-                    title: fileName,
-                    scrollPosition: entry.scrollPosition,
-                    scrollLeft: entry.scrollLeft || 0, // Restore horizontal scroll from history
-                    zoomLevel: entry.zoomLevel || 100, // Restore zoom from history
-                  };
-                  tabs.set(activeTabId, updatedTab);
-                  useTabsStore.setState({ tabs: new Map(tabs) });
-
-                  // Restore zoom level
-                  updateTabZoomLevel(activeTabId, entry.zoomLevel || 100);
-                }
-              }
-            }
-          } else {
-            console.log('[handleNavigateToHistory] Ignoring stale load for:', fileToLoad, '(current:', loadingFileRef.current, ')');
-          }
-        }
       }
     };
 
@@ -744,6 +711,22 @@ const AppLayout: React.FC = () => {
       console.error('Error auto-opening first file:', err);
     }
   };
+
+  /**
+   * Sync currentFile with active tab's filePath
+   * This ensures that when history navigation updates the tab's filePath,
+   * the AppLayout's currentFile state triggers file loading
+   */
+  useEffect(() => {
+    if (activeTab && activeTab.filePath && activeTab.filePath !== currentFile) {
+      console.log('[AppLayout] Syncing currentFile with tab filePath:', {
+        from: currentFile,
+        to: activeTab.filePath,
+      });
+      // Don't mark as manually loaded - let the file load effect handle it
+      setCurrentFile(activeTab.filePath);
+    }
+  }, [activeTab?.filePath, activeTab?.id]);
 
   /**
    * Load file content when currentFile changes

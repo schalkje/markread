@@ -298,11 +298,16 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       const newTabs = new Map(state.tabs);
       const currentTab = newTabs.get(tabId);
       if (currentTab) {
+        // Extract filename for title
+        const fileName = previousEntry.filePath.split(/[/\\]/).pop() || 'Untitled';
+        const title = fileName.replace(/\s*\[Directory Index\]$/, '').trim() || fileName;
+
         newTabs.set(tabId, {
           ...currentTab,
           currentHistoryIndex: newIndex,
           // Sync tab properties with history entry
           filePath: previousEntry.filePath,
+          title: title,
           scrollPosition: previousEntry.scrollPosition,
           scrollLeft: previousEntry.scrollLeft || 0,
           zoomLevel: previousEntry.zoomLevel || 100,
@@ -332,11 +337,16 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       const newTabs = new Map(state.tabs);
       const currentTab = newTabs.get(tabId);
       if (currentTab) {
+        // Extract filename for title
+        const fileName = nextEntry.filePath.split(/[/\\]/).pop() || 'Untitled';
+        const title = fileName.replace(/\s*\[Directory Index\]$/, '').trim() || fileName;
+
         newTabs.set(tabId, {
           ...currentTab,
           currentHistoryIndex: newIndex,
           // Sync tab properties with history entry
           filePath: nextEntry.filePath,
+          title: title,
           scrollPosition: nextEntry.scrollPosition,
           scrollLeft: nextEntry.scrollLeft || 0,
           zoomLevel: nextEntry.zoomLevel || 100,
@@ -364,11 +374,16 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       const newTabs = new Map(state.tabs);
       const currentTab = newTabs.get(tabId);
       if (currentTab) {
+        // Extract filename for title
+        const fileName = entry.filePath.split(/[/\\]/).pop() || 'Untitled';
+        const title = fileName.replace(/\s*\[Directory Index\]$/, '').trim() || fileName;
+
         newTabs.set(tabId, {
           ...currentTab,
           currentHistoryIndex: index,
           // Sync tab properties with history entry
           filePath: entry.filePath,
+          title: title,
           scrollPosition: entry.scrollPosition,
           scrollLeft: entry.scrollLeft || 0,
           zoomLevel: entry.zoomLevel || 100,
