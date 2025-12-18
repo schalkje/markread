@@ -207,10 +207,39 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     set((state) => {
       const tab = state.tabs.get(tabId);
       if (tab) {
+        const clampedZoom = Math.max(10, Math.min(2000, zoomLevel));
+        console.log('[updateTabZoomLevel] Updating zoom:', {
+          tabId,
+          oldZoom: tab.zoomLevel,
+          newZoom: clampedZoom,
+          historyIndex: tab.currentHistoryIndex
+        });
+
         const newTabs = new Map(state.tabs);
-        newTabs.set(tabId, { ...tab, zoomLevel: Math.max(10, Math.min(2000, zoomLevel)) });
+
+        // Update current history entry's zoom level
+        const history = tab.navigationHistory;
+        const currentIndex = tab.currentHistoryIndex;
+        let newHistory = history;
+
+        if (history && currentIndex >= 0 && currentIndex < history.length) {
+          newHistory = [...history];
+          newHistory[currentIndex] = {
+            ...history[currentIndex],
+            zoomLevel: clampedZoom,
+          };
+          console.log('[updateTabZoomLevel] Updated history entry:', newHistory[currentIndex]);
+        }
+
+        // Update tab with new zoom level AND updated history
+        newTabs.set(tabId, {
+          ...tab,
+          zoomLevel: clampedZoom,
+          navigationHistory: newHistory
+        });
         return { tabs: newTabs };
       }
+      console.log('[updateTabZoomLevel] Tab not found:', tabId);
       return state;
     });
   },

@@ -536,12 +536,23 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   useEffect(() => {
     const container = viewerRef.current;
     const content = contentRef.current;
-    if (!container || !content || !onZoomChange) return;
+
+    console.log('[MarkdownViewer] Wheel zoom effect setup:', {
+      hasContainer: !!container,
+      hasContent: !!content,
+      hasOnZoomChange: !!onZoomChange
+    });
+
+    if (!container || !content || !onZoomChange) {
+      console.log('[MarkdownViewer] Wheel zoom NOT registered - missing dependency');
+      return;
+    }
 
     const handleWheel = (e: WheelEvent) => {
       // Ctrl+Scroll (without Alt) = Content zoom
       if (e.ctrlKey && !e.altKey) {
         e.preventDefault();
+        console.log('[MarkdownViewer] Wheel zoom triggered');
 
         // Get current zoom from ref (not prop, to avoid re-render delays)
         const prevZoom = currentZoomRef.current;
@@ -573,19 +584,23 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         container.scrollLeft = afterX - cursorX;
         container.scrollTop = afterY - cursorY;
 
+        console.log('[MarkdownViewer] Calling onZoomChange with:', newZoom);
         // Debounce the state update to reduce re-renders
         if (zoomUpdateTimeoutRef.current) {
           clearTimeout(zoomUpdateTimeoutRef.current);
         }
         zoomUpdateTimeoutRef.current = setTimeout(() => {
+          console.log('[MarkdownViewer] onZoomChange callback executing');
           onZoomChange(newZoom);
           zoomUpdateTimeoutRef.current = null;
         }, 100);
       }
     };
 
+    console.log('[MarkdownViewer] Wheel zoom handler registered');
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
+      console.log('[MarkdownViewer] Wheel zoom handler unregistered');
       container.removeEventListener('wheel', handleWheel);
       if (zoomUpdateTimeoutRef.current) {
         clearTimeout(zoomUpdateTimeoutRef.current);

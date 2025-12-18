@@ -32,7 +32,7 @@ const AppLayout: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { tabs, activeTabId, updateTabZoomLevel } = useTabsStore();
+  const { tabs, activeTabId } = useTabsStore();
   const activeTab = activeTabId ? tabs.get(activeTabId) : null;
   const { folders, activeFolderId } = useFoldersStore();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
@@ -48,6 +48,15 @@ const AppLayout: React.FC = () => {
 
   // Ref to track which file is currently being loaded (prevents race conditions)
   const loadingFileRef = useRef<string | null>(null);
+
+  // Stable zoom change handler (prevents wheel handler from re-registering constantly)
+  const handleZoomChange = useCallback((newZoom: number) => {
+    console.log('[AppLayout] handleZoomChange called:', { activeTabId, newZoom });
+    if (activeTabId) {
+      const { updateTabZoomLevel } = useTabsStore.getState();
+      updateTabZoomLevel(activeTabId, newZoom);
+    }
+  }, [activeTabId]);
 
   const toggleSidebar = useCallback(() => {
     setShowSidebar(!showSidebar);
@@ -1189,8 +1198,11 @@ const AppLayout: React.FC = () => {
                     const currentIndex = tab.currentHistoryIndex;
 
                     // Update current history entry immediately (not just on navigation)
+                    // Create NEW array with updated entry (don't mutate!)
+                    let newHistory = history;
                     if (history && currentIndex >= 0 && currentIndex < history.length) {
-                      history[currentIndex] = {
+                      newHistory = [...history];
+                      newHistory[currentIndex] = {
                         ...history[currentIndex],
                         scrollPosition: scrollTop,
                         scrollLeft: scrollLeft,
@@ -1201,40 +1213,13 @@ const AppLayout: React.FC = () => {
                     newTabs.set(activeTabId, {
                       ...tab,
                       scrollLeft,
-                      navigationHistory: history
+                      navigationHistory: newHistory
                     });
                     useTabsStore.setState({ tabs: newTabs });
                   }
                 }
               }}
-              onZoomChange={(newZoom) => {
-                // Save zoom to BOTH tab state AND current history entry
-                if (activeTabId) {
-                  const { tabs, updateTabZoomLevel } = useTabsStore.getState();
-                  updateTabZoomLevel(activeTabId, newZoom);
-
-                  // Also update current history entry immediately
-                  const tab = tabs.get(activeTabId);
-                  if (tab) {
-                    const history = tab.navigationHistory;
-                    const currentIndex = tab.currentHistoryIndex;
-
-                    if (history && currentIndex >= 0 && currentIndex < history.length) {
-                      history[currentIndex] = {
-                        ...history[currentIndex],
-                        zoomLevel: newZoom,
-                      };
-
-                      const newTabs = new Map(tabs);
-                      newTabs.set(activeTabId, {
-                        ...tab,
-                        navigationHistory: history
-                      });
-                      useTabsStore.setState({ tabs: newTabs });
-                    }
-                  }
-                }
-              }}
+              onZoomChange={handleZoomChange}
             />
           )}
         </div>

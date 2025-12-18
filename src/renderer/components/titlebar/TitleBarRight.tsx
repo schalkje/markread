@@ -21,13 +21,13 @@ export const TitleBarRight: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [showZoomMenu, setShowZoomMenu] = useState(false);
 
-  // T051k: Get active tab zoom level
-  const activeTab = useTabsStore((state) => {
+  // T051k: Get active tab ID and zoom level (with proper reactivity)
+  const activeTabId = useTabsStore((state) => state.activeTabId);
+  const contentZoom = useTabsStore((state) => {
     const activeId = state.activeTabId;
-    return activeId ? state.tabs.get(activeId) : null;
+    const tab = activeId ? state.tabs.get(activeId) : null;
+    return tab?.zoomLevel || 100;
   });
-  const updateTabZoomLevel = useTabsStore((state) => state.updateTabZoomLevel);
-  const contentZoom = activeTab?.zoomLevel || 100;
 
   // Check maximized state on mount
   useEffect(() => {
@@ -62,26 +62,34 @@ export const TitleBarRight: React.FC = () => {
 
   // T051k: Content zoom handlers
   const handleZoomIn = () => {
-    if (!activeTab) return;
+    if (!activeTabId) return;
     const newZoom = Math.min(2000, contentZoom + 10);
-    updateTabZoomLevel(activeTab.id, newZoom);
+    const { updateTabZoomLevel } = useTabsStore.getState();
+    console.log('[TitleBarRight] handleZoomIn:', { activeTabId, contentZoom, newZoom });
+    updateTabZoomLevel(activeTabId, newZoom);
   };
 
   const handleZoomOut = () => {
-    if (!activeTab) return;
+    if (!activeTabId) return;
     const newZoom = Math.max(10, contentZoom - 10);
-    updateTabZoomLevel(activeTab.id, newZoom);
+    const { updateTabZoomLevel } = useTabsStore.getState();
+    console.log('[TitleBarRight] handleZoomOut:', { activeTabId, contentZoom, newZoom });
+    updateTabZoomLevel(activeTabId, newZoom);
   };
 
   const handleZoomPreset = (zoom: number) => {
-    if (!activeTab) return;
-    updateTabZoomLevel(activeTab.id, zoom);
+    if (!activeTabId) return;
+    const { updateTabZoomLevel } = useTabsStore.getState();
+    console.log('[TitleBarRight] handleZoomPreset:', { activeTabId, zoom });
+    updateTabZoomLevel(activeTabId, zoom);
     setShowZoomMenu(false);
   };
 
   const handleZoomReset = () => {
-    if (!activeTab) return;
-    updateTabZoomLevel(activeTab.id, 100);
+    if (!activeTabId) return;
+    const { updateTabZoomLevel } = useTabsStore.getState();
+    console.log('[TitleBarRight] handleZoomReset:', { activeTabId });
+    updateTabZoomLevel(activeTabId, 100);
     setShowZoomMenu(false);
   };
 
@@ -150,7 +158,7 @@ export const TitleBarRight: React.FC = () => {
       </button>
 
       {/* T051k: Content zoom controls */}
-      {activeTab && (
+      {activeTabId && (
         <div className="title-bar__zoom-controls">
           <button
             className="title-bar__button title-bar__zoom-button"
