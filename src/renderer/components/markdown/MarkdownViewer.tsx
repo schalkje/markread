@@ -397,7 +397,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         cancelled = true;
       };
     }
-  }, [scrollTop, scrollLeft, filePath, zoomLevel]); // Trigger when navigating to a new page or zoom changes
+  }, [scrollTop, scrollLeft, filePath]); // Trigger when navigating to a new page (removed zoomLevel to avoid conflicts)
 
   // Render markdown content
   useEffect(() => {
