@@ -293,14 +293,19 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     const newIndex = tab.currentHistoryIndex - 1;
     const previousEntry = tab.navigationHistory[newIndex];
 
-    // Update current history index
+    // Update current history index AND sync tab properties with history entry
     set((state) => {
       const newTabs = new Map(state.tabs);
       const currentTab = newTabs.get(tabId);
       if (currentTab) {
         newTabs.set(tabId, {
           ...currentTab,
-          currentHistoryIndex: newIndex
+          currentHistoryIndex: newIndex,
+          // Sync tab properties with history entry
+          filePath: previousEntry.filePath,
+          scrollPosition: previousEntry.scrollPosition,
+          scrollLeft: previousEntry.scrollLeft || 0,
+          zoomLevel: previousEntry.zoomLevel || 100,
         });
       }
       return { tabs: newTabs };
@@ -322,14 +327,19 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     const newIndex = tab.currentHistoryIndex + 1;
     const nextEntry = tab.navigationHistory[newIndex];
 
-    // Update current history index
+    // Update current history index AND sync tab properties with history entry
     set((state) => {
       const newTabs = new Map(state.tabs);
       const currentTab = newTabs.get(tabId);
       if (currentTab) {
         newTabs.set(tabId, {
           ...currentTab,
-          currentHistoryIndex: newIndex
+          currentHistoryIndex: newIndex,
+          // Sync tab properties with history entry
+          filePath: nextEntry.filePath,
+          scrollPosition: nextEntry.scrollPosition,
+          scrollLeft: nextEntry.scrollLeft || 0,
+          zoomLevel: nextEntry.zoomLevel || 100,
         });
       }
       return { tabs: newTabs };
@@ -349,14 +359,19 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
     const entry = tab.navigationHistory[index];
 
-    // Update current history index
+    // Update current history index AND sync tab properties with history entry
     set((state) => {
       const newTabs = new Map(state.tabs);
       const currentTab = newTabs.get(tabId);
       if (currentTab) {
         newTabs.set(tabId, {
           ...currentTab,
-          currentHistoryIndex: index
+          currentHistoryIndex: index,
+          // Sync tab properties with history entry
+          filePath: entry.filePath,
+          scrollPosition: entry.scrollPosition,
+          scrollLeft: entry.scrollLeft || 0,
+          zoomLevel: entry.zoomLevel || 100,
         });
       }
       return { tabs: newTabs };
