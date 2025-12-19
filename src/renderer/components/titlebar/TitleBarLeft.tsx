@@ -185,22 +185,66 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       },
     },
     { separator: true, label: '', action: () => {} },
+    // Document Zoom (Content Only)
     {
-      label: 'Zoom In',
+      label: 'Document Zoom In (Ctrl+=)',
       action: () => {
-        window.dispatchEvent(new CustomEvent('menu:zoom-in'));
+        const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) {
+            const newZoom = Math.min(2000, (tab.zoomLevel || 100) + 10);
+            updateTabZoomLevel(activeTabId, newZoom);
+          }
+        }
       },
     },
     {
-      label: 'Zoom Out',
+      label: 'Document Zoom Out (Ctrl+-)',
       action: () => {
-        window.dispatchEvent(new CustomEvent('menu:zoom-out'));
+        const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) {
+            const newZoom = Math.max(10, (tab.zoomLevel || 100) - 10);
+            updateTabZoomLevel(activeTabId, newZoom);
+          }
+        }
       },
     },
     {
-      label: 'Reset Zoom',
+      label: 'Reset Document Zoom',
       action: () => {
-        window.dispatchEvent(new CustomEvent('menu:zoom-reset'));
+        const { activeTabId, updateTabZoomLevel } = useTabsStore.getState();
+        if (activeTabId) {
+          updateTabZoomLevel(activeTabId, 100);
+        }
+      },
+    },
+    { separator: true, label: '', action: () => {} },
+    // Window Zoom (Entire UI)
+    {
+      label: 'Window Zoom In (Ctrl+Alt+=)',
+      action: async () => {
+        const { useUIStore } = await import('../../stores/ui');
+        const { incrementGlobalZoom } = useUIStore.getState();
+        incrementGlobalZoom(10);
+      },
+    },
+    {
+      label: 'Window Zoom Out (Ctrl+Alt+-)',
+      action: async () => {
+        const { useUIStore } = await import('../../stores/ui');
+        const { incrementGlobalZoom } = useUIStore.getState();
+        incrementGlobalZoom(-10);
+      },
+    },
+    {
+      label: 'Reset Window Zoom',
+      action: async () => {
+        const { useUIStore } = await import('../../stores/ui');
+        const { resetGlobalZoom } = useUIStore.getState();
+        resetGlobalZoom();
       },
     },
   ];

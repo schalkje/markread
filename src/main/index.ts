@@ -4,7 +4,6 @@ import { createWindow } from './window-manager';
 import { registerIpcHandlers } from './ipc-handlers';
 import { initLogger } from './logger';
 import { stopAllWatchers } from './file-watcher';
-import { createApplicationMenu } from './menu';
 import { loadUIState, saveUIStateImmediate } from './ui-state-manager';
 
 // T019: Global error handler
@@ -62,9 +61,6 @@ if (!gotTheLock) {
 
     // T011: Register all IPC handlers (must be done after window is created)
     registerIpcHandlers(mainWindow);
-
-    // Create application menu with File menu
-    createApplicationMenu(mainWindow);
 
     app.on('activate', () => {
       // On macOS re-create window when dock icon is clicked
