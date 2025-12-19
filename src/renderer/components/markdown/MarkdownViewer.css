@@ -52,19 +52,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: var(--md-bg-color, #ffffff);
+  min-height: 200px;
 }
 
 .markdown-viewer__spinner {
   text-align: center;
+  padding: 2rem;
+  background-color: var(--md-code-bg, rgba(175, 184, 193, 0.2));
+  border-radius: 8px;
+}
+
+.markdown-viewer__spinner p {
+  color: var(--md-text-color, #24292f);
+  font-size: 14px;
+  margin: 0;
 }
 
 .spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-left-color: #0969da;
+  border: 4px solid var(--md-border-color, rgba(175, 184, 193, 0.3));
+  border-left-color: var(--md-link-color, #0969da);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
+  width: 48px;
+  height: 48px;
+  animation: spin 0.8s linear infinite;
   margin: 0 auto 1rem;
 }
 

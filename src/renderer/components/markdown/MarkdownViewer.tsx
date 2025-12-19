@@ -409,6 +409,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     let isCancelled = false;
 
     const renderContent = async () => {
+      const startTime = Date.now();
       setIsRendering(true);
       setRenderError(null);
 
@@ -456,8 +457,17 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         addTaskListHandlers(contentRef.current);
 
         if (!isCancelled) {
-          setIsRendering(false);
-          onRenderComplete?.();
+          // Ensure loading spinner shows for at least 300ms for better UX
+          const elapsed = Date.now() - startTime;
+          const minDisplayTime = 300;
+          const remainingTime = Math.max(0, minDisplayTime - elapsed);
+
+          setTimeout(() => {
+            if (!isCancelled) {
+              setIsRendering(false);
+              onRenderComplete?.();
+            }
+          }, remainingTime);
         }
       } catch (err) {
         if (!isCancelled) {
