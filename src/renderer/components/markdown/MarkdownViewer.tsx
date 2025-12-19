@@ -89,11 +89,6 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Link preview state
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
 
-  // Sync currentZoomRef with zoomLevel prop
-  useEffect(() => {
-    currentZoomRef.current = zoomLevel;
-  }, [zoomLevel]);
-
   // Ref to ensure event listeners always have access to current state setter
   const setHoveredLinkRef = useRef(setHoveredLink);
   useEffect(() => {
@@ -266,11 +261,19 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const viewer = viewerRef.current;
     const content = contentRef.current;
 
+    console.log('[MarkdownViewer] Zoom effect running:', {
+      currentZoomRef: currentZoomRef.current,
+      zoomLevel,
+      willApply: currentZoomRef.current !== zoomLevel
+    });
+
     // Skip if zoom was already applied synchronously (from wheel/touch handler)
     if (currentZoomRef.current === zoomLevel) {
+      console.log('[MarkdownViewer] Zoom already applied, skipping');
       return;
     }
 
+    console.log('[MarkdownViewer] Applying zoom transform:', zoomLevel);
     // Capture scroll position BEFORE applying transform
     const currentScrollLeft = viewer.scrollLeft;
     const currentScrollTop = viewer.scrollTop;
