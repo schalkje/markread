@@ -62,9 +62,22 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   onZoomChange,
 }) => {
   const viewerRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const bufferARef = useRef<HTMLDivElement>(null);
+  const bufferBRef = useRef<HTMLDivElement>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
+
+  // Double-buffer state for smooth page transitions
+  const [activeBuffer, setActiveBuffer] = useState<'A' | 'B'>('A');
+  const [preparingBuffer, setPreparingBuffer] = useState<'A' | 'B' | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Track when prepared buffer is ready for crossfade
+  const [preparedBufferReady, setPreparedBufferReady] = useState(false);
+
+  // Optional overlay during transition
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [overlaySnapshot, setOverlaySnapshot] = useState<string>('');
 
   // Pan state (T048, T051l, T051m, T051n)
   const [isPanning, setIsPanning] = useState(false);
@@ -95,9 +108,92 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     setHoveredLinkRef.current = setHoveredLink;
   }, [setHoveredLink]);
 
+  // Track previous filePath to detect navigation
+  const previousFilePathRef = useRef<string | undefined>(undefined);
+
+  // Start transition when navigating to a new page or opening first file
+  useEffect(() => {
+    console.log('[MarkdownViewer] Navigation detection effect running', {
+      currentFilePath: filePath,
+      previousFilePath: previousFilePathRef.current,
+      activeBuffer,
+      preparingBuffer
+    });
+
+    // Trigger transition if:
+    // 1. FilePath changed from a previous file (navigation)
+    // 2. OR this is the first file being loaded (initial mount)
+    const isInitialLoad = previousFilePathRef.current === undefined && filePath;
+    const isNavigation = previousFilePathRef.current !== undefined && previousFilePathRef.current !== filePath && filePath;
+
+    if (isInitialLoad || isNavigation) {
+      console.log('[MarkdownViewer] Transition triggered:', { isInitialLoad, isNavigation });
+
+      // Determine which buffer to prepare (the inactive one)
+      const bufferToPrepare = activeBuffer === 'A' ? 'B' : 'A';
+
+      console.log('[MarkdownViewer] Preparing buffer:', bufferToPrepare);
+
+      // For navigation: Optionally capture snapshot for overlay
+      if (isNavigation) {
+        const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+        if (activeBufferRef.current) {
+          const snapshot = activeBufferRef.current.innerHTML;
+          console.log('[MarkdownViewer] Captured snapshot, length:', snapshot.length);
+          setOverlaySnapshot(snapshot);
+          setShowOverlay(true);
+        }
+      } else {
+        // Initial load - no snapshot
+        setOverlaySnapshot('');
+        setShowOverlay(false);
+      }
+
+      // Start transition
+      setPreparingBuffer(bufferToPrepare);
+      setIsTransitioning(true);
+      setPreparedBufferReady(false);
+    } else {
+      console.log('[MarkdownViewer] Transition NOT triggered - condition not met');
+    }
+
+    // Update previous filePath
+    previousFilePathRef.current = filePath;
+  }, [filePath, activeBuffer]);
+
+  // Manage crossfade transition: When prepared buffer is ready, crossfade and swap
+  // This is the single source of truth for buffer transitions (SRP - Single Responsibility Principle)
+  useEffect(() => {
+    if (!isTransitioning || !preparedBufferReady || !preparingBuffer) return;
+
+    console.log('[MarkdownViewer] Prepared buffer ready, starting crossfade', {
+      from: activeBuffer,
+      to: preparingBuffer
+    });
+
+    // Wait for crossfade animation to complete (300ms)
+    const crossfadeTimeout = setTimeout(() => {
+      console.log('[MarkdownViewer] Crossfade complete, swapping buffers');
+
+      // Swap active buffer
+      setActiveBuffer(preparingBuffer);
+
+      // Clean up transition state
+      setIsTransitioning(false);
+      setPreparingBuffer(null);
+      setPreparedBufferReady(false);
+      setShowOverlay(false);
+      setOverlaySnapshot('');
+    }, 300); // Match CSS transition duration
+
+    return () => clearTimeout(crossfadeTimeout);
+  }, [isTransitioning, preparedBufferReady, preparingBuffer, activeBuffer]);
+
   // Event delegation for link hover and click handling
   useEffect(() => {
-    const container = contentRef.current;
+    // Use the active buffer for event handling
+    const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+    const container = activeBufferRef.current;
     if (!container) return;
 
     // Handle mouseover for link preview (using event delegation)
@@ -252,14 +348,15 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       container.removeEventListener('mouseout', handleMouseOut);
       container.removeEventListener('click', handleClick);
     };
-  }, [filePath, onFileLink]);
+  }, [filePath, onFileLink, activeBuffer, content]);
 
   // T047: Apply zoom with CSS transform and preserve scroll position
   useEffect(() => {
-    if (!contentRef.current || !viewerRef.current) return;
+    const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+    if (!activeBufferRef.current || !viewerRef.current) return;
 
     const viewer = viewerRef.current;
-    const content = contentRef.current;
+    const content = activeBufferRef.current;
 
     console.log('[MarkdownViewer] Zoom effect running:', {
       currentZoomRef: currentZoomRef.current,
@@ -323,7 +420,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         }
       }
     });
-  }, [zoomLevel]);
+  }, [zoomLevel, activeBuffer]);
 
   // Restore scroll position from history (when navigating back/forward)
   useEffect(() => {
@@ -380,6 +477,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
               viewer.scrollLeft = scrollLeft;
               console.log('[MarkdownViewer] Restored scrollLeft to:', scrollLeft);
             }
+
+            // Mark prepared buffer as ready after scroll restoration completes
+            if (!cancelled) {
+              console.log('[MarkdownViewer] Scroll restoration complete, buffer ready');
+              setPreparedBufferReady(true);
+            }
           } else {
             // Content not tall enough yet, keep trying
             setTimeout(attemptRestore, 50);
@@ -402,14 +505,26 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     }
   }, [scrollTop, scrollLeft, filePath]); // Trigger when navigating to a new page (removed zoomLevel to avoid conflicts)
 
-  // Render markdown content
+  // Render markdown content to the preparing buffer
   useEffect(() => {
     if (!content || isLoading) return;
+
+    // Determine target buffer: preparing buffer if transitioning, otherwise active buffer
+    const targetBuffer = preparingBuffer || activeBuffer;
+    const targetBufferRef = targetBuffer === 'A' ? bufferARef : bufferBRef;
+
+    if (!targetBufferRef.current) {
+      console.log('[MarkdownViewer] Target buffer ref not ready yet');
+      return;
+    }
+
+    console.log('[MarkdownViewer] Rendering to buffer:', targetBuffer);
 
     let isCancelled = false;
 
     const renderContent = async () => {
       const startTime = Date.now();
+
       setIsRendering(true);
       setRenderError(null);
 
@@ -419,53 +534,62 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
         // Check if cancelled before proceeding
         if (isCancelled) return;
-        if (!contentRef.current) {
+        if (!targetBufferRef.current) {
           setIsRendering(false);
           return;
         }
 
-        // Step 2: Insert HTML into DOM
-        contentRef.current.innerHTML = html;
+        // Step 2: Insert HTML into DOM (hidden buffer if transitioning)
+        targetBufferRef.current.innerHTML = html;
 
         // Step 3: Render Mermaid diagrams
-        await renderMermaidDiagrams(contentRef.current);
+        await renderMermaidDiagrams(targetBufferRef.current);
 
         // Check if cancelled after async operation
         if (isCancelled) return;
-        if (!contentRef.current) {
+        if (!targetBufferRef.current) {
           setIsRendering(false);
           return;
         }
 
         // Step 3.5: Apply syntax highlighting and copy buttons
         // This must happen AFTER HTML is in the DOM for highlightjs-copy to work
-        applySyntaxHighlighting(contentRef.current);
+        applySyntaxHighlighting(targetBufferRef.current);
 
         // Step 4: Process images with file:// protocol if filePath provided
         if (filePath) {
-          await resolveImagePaths(contentRef.current, filePath);
+          await resolveImagePaths(targetBufferRef.current, filePath);
         }
 
         // Check if cancelled after async operation
         if (isCancelled) return;
-        if (!contentRef.current) {
+        if (!targetBufferRef.current) {
           setIsRendering(false);
           return;
         }
 
         // Step 5: Add click handlers for checkboxes (task lists)
-        addTaskListHandlers(contentRef.current);
+        addTaskListHandlers(targetBufferRef.current);
 
         if (!isCancelled) {
-          // Ensure loading spinner shows for at least 300ms for better UX
+          // Ensure minimum display time of 3 seconds for smooth UX
           const elapsed = Date.now() - startTime;
-          const minDisplayTime = 300;
+          const minDisplayTime = 3000;
           const remainingTime = Math.max(0, minDisplayTime - elapsed);
 
           setTimeout(() => {
             if (!isCancelled) {
               setIsRendering(false);
               onRenderComplete?.();
+
+              // If no scroll restoration needed (scrollTop/Left are undefined or 0),
+              // mark prepared buffer as ready
+              const needsScrollRestoration = (scrollTop !== undefined && scrollTop > 0) ||
+                                              (scrollLeft !== undefined && scrollLeft > 0);
+              if (!needsScrollRestoration) {
+                console.log('[MarkdownViewer] No scroll restoration needed, buffer ready');
+                setPreparedBufferReady(true);
+              }
             }
           }, remainingTime);
         }
@@ -484,7 +608,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [content, filePath, isLoading, onRenderComplete]);
+  }, [content, filePath, isLoading, onRenderComplete, scrollTop, scrollLeft, preparingBuffer, activeBuffer]);
 
   // T048, T051l, T051m: Pan functionality with mouse drag
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -548,7 +672,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // T051i: Mouse wheel zoom with Ctrl+Scroll (smooth, synchronous)
   useEffect(() => {
     const container = viewerRef.current;
-    const content = contentRef.current;
+    const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+    const content = activeBufferRef.current;
 
     console.log('[MarkdownViewer] Wheel zoom effect setup:', {
       hasContainer: !!container,
@@ -619,7 +744,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         clearTimeout(zoomUpdateTimeoutRef.current);
       }
     };
-  }, [onZoomChange]);
+  }, [onZoomChange, activeBuffer]);
 
   // T051j: Touch pinch-to-zoom
   useEffect(() => {
@@ -829,7 +954,31 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     return 'markdown-viewer--grab';
   };
 
-  // Main content
+  // Determine buffer classes based on state
+  const getBufferClass = (buffer: 'A' | 'B') => {
+    const baseClass = 'markdown-viewer__buffer';
+    if (isTransitioning && preparingBuffer) {
+      // During transition
+      if (buffer === activeBuffer) {
+        return `${baseClass} ${baseClass}--fading-out`;
+      } else if (buffer === preparingBuffer && preparedBufferReady) {
+        return `${baseClass} ${baseClass}--fading-in`;
+      } else if (buffer === preparingBuffer) {
+        return `${baseClass} ${baseClass}--preparing`;
+      }
+    }
+    // Normal state
+    return buffer === activeBuffer ? `${baseClass} ${baseClass}--active` : `${baseClass} ${baseClass}--preparing`;
+  };
+
+  console.log('[MarkdownViewer] Render state:', {
+    activeBuffer,
+    preparingBuffer,
+    isTransitioning,
+    preparedBufferReady,
+    showOverlay
+  });
+
   return (
     <div
       className={`markdown-viewer ${getCursorClass()}`}
@@ -840,9 +989,25 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       onMouseLeave={handleMouseLeave}
       onScroll={handleScroll}
     >
-      <div className="markdown-viewer__content" ref={contentRef}>
+      {/* Buffer A */}
+      <div className={getBufferClass('A')} ref={bufferARef}>
         {/* Content will be injected here */}
       </div>
+
+      {/* Buffer B */}
+      <div className={getBufferClass('B')} ref={bufferBRef}>
+        {/* Content will be injected here */}
+      </div>
+
+      {/* Optional overlay during transition */}
+      {showOverlay && overlaySnapshot && (
+        <div className="markdown-viewer__transition-overlay">
+          <div
+            className="markdown-viewer__snapshot"
+            dangerouslySetInnerHTML={{ __html: overlaySnapshot }}
+          />
+        </div>
+      )}
 
       {/* Link preview overlay in bottom-left corner */}
       {hoveredLink && (

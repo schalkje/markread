@@ -58,7 +58,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 12px;
+  padding: 0 8px;
   height: 32px;
   font-size: 12px;
   transition: background-color 0.1s ease;
@@ -224,7 +224,7 @@
 
 .title-bar__zoom-display {
   min-width: 70px;
-  padding: 0 8px;
+  padding: 0 0px;
   font-size: 11px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }

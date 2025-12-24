@@ -17,13 +17,60 @@
   position: relative;
 }
 
-/* T047: Content wrapper for zoom transform */
-.markdown-viewer__content {
+/* Dark mode viewer background */
+[data-theme="dark"] .markdown-viewer {
+  background: #0d1117; /* Dark background to prevent white flash */
+  color: #e6edf3;
+}
+
+/* Double-buffer system for smooth page transitions */
+.markdown-viewer__buffer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   padding: 2rem;
   transform-origin: top left;
-  /* No transition - zoom is applied synchronously for smooth experience */
-  min-width: 100%;
-  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: var(--color-bg-primary, #ffffff);
+  color: var(--color-text-primary, #24292f);
+  /* Smooth crossfade transition */
+  transition: opacity 300ms ease-out;
+}
+
+/* Active buffer - currently visible */
+.markdown-viewer__buffer--active {
+  opacity: 1;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+/* Preparing buffer - hidden, being rendered */
+.markdown-viewer__buffer--preparing {
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* During crossfade transition */
+.markdown-viewer__buffer--fading-in {
+  opacity: 1;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.markdown-viewer__buffer--fading-out {
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Dark mode buffer background */
+[data-theme="dark"] .markdown-viewer__buffer {
+  background: #0d1117;
+  color: #e6edf3;
 }
 
 /* T049: Grab cursor when zoomed in */
@@ -83,6 +130,61 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Transition overlay - shown during page navigation and initial load */
+.markdown-viewer__transition-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow: hidden;
+  background-color: rgb(255, 255, 255); /* 100% opaque white background */
+  opacity: 1;
+  transition: opacity 300ms ease-out;
+}
+
+/* Fading out state */
+.markdown-viewer__transition-overlay--fading {
+  opacity: 0;
+}
+
+/* Dark mode overlay background */
+[data-theme="dark"] .markdown-viewer__transition-overlay {
+  background-color: rgb(28, 28, 28); /* 100% opaque dark background */
+}
+
+/* Blurred snapshot of old page */
+.markdown-viewer__snapshot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2rem;
+  overflow: auto;
+  filter: blur(8px) brightness(0.9);
+  opacity: 1.0; /* 100% opaque to prevent white flash */
+  pointer-events: none;
+  /* Inherit markdown styling */
+  font-family: var(--font-content, 'Segoe UI', system-ui, -apple-system, sans-serif);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text-primary, #24292f);
+  background: var(--color-bg-primary, #ffffff);
+}
+
+/* Dark mode snapshot */
+[data-theme="dark"] .markdown-viewer__snapshot {
+  filter: blur(8px) brightness(0.7);
+  color: var(--color-text-primary-dark, #e6edf3);
+  background: var(--color-bg-primary-dark, #0d1117);
 }
 
 /* Error state */

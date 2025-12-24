@@ -1173,7 +1173,6 @@ const AppLayout: React.FC = () => {
             </div>
           ) : (
             <MarkdownViewer
-              key={currentFile || 'no-file'}
               content={currentContent}
               filePath={currentFile}
               isLoading={isLoading}
