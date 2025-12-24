@@ -151,7 +151,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           setOverlaySnapshot(snapshot);
           setShowOverlay(true);
 
-          // Safety timeout: Force hide overlay after 5 seconds if it gets stuck
+          // Safety timeout: Force hide overlay after 2 seconds if it gets stuck
           overlayTimeoutRef.current = setTimeout(() => {
             console.warn('[MarkdownViewer] Overlay safety timeout triggered - forcing dismissal');
             setShowOverlay(false);
@@ -161,7 +161,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
             setIsTransitioning(false);
             setPreparingBuffer(null);
             setPreparedBufferReady(false);
-          }, 5000);
+          }, 2000);
         }
       } else {
         // Initial load - no snapshot
@@ -545,6 +545,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     }
   }, [scrollTop, scrollLeft, filePath]); // Trigger when navigating to a new page (removed zoomLevel to avoid conflicts)
 
+  // Track the last render to prevent duplicate renders
+  const lastRenderRef = useRef<{ buffer: string; filePath: string } | null>(null);
+
   // Render markdown content to the preparing buffer
   useEffect(() => {
     if (!content || isLoading) return;
@@ -580,7 +583,16 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const targetBuffer = preparingBuffer || activeBuffer;
     const targetBufferRef = targetBuffer === 'A' ? bufferARef : bufferBRef;
 
-    console.log('[MarkdownViewer] Rendering to buffer:', targetBuffer, { isTransitioning, preparingBuffer, activeBuffer });
+    // Skip if we're already rendering or just rendered the same content to the same buffer
+    if (lastRenderRef.current?.buffer === targetBuffer && lastRenderRef.current?.filePath === filePath) {
+      console.log('[MarkdownViewer] Skipping duplicate render to', targetBuffer, 'for', filePath);
+      return;
+    }
+
+    console.log('[MarkdownViewer] Rendering to buffer:', targetBuffer, { isTransitioning, preparingBuffer, activeBuffer, filePath });
+
+    // Mark this render as in progress
+    lastRenderRef.current = { buffer: targetBuffer, filePath: filePath || '' };
 
     let isCancelled = false;
 
