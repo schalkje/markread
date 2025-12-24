@@ -78,6 +78,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Optional overlay during transition
   const [showOverlay, setShowOverlay] = useState(false);
   const [overlaySnapshot, setOverlaySnapshot] = useState<string>('');
+  const overlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Pan state (T048, T051l, T051m, T051n)
   const [isPanning, setIsPanning] = useState(false);
@@ -112,7 +113,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   const previousFilePathRef = useRef<string | undefined>(undefined);
 
   // Start transition when navigating to a new page or opening first file
-  useEffect(() => {
+  // Use useLayoutEffect to ensure this runs before the render effect
+  React.useLayoutEffect(() => {
     console.log('[MarkdownViewer] Navigation detection effect running', {
       currentFilePath: filePath,
       previousFilePath: previousFilePathRef.current,
@@ -129,6 +131,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     if (isInitialLoad || isNavigation) {
       console.log('[MarkdownViewer] Transition triggered:', { isInitialLoad, isNavigation });
 
+      // Clear any existing overlay timeout
+      if (overlayTimeoutRef.current) {
+        clearTimeout(overlayTimeoutRef.current);
+        overlayTimeoutRef.current = null;
+      }
+
       // Determine which buffer to prepare (the inactive one)
       const bufferToPrepare = activeBuffer === 'A' ? 'B' : 'A';
 
@@ -142,6 +150,18 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           console.log('[MarkdownViewer] Captured snapshot, length:', snapshot.length);
           setOverlaySnapshot(snapshot);
           setShowOverlay(true);
+
+          // Safety timeout: Force hide overlay after 5 seconds if it gets stuck
+          overlayTimeoutRef.current = setTimeout(() => {
+            console.warn('[MarkdownViewer] Overlay safety timeout triggered - forcing dismissal');
+            setShowOverlay(false);
+            setOverlaySnapshot('');
+            // Force complete the transition
+            setActiveBuffer(bufferToPrepare);
+            setIsTransitioning(false);
+            setPreparingBuffer(null);
+            setPreparedBufferReady(false);
+          }, 5000);
         }
       } else {
         // Initial load - no snapshot
@@ -164,6 +184,13 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Manage crossfade transition: When prepared buffer is ready, crossfade and swap
   // This is the single source of truth for buffer transitions (SRP - Single Responsibility Principle)
   useEffect(() => {
+    console.log('[MarkdownViewer] Crossfade effect check:', {
+      isTransitioning,
+      preparedBufferReady,
+      preparingBuffer,
+      willTrigger: isTransitioning && preparedBufferReady && !!preparingBuffer
+    });
+
     if (!isTransitioning || !preparedBufferReady || !preparingBuffer) return;
 
     console.log('[MarkdownViewer] Prepared buffer ready, starting crossfade', {
@@ -184,9 +211,22 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       setPreparedBufferReady(false);
       setShowOverlay(false);
       setOverlaySnapshot('');
+
+      // Clear the safety timeout since transition completed successfully
+      if (overlayTimeoutRef.current) {
+        clearTimeout(overlayTimeoutRef.current);
+        overlayTimeoutRef.current = null;
+      }
     }, 300); // Match CSS transition duration
 
-    return () => clearTimeout(crossfadeTimeout);
+    return () => {
+      clearTimeout(crossfadeTimeout);
+      // Also clear safety timeout on cleanup
+      if (overlayTimeoutRef.current) {
+        clearTimeout(overlayTimeoutRef.current);
+        overlayTimeoutRef.current = null;
+      }
+    };
   }, [isTransitioning, preparedBufferReady, preparingBuffer, activeBuffer]);
 
   // Event delegation for link hover and click handling
@@ -509,10 +549,6 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   useEffect(() => {
     if (!content || isLoading) return;
 
-    // Determine target buffer: preparing buffer if transitioning, otherwise active buffer
-    const targetBuffer = preparingBuffer || activeBuffer;
-    const targetBufferRef = targetBuffer === 'A' ? bufferARef : bufferBRef;
-
     // Wait for refs to be ready (React needs a render cycle to set refs)
     if (!bufferARef.current || !bufferBRef.current) {
       console.log('[MarkdownViewer] Waiting for buffer refs to be ready...');
@@ -520,7 +556,31 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       return;
     }
 
-    console.log('[MarkdownViewer] Rendering to buffer:', targetBuffer);
+    // Detect race condition: If filePath changed but transition state hasn't updated yet
+    // This happens because both effects run on filePath change, but with stale state
+    const isFilePathChanging = previousFilePathRef.current !== filePath;
+    if (isFilePathChanging && !isTransitioning && !preparingBuffer) {
+      console.log('[MarkdownViewer] FilePath changed but transition not started yet, waiting...', {
+        previousFilePath: previousFilePathRef.current,
+        currentFilePath: filePath,
+        isTransitioning,
+        preparingBuffer
+      });
+      // Wait for navigation effect to set up transition state
+      return;
+    }
+
+    // If transitioning, wait for preparingBuffer to be set
+    if (isTransitioning && !preparingBuffer) {
+      console.log('[MarkdownViewer] Transitioning but preparingBuffer not set yet, waiting...');
+      return;
+    }
+
+    // Determine target buffer: preparing buffer if transitioning, otherwise active buffer
+    const targetBuffer = preparingBuffer || activeBuffer;
+    const targetBufferRef = targetBuffer === 'A' ? bufferARef : bufferBRef;
+
+    console.log('[MarkdownViewer] Rendering to buffer:', targetBuffer, { isTransitioning, preparingBuffer, activeBuffer });
 
     let isCancelled = false;
 
@@ -581,9 +641,18 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           // mark prepared buffer as ready
           const needsScrollRestoration = (scrollTop !== undefined && scrollTop > 0) ||
                                           (scrollLeft !== undefined && scrollLeft > 0);
+          console.log('[MarkdownViewer] Rendering complete:', {
+            filePath,
+            scrollTop,
+            scrollLeft,
+            needsScrollRestoration,
+            willSetBufferReady: !needsScrollRestoration
+          });
           if (!needsScrollRestoration) {
             console.log('[MarkdownViewer] No scroll restoration needed, buffer ready');
             setPreparedBufferReady(true);
+          } else {
+            console.log('[MarkdownViewer] Waiting for scroll restoration to complete...');
           }
         }
       } catch (err) {
@@ -591,6 +660,15 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           console.error('Markdown rendering error:', err);
           setRenderError(err instanceof Error ? err.message : 'Failed to render markdown');
           setIsRendering(false);
+
+          // IMPORTANT: Mark buffer as ready even on error, so overlay doesn't get stuck
+          // The error state will be shown to the user via the error UI
+          const needsScrollRestoration = (scrollTop !== undefined && scrollTop > 0) ||
+                                          (scrollLeft !== undefined && scrollLeft > 0);
+          if (!needsScrollRestoration) {
+            console.log('[MarkdownViewer] Error occurred, but marking buffer ready to complete transition');
+            setPreparedBufferReady(true);
+          }
         }
       }
     };
@@ -601,7 +679,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [content, filePath, isLoading, onRenderComplete, scrollTop, scrollLeft, preparingBuffer, activeBuffer]);
+  }, [content, filePath, isLoading, onRenderComplete, scrollTop, scrollLeft, preparingBuffer, activeBuffer, isTransitioning]);
+  // NOTE: filePath is needed for image resolution. Race condition is prevented by using
+  // useLayoutEffect for navigation detection, which runs before this effect.
 
   // T048, T051l, T051m: Pan functionality with mouse drag
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -871,18 +951,40 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   /**
    * Resolve relative image paths to absolute file:// URLs
    * Uses the file:resolvePath IPC handler (T036)
+   * Shows user-friendly placeholder for missing/blocked images
    */
   const resolveImagePaths = async (container: HTMLElement, baseFilePath: string) => {
     const images = container.querySelectorAll('img[src]');
 
     for (const img of Array.from(images)) {
       const src = img.getAttribute('src');
-      if (!src || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('file://')) {
-        continue; // Skip absolute URLs
+      if (!src) continue;
+
+      // Skip file:// URLs (already resolved)
+      if (src.startsWith('file://')) continue;
+
+      // Handle external URLs (http/https) - CSP now allows HTTPS images
+      if (src.startsWith('http://') || src.startsWith('https://')) {
+        // Add error handler for failed loads (404, network errors, etc.)
+        const imgElement = img as HTMLImageElement;
+        imgElement.onerror = () => {
+          imgElement.style.display = 'inline-block';
+          imgElement.style.backgroundColor = '#f6f8fa';
+          imgElement.style.border = '1px dashed #d0d7de';
+          imgElement.style.padding = '8px';
+          imgElement.style.borderRadius = '4px';
+          imgElement.style.minWidth = '200px';
+          imgElement.style.minHeight = '32px';
+          imgElement.alt = `[External image failed to load: ${src}]`;
+          imgElement.title = `Failed to load external image: ${src}`;
+          // Replace with a data URL placeholder
+          imgElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMzIiIGZpbGw9IiNmNmY4ZmEiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzU3NjA2YSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+SW1hZ2UgZmFpbGVkPC90ZXh0Pjwvc3ZnPg==';
+        };
+        continue;
       }
 
+      // Resolve relative paths
       try {
-        // Resolve relative path via IPC
         const result = await window.electronAPI?.file?.resolvePath({
           basePath: baseFilePath,
           relativePath: src,
@@ -891,13 +993,33 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         if (result?.success && result.absolutePath && result.exists) {
           // Convert to file:// URL
           const fileUrl = `file://${result.absolutePath.replace(/\\/g, '/')}`;
-          img.setAttribute('src', fileUrl);
+          const imgElement = img as HTMLImageElement;
+          imgElement.src = fileUrl;
+
+          // Add error handler in case file:// loading is blocked
+          imgElement.onerror = () => {
+            imgElement.style.display = 'inline-block';
+            imgElement.style.backgroundColor = '#fff3cd';
+            imgElement.style.border = '1px dashed #ffc107';
+            imgElement.style.padding = '8px';
+            imgElement.style.borderRadius = '4px';
+            imgElement.alt = `[Image not accessible: ${src}]`;
+            imgElement.title = `Image file not accessible: ${result.absolutePath}`;
+          };
         } else {
-          console.warn(`Image not found: ${src}`);
-          img.setAttribute('alt', `[Image not found: ${src}]`);
+          // Image file doesn't exist - show placeholder
+          console.warn(`Image not found: ${src}`, result);
+          const imgElement = img as HTMLImageElement;
+          imgElement.alt = `[Image not found: ${src}]`;
+          imgElement.title = `Image file not found: ${src}`;
+          imgElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZmZjNjZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpIiBmb250LXNpemU9IjEyIiBmaWxsPSIjODU2NDA0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj5JbWFnZSBub3QgZm91bmQ8L3RleHQ+PC9zdmc+';
         }
       } catch (err) {
+        // Don't let image errors block rendering
         console.error(`Failed to resolve image path: ${src}`, err);
+        const imgElement = img as HTMLImageElement;
+        imgElement.alt = `[Image error: ${src}]`;
+        imgElement.title = `Failed to load image: ${err instanceof Error ? err.message : 'Unknown error'}`;
       }
     }
   };
@@ -1015,11 +1137,34 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
       {/* Optional overlay during transition */}
       {showOverlay && overlaySnapshot && (
-        <div className="markdown-viewer__transition-overlay">
+        <div
+          className="markdown-viewer__transition-overlay"
+          onClick={() => {
+            console.log('[MarkdownViewer] Overlay clicked - force dismissing');
+            setShowOverlay(false);
+            setOverlaySnapshot('');
+            // Force transition to complete if stuck
+            if (isTransitioning && preparingBuffer) {
+              setActiveBuffer(preparingBuffer);
+              setIsTransitioning(false);
+              setPreparingBuffer(null);
+              setPreparedBufferReady(false);
+            }
+            // Clear safety timeout
+            if (overlayTimeoutRef.current) {
+              clearTimeout(overlayTimeoutRef.current);
+              overlayTimeoutRef.current = null;
+            }
+          }}
+          title="Click to dismiss overlay (if stuck)"
+        >
           <div
             className="markdown-viewer__snapshot"
             dangerouslySetInnerHTML={{ __html: overlaySnapshot }}
           />
+          <div className="markdown-viewer__overlay-dismiss">
+            Click to dismiss
+          </div>
         </div>
       )}
 

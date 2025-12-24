@@ -173,8 +173,8 @@ function createWindow(options) {
           // Mermaid requires inline scripts
           "style-src 'self' 'unsafe-inline';",
           // Syntax highlighting styles
-          "img-src 'self' file: data:;",
-          // Local images
+          "img-src 'self' file: data: https:;",
+          // Local images + external HTTPS images (badges, etc.)
           "font-src 'self' data:;",
           "connect-src 'none';"
         ].join(" ")
