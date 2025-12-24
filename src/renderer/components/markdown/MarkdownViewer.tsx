@@ -604,6 +604,15 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const renderContent = async () => {
       const startTime = Date.now();
 
+      console.log('[MarkdownViewer] renderContent started for', targetBuffer);
+
+      // Capture the actual DOM element at the start to avoid ref invalidation during async operations
+      const targetElement = targetBufferRef.current;
+      if (!targetElement) {
+        console.log('[MarkdownViewer] Target buffer element not available');
+        return;
+      }
+
       setIsRendering(true);
       setRenderError(null);
 
@@ -612,43 +621,45 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         const html = renderMarkdown(content);
 
         // Check if cancelled before proceeding
-        if (isCancelled) return;
-        if (!targetBufferRef.current) {
-          setIsRendering(false);
+        if (isCancelled) {
+          console.log('[MarkdownViewer] Render cancelled after markdown conversion');
           return;
         }
 
         // Step 2: Insert HTML into DOM (hidden buffer if transitioning)
-        targetBufferRef.current.innerHTML = html;
+        targetElement.innerHTML = html;
+        console.log('[MarkdownViewer] HTML inserted into buffer', targetBuffer);
 
         // Step 3: Render Mermaid diagrams
-        await renderMermaidDiagrams(targetBufferRef.current);
+        await renderMermaidDiagrams(targetElement);
+        console.log('[MarkdownViewer] Mermaid diagrams rendered');
 
         // Check if cancelled after async operation
-        if (isCancelled) return;
-        if (!targetBufferRef.current) {
-          setIsRendering(false);
+        if (isCancelled) {
+          console.log('[MarkdownViewer] Render cancelled after Mermaid');
           return;
         }
 
         // Step 3.5: Apply syntax highlighting and copy buttons
         // This must happen AFTER HTML is in the DOM for highlightjs-copy to work
-        applySyntaxHighlighting(targetBufferRef.current);
+        applySyntaxHighlighting(targetElement);
+        console.log('[MarkdownViewer] Syntax highlighting applied');
 
         // Step 4: Process images with file:// protocol if filePath provided
         if (filePath) {
-          await resolveImagePaths(targetBufferRef.current, filePath);
+          await resolveImagePaths(targetElement, filePath);
+          console.log('[MarkdownViewer] Image paths resolved');
         }
 
         // Check if cancelled after async operation
-        if (isCancelled) return;
-        if (!targetBufferRef.current) {
-          setIsRendering(false);
+        if (isCancelled) {
+          console.log('[MarkdownViewer] Render cancelled after image resolution');
           return;
         }
 
         // Step 5: Add click handlers for checkboxes (task lists)
-        addTaskListHandlers(targetBufferRef.current);
+        addTaskListHandlers(targetElement);
+        console.log('[MarkdownViewer] Task list handlers added');
 
         if (!isCancelled) {
           setIsRendering(false);
