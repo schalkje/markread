@@ -159,7 +159,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
     // Update previous filePath
     previousFilePathRef.current = filePath;
-  }, [filePath, activeBuffer]);
+  }, [filePath]); // Don't include activeBuffer - it changes during transition and would re-trigger this effect
 
   // Manage crossfade transition: When prepared buffer is ready, crossfade and swap
   // This is the single source of truth for buffer transitions (SRP - Single Responsibility Principle)
@@ -513,8 +513,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const targetBuffer = preparingBuffer || activeBuffer;
     const targetBufferRef = targetBuffer === 'A' ? bufferARef : bufferBRef;
 
-    if (!targetBufferRef.current) {
-      console.log('[MarkdownViewer] Target buffer ref not ready yet');
+    // Wait for refs to be ready (React needs a render cycle to set refs)
+    if (!bufferARef.current || !bufferBRef.current) {
+      console.log('[MarkdownViewer] Waiting for buffer refs to be ready...');
+      // Retry on next render cycle
       return;
     }
 
@@ -572,26 +574,17 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         addTaskListHandlers(targetBufferRef.current);
 
         if (!isCancelled) {
-          // Ensure minimum display time of 3 seconds for smooth UX
-          const elapsed = Date.now() - startTime;
-          const minDisplayTime = 3000;
-          const remainingTime = Math.max(0, minDisplayTime - elapsed);
+          setIsRendering(false);
+          onRenderComplete?.();
 
-          setTimeout(() => {
-            if (!isCancelled) {
-              setIsRendering(false);
-              onRenderComplete?.();
-
-              // If no scroll restoration needed (scrollTop/Left are undefined or 0),
-              // mark prepared buffer as ready
-              const needsScrollRestoration = (scrollTop !== undefined && scrollTop > 0) ||
-                                              (scrollLeft !== undefined && scrollLeft > 0);
-              if (!needsScrollRestoration) {
-                console.log('[MarkdownViewer] No scroll restoration needed, buffer ready');
-                setPreparedBufferReady(true);
-              }
-            }
-          }, remainingTime);
+          // If no scroll restoration needed (scrollTop/Left are undefined or 0),
+          // mark prepared buffer as ready
+          const needsScrollRestoration = (scrollTop !== undefined && scrollTop > 0) ||
+                                          (scrollLeft !== undefined && scrollLeft > 0);
+          if (!needsScrollRestoration) {
+            console.log('[MarkdownViewer] No scroll restoration needed, buffer ready');
+            setPreparedBufferReady(true);
+          }
         }
       } catch (err) {
         if (!isCancelled) {
@@ -957,18 +950,39 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Determine buffer classes based on state
   const getBufferClass = (buffer: 'A' | 'B') => {
     const baseClass = 'markdown-viewer__buffer';
+
+    // Check if this is initial load (no previous file)
+    const isInitialLoad = previousFilePathRef.current === undefined;
+
     if (isTransitioning && preparingBuffer) {
       // During transition
-      if (buffer === activeBuffer) {
-        return `${baseClass} ${baseClass}--fading-out`;
-      } else if (buffer === preparingBuffer && preparedBufferReady) {
-        return `${baseClass} ${baseClass}--fading-in`;
-      } else if (buffer === preparingBuffer) {
-        return `${baseClass} ${baseClass}--preparing`;
+      if (buffer === preparingBuffer) {
+        // Preparing buffer
+        if (preparedBufferReady) {
+          // When ready: instant show for initial load, fade-in for navigation
+          return isInitialLoad
+            ? `${baseClass} ${baseClass}--active`
+            : `${baseClass} ${baseClass}--fading-in`;
+        } else {
+          // While preparing: hidden
+          return `${baseClass} ${baseClass}--preparing`;
+        }
+      } else if (buffer === activeBuffer) {
+        // Active buffer during transition
+        if (isInitialLoad) {
+          // Initial load: keep hidden (no content to show)
+          return `${baseClass} ${baseClass}--preparing`;
+        } else {
+          // Navigation: fade out old content
+          return `${baseClass} ${baseClass}--fading-out`;
+        }
       }
     }
-    // Normal state
-    return buffer === activeBuffer ? `${baseClass} ${baseClass}--active` : `${baseClass} ${baseClass}--preparing`;
+
+    // Normal state (not transitioning)
+    return buffer === activeBuffer
+      ? `${baseClass} ${baseClass}--active`
+      : `${baseClass} ${baseClass}--preparing`;
   };
 
   console.log('[MarkdownViewer] Render state:', {
