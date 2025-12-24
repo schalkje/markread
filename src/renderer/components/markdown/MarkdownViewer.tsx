@@ -142,32 +142,37 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
       console.log('[MarkdownViewer] Preparing buffer:', bufferToPrepare);
 
+      // OVERLAY DISABLED FOR DEBUGGING
       // For navigation: Optionally capture snapshot for overlay
-      if (isNavigation) {
-        const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
-        if (activeBufferRef.current) {
-          const snapshot = activeBufferRef.current.innerHTML;
-          console.log('[MarkdownViewer] Captured snapshot, length:', snapshot.length);
-          setOverlaySnapshot(snapshot);
-          setShowOverlay(true);
+      // if (isNavigation) {
+      //   const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+      //   if (activeBufferRef.current) {
+      //     const snapshot = activeBufferRef.current.innerHTML;
+      //     console.log('[MarkdownViewer] Captured snapshot, length:', snapshot.length);
+      //     setOverlaySnapshot(snapshot);
+      //     setShowOverlay(true);
 
-          // Safety timeout: Force hide overlay after 2 seconds if it gets stuck
-          overlayTimeoutRef.current = setTimeout(() => {
-            console.warn('[MarkdownViewer] Overlay safety timeout triggered - forcing dismissal');
-            setShowOverlay(false);
-            setOverlaySnapshot('');
-            // Force complete the transition
-            setActiveBuffer(bufferToPrepare);
-            setIsTransitioning(false);
-            setPreparingBuffer(null);
-            setPreparedBufferReady(false);
-          }, 2000);
-        }
-      } else {
-        // Initial load - no snapshot
-        setOverlaySnapshot('');
-        setShowOverlay(false);
-      }
+      //     // Safety timeout: Force hide overlay after 2 seconds if it gets stuck
+      //     overlayTimeoutRef.current = setTimeout(() => {
+      //       console.warn('[MarkdownViewer] Overlay safety timeout triggered - forcing dismissal');
+      //       setShowOverlay(false);
+      //       setOverlaySnapshot('');
+      //       // Force complete the transition
+      //       setActiveBuffer(bufferToPrepare);
+      //       setIsTransitioning(false);
+      //       setPreparingBuffer(null);
+      //       setPreparedBufferReady(false);
+      //     }, 2000);
+      //   }
+      // } else {
+      //   // Initial load - no snapshot
+      //   setOverlaySnapshot('');
+      //   setShowOverlay(false);
+      // }
+
+      // Disable overlay entirely
+      setOverlaySnapshot('');
+      setShowOverlay(false);
 
       // Start transition
       setPreparingBuffer(bufferToPrepare);
