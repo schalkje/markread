@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     watchFolder: (payload: any) => ipcRenderer.invoke('file:watchFolder', payload),
     stopWatching: (payload: any) => ipcRenderer.invoke('file:stopWatching', payload),
     resolvePath: (payload: any) => ipcRenderer.invoke('file:resolvePath', payload),
+    getImageData: (payload: any) => ipcRenderer.invoke('file:getImageData', payload),
     getDirectoryListing: (payload: any) => ipcRenderer.invoke('file:getDirectoryListing', payload),
     exportToPDF: (payload: any) => ipcRenderer.invoke('file:exportToPDF', payload),
   },

@@ -9,6 +9,7 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
     watchFolder: (payload) => electron.ipcRenderer.invoke("file:watchFolder", payload),
     stopWatching: (payload) => electron.ipcRenderer.invoke("file:stopWatching", payload),
     resolvePath: (payload) => electron.ipcRenderer.invoke("file:resolvePath", payload),
+    getImageData: (payload) => electron.ipcRenderer.invoke("file:getImageData", payload),
     getDirectoryListing: (payload) => electron.ipcRenderer.invoke("file:getDirectoryListing", payload),
     exportToPDF: (payload) => electron.ipcRenderer.invoke("file:exportToPDF", payload)
   },

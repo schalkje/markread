@@ -187,6 +187,66 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     }
   });
 
+  // Get image data as base64 data URL
+  ipcMain.handle('file:getImageData', async (_event, payload) => {
+    try {
+      const GetImageDataSchema = z.object({
+        filePath: z.string().min(1),
+      });
+
+      const { filePath } = validatePayload(GetImageDataSchema, payload);
+
+      console.log('[getImageData] Reading image:', filePath);
+
+      // Import required modules
+      const fs = await import('fs/promises');
+      const path = await import('path');
+
+      // Security check: ensure file exists and is not a directory
+      const stats = await fs.stat(filePath);
+      if (stats.isDirectory()) {
+        return {
+          success: false,
+          error: 'Path is a directory, not a file',
+        };
+      }
+
+      // Read the file
+      const buffer = await fs.readFile(filePath);
+
+      // Get MIME type based on extension
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml',
+        '.webp': 'image/webp',
+        '.bmp': 'image/bmp',
+        '.ico': 'image/x-icon',
+      };
+      const mimeType = mimeTypes[ext] || 'application/octet-stream';
+
+      // Convert to base64
+      const base64 = buffer.toString('base64');
+      const dataUrl = `data:${mimeType};base64,${base64}`;
+
+      console.log('[getImageData] Success, data URL length:', dataUrl.length);
+
+      return {
+        success: true,
+        dataUrl,
+      };
+    } catch (error: any) {
+      console.error('[getImageData] Error:', error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
   // Get directory listing for dynamic markdown generation
   ipcMain.handle('file:getDirectoryListing', async (_event, payload) => {
     try {

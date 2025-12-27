@@ -16,7 +16,10 @@
       "Bash(npm uninstall:*)",
       "Bash(package.json.tmp)",
       "Bash(git checkout:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run start)"
     ],
     "deny": [],
     "ask": []

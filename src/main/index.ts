@@ -1,4 +1,5 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, protocol, net, session } from 'electron';
+import { extname } from 'path';
 
 import { createWindow } from './window-manager';
 import { registerIpcHandlers } from './ipc-handlers';
@@ -21,6 +22,41 @@ let mainWindow: BrowserWindow | null = null;
 // T020: Initialize logging
 initLogger();
 
+// Register custom protocol for serving local files
+// This must be done before app.ready (at module level)
+// CRITICAL: This can only be called ONCE - if called again it silently overwrites!
+console.log('[Main] About to register protocol schemes...');
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'mdfile',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true, // Required for loading media (images, videos, etc.)
+      corsEnabled: true,
+      bypassCSP: true,
+    },
+  },
+]);
+console.log('[Main] Custom protocol "mdfile" registered with privileges');
+
+// MIME type mapping for common image formats
+const getMimeType = (filepath: string): string => {
+  const ext = extname(filepath).toLowerCase();
+  const mimeTypes: Record<string, string> = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.ico': 'image/x-icon',
+  };
+  return mimeTypes[ext] || 'application/octet-stream';
+};
+
 // Single instance lock (FR-028)
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -36,6 +72,43 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
+    console.log('[Main] App ready, registering protocol handler...');
+
+    // Register protocol handler for mdfile:// URLs on the default session
+    // CRITICAL: Must register on the session object, not the global protocol object
+    session.defaultSession.protocol.handle('mdfile', async (request) => {
+    // protocol.handle('mdfile', async (request) => {
+      console.log('[Protocol] ===== HANDLER CALLED =====');
+      try {
+        // Extract URL-encoded path from mdfile:///encoded-path
+        const url = request.url;
+        console.log('[Protocol] Received URL:', url);
+
+        const encodedPath = url.replace(/^mdfile:\/\/\/?/, '');
+        console.log('[Protocol] Encoded path:', encodedPath);
+
+        // Decode the URL-encoded file path
+        const filePath = decodeURIComponent(encodedPath);
+        console.log('[Protocol] Decoded file path:', filePath);
+
+        // Security check: Ensure we're only serving files (not a web request)
+        if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+          console.error('[Protocol] Blocked attempt to access web URL via mdfile protocol:', filePath);
+          return new Response('Forbidden', { status: 403 });
+        }
+
+        console.log('[Protocol] Serving file:', filePath);
+
+        // Use net.fetch to load the file - this is the recommended way in Electron
+        // net.fetch can handle file:// URLs internally
+        return await net.fetch('file://' + filePath);
+      } catch (error) {
+        console.error('[Protocol] Error serving local file:', error);
+        return new Response('File not found', { status: 404 });
+      }
+    });
+    console.log('[Main] Protocol handler registered successfully');
+
     // T167: Load UI state to restore window bounds and folders
     const uiState = await loadUIState();
 

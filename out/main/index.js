@@ -153,8 +153,8 @@ function createWindow(options) {
       // Prevent direct Node.js access in renderer
       contextIsolation: true,
       // Isolate preload scripts from renderer
-      sandbox: true,
-      // Enable OS-level sandboxing
+      sandbox: false,
+      // TEMPORARY: Disabled to test custom protocol handler
       webSecurity: true,
       // Enforce same-origin policy
       allowRunningInsecureContent: false,
@@ -173,8 +173,8 @@ function createWindow(options) {
           // Mermaid requires inline scripts
           "style-src 'self' 'unsafe-inline';",
           // Syntax highlighting styles
-          "img-src 'self' file: data: https:;",
-          // Local images + external HTTPS images (badges, etc.)
+          "img-src 'self' mdfile: data: https:;",
+          // mdfile: protocol for local images + external HTTPS images (badges, etc.)
           "font-src 'self' data:;",
           "connect-src 'none';"
         ].join(" ")
@@ -466,6 +466,50 @@ function registerIpcHandlers(mainWindow2) {
       };
     } catch (error) {
       console.error("[resolvePath] Error:", error.message);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  });
+  electron.ipcMain.handle("file:getImageData", async (_event, payload) => {
+    try {
+      const GetImageDataSchema = zod.z.object({
+        filePath: zod.z.string().min(1)
+      });
+      const { filePath } = validatePayload(GetImageDataSchema, payload);
+      console.log("[getImageData] Reading image:", filePath);
+      const fs = await import("fs/promises");
+      const path2 = await import("path");
+      const stats = await fs.stat(filePath);
+      if (stats.isDirectory()) {
+        return {
+          success: false,
+          error: "Path is a directory, not a file"
+        };
+      }
+      const buffer = await fs.readFile(filePath);
+      const ext = path2.extname(filePath).toLowerCase();
+      const mimeTypes = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".svg": "image/svg+xml",
+        ".webp": "image/webp",
+        ".bmp": "image/bmp",
+        ".ico": "image/x-icon"
+      };
+      const mimeType = mimeTypes[ext] || "application/octet-stream";
+      const base64 = buffer.toString("base64");
+      const dataUrl = `data:${mimeType};base64,${base64}`;
+      console.log("[getImageData] Success, data URL length:", dataUrl.length);
+      return {
+        success: true,
+        dataUrl
+      };
+    } catch (error) {
+      console.error("[getImageData] Error:", error.message);
       return {
         success: false,
         error: error.message
@@ -929,6 +973,22 @@ process.on("unhandledRejection", (reason) => {
 });
 let mainWindow = null;
 initLogger();
+console.log("[Main] About to register protocol schemes...");
+electron.protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "mdfile",
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+      // Required for loading media (images, videos, etc.)
+      corsEnabled: true,
+      bypassCSP: true
+    }
+  }
+]);
+console.log('[Main] Custom protocol "mdfile" registered with privileges');
 const gotTheLock = electron.app.requestSingleInstanceLock();
 if (!gotTheLock) {
   electron.app.quit();
@@ -940,6 +1000,28 @@ if (!gotTheLock) {
     }
   });
   electron.app.whenReady().then(async () => {
+    console.log("[Main] App ready, registering protocol handler...");
+    electron.session.defaultSession.protocol.handle("mdfile", async (request) => {
+      console.log("[Protocol] ===== HANDLER CALLED =====");
+      try {
+        const url = request.url;
+        console.log("[Protocol] Received URL:", url);
+        const encodedPath = url.replace(/^mdfile:\/\/\/?/, "");
+        console.log("[Protocol] Encoded path:", encodedPath);
+        const filePath = decodeURIComponent(encodedPath);
+        console.log("[Protocol] Decoded file path:", filePath);
+        if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+          console.error("[Protocol] Blocked attempt to access web URL via mdfile protocol:", filePath);
+          return new Response("Forbidden", { status: 403 });
+        }
+        console.log("[Protocol] Serving file:", filePath);
+        return await electron.net.fetch("file://" + filePath);
+      } catch (error) {
+        console.error("[Protocol] Error serving local file:", error);
+        return new Response("File not found", { status: 404 });
+      }
+    });
+    console.log("[Main] Protocol handler registered successfully");
     const uiState = await loadUIState();
     mainWindow = createWindow({
       x: uiState.windowBounds.x,
