@@ -49,6 +49,9 @@ const AppLayout: React.FC = () => {
   // Ref to track which file is currently being loaded (prevents race conditions)
   const loadingFileRef = useRef<string | null>(null);
 
+  // Ref to cache file content by filePath (prevents stale content from being passed to MarkdownViewer)
+  const contentCacheRef = useRef<Map<string, string>>(new Map());
+
   // Stable zoom change handler (prevents wheel handler from re-registering constantly)
   const handleZoomChange = useCallback((newZoom: number) => {
     console.log('[AppLayout] handleZoomChange called:', { activeTabId, newZoom });
@@ -256,6 +259,7 @@ const AppLayout: React.FC = () => {
     try {
       const result = await window.electronAPI?.file?.read({ filePath });
       if (result?.success && result.content) {
+        contentCacheRef.current.set(filePath, result.content);
         setCurrentContent(result.content);
         console.log('File auto-reloaded:', filePath);
       }
@@ -366,6 +370,7 @@ const AppLayout: React.FC = () => {
                 });
               }
 
+              contentCacheRef.current.set(fileToLoad, markdown);
               setCurrentContent(markdown);
               console.log('[handleNavigateToHistory] Directory listing generated');
 
@@ -407,6 +412,7 @@ const AppLayout: React.FC = () => {
 
       // Set the virtual file path and generated content
       setCurrentFile(virtualPath);
+      contentCacheRef.current.set(virtualPath, content);
       setCurrentContent(content);
 
       // Add directory listing to navigation history
@@ -485,6 +491,7 @@ const AppLayout: React.FC = () => {
    */
   const handleFileOpened = async (filePath: string, content: string) => {
     setCurrentFile(filePath);
+    contentCacheRef.current.set(filePath, content);
     setCurrentContent(content);
     setError(null);
 
@@ -580,6 +587,7 @@ const AppLayout: React.FC = () => {
 
         // Update file and content atomically (React will batch these)
         setCurrentFile(filePath);
+        contentCacheRef.current.set(filePath, result.content);
         setCurrentContent(result.content);
 
         // Update the active tab to reflect the new file
@@ -675,6 +683,7 @@ const AppLayout: React.FC = () => {
           const fileResult = await window.electronAPI?.file?.read({ filePath: firstFilePath });
           if (fileResult?.success && fileResult.content) {
             setCurrentFile(firstFilePath);
+            contentCacheRef.current.set(firstFilePath, fileResult.content);
             setCurrentContent(fileResult.content);
             setError(null);
 
@@ -768,7 +777,10 @@ const AppLayout: React.FC = () => {
         // Only update content if this is still the current file being displayed
         if (loadingFileRef.current === fileToLoad && currentFile === fileToLoad) {
           if (result?.success && result.content) {
+            // Cache the content by filePath
+            contentCacheRef.current.set(fileToLoad, result.content);
             setCurrentContent(result.content);
+            console.log('[AppLayout] Cached content for:', fileToLoad, 'length:', result.content.length);
           } else {
             setError(result?.error || 'Failed to load file');
           }
@@ -794,6 +806,15 @@ const AppLayout: React.FC = () => {
   const hasTabs = tabs.size > 0;
   const hasFolders = folders.length > 0;
   const hasContent = hasTabs || hasFolders;
+
+  // Get content from cache for current file (prevents stale content from being passed to MarkdownViewer)
+  const contentForCurrentFile = currentFile ? (contentCacheRef.current.get(currentFile) || currentContent) : currentContent;
+  console.log('[AppLayout] Rendering with:', {
+    currentFile,
+    currentContentLength: currentContent.length,
+    cachedContentLength: contentForCurrentFile.length,
+    isFromCache: currentFile ? contentCacheRef.current.has(currentFile) : false,
+  });
 
   return (
     <div className="app-layout">
@@ -1082,6 +1103,7 @@ const AppLayout: React.FC = () => {
 
                           // Update file and content atomically
                           setCurrentFile(filePath);
+                          contentCacheRef.current.set(filePath, result.content);
                           setCurrentContent(result.content);
 
                           // Update active tab to reflect the new file being viewed
@@ -1173,7 +1195,7 @@ const AppLayout: React.FC = () => {
             </div>
           ) : (
             <MarkdownViewer
-              content={currentContent}
+              content={contentForCurrentFile}
               filePath={currentFile}
               isLoading={isLoading}
               error={error}

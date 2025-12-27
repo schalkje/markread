@@ -398,10 +398,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // T047: Apply zoom with CSS transform and preserve scroll position
   useEffect(() => {
     const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
-    if (!activeBufferRef.current || !viewerRef.current) return;
+    if (!activeBufferRef.current) return;
 
-    const viewer = viewerRef.current;
-    const content = activeBufferRef.current;
+    const bufferElement = activeBufferRef.current;
 
     console.log('[MarkdownViewer] Zoom effect running:', {
       currentZoomRef: currentZoomRef.current,
@@ -417,29 +416,29 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
     console.log('[MarkdownViewer] Applying zoom transform:', zoomLevel);
     // Capture scroll position BEFORE applying transform
-    const currentScrollLeft = viewer.scrollLeft;
-    const currentScrollTop = viewer.scrollTop;
-    const currentScrollHeight = viewer.scrollHeight;
-    const currentScrollWidth = viewer.scrollWidth;
+    const currentScrollLeft = bufferElement.scrollLeft;
+    const currentScrollTop = bufferElement.scrollTop;
+    const currentScrollHeight = bufferElement.scrollHeight;
+    const currentScrollWidth = bufferElement.scrollWidth;
 
     // Apply zoom via CSS transform
     const zoomFactor = zoomLevel / 100;
-    content.style.transform = `scale(${zoomFactor})`;
-    content.style.transformOrigin = 'top left';
+    bufferElement.style.transform = `scale(${zoomFactor})`;
+    bufferElement.style.transformOrigin = 'top left';
 
     // Update ref to match
     currentZoomRef.current = zoomLevel;
 
     // Adjust scroll position after transform
     requestAnimationFrame(() => {
-      if (!viewer) return;
+      if (!bufferElement) return;
 
       // Check if we have a zoom target point (from mouse/touch zoom)
       if (zoomTargetRef.current) {
         const { x, y, prevZoom } = zoomTargetRef.current;
 
         // Zoom-to-cursor/center algorithm using captured scroll position
-        const rect = viewer.getBoundingClientRect();
+        const rect = bufferElement.getBoundingClientRect();
         const cursorX = x - rect.left;
         const cursorY = y - rect.top;
 
@@ -449,8 +448,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         const afterX = beforeX * (zoomLevel / 100);
         const afterY = beforeY * (zoomLevel / 100);
 
-        viewer.scrollLeft = afterX - cursorX;
-        viewer.scrollTop = afterY - cursorY;
+        bufferElement.scrollLeft = afterX - cursorX;
+        bufferElement.scrollTop = afterY - cursorY;
 
         // Clear the zoom target after using it
         zoomTargetRef.current = null;
@@ -459,9 +458,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         const scrollTopRatio = currentScrollHeight > 0 ? currentScrollTop / currentScrollHeight : 0;
         const scrollLeftRatio = currentScrollWidth > 0 ? currentScrollLeft / currentScrollWidth : 0;
 
-        if (viewer.scrollHeight > 0) {
-          viewer.scrollTop = scrollTopRatio * viewer.scrollHeight;
-          viewer.scrollLeft = scrollLeftRatio * viewer.scrollWidth;
+        if (bufferElement.scrollHeight > 0) {
+          bufferElement.scrollTop = scrollTopRatio * bufferElement.scrollHeight;
+          bufferElement.scrollLeft = scrollLeftRatio * bufferElement.scrollWidth;
         }
       }
     });
@@ -469,9 +468,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
   // Restore scroll position from history (when navigating back/forward)
   useEffect(() => {
-    if (!viewerRef.current) return;
+    // Get the preparing buffer (or active buffer if not transitioning)
+    const targetBuffer = preparingBuffer || activeBuffer;
+    const targetBufferRef = targetBuffer === 'A' ? bufferARef : bufferBRef;
+    const bufferElement = targetBufferRef.current;
 
-    const viewer = viewerRef.current;
+    if (!bufferElement) return;
 
     // Only restore if scrollTop or scrollLeft props are provided AND are non-zero
     // (zero means "start at top" which is default behavior, not restoration)
@@ -496,8 +498,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         retryCount++;
 
         // Check if content dimensions have stabilized
-        const currentScrollHeight = viewer.scrollHeight;
-        const hasScrollableContent = currentScrollHeight > viewer.clientHeight;
+        const currentScrollHeight = bufferElement.scrollHeight;
+        const hasScrollableContent = currentScrollHeight > bufferElement.clientHeight;
 
         // Content is stable if height hasn't changed for 2 consecutive checks
         if (currentScrollHeight === lastScrollHeight && hasScrollableContent) {
@@ -510,16 +512,16 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         // Restore when content is stable OR we've reached max retries
         if (stableCount >= 2 || retryCount >= maxRetries) {
           // Check if we can scroll to the desired position
-          const canScrollToPosition = scrollTop ? (currentScrollHeight - viewer.clientHeight >= scrollTop) : true;
+          const canScrollToPosition = scrollTop ? (currentScrollHeight - bufferElement.clientHeight >= scrollTop) : true;
 
           if (canScrollToPosition || retryCount >= maxRetries) {
             // Content is ready (or we've waited long enough), restore scroll
             if (scrollTop !== undefined && scrollTop > 0) {
-              viewer.scrollTop = scrollTop;
+              bufferElement.scrollTop = scrollTop;
               console.log('[MarkdownViewer] Restored scrollTop to:', scrollTop, `(after ${retryCount} attempts, scrollHeight: ${currentScrollHeight})`);
             }
             if (scrollLeft !== undefined && scrollLeft > 0) {
-              viewer.scrollLeft = scrollLeft;
+              bufferElement.scrollLeft = scrollLeft;
               console.log('[MarkdownViewer] Restored scrollLeft to:', scrollLeft);
             }
 
@@ -548,45 +550,63 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         cancelled = true;
       };
     }
-  }, [scrollTop, scrollLeft, filePath]); // Trigger when navigating to a new page (removed zoomLevel to avoid conflicts)
+  }, [scrollTop, scrollLeft, filePath, preparingBuffer, activeBuffer]); // Trigger when navigating to a new page (removed zoomLevel to avoid conflicts)
 
   // Track the last render to prevent duplicate renders
   const lastRenderRef = useRef<{ buffer: string; filePath: string } | null>(null);
+  // Track previous dependencies to see what changed
+  const prevDepsRef = useRef<{
+    filePath: string | undefined;
+    isLoading: boolean;
+    preparingBuffer: 'A' | 'B' | null;
+    activeBuffer: 'A' | 'B';
+  } | null>(null);
 
   // Render markdown content to the preparing buffer
   useEffect(() => {
-    if (!content || isLoading) return;
-
-    // Wait for refs to be ready (React needs a render cycle to set refs)
-    if (!bufferARef.current || !bufferBRef.current) {
-      console.log('[MarkdownViewer] Waiting for buffer refs to be ready...');
-      // Retry on next render cycle
-      return;
+    // Log what dependency changed
+    if (prevDepsRef.current) {
+      const changes: string[] = [];
+      if (prevDepsRef.current.filePath !== filePath) changes.push(`filePath: ${prevDepsRef.current.filePath} → ${filePath}`);
+      if (prevDepsRef.current.isLoading !== isLoading) changes.push(`isLoading: ${prevDepsRef.current.isLoading} → ${isLoading}`);
+      if (prevDepsRef.current.preparingBuffer !== preparingBuffer) changes.push(`preparingBuffer: ${prevDepsRef.current.preparingBuffer} → ${preparingBuffer}`);
+      if (prevDepsRef.current.activeBuffer !== activeBuffer) changes.push(`activeBuffer: ${prevDepsRef.current.activeBuffer} → ${activeBuffer}`);
+      if (changes.length > 0) {
+        console.log('[MarkdownViewer] Render effect triggered by dependency changes:', changes);
+      }
     }
+    prevDepsRef.current = { filePath, isLoading, preparingBuffer, activeBuffer };
 
-    // Detect race condition: If filePath changed but transition state hasn't updated yet
-    // This happens because both effects run on filePath change, but with stale state
-    const isFilePathChanging = previousFilePathRef.current !== filePath;
-    if (isFilePathChanging && !isTransitioning && !preparingBuffer) {
-      console.log('[MarkdownViewer] FilePath changed but transition not started yet, waiting...', {
-        previousFilePath: previousFilePathRef.current,
-        currentFilePath: filePath,
-        isTransitioning,
-        preparingBuffer
+    if (!content || isLoading) {
+      console.log('[MarkdownViewer] Skipping render - no content or loading:', {
+        hasContent: !!content,
+        contentLength: content?.length,
+        isLoading,
+        filePath
       });
-      // Wait for navigation effect to set up transition state
       return;
     }
 
-    // If transitioning, wait for preparingBuffer to be set
-    if (isTransitioning && !preparingBuffer) {
-      console.log('[MarkdownViewer] Transitioning but preparingBuffer not set yet, waiting...');
-      return;
-    }
-
-    // Determine target buffer: preparing buffer if transitioning, otherwise active buffer
-    const targetBuffer = preparingBuffer || activeBuffer;
+    // Determine target buffer: use preparing buffer if set, otherwise active buffer
+    const targetBuffer: 'A' | 'B' = preparingBuffer || activeBuffer;
     const targetBufferRef = targetBuffer === 'A' ? bufferARef : bufferBRef;
+    const targetElement = targetBufferRef.current;
+
+    console.log('[MarkdownViewer] Render effect:', {
+      targetBuffer,
+      preparingBuffer,
+      activeBuffer,
+      hasElement: !!targetElement,
+      filePath,
+      contentLength: content.length
+    });
+
+    // Wait for target buffer ref to be ready
+    if (!targetElement) {
+      console.log('[MarkdownViewer] Target buffer ref not ready:', targetBuffer);
+      // Don't retry - just wait for next effect run when dependencies truly change
+      return;
+    }
 
     // Skip if we're already rendering or just rendered the same content to the same buffer
     if (lastRenderRef.current?.buffer === targetBuffer && lastRenderRef.current?.filePath === filePath) {
@@ -594,7 +614,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       return;
     }
 
-    console.log('[MarkdownViewer] Rendering to buffer:', targetBuffer, { isTransitioning, preparingBuffer, activeBuffer, filePath });
+    console.log('[MarkdownViewer] Rendering to buffer:', targetBuffer, { preparingBuffer, activeBuffer, filePath });
 
     // Mark this render as in progress
     lastRenderRef.current = { buffer: targetBuffer, filePath: filePath || '' };
@@ -605,13 +625,6 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       const startTime = Date.now();
 
       console.log('[MarkdownViewer] renderContent started for', targetBuffer);
-
-      // Capture the actual DOM element at the start to avoid ref invalidation during async operations
-      const targetElement = targetBufferRef.current;
-      if (!targetElement) {
-        console.log('[MarkdownViewer] Target buffer element not available');
-        return;
-      }
 
       setIsRendering(true);
       setRenderError(null);
@@ -707,14 +720,20 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [content, filePath, isLoading, onRenderComplete, scrollTop, scrollLeft, preparingBuffer, activeBuffer, isTransitioning]);
-  // NOTE: filePath is needed for image resolution. Race condition is prevented by using
-  // useLayoutEffect for navigation detection, which runs before this effect.
+  }, [filePath, isLoading, preparingBuffer, activeBuffer]);
+  // NOTE: Removed scrollTop, scrollLeft, onRenderComplete, isTransitioning, and content from dependencies
+  // because they can change during rendering and cause unwanted cancellations.
+  // - content: AppLayout may pass a new string instance even if file content hasn't changed, causing unnecessary re-renders
+  // - scrollTop/scrollLeft: Only used by scroll restoration effect
+  // - onRenderComplete: Callback reference may change
+  // - isTransitioning: Only used for logging
+  // We rely on filePath changes to detect when to re-render a different file.
 
   // T048, T051l, T051m: Pan functionality with mouse drag
   const handleMouseDown = (e: React.MouseEvent) => {
     // Only enable panning when zoomed in
-    if (zoomLevel <= 100 || !viewerRef.current) return;
+    const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+    if (zoomLevel <= 100 || !activeBufferRef.current) return;
 
     // T051m: Middle-mouse button (button === 1) always pans
     // T051l: Left-click (button === 0) pans when Space is pressed
@@ -725,8 +744,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       setIsPanning(true);
       setPanStart({ x: e.clientX, y: e.clientY });
       setScrollStart({
-        left: viewerRef.current.scrollLeft,
-        top: viewerRef.current.scrollTop,
+        left: activeBufferRef.current.scrollLeft,
+        top: activeBufferRef.current.scrollTop,
       });
 
       if (viewerRef.current) {
@@ -738,13 +757,16 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isPanning || !viewerRef.current) return;
+    if (!isPanning) return;
+
+    const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+    if (!activeBufferRef.current) return;
 
     const dx = e.clientX - panStart.x;
     const dy = e.clientY - panStart.y;
 
-    viewerRef.current.scrollLeft = scrollStart.left - dx;
-    viewerRef.current.scrollTop = scrollStart.top - dy;
+    activeBufferRef.current.scrollLeft = scrollStart.left - dx;
+    activeBufferRef.current.scrollTop = scrollStart.top - dy;
 
     e.preventDefault();
   };
@@ -772,17 +794,15 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
   // T051i: Mouse wheel zoom with Ctrl+Scroll (smooth, synchronous)
   useEffect(() => {
-    const container = viewerRef.current;
     const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
-    const content = activeBufferRef.current;
+    const bufferElement = activeBufferRef.current;
 
     console.log('[MarkdownViewer] Wheel zoom effect setup:', {
-      hasContainer: !!container,
-      hasContent: !!content,
+      hasBuffer: !!bufferElement,
       hasOnZoomChange: !!onZoomChange
     });
 
-    if (!container || !content || !onZoomChange) {
+    if (!bufferElement || !onZoomChange) {
       console.log('[MarkdownViewer] Wheel zoom NOT registered - missing dependency');
       return;
     }
@@ -803,25 +823,25 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         // No change, skip
         if (newZoom === prevZoom) return;
 
-        // Get cursor position relative to container
-        const rect = container.getBoundingClientRect();
+        // Get cursor position relative to buffer
+        const rect = bufferElement.getBoundingClientRect();
         const cursorX = e.clientX - rect.left;
         const cursorY = e.clientY - rect.top;
 
         // Calculate the point in content coordinates before zoom
-        const beforeX = (cursorX + container.scrollLeft) / (prevZoom / 100);
-        const beforeY = (cursorY + container.scrollTop) / (prevZoom / 100);
+        const beforeX = (cursorX + bufferElement.scrollLeft) / (prevZoom / 100);
+        const beforeY = (cursorY + bufferElement.scrollTop) / (prevZoom / 100);
 
         // Apply zoom transform synchronously (no waiting for React)
         currentZoomRef.current = newZoom;
         const zoomFactor = newZoom / 100;
-        content.style.transform = `scale(${zoomFactor})`;
+        bufferElement.style.transform = `scale(${zoomFactor})`;
 
         // Adjust scroll position synchronously to keep cursor point stable
         const afterX = beforeX * (newZoom / 100);
         const afterY = beforeY * (newZoom / 100);
-        container.scrollLeft = afterX - cursorX;
-        container.scrollTop = afterY - cursorY;
+        bufferElement.scrollLeft = afterX - cursorX;
+        bufferElement.scrollTop = afterY - cursorY;
 
         console.log('[MarkdownViewer] Calling onZoomChange with:', newZoom);
         // Debounce the state update to reduce re-renders
@@ -837,10 +857,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     };
 
     console.log('[MarkdownViewer] Wheel zoom handler registered');
-    container.addEventListener('wheel', handleWheel, { passive: false });
+    bufferElement.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
       console.log('[MarkdownViewer] Wheel zoom handler unregistered');
-      container.removeEventListener('wheel', handleWheel);
+      bufferElement.removeEventListener('wheel', handleWheel);
       if (zoomUpdateTimeoutRef.current) {
         clearTimeout(zoomUpdateTimeoutRef.current);
       }
@@ -944,8 +964,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
   // T051n: Arrow key nudge pan
   useEffect(() => {
-    const container = viewerRef.current;
-    if (!container || zoomLevel <= 100) return;
+    if (zoomLevel <= 100) return;
+
+    const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+    const bufferElement = activeBufferRef.current;
+    if (!bufferElement) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle arrow keys when content is zoomed and focused
@@ -958,23 +981,23 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
       switch (e.key) {
         case 'ArrowUp':
-          container.scrollTop -= nudgeAmount;
+          bufferElement.scrollTop -= nudgeAmount;
           break;
         case 'ArrowDown':
-          container.scrollTop += nudgeAmount;
+          bufferElement.scrollTop += nudgeAmount;
           break;
         case 'ArrowLeft':
-          container.scrollLeft -= nudgeAmount;
+          bufferElement.scrollLeft -= nudgeAmount;
           break;
         case 'ArrowRight':
-          container.scrollLeft += nudgeAmount;
+          bufferElement.scrollLeft += nudgeAmount;
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [zoomLevel]);
+  }, [zoomLevel, activeBuffer]);
 
   /**
    * Resolve relative image paths to absolute file:// URLs
