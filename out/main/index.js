@@ -153,8 +153,8 @@ function createWindow(options) {
       // Prevent direct Node.js access in renderer
       contextIsolation: true,
       // Isolate preload scripts from renderer
-      sandbox: false,
-      // TEMPORARY: Disabled to test custom protocol handler
+      sandbox: true,
+      // Enable OS-level sandboxing
       webSecurity: true,
       // Enforce same-origin policy
       allowRunningInsecureContent: false,

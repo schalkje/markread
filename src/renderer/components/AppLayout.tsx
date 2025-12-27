@@ -1184,14 +1184,18 @@ const AppLayout: React.FC = () => {
               onFileLink={handleLinkClick}
               onScrollChange={(scrollTop, scrollLeft) => {
                 // Save scroll positions to BOTH tab state AND current history entry
+                console.log('[onScrollChange] Called with:', { scrollTop, scrollLeft, activeTabId });
                 if (activeTabId) {
-                  const { tabs, updateTabScrollPosition } = useTabsStore.getState();
+                  const { tabs } = useTabsStore.getState();
                   const tab = tabs.get(activeTabId);
+                  console.log('[onScrollChange] Tab state:', {
+                    hasTab: !!tab,
+                    currentIndex: tab?.currentHistoryIndex,
+                    historyLength: tab?.navigationHistory?.length
+                  });
                   if (tab) {
-                    // Update vertical scroll in tab state
-                    updateTabScrollPosition(activeTabId, scrollTop);
-
                     // Update both scroll positions in tab state and current history entry
+                    // Do this in ONE atomic operation to avoid race conditions
                     const newTabs = new Map(tabs);
                     const history = tab.navigationHistory;
                     const currentIndex = tab.currentHistoryIndex;
@@ -1200,6 +1204,7 @@ const AppLayout: React.FC = () => {
                     // Create NEW array with updated entry (don't mutate!)
                     let newHistory = history;
                     if (history && currentIndex >= 0 && currentIndex < history.length) {
+                      console.log('[onScrollChange] Updating history entry at index:', currentIndex);
                       newHistory = [...history];
                       newHistory[currentIndex] = {
                         ...history[currentIndex],
@@ -1207,10 +1212,18 @@ const AppLayout: React.FC = () => {
                         scrollLeft: scrollLeft,
                         zoomLevel: tab.zoomLevel || 100,
                       };
+                      console.log('[onScrollChange] Updated history entry:', newHistory[currentIndex]);
+                    } else {
+                      console.warn('[onScrollChange] Cannot update history - invalid state:', {
+                        hasHistory: !!history,
+                        currentIndex,
+                        historyLength: history?.length
+                      });
                     }
 
                     newTabs.set(activeTabId, {
                       ...tab,
+                      scrollPosition: Math.max(0, scrollTop),
                       scrollLeft,
                       navigationHistory: newHistory
                     });

@@ -12,7 +12,7 @@
  * - Grab cursor styling (T049)
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { renderMarkdown, renderMermaidDiagrams, applySyntaxHighlighting } from '../../services/markdown-renderer';
 import './MarkdownViewer.css';
 
@@ -763,12 +763,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     }
   };
 
-  // Track scroll changes
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  // Track scroll changes from the active buffer
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
     const scrollLeft = e.currentTarget.scrollLeft;
     onScrollChange?.(scrollTop, scrollLeft);
-  };
+  }, [onScrollChange]);
 
   // T051i: Mouse wheel zoom with Ctrl+Scroll (smooth, synchronous)
   useEffect(() => {
@@ -1159,15 +1159,14 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
-      onScroll={handleScroll}
     >
       {/* Buffer A */}
-      <div className={getBufferClass('A')} ref={bufferARef}>
+      <div className={getBufferClass('A')} ref={bufferARef} onScroll={handleScroll}>
         {/* Content will be injected here */}
       </div>
 
       {/* Buffer B */}
-      <div className={getBufferClass('B')} ref={bufferBRef}>
+      <div className={getBufferClass('B')} ref={bufferBRef} onScroll={handleScroll}>
         {/* Content will be injected here */}
       </div>
 

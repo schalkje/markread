@@ -7,8 +7,7 @@
   width: 100%;
   height: 100%;
   padding: 0;
-  overflow-y: auto;
-  overflow-x: auto;
+  overflow: hidden; /* Buffers handle scrolling */
   background: var(--color-bg-primary, #ffffff);
   color: var(--color-text-primary, #24292f);
   font-family: var(--font-content, 'Segoe UI', system-ui, -apple-system, sans-serif);
