@@ -183,8 +183,22 @@ export const CustomScrollbar: React.FC<CustomScrollbarProps> = ({
     }
   }, [isDragging]);
 
+  // Debug logging
+  console.log(`[CustomScrollbar ${orientation}]`, {
+    hasScroll,
+    maxScroll,
+    scrollSize,
+    viewportSize,
+    scrollPosition,
+    thumbSizePercent,
+    thumbPositionPercent,
+  });
+
   // Don't render if no scroll is needed
-  if (!hasScroll) return null;
+  if (!hasScroll) {
+    console.log(`[CustomScrollbar ${orientation}] Not rendering - no scroll needed`);
+    return null;
+  }
 
   // Build class names
   const containerClass = [
@@ -222,9 +236,9 @@ export const CustomScrollbar: React.FC<CustomScrollbarProps> = ({
       onMouseLeave={handleMouseLeave}
       role="scrollbar"
       aria-orientation={orientation}
-      aria-valuenow={Math.round(scrollPosition)}
-      aria-valuemin={0}
-      aria-valuemax={Math.round(maxScroll)}
+      aria-valuenow={Math.round(scrollPosition).toString()}
+      aria-valuemin="0"
+      aria-valuemax={Math.round(maxScroll).toString()}
     >
       {/* Track */}
       <div

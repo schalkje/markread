@@ -839,25 +839,47 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     if (!activeBufferRef.current) return;
 
     const element = activeBufferRef.current;
-    setScrollState({
-      scrollTop: element.scrollTop,
-      scrollLeft: element.scrollLeft,
-      scrollHeight: element.scrollHeight,
-      scrollWidth: element.scrollWidth,
-      clientHeight: element.clientHeight,
-      clientWidth: element.clientWidth,
+
+    const updateDimensions = () => {
+      const newScrollState = {
+        scrollTop: element.scrollTop,
+        scrollLeft: element.scrollLeft,
+        scrollHeight: element.scrollHeight,
+        scrollWidth: element.scrollWidth,
+        clientHeight: element.clientHeight,
+        clientWidth: element.clientWidth,
+      };
+
+      console.log('[MarkdownViewer] Updating scroll state:', newScrollState);
+      setScrollState(newScrollState);
+
+      // Extract heading markers for overview ruler
+      const headingMarkers = extractHeadingMarkers(
+        element,
+        element.scrollHeight
+      );
+      console.log('[MarkdownViewer] Extracted markers:', headingMarkers.length);
+      setMarkers(headingMarkers);
+    };
+
+    // Initial update
+    updateDimensions();
+
+    // Set up ResizeObserver to track size changes
+    const resizeObserver = new ResizeObserver(() => {
+      console.log('[MarkdownViewer] ResizeObserver triggered');
+      updateDimensions();
     });
 
-    // Extract heading markers for overview ruler
-    // Wait a frame to ensure content is fully rendered
-    requestAnimationFrame(() => {
-      if (!activeBufferRef.current) return;
-      const headingMarkers = extractHeadingMarkers(
-        activeBufferRef.current,
-        activeBufferRef.current.scrollHeight
-      );
-      setMarkers(headingMarkers);
-    });
+    resizeObserver.observe(element);
+
+    // Also update on a short delay (for async content rendering)
+    const timeoutId = setTimeout(updateDimensions, 100);
+
+    return () => {
+      resizeObserver.disconnect();
+      clearTimeout(timeoutId);
+    };
   }, [content, zoomLevel, activeBuffer]);
 
   // T051i: Mouse wheel zoom with Ctrl+Scroll (smooth, synchronous)
@@ -1311,7 +1333,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         onScrollRequest={handleVerticalScrollRequest}
         markers={markers}
         showShadows={true}
-        autoHide={true}
+        autoHide={false}
       />
 
       <CustomScrollbar
@@ -1321,7 +1343,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         viewportSize={scrollState.clientWidth}
         onScrollRequest={handleHorizontalScrollRequest}
         showShadows={false}
-        autoHide={true}
+        autoHide={false}
       />
     </div>
   );
