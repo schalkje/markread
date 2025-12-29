@@ -13,7 +13,7 @@ Users want to connect to a GitHub or Azure DevOps repository and immediately vie
 
 **Why this priority**: This is the foundational capability that enables all other features. Without the ability to connect and view files, no other repository interactions are possible. It delivers immediate value by allowing users to read documentation directly from remote repositories.
 
-**Independent Test**: Can be fully tested by connecting to a public GitHub repository, selecting the main branch, and viewing a README.md file. Delivers the core value of remote repository access without requiring any other features.
+**Independent Test**: Can be fully tested by connecting to the public GitHub repository of markread itself (https://github.com/schalkje/markread), selecting the main branch, and viewing a README.md file. Delivers the core value of remote repository access without requiring any other features.
 
 **Acceptance Scenarios**:
 
@@ -110,7 +110,7 @@ Users working in enterprise environments need to connect to Azure DevOps reposit
 ### Edge Cases
 
 - What happens when a repository has thousands of files in a single directory? System must paginate or lazy-load file lists to prevent performance degradation.
-- How does the system handle binary files (PDFs, images, videos) in the repository? Non-markdown files should be downloadable but not rendered in the markdown viewer.
+- How does the system handle binary files (PDFs, images, videos) in the repository? Non-markdown files should be downloadable but only rendered in the markdown viewer when embeded in the current page.
 - What happens when network connectivity is lost during repository browsing? System should display cached content when possible and show clear offline indicators.
 - How does the system handle extremely large markdown files (>10MB)? System should warn users and potentially offer to download rather than render inline.
 - What happens when a file contains relative links to files outside the repository? System should detect and indicate that external links cannot be resolved within the repository context.
