@@ -670,30 +670,27 @@ const AppLayout: React.FC = () => {
 
     // T061, T063n: Register tab navigation shortcuts
     const handleNextTab = () => {
-      const { tabs, activeTabId, setActiveTab } = useTabsStore.getState();
-      const tabArray = Array.from(tabs.values());
-      if (tabArray.length === 0) return;
+      const { tabOrder, activeTabId, setActiveTab } = useTabsStore.getState();
+      if (tabOrder.length === 0) return;
 
-      const currentIndex = tabArray.findIndex(t => t.id === activeTabId);
-      const nextIndex = (currentIndex + 1) % tabArray.length;
-      setActiveTab(tabArray[nextIndex].id);
+      const currentIndex = tabOrder.indexOf(activeTabId || '');
+      const nextIndex = (currentIndex + 1) % tabOrder.length;
+      setActiveTab(tabOrder[nextIndex]);
     };
 
     const handlePreviousTab = () => {
-      const { tabs, activeTabId, setActiveTab } = useTabsStore.getState();
-      const tabArray = Array.from(tabs.values());
-      if (tabArray.length === 0) return;
+      const { tabOrder, activeTabId, setActiveTab } = useTabsStore.getState();
+      if (tabOrder.length === 0) return;
 
-      const currentIndex = tabArray.findIndex(t => t.id === activeTabId);
-      const prevIndex = currentIndex <= 0 ? tabArray.length - 1 : currentIndex - 1;
-      setActiveTab(tabArray[prevIndex].id);
+      const currentIndex = tabOrder.indexOf(activeTabId || '');
+      const prevIndex = currentIndex <= 0 ? tabOrder.length - 1 : currentIndex - 1;
+      setActiveTab(tabOrder[prevIndex]);
     };
 
     const handleJumpToTab = (index: number) => {
-      const { tabs, setActiveTab } = useTabsStore.getState();
-      const tabArray = Array.from(tabs.values());
-      if (index < tabArray.length) {
-        setActiveTab(tabArray[index].id);
+      const { tabOrder, setActiveTab } = useTabsStore.getState();
+      if (index < tabOrder.length) {
+        setActiveTab(tabOrder[index]);
       }
     };
 
@@ -704,11 +701,36 @@ const AppLayout: React.FC = () => {
       }
     };
 
+    // T063n: Move tab left/right handlers
+    const handleMoveTabLeft = () => {
+      const { tabOrder, activeTabId, reorderTab } = useTabsStore.getState();
+      if (tabOrder.length === 0 || !activeTabId) return;
+
+      const currentIndex = tabOrder.indexOf(activeTabId);
+      if (currentIndex > 0) {
+        // Move tab one position to the left
+        reorderTab(currentIndex, currentIndex - 1);
+      }
+    };
+
+    const handleMoveTabRight = () => {
+      const { tabOrder, activeTabId, reorderTab } = useTabsStore.getState();
+      if (tabOrder.length === 0 || !activeTabId) return;
+
+      const currentIndex = tabOrder.indexOf(activeTabId);
+      if (currentIndex < tabOrder.length - 1) {
+        // Move tab one position to the right
+        reorderTab(currentIndex, currentIndex + 1);
+      }
+    };
+
     registerTabShortcuts({
       onNextTab: handleNextTab,
       onPreviousTab: handlePreviousTab,
       onJumpToTab: handleJumpToTab,
       onCloseTab: handleCloseTab,
+      onMoveTabLeft: handleMoveTabLeft,
+      onMoveTabRight: handleMoveTabRight,
     });
 
     // Listen for navigate-to-history events (for Home navigation)
