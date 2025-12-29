@@ -51,6 +51,7 @@
   opacity: 1;
   z-index: 2;
   pointer-events: auto;
+  visibility: visible; /* Ensure it's visible */
 }
 
 /* Preparing buffer - hidden, being rendered */
@@ -58,6 +59,7 @@
   opacity: 0;
   z-index: 1;
   pointer-events: none;
+  visibility: hidden; /* Extra safety - completely hide */
 }
 
 /* During crossfade transition */
@@ -65,12 +67,14 @@
   opacity: 1;
   z-index: 2;
   pointer-events: auto;
+  visibility: visible; /* Override hidden state */
 }
 
 .markdown-viewer__buffer--fading-out {
   opacity: 0;
   z-index: 1;
   pointer-events: none;
+  visibility: visible; /* Keep visible during fade-out for smooth transition */
 }
 
 /* Dark mode buffer background */
@@ -100,13 +104,24 @@
   user-select: none;
 }
 
-/* Loading state */
-.markdown-viewer--loading {
+/* Loading overlay - positioned on top of buffers */
+.markdown-viewer__loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: var(--md-bg-color, #ffffff);
-  min-height: 200px;
+  pointer-events: auto;
+}
+
+/* Dark mode loading overlay */
+[data-theme="dark"] .markdown-viewer__loading-overlay {
+  background-color: #0d1117;
 }
 
 .markdown-viewer__spinner {
@@ -122,19 +137,49 @@
   margin: 0;
 }
 
-.spinner {
-  border: 4px solid var(--md-border-color, rgba(175, 184, 193, 0.3));
-  border-left-color: var(--md-link-color, #0969da);
-  border-radius: 50%;
+.markdown-viewer__spinner .spinner {
   width: 48px;
   height: 48px;
-  animation: spin 0.8s linear infinite;
+  border-radius: 50%;
   margin: 0 auto 1rem;
+  border: 4px solid transparent;
+  border-top-color: var(--md-link-color, #0969da);
+  border-right-color: var(--md-link-color, #0969da);
+  /* Use animation that changes border-color, not transform */
+  animation: spinner-border 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+/* Animation that only changes border colors - no transform/rotate */
+@keyframes spinner-border {
+  0% {
+    border-top-color: var(--md-link-color, #0969da);
+    border-right-color: var(--md-link-color, #0969da);
+    border-bottom-color: transparent;
+    border-left-color: transparent;
+  }
+  25% {
+    border-top-color: transparent;
+    border-right-color: var(--md-link-color, #0969da);
+    border-bottom-color: var(--md-link-color, #0969da);
+    border-left-color: transparent;
+  }
+  50% {
+    border-top-color: transparent;
+    border-right-color: transparent;
+    border-bottom-color: var(--md-link-color, #0969da);
+    border-left-color: var(--md-link-color, #0969da);
+  }
+  75% {
+    border-top-color: var(--md-link-color, #0969da);
+    border-right-color: transparent;
+    border-bottom-color: transparent;
+    border-left-color: var(--md-link-color, #0969da);
+  }
+  100% {
+    border-top-color: var(--md-link-color, #0969da);
+    border-right-color: var(--md-link-color, #0969da);
+    border-bottom-color: transparent;
+    border-left-color: transparent;
   }
 }
 
@@ -445,6 +490,8 @@
 .markdown-viewer .mermaid-rendered svg {
   max-width: 100%;
   height: auto;
+  margin: 0 auto;
+  display: block;
 }
 
 .markdown-viewer .mermaid-error {

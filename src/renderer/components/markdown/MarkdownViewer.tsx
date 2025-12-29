@@ -1218,19 +1218,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   };
 
 
-  // T040: Loading state
-  if (isLoading || isRendering) {
-    return (
-      <div className="markdown-viewer markdown-viewer--loading">
-        <div className="markdown-viewer__spinner">
-          <div className="spinner"></div>
-          <p>Loading markdown...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // T040: Error state
+  // T040: Handle error state (still early return for errors)
   if (error || renderError) {
     return (
       <div className="markdown-viewer markdown-viewer--error">
@@ -1242,6 +1230,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       </div>
     );
   }
+
+  // T040: Loading state (now rendered as overlay, not early return)
 
   // Determine cursor style (T049)
   const getCursorClass = () => {
@@ -1318,6 +1308,16 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           {/* Content will be injected here */}
         </div>
       </div>
+
+      {/* Loading overlay - shown on top of buffers during rendering */}
+      {(isLoading || isRendering) && (
+        <div className="markdown-viewer__loading-overlay">
+          <div className="markdown-viewer__spinner">
+            <div className="spinner"></div>
+            <p>Loading markdown...</p>
+          </div>
+        </div>
+      )}
 
       {/* Optional overlay during transition */}
       {showOverlay && overlaySnapshot && (
