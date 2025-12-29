@@ -5,6 +5,16 @@
 **Status**: Draft
 **Input**: User description: "Connect to Git Repositories - The Markdown Reader application will include robust support for interacting with Git repositories, specifically targeting GitHub and Azure DevOps."
 
+## Clarifications
+
+### Session 2025-12-29
+
+- Q: Which GitHub and Azure DevOps APIs should be used for repository integration? → A: GitHub REST API v3 + Azure DevOps REST API v7.1 (stable, well-supported)
+- Q: How should the system handle API rate limits from GitHub and Azure DevOps? → A: Exponential backoff with user notification for sustained limits (transparent, resilient)
+- Q: How is repository uniqueness determined to prevent duplicates in recent items and cache? → A: Normalized Git URL (e.g., https://github.com/user/repo standardized)
+- Q: What specific UI indicators and capabilities are available when offline vs online? → A: Offline badge + cached content only with refresh disabled (honest, functional)
+- Q: Beyond OS credential manager, is additional encryption needed for authentication tokens? → A: OS credential manager only (system-level encryption, industry standard)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Connect and View Repository Files (Priority: P1)
@@ -111,7 +121,7 @@ Users working in enterprise environments need to connect to Azure DevOps reposit
 
 - What happens when a repository has thousands of files in a single directory? System must paginate or lazy-load file lists to prevent performance degradation.
 - How does the system handle binary files (PDFs, images, videos) in the repository? Non-markdown files should be downloadable but only rendered in the markdown viewer when embeded in the current page.
-- What happens when network connectivity is lost during repository browsing? System should display cached content when possible and show clear offline indicators.
+- What happens when network connectivity is lost during repository browsing? System must display an offline badge, allow viewing of cached content only, and disable refresh/branch switching operations until connectivity is restored.
 - How does the system handle extremely large markdown files (>10MB)? System should warn users and potentially offer to download rather than render inline.
 - What happens when a file contains relative links to files outside the repository? System should detect and indicate that external links cannot be resolved within the repository context.
 - How does the system handle repositories with non-standard branch naming or branch protection? System should gracefully handle all valid Git branch names and respect branch access permissions.
@@ -125,7 +135,7 @@ Users working in enterprise environments need to connect to Azure DevOps reposit
 - **FR-002**: System MUST support connecting to Azure DevOps repositories via HTTPS URLs
 - **FR-003**: System MUST authenticate users using OAuth 2.0 for both GitHub and Azure DevOps
 - **FR-004**: System MUST provide Personal Access Token (PAT) authentication as a fallback when OAuth is unavailable or fails
-- **FR-005**: System MUST securely store authentication credentials using the operating system's credential manager
+- **FR-005**: System MUST securely store authentication credentials exclusively using the operating system's credential manager (Windows Credential Manager, macOS Keychain, Linux Secret Service) without additional application-level encryption layers
 - **FR-006**: System MUST display a unified list of recently opened local folders and Git repositories on the main page
 - **FR-007**: System MUST visually distinguish Git repository entries from local folder entries using distinct icons
 - **FR-008**: System MUST show the branch name for each Git repository in the recent items list
@@ -146,15 +156,27 @@ Users working in enterprise environments need to connect to Azure DevOps reposit
 - **FR-023**: System MUST render markdown files using the same rendering engine as local files
 - **FR-024**: System MUST indicate when a file has been cached versus freshly fetched from the remote
 - **FR-025**: System MUST allow users to manually refresh/reload files from the remote repository
+- **FR-026**: System MUST normalize repository URLs to a standardized format (removing trailing slashes, .git suffix, and protocol variations) to ensure repository uniqueness across recent items and cache storage
+- **FR-027**: System MUST display a visible offline indicator badge when network connectivity to repository providers is unavailable
+- **FR-028**: System MUST disable refresh and branch switching operations when in offline mode while maintaining access to cached file content
+- **FR-029**: System MUST automatically restore online functionality when network connectivity is re-established
 
 ### Key Entities
 
-- **Repository**: Represents a remote Git repository (GitHub or Azure DevOps), containing URL, authentication method, default branch, and last accessed timestamp
+- **Repository**: Represents a remote Git repository (GitHub or Azure DevOps), uniquely identified by normalized Git URL (standardized format removing trailing slashes, .git suffix, and protocol variations), containing URL, authentication method, default branch, and last accessed timestamp
 - **Branch**: Represents a specific branch within a repository, containing branch name, last commit hash, and last accessed timestamp
 - **Repository File**: Represents a file within a repository, containing file path, content, file type, branch reference, and cache metadata
-- **Authentication Credential**: Represents stored authentication information, containing provider type (GitHub/Azure DevOps), credential type (OAuth/PAT), token/secret (encrypted), and expiration timestamp
+- **Authentication Credential**: Represents stored authentication information, containing provider type (GitHub/Azure DevOps), credential type (OAuth/PAT), token/secret (encrypted by OS credential manager), and expiration timestamp
 - **Recent Item**: Represents an entry in the recent items list, containing item type (local folder or Git repository), location/URL, display name, icon identifier, and last accessed timestamp
 - **Cache Entry**: Represents cached file content, containing file identifier, content data, fetch timestamp, size, and eviction priority
+
+### Integration Requirements
+
+- **IR-001**: System MUST use GitHub REST API v3 for all GitHub repository operations (file retrieval, branch listing, authentication)
+- **IR-002**: System MUST use Azure DevOps REST API v7.1 for all Azure DevOps repository operations
+- **IR-003**: System MUST handle API-specific error codes and rate limit responses according to each provider's specifications
+- **IR-004**: System MUST implement exponential backoff retry strategy when API rate limits are encountered
+- **IR-005**: System MUST notify users with a clear message when rate limits persist beyond automatic retry attempts, including estimated time until limit reset
 
 ## Success Criteria *(mandatory)*
 

@@ -24,7 +24,9 @@
       "Bash(powershell:*)",
       "Bash(taskkill:*)",
       "Bash(npm run:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File .specify/scripts/powershell:*"
     ],
     "deny": [],
     "ask": []
