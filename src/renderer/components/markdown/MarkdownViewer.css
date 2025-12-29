@@ -142,44 +142,14 @@
   height: 48px;
   border-radius: 50%;
   margin: 0 auto 1rem;
-  border: 4px solid transparent;
+  border: 4px solid var(--md-border-color, rgba(175, 184, 193, 0.3));
   border-top-color: var(--md-link-color, #0969da);
-  border-right-color: var(--md-link-color, #0969da);
-  /* Use animation that changes border-color, not transform */
-  animation: spinner-border 0.8s linear infinite;
+  animation: spinner-rotate 0.8s linear infinite;
 }
 
-/* Animation that only changes border colors - no transform/rotate */
-@keyframes spinner-border {
-  0% {
-    border-top-color: var(--md-link-color, #0969da);
-    border-right-color: var(--md-link-color, #0969da);
-    border-bottom-color: transparent;
-    border-left-color: transparent;
-  }
-  25% {
-    border-top-color: transparent;
-    border-right-color: var(--md-link-color, #0969da);
-    border-bottom-color: var(--md-link-color, #0969da);
-    border-left-color: transparent;
-  }
-  50% {
-    border-top-color: transparent;
-    border-right-color: transparent;
-    border-bottom-color: var(--md-link-color, #0969da);
-    border-left-color: var(--md-link-color, #0969da);
-  }
-  75% {
-    border-top-color: var(--md-link-color, #0969da);
-    border-right-color: transparent;
-    border-bottom-color: transparent;
-    border-left-color: var(--md-link-color, #0969da);
-  }
-  100% {
-    border-top-color: var(--md-link-color, #0969da);
-    border-right-color: var(--md-link-color, #0969da);
-    border-bottom-color: transparent;
-    border-left-color: transparent;
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
   }
 }
 
