@@ -448,23 +448,22 @@
   border: 1px solid #ff8182;
 }
 
-/* Scrollbar styling */
-.markdown-viewer::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+/* Hide native scrollbars (using custom overlay scrollbars instead) */
+.markdown-viewer__buffer::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Hide but keep functional */
 }
 
-.markdown-viewer::-webkit-scrollbar-track {
-  background: var(--color-bg-secondary, #f6f8fa);
+/* Firefox scrollbar hiding */
+.markdown-viewer__buffer {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 
-.markdown-viewer::-webkit-scrollbar-thumb {
-  background: var(--color-scrollbar, #d0d7de);
-  border-radius: 6px;
-}
-
-.markdown-viewer::-webkit-scrollbar-thumb:hover {
-  background: var(--color-scrollbar-hover, #afb8c1);
+/* Keep scroll functionality but hide scrollbars */
+.markdown-viewer__buffer {
+  overflow: auto; /* Still scrollable */
 }
 
 /* Link preview overlay */

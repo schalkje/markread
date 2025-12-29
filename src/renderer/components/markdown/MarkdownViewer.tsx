@@ -14,6 +14,8 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { renderMarkdown, renderMermaidDiagrams, applySyntaxHighlighting } from '../../services/markdown-renderer';
+import { CustomScrollbar, ScrollbarMarker } from '../scrollbar/CustomScrollbar';
+import { extractHeadingMarkers } from '../../utils/marker-extractor';
 import './MarkdownViewer.css';
 
 export interface MarkdownViewerProps {
@@ -99,6 +101,19 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Track current zoom level without triggering re-renders (for smooth wheel zoom)
   const currentZoomRef = useRef<number>(zoomLevel);
   const zoomUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Custom scrollbar state
+  const [scrollState, setScrollState] = useState({
+    scrollTop: 0,
+    scrollLeft: 0,
+    scrollHeight: 0,
+    scrollWidth: 0,
+    clientHeight: 0,
+    clientWidth: 0,
+  });
+
+  // Overview ruler markers
+  const [markers, setMarkers] = useState<ScrollbarMarker[]>([]);
 
   // Link preview state
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
@@ -787,10 +802,63 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
   // Track scroll changes from the active buffer
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const scrollTop = e.currentTarget.scrollTop;
-    const scrollLeft = e.currentTarget.scrollLeft;
+    const element = e.currentTarget;
+    const scrollTop = element.scrollTop;
+    const scrollLeft = element.scrollLeft;
+
+    // Update scroll state for custom scrollbars
+    setScrollState({
+      scrollTop,
+      scrollLeft,
+      scrollHeight: element.scrollHeight,
+      scrollWidth: element.scrollWidth,
+      clientHeight: element.clientHeight,
+      clientWidth: element.clientWidth,
+    });
+
+    // Notify parent
     onScrollChange?.(scrollTop, scrollLeft);
   }, [onScrollChange]);
+
+  // Handle custom scrollbar requests (from drag/click)
+  const handleVerticalScrollRequest = useCallback((position: number) => {
+    const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+    if (!activeBufferRef.current) return;
+    activeBufferRef.current.scrollTop = position;
+  }, [activeBuffer]);
+
+  const handleHorizontalScrollRequest = useCallback((position: number) => {
+    const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+    if (!activeBufferRef.current) return;
+    activeBufferRef.current.scrollLeft = position;
+  }, [activeBuffer]);
+
+  // Update scroll dimensions when content changes or zoom changes
+  useEffect(() => {
+    const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+    if (!activeBufferRef.current) return;
+
+    const element = activeBufferRef.current;
+    setScrollState({
+      scrollTop: element.scrollTop,
+      scrollLeft: element.scrollLeft,
+      scrollHeight: element.scrollHeight,
+      scrollWidth: element.scrollWidth,
+      clientHeight: element.clientHeight,
+      clientWidth: element.clientWidth,
+    });
+
+    // Extract heading markers for overview ruler
+    // Wait a frame to ensure content is fully rendered
+    requestAnimationFrame(() => {
+      if (!activeBufferRef.current) return;
+      const headingMarkers = extractHeadingMarkers(
+        activeBufferRef.current,
+        activeBufferRef.current.scrollHeight
+      );
+      setMarkers(headingMarkers);
+    });
+  }, [content, zoomLevel, activeBuffer]);
 
   // T051i: Mouse wheel zoom with Ctrl+Scroll (smooth, synchronous)
   useEffect(() => {
@@ -1233,6 +1301,28 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           <span className="markdown-viewer__link-preview-url">{hoveredLink}</span>
         </div>
       )}
+
+      {/* Custom scrollbars (overlay) */}
+      <CustomScrollbar
+        orientation="vertical"
+        scrollPosition={scrollState.scrollTop}
+        scrollSize={scrollState.scrollHeight}
+        viewportSize={scrollState.clientHeight}
+        onScrollRequest={handleVerticalScrollRequest}
+        markers={markers}
+        showShadows={true}
+        autoHide={true}
+      />
+
+      <CustomScrollbar
+        orientation="horizontal"
+        scrollPosition={scrollState.scrollLeft}
+        scrollSize={scrollState.scrollWidth}
+        viewportSize={scrollState.clientWidth}
+        onScrollRequest={handleHorizontalScrollRequest}
+        showShadows={false}
+        autoHide={true}
+      />
     </div>
   );
 };
