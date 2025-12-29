@@ -1,32 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pwsh:*)",
-      "Bash(test:*)",
-      "Bash(npm run type-check:*)",
-      "Bash(npm run dev:*)",
-      "Bash(node -e:*)",
-      "Bash(npm install:*)",
-      "Bash(npx electron dist/main/index.js)",
-      "Bash(npx electron:*)",
-      "Bash(node_modules/electron/dist/electron.exe:*)",
-      "Bash(powershell.exe -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
-      "Bash(git -C C:/repo/markread rev-parse --git-dir)",
-      "Bash(npm run build:*)",
-      "Bash(npm uninstall:*)",
-      "Bash(package.json.tmp)",
-      "Bash(git checkout:*)",
-      "Bash(cat:*)",
-      "Bash(tasklist:*)",
-      "Bash(findstr:*)",
-      "Bash(npm run start)",
-      "Bash(timeout /t 5 /nobreak)",
-      "Bash(powershell:*)",
-      "Bash(taskkill:*)",
-      "Bash(npm run:*)",
-      "Bash(git fetch:*)",
-      "Bash(powershell.exe -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly)",
-      "Bash(powershell.exe -ExecutionPolicy Bypass -File .specify/scripts/powershell:*"
+      "Bash(powershell -ExecutionPolicy Bypass -File .specify/scripts/powershell/update-agent-context.ps1:*)"
     ],
     "deny": [],
     "ask": []
