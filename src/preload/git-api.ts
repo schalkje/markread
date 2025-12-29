@@ -6,6 +6,16 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
+import type {
+  ConnectRepositoryRequest,
+  ConnectRepositoryIPCResponse,
+  FetchFileRequest,
+  FetchFileIPCResponse,
+  FetchRepositoryTreeRequest,
+  FetchRepositoryTreeIPCResponse,
+  CheckConnectivityRequest,
+  CheckConnectivityIPCResponse,
+} from '../shared/types/git-contracts';
 
 /**
  * Git API exposed to renderer process via window.git
@@ -19,11 +29,32 @@ export const exposeGitAPI = () => {
   contextBridge.exposeInMainWorld('git', {
     // Repository operations (Phase 3 - US1)
     repo: {
-      // TODO: T042 - Implement git.repo.connect()
-      // TODO: T043 - Implement git.repo.fetchFile()
-      // TODO: T044 - Implement git.repo.fetchTree()
-      // TODO: T069 - Implement git.repo.switchBranch() and listBranches()
-      // TODO: T084 - Implement git.repo.openBranchInNewTab()
+      /**
+       * Connect to a Git repository
+       * T042
+       */
+      connect: (request: ConnectRepositoryRequest): Promise<ConnectRepositoryIPCResponse> => {
+        return ipcRenderer.invoke('git:connect', request);
+      },
+
+      /**
+       * Fetch a file from repository
+       * T043
+       */
+      fetchFile: (request: FetchFileRequest): Promise<FetchFileIPCResponse> => {
+        return ipcRenderer.invoke('git:fetchFile', request);
+      },
+
+      /**
+       * Fetch repository file tree
+       * T044
+       */
+      fetchTree: (request: FetchRepositoryTreeRequest): Promise<FetchRepositoryTreeIPCResponse> => {
+        return ipcRenderer.invoke('git:fetchTree', request);
+      },
+
+      // TODO: T069 - Implement git.repo.switchBranch() and listBranches() (Phase 5 - US3)
+      // TODO: T084 - Implement git.repo.openBranchInNewTab() (Phase 7 - US5)
     },
 
     // Authentication operations (Phase 4 - US2)
@@ -34,7 +65,14 @@ export const exposeGitAPI = () => {
 
     // Connectivity operations (Phase 3 - US1)
     connectivity: {
-      // TODO: T045 - Implement git.connectivity.check()
+      /**
+       * Check connectivity to Git providers
+       * T045
+       */
+      check: (request?: CheckConnectivityRequest): Promise<CheckConnectivityIPCResponse> => {
+        return ipcRenderer.invoke('git:connectivity:check', request || {});
+      },
+
       // TODO: Implement git.connectivity.onChanged() event listener
     },
 

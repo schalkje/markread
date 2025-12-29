@@ -1,0 +1,236 @@
+/**
+ * Repository Connect Dialog Styles
+ * Phase 3 - T049
+ */
+
+/* Backdrop */
+.repo-connect-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Dialog Container */
+.repo-connect-dialog {
+  background-color: var(--bg-primary, #ffffff);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Header */
+.repo-connect-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.repo-connect-dialog__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #333333);
+}
+
+.repo-connect-dialog__close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--text-secondary, #666666);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.repo-connect-dialog__close-btn:hover:not(:disabled) {
+  background-color: var(--hover-bg, #f0f0f0);
+}
+
+.repo-connect-dialog__close-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Form */
+.repo-connect-dialog__form {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Field */
+.repo-connect-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.repo-connect-dialog__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #333333);
+}
+
+.repo-connect-dialog__input {
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid var(--border-color, #cccccc);
+  border-radius: 4px;
+  background-color: var(--bg-secondary, #ffffff);
+  color: var(--text-primary, #333333);
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.repo-connect-dialog__input:focus {
+  outline: none;
+  border-color: var(--primary-color, #0066cc);
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.repo-connect-dialog__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--disabled-bg, #f5f5f5);
+}
+
+.repo-connect-dialog__hint {
+  font-size: 12px;
+  color: var(--text-tertiary, #888888);
+}
+
+/* Radio Group */
+.repo-connect-dialog__radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.repo-connect-dialog__radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-primary, #333333);
+  cursor: pointer;
+}
+
+.repo-connect-dialog__radio-label input[type="radio"] {
+  cursor: pointer;
+}
+
+.repo-connect-dialog__radio-label input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
+/* Error Display */
+.repo-connect-dialog__error {
+  padding: 12px;
+  background-color: #fee;
+  border-left: 4px solid #c00;
+  color: #c00;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+/* Actions */
+.repo-connect-dialog__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+.repo-connect-dialog__btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+  font-family: inherit;
+}
+
+.repo-connect-dialog__btn--secondary {
+  background-color: var(--btn-secondary-bg, #e0e0e0);
+  color: var(--text-primary, #333333);
+}
+
+.repo-connect-dialog__btn--secondary:hover:not(:disabled) {
+  background-color: var(--btn-secondary-hover, #d0d0d0);
+}
+
+.repo-connect-dialog__btn--primary {
+  background-color: var(--primary-color, #0066cc);
+  color: #ffffff;
+}
+
+.repo-connect-dialog__btn--primary:hover:not(:disabled) {
+  background-color: var(--primary-hover, #0052a3);
+}
+
+.repo-connect-dialog__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .repo-connect-dialog {
+    --bg-primary: #2a2a2a;
+    --bg-secondary: #1e1e1e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --text-tertiary: #808080;
+    --border-color: #404040;
+    --hover-bg: #3a3a3a;
+    --disabled-bg: #2a2a2a;
+    --btn-secondary-bg: #3a3a3a;
+    --btn-secondary-hover: #4a4a4a;
+    --primary-color: #4a9eff;
+    --primary-hover: #3a8eef;
+  }
+}

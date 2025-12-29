@@ -3,30 +3,32 @@
  *
  * Zustand store for managing Git repository state in the renderer process.
  * Tracks connected repositories, current branch, connectivity status, etc.
+ *
+ * Phase 3 - T046
  */
 
 import { create } from 'zustand';
-
-// TODO: Import proper types from src/shared/types when they are created (Phase 2)
-// import type { Repository, Branch } from '@/shared/types/repository';
-// import type { ConnectivityStatus } from '@/shared/types/git';
+import type { BranchInfo, ConnectRepositoryResponse } from '../../shared/types/git-contracts';
+import type { TreeNode } from '../../shared/types/repository';
 
 /**
  * Git store state interface
  */
 interface GitStoreState {
   // Repository state
-  connectedRepository: any | null;
+  connectedRepository: ConnectRepositoryResponse | null;
+  repositoryId: string | null;
   currentBranch: string | null;
-  branches: any[];
+  branches: BranchInfo[];
 
   // File tree state
-  fileTree: any | null;
+  fileTree: TreeNode[] | null;
   currentFilePath: string | null;
+  currentFileContent: string | null;
 
   // Connectivity state
   isOnline: boolean;
-  connectivityStatus: any | null;
+  lastConnectivityCheck: number | null;
 
   // Loading states
   isConnecting: boolean;
@@ -38,13 +40,13 @@ interface GitStoreState {
   error: string | null;
 
   // Actions
-  setConnectedRepository: (repository: any | null) => void;
+  setConnectedRepository: (repository: ConnectRepositoryResponse | null) => void;
   setCurrentBranch: (branch: string) => void;
-  setBranches: (branches: any[]) => void;
-  setFileTree: (tree: any) => void;
-  setCurrentFilePath: (path: string | null) => void;
+  setBranches: (branches: BranchInfo[]) => void;
+  setFileTree: (tree: TreeNode[] | null) => void;
+  setCurrentFile: (path: string | null, content: string | null) => void;
   setIsOnline: (isOnline: boolean) => void;
-  setConnectivityStatus: (status: any) => void;
+  setLastConnectivityCheck: (timestamp: number) => void;
   setIsConnecting: (isConnecting: boolean) => void;
   setIsFetchingFile: (isFetching: boolean) => void;
   setIsFetchingTree: (isFetching: boolean) => void;
@@ -55,12 +57,14 @@ interface GitStoreState {
 
 const initialState = {
   connectedRepository: null,
+  repositoryId: null,
   currentBranch: null,
   branches: [],
   fileTree: null,
   currentFilePath: null,
+  currentFileContent: null,
   isOnline: true,
-  connectivityStatus: null,
+  lastConnectivityCheck: null,
   isConnecting: false,
   isFetchingFile: false,
   isFetchingTree: false,
@@ -79,13 +83,19 @@ const initialState = {
 export const useGitStore = create<GitStoreState>((set) => ({
   ...initialState,
 
-  setConnectedRepository: (repository) => set({ connectedRepository: repository }),
+  setConnectedRepository: (repository) => set({
+    connectedRepository: repository,
+    repositoryId: repository?.repositoryId || null,
+    currentBranch: repository?.currentBranch || null,
+    branches: repository?.branches || [],
+  }),
+
   setCurrentBranch: (branch) => set({ currentBranch: branch }),
   setBranches: (branches) => set({ branches }),
   setFileTree: (tree) => set({ fileTree: tree }),
-  setCurrentFilePath: (path) => set({ currentFilePath: path }),
+  setCurrentFile: (path, content) => set({ currentFilePath: path, currentFileContent: content }),
   setIsOnline: (isOnline) => set({ isOnline }),
-  setConnectivityStatus: (status) => set({ connectivityStatus: status }),
+  setLastConnectivityCheck: (timestamp) => set({ lastConnectivityCheck: timestamp }),
   setIsConnecting: (isConnecting) => set({ isConnecting }),
   setIsFetchingFile: (isFetching) => set({ isFetchingFile: isFetching }),
   setIsFetchingTree: (isFetching) => set({ isFetchingTree: isFetching }),

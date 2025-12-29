@@ -18,6 +18,10 @@ import { FolderSwitcher } from './sidebar/FolderSwitcher';
 import { TabBar } from './editor/TabBar';
 import { Toast } from './common/Toast';
 import { TitleBar } from './titlebar/TitleBar';
+import { Statusbar } from './statusbar/Statusbar';
+import { RepoConnectDialog } from './git/RepoConnectDialog';
+import { RepoFileTree } from './git/RepoFileTree';
+import { useGitRepo } from '../hooks/useGitRepo';
 import { useFileAutoReload, useFileWatcher } from '../hooks/useFileWatcher';
 import {
   registerHistoryShortcuts,
@@ -44,11 +48,17 @@ const AppLayout: React.FC = () => {
   const { folders, activeFolderId } = useFoldersStore();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
 
-  // Sidebar view state: 'files' or 'history'
-  const [sidebarView, setSidebarView] = useState<'files' | 'history'>('files');
+  // Sidebar view state: 'files', 'history', or 'repository'
+  const [sidebarView, setSidebarView] = useState<'files' | 'history' | 'repository'>('files');
 
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'warning' | 'error' | 'success' } | null>(null);
+
+  // Repository connect dialog state
+  const [showRepoConnectDialog, setShowRepoConnectDialog] = useState(false);
+
+  // Git repository integration
+  const { connectedRepository, fetchFile, repositoryId } = useGitRepo();
 
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
@@ -109,6 +119,26 @@ const AppLayout: React.FC = () => {
       window.removeEventListener('show-files', handleShowFiles);
     };
   }, []);
+
+  // Listen for menu:connect-repository events
+  useEffect(() => {
+    const handleConnectRepository = () => {
+      setShowRepoConnectDialog(true);
+    };
+
+    window.addEventListener('menu:connect-repository', handleConnectRepository);
+    return () => {
+      window.removeEventListener('menu:connect-repository', handleConnectRepository);
+    };
+  }, []);
+
+  // Auto-switch to repository view when connected
+  useEffect(() => {
+    if (connectedRepository && repositoryId) {
+      setShowSidebar(true);
+      setSidebarView('repository');
+    }
+  }, [connectedRepository, repositoryId]);
 
   // Memoize callback to prevent unnecessary re-renders
   const handleRenderComplete = useCallback(() => {
@@ -606,6 +636,126 @@ const AppLayout: React.FC = () => {
   };
 
   /**
+   * Handle file click from repository file tree
+   * Fetches and displays file content from Git repository
+   */
+  const handleRepoFileClick = useCallback(
+    async (filePath: string) => {
+      if (!repositoryId) {
+        console.error('No repository connected');
+        return;
+      }
+
+      try {
+        // Fetch file from repository
+        const fileData = await fetchFile({
+          repositoryId,
+          filePath,
+        });
+
+        // Mark as manually loaded
+        contentLoadedManually.current = true;
+
+        // Clear loading and error states
+        setIsLoading(false);
+        setError(null);
+
+        // Add to navigation history
+        const { activeTabId, tabs, addHistoryEntry, updateTabZoomLevel } = useTabsStore.getState();
+
+        if (activeTabId) {
+          const currentTab = tabs.get(activeTabId);
+
+          if (currentTab && currentTab.filePath && currentTab.filePath !== filePath) {
+            // Save current file's history entry
+            const viewer = document.querySelector('.markdown-viewer') as HTMLElement;
+            const currentScrollTop = viewer?.scrollTop || currentTab.scrollPosition || 0;
+            const currentScrollLeft = viewer?.scrollLeft || currentTab.scrollLeft || 0;
+            addHistoryEntry(activeTabId, {
+              filePath: currentTab.filePath,
+              scrollPosition: currentScrollTop,
+              scrollLeft: currentScrollLeft,
+              zoomLevel: currentTab.zoomLevel || 100,
+              timestamp: Date.now(),
+            });
+
+            // Add new file to history
+            addHistoryEntry(activeTabId, {
+              filePath: filePath,
+              scrollPosition: 0,
+              scrollLeft: 0,
+              zoomLevel: 100,
+              timestamp: Date.now(),
+            });
+
+            // Reset zoom for new file
+            updateTabZoomLevel(activeTabId, 100);
+          }
+        }
+
+        // Update file and content
+        setCurrentFile(filePath);
+        contentCacheRef.current.set(filePath, fileData.content);
+        setCurrentContent(fileData.content);
+
+        // Update active tab
+        if (activeTabId) {
+          const { tabs: freshTabs } = useTabsStore.getState();
+          const freshTab = freshTabs.get(activeTabId);
+          if (freshTab) {
+            const fileName = filePath.split('/').pop() || 'Untitled';
+            const updatedTab = {
+              ...freshTab,
+              filePath: filePath,
+              title: fileName,
+              modificationTimestamp: Date.now(),
+            };
+            freshTabs.set(activeTabId, updatedTab);
+            useTabsStore.setState({ tabs: new Map(freshTabs) });
+          }
+        }
+
+        // Create tab if none exists
+        if (!activeTabId) {
+          const { addTab } = useTabsStore.getState();
+          const fileName = filePath.split('/').pop() || 'Untitled';
+          const newTab = {
+            id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+            filePath,
+            title: fileName,
+            scrollPosition: 0,
+            zoomLevel: 100,
+            searchState: null,
+            modificationTimestamp: Date.now(),
+            isDirty: false,
+            renderCache: null,
+            navigationHistory: [{
+              filePath,
+              scrollPosition: 0,
+              scrollLeft: 0,
+              zoomLevel: 100,
+              timestamp: Date.now(),
+            }],
+            currentHistoryIndex: 0,
+            forwardHistory: [],
+            createdAt: Date.now(),
+            folderId: null,
+            isDirectFile: false,
+          };
+          addTab(newTab);
+        }
+      } catch (err) {
+        console.error('Error fetching repository file:', err);
+        setToast({
+          message: `Failed to load file: ${err instanceof Error ? err.message : 'Unknown error'}`,
+          type: 'error',
+        });
+      }
+    },
+    [repositoryId, fetchFile]
+  );
+
+  /**
    * Handle link clicks from markdown content (relative file links)
    * Updates the current tab to show the linked file
    */
@@ -906,7 +1056,7 @@ const AppLayout: React.FC = () => {
             {/* T111-T113: Folder Switcher */}
             {folders.length > 0 && <FolderSwitcher />}
 
-            {/* Sidebar view toggle: Files / History */}
+            {/* Sidebar view toggle: Files / History / Repository */}
             {tabs.size > 0 && (
               <div className="sidebar-view-toggle">
                 <button
@@ -925,10 +1075,34 @@ const AppLayout: React.FC = () => {
                 >
                   🕐 History
                 </button>
+                {connectedRepository && (
+                  <button
+                    className={`sidebar-view-toggle__button ${sidebarView === 'repository' ? 'sidebar-view-toggle__button--active' : ''}`}
+                    onClick={() => setSidebarView('repository')}
+                    title="Show Repository Files"
+                    type="button"
+                  >
+                    🌐 Repo
+                  </button>
+                )}
               </div>
             )}
           </div>
           <div className="sidebar-content">
+            {/* Show Repository File Tree when repository view is active */}
+            {sidebarView === 'repository' && connectedRepository && (
+              <div className="sidebar-repo-view">
+                <div className="sidebar-repo-header">
+                  <h3 className="sidebar-repo-title">{connectedRepository.displayName}</h3>
+                  <span className="sidebar-repo-branch">Branch: {connectedRepository.currentBranch}</span>
+                </div>
+                <RepoFileTree
+                  onFileClick={handleRepoFileClick}
+                  markdownOnly={true}
+                />
+              </div>
+            )}
+
             {/* Show History Panel when history view is active */}
             {sidebarView === 'history' && tabs.size > 0 && (
               <HistoryPanel
@@ -1337,6 +1511,9 @@ const AppLayout: React.FC = () => {
         </div>
       </div>
 
+      {/* Statusbar */}
+      <Statusbar />
+
       {/* Toast notification */}
       {toast && (
         <Toast
@@ -1345,6 +1522,19 @@ const AppLayout: React.FC = () => {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* Repository Connect Dialog */}
+      <RepoConnectDialog
+        isOpen={showRepoConnectDialog}
+        onClose={() => setShowRepoConnectDialog(false)}
+        onConnected={() => {
+          setShowRepoConnectDialog(false);
+          setToast({
+            message: 'Successfully connected to repository',
+            type: 'success',
+          });
+        }}
+      />
     </div>
   );
 };

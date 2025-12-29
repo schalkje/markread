@@ -1,0 +1,193 @@
+/**
+ * Repository File Tree Styles
+ * Phase 3 - T050
+ */
+
+/* Container */
+.repo-file-tree {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--bg-secondary, #f8f8f8);
+  font-size: 14px;
+}
+
+/* Node Container */
+.repo-file-tree__node-container {
+  user-select: none;
+}
+
+/* Node */
+.repo-file-tree__node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  color: var(--text-primary, #333333);
+  border-radius: 4px;
+  margin: 2px 4px;
+  transition: background-color 0.15s;
+  position: relative;
+}
+
+.repo-file-tree__node:hover {
+  background-color: var(--hover-bg, #e8e8e8);
+}
+
+.repo-file-tree__node:focus {
+  outline: 2px solid var(--primary-color, #0066cc);
+  outline-offset: -2px;
+}
+
+.repo-file-tree__node--selected {
+  background-color: var(--selected-bg, #d0e0f0);
+  font-weight: 500;
+}
+
+.repo-file-tree__node--selected:hover {
+  background-color: var(--selected-hover-bg, #c0d0e0);
+}
+
+.repo-file-tree__node--directory {
+  font-weight: 500;
+}
+
+/* Icon */
+.repo-file-tree__icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Name */
+.repo-file-tree__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Expand/Collapse Indicator */
+.repo-file-tree__expand-indicator {
+  font-size: 10px;
+  color: var(--text-tertiary, #888888);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Children */
+.repo-file-tree__children {
+  /* Children are rendered with increased padding-left via inline styles */
+}
+
+/* Empty State */
+.repo-file-tree__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-secondary, #666666);
+  height: 100%;
+}
+
+.repo-file-tree__empty p {
+  margin: 0 0 8px 0;
+}
+
+.repo-file-tree__hint {
+  font-size: 12px;
+  color: var(--text-tertiary, #888888);
+}
+
+/* Loading State */
+.repo-file-tree__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-secondary, #666666);
+  height: 100%;
+  gap: 16px;
+}
+
+.repo-file-tree__loading p {
+  margin: 0;
+}
+
+/* Spinner */
+.repo-file-tree__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color, #e0e0e0);
+  border-top-color: var(--primary-color, #0066cc);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error State */
+.repo-file-tree__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--error-color, #c00);
+  height: 100%;
+  gap: 12px;
+}
+
+.repo-file-tree__error p {
+  margin: 0;
+}
+
+.repo-file-tree__error-message {
+  font-size: 12px;
+  color: var(--text-secondary, #666666);
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+.repo-file-tree__retry-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: var(--primary-color, #0066cc);
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-family: inherit;
+}
+
+.repo-file-tree__retry-btn:hover {
+  background-color: var(--primary-hover, #0052a3);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .repo-file-tree {
+    --bg-secondary: #1e1e1e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --text-tertiary: #808080;
+    --hover-bg: #2a2a2a;
+    --selected-bg: #2a4a6a;
+    --selected-hover-bg: #3a5a7a;
+    --border-color: #404040;
+    --primary-color: #4a9eff;
+    --primary-hover: #3a8eef;
+    --error-color: #ff6b6b;
+  }
+}

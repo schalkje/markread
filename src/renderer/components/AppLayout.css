@@ -325,6 +325,36 @@
   justify-content: center;
 }
 
+/* Repository Sidebar View */
+.sidebar-repo-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sidebar-repo-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color, #d0d7de);
+  background: var(--repo-header-bg, #f6f8fa);
+}
+
+.sidebar-repo-title {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #24292f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-repo-branch {
+  font-size: 11px;
+  color: var(--text-secondary, #57606a);
+  font-weight: 500;
+  display: block;
+}
+
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .sidebar-open-folder-button {
