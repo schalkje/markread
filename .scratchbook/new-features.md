@@ -15,7 +15,7 @@ List of default repo's
 
 # Index
 
-Have an index file on a cetral location with the users favorites
+Have an index file on a central location with the users favorites
 
 * Location
 * Branch (for git folders)
