@@ -12,18 +12,24 @@ import React, { useState } from 'react';
 import { useActiveTabNavigation, useTabsStore } from '../../stores/tabs';
 import './TitleBar.css';
 
+interface MenuItem {
+  label: string;
+  action?: () => void;
+  separator?: boolean;
+  disabled?: boolean;
+  submenu?: MenuItem[];
+  shortcut?: string;
+}
+
 interface MenuDropdownProps {
   isOpen: boolean;
   onClose: () => void;
-  items: Array<{
-    label: string;
-    action: () => void;
-    separator?: boolean;
-    disabled?: boolean;
-  }>;
+  items: MenuItem[];
 }
 
 const MenuDropdown: React.FC<MenuDropdownProps> = ({ isOpen, onClose, items }) => {
+  const [openSubmenu, setOpenSubmenu] = useState<number | null>(null);
+
   if (!isOpen) return null;
 
   return (
@@ -33,12 +39,54 @@ const MenuDropdown: React.FC<MenuDropdownProps> = ({ isOpen, onClose, items }) =
         {items.map((item, index) =>
           item.separator ? (
             <div key={index} className="title-bar__dropdown-separator" />
+          ) : item.submenu ? (
+            <div
+              key={index}
+              className="title-bar__dropdown-item-container"
+              onMouseEnter={() => setOpenSubmenu(index)}
+              onMouseLeave={() => setOpenSubmenu(null)}
+            >
+              <button
+                className={`title-bar__dropdown-item title-bar__dropdown-item--submenu${item.disabled ? ' title-bar__dropdown-item--disabled' : ''}`}
+                disabled={item.disabled}
+                type="button"
+              >
+                <span className="title-bar__dropdown-item-label">{item.label}</span>
+                {item.shortcut && <span className="title-bar__dropdown-item-shortcut">{item.shortcut}</span>}
+                <span className="title-bar__submenu-arrow">▶</span>
+              </button>
+              {openSubmenu === index && (
+                <div className="title-bar__submenu">
+                  {item.submenu.map((subitem, subindex) =>
+                    subitem.separator ? (
+                      <div key={subindex} className="title-bar__dropdown-separator" />
+                    ) : (
+                      <button
+                        key={subindex}
+                        className={`title-bar__dropdown-item${subitem.disabled ? ' title-bar__dropdown-item--disabled' : ''}`}
+                        onClick={() => {
+                          if (!subitem.disabled && subitem.action) {
+                            subitem.action();
+                            onClose();
+                          }
+                        }}
+                        disabled={subitem.disabled}
+                        type="button"
+                      >
+                        <span className="title-bar__dropdown-item-label">{subitem.label}</span>
+                        {subitem.shortcut && <span className="title-bar__dropdown-item-shortcut">{subitem.shortcut}</span>}
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
           ) : (
             <button
               key={index}
               className={`title-bar__dropdown-item${item.disabled ? ' title-bar__dropdown-item--disabled' : ''}`}
               onClick={() => {
-                if (!item.disabled) {
+                if (!item.disabled && item.action) {
                   item.action();
                   onClose();
                 }
@@ -46,7 +94,8 @@ const MenuDropdown: React.FC<MenuDropdownProps> = ({ isOpen, onClose, items }) =
               disabled={item.disabled}
               type="button"
             >
-              {item.label}
+              <span className="title-bar__dropdown-item-label">{item.label}</span>
+              {item.shortcut && <span className="title-bar__dropdown-item-shortcut">{item.shortcut}</span>}
             </button>
           )
         )}
@@ -173,6 +222,12 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
         window.dispatchEvent(new CustomEvent('show-history'));
       },
     },
+    {
+      label: 'Show Files',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('show-files'));
+      },
+    },
     { separator: true, label: '', action: () => {} },
     {
       label: 'Toggle Sidebar',
@@ -185,67 +240,82 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       },
     },
     { separator: true, label: '', action: () => {} },
-    // Document Zoom (Content Only)
+    // Document Zoom submenu
     {
-      label: 'Document Zoom In (Ctrl+=)',
-      action: () => {
-        const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
-        if (activeTabId) {
-          const tab = tabs.get(activeTabId);
-          if (tab) {
-            const newZoom = Math.min(2000, (tab.zoomLevel || 100) + 10);
-            updateTabZoomLevel(activeTabId, newZoom);
-          }
-        }
-      },
+      label: 'Document Zoom',
+      submenu: [
+        {
+          label: 'Zoom In',
+          shortcut: 'Ctrl+=',
+          action: () => {
+            const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+            if (activeTabId) {
+              const tab = tabs.get(activeTabId);
+              if (tab) {
+                const newZoom = Math.min(2000, (tab.zoomLevel || 100) + 10);
+                updateTabZoomLevel(activeTabId, newZoom);
+              }
+            }
+          },
+        },
+        {
+          label: 'Zoom Out',
+          shortcut: 'Ctrl+-',
+          action: () => {
+            const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+            if (activeTabId) {
+              const tab = tabs.get(activeTabId);
+              if (tab) {
+                const newZoom = Math.max(10, (tab.zoomLevel || 100) - 10);
+                updateTabZoomLevel(activeTabId, newZoom);
+              }
+            }
+          },
+        },
+        {
+          label: 'Reset Zoom',
+          shortcut: 'Ctrl+0',
+          action: () => {
+            const { activeTabId, updateTabZoomLevel } = useTabsStore.getState();
+            if (activeTabId) {
+              updateTabZoomLevel(activeTabId, 100);
+            }
+          },
+        },
+      ],
     },
+    // Application Zoom submenu
     {
-      label: 'Document Zoom Out (Ctrl+-)',
-      action: () => {
-        const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
-        if (activeTabId) {
-          const tab = tabs.get(activeTabId);
-          if (tab) {
-            const newZoom = Math.max(10, (tab.zoomLevel || 100) - 10);
-            updateTabZoomLevel(activeTabId, newZoom);
-          }
-        }
-      },
-    },
-    {
-      label: 'Reset Document Zoom (Ctrl+0)',
-      action: () => {
-        const { activeTabId, updateTabZoomLevel } = useTabsStore.getState();
-        if (activeTabId) {
-          updateTabZoomLevel(activeTabId, 100);
-        }
-      },
-    },
-    { separator: true, label: '', action: () => {} },
-    // Application Zoom (Entire UI)
-    {
-      label: 'Application Zoom In (Ctrl+Alt+=)',
-      action: async () => {
-        const { useUIStore } = await import('../../stores/ui');
-        const { incrementGlobalZoom } = useUIStore.getState();
-        incrementGlobalZoom(10);
-      },
-    },
-    {
-      label: 'Application Zoom Out (Ctrl+Alt+-)',
-      action: async () => {
-        const { useUIStore } = await import('../../stores/ui');
-        const { incrementGlobalZoom } = useUIStore.getState();
-        incrementGlobalZoom(-10);
-      },
-    },
-    {
-      label: 'Reset Application Zoom (Ctrl+Alt+0)',
-      action: async () => {
-        const { useUIStore } = await import('../../stores/ui');
-        const { resetGlobalZoom } = useUIStore.getState();
-        resetGlobalZoom();
-      },
+      label: 'Application Zoom',
+      submenu: [
+        {
+          label: 'Zoom In',
+          shortcut: 'Ctrl+Alt+=',
+          action: async () => {
+            const { useUIStore } = await import('../../stores/ui');
+            const { incrementGlobalZoom } = useUIStore.getState();
+            incrementGlobalZoom(10);
+          },
+        },
+        {
+          label: 'Zoom Out',
+          shortcut: 'Ctrl+Alt+-',
+          action: async () => {
+            const { useUIStore } = await import('../../stores/ui');
+            const { incrementGlobalZoom } = useUIStore.getState();
+            incrementGlobalZoom(-10);
+          },
+        },
+        {
+          label: 'Reset Zoom',
+          shortcut: 'Ctrl+Alt+0',
+          action: async () => {
+            const { useUIStore } = await import('../../stores/ui');
+            const { resetGlobalZoom } = useUIStore.getState();
+            resetGlobalZoom();
+          },
+        },
+      ],
     },
   ];
 

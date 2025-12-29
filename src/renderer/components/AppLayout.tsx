@@ -97,6 +97,19 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
+  // Listen for show-files events from TitleBar
+  useEffect(() => {
+    const handleShowFiles = () => {
+      setShowSidebar(true);
+      setSidebarView('files');
+    };
+
+    window.addEventListener('show-files', handleShowFiles);
+    return () => {
+      window.removeEventListener('show-files', handleShowFiles);
+    };
+  }, []);
+
   // Memoize callback to prevent unnecessary re-renders
   const handleRenderComplete = useCallback(() => {
     console.log('Markdown rendered successfully');

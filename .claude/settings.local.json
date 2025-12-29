@@ -22,7 +22,8 @@
       "Bash(npm run start)",
       "Bash(timeout /t 5 /nobreak)",
       "Bash(powershell:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(npm run:*)"
     ],
     "deny": [],
     "ask": []

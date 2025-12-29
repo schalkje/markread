@@ -107,6 +107,7 @@ class ThemeManager {
     root.style.setProperty('--menu-border', colorMappings.sidebarBorder);
     root.style.setProperty('--menu-item-hover', isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)');
     root.style.setProperty('--menu-separator', colorMappings.sidebarBorder);
+    root.style.setProperty('--menu-shortcut-color', isDark ? '#cccccc' : '#575757');
 
     // Tab bar
     root.style.setProperty('--tab-bar-bg', colorMappings.tabBackground);
