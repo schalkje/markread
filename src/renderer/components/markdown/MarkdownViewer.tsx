@@ -290,6 +290,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
       e.preventDefault();
 
+      // Detect modifier keys for opening in new tab/window
+      const ctrlOrCmd = e.ctrlKey || e.metaKey;
+      const shiftKey = e.shiftKey;
+
       // Handle internal links (same-document anchors)
       if (href.startsWith('#')) {
         const targetElement = container.querySelector(href);
@@ -387,8 +391,22 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
                 }));
               }
             } else {
-              console.log(`Opening relative link: ${href} -> ${result.absolutePath}`);
-              onFileLink(result.absolutePath);
+              console.log(`Opening relative link: ${href} -> ${result.absolutePath}`, { ctrlOrCmd, shiftKey });
+
+              // Ctrl/Cmd+Click: Open in new tab
+              // Shift+Click: Open in new window
+              if (shiftKey) {
+                window.dispatchEvent(new CustomEvent('open-file-in-new-window', {
+                  detail: { filePath: result.absolutePath }
+                }));
+              } else if (ctrlOrCmd) {
+                window.dispatchEvent(new CustomEvent('open-file-in-new-tab', {
+                  detail: { filePath: result.absolutePath }
+                }));
+              } else {
+                // Normal click: Open in current tab
+                onFileLink(result.absolutePath);
+              }
             }
           } else {
             console.warn(`Failed to resolve link: ${href}`, result?.error);

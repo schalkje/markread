@@ -134,6 +134,17 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose }) => {
     setContextMenu(null);
   };
 
+  const handleContextMenuRevealInSidebar = (tabId: string) => {
+    const tab = tabs.get(tabId);
+    if (tab && tab.filePath) {
+      // Dispatch event to reveal file in sidebar
+      window.dispatchEvent(new CustomEvent('reveal-in-sidebar', {
+        detail: { filePath: tab.filePath, folderId: tab.folderId }
+      }));
+    }
+    setContextMenu(null);
+  };
+
   // T063m: Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, tabId: string) => {
     setDraggedTabId(tabId);
@@ -318,6 +329,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose }) => {
           onClose={handleContextMenuClose}
           onDuplicate={handleContextMenuDuplicate}
           onMoveToNewWindow={handleContextMenuMoveToNewWindow}
+          onRevealInSidebar={handleContextMenuRevealInSidebar}
           onHide={() => setContextMenu(null)}
         />
       )}

@@ -43,6 +43,7 @@ const AppLayout: React.FC = () => {
   const activeTab = activeTabId ? tabs.get(activeTabId) : null;
   const { folders, activeFolderId } = useFoldersStore();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
+  const [revealFilePath, setRevealFilePath] = useState<string | null>(null); // File to reveal in sidebar
 
   // Sidebar view state: 'files' or 'history'
   const [sidebarView, setSidebarView] = useState<'files' | 'history'>('files');
@@ -303,6 +304,36 @@ const AppLayout: React.FC = () => {
     }
   );
 
+  // Auto-switch folder when active tab changes (only for user-initiated tab switches)
+  useEffect(() => {
+    if (!activeTab || !activeTabId) return;
+
+    // Only auto-switch if the tab has a different folder
+    if (activeTab.folderId && activeTab.folderId !== activeFolderId) {
+      const { setActiveFolder } = useFoldersStore.getState();
+      console.log(`[AppLayout] Auto-switching folder to match active tab: ${activeTab.folderId}`);
+      setActiveFolder(activeTab.folderId);
+    }
+  }, [activeTabId]); // Only depend on activeTabId, not activeFolderId to avoid loops
+
+  // Create tab when folder is selected but has no tabs
+  useEffect(() => {
+    if (!activeFolderId) return;
+
+    const tabsForFolder = Array.from(tabs.values()).filter(tab => tab.folderId === activeFolderId);
+
+    // If the active folder has no tabs, create one
+    if (tabsForFolder.length === 0) {
+      console.log(`[AppLayout] Active folder ${activeFolderId} has no tabs, creating one`);
+
+      // Call handleFolderOpened to create a tab for this folder
+      const activeFolder = folders.find(f => f.id === activeFolderId);
+      if (activeFolder) {
+        handleFolderOpened(activeFolder.path);
+      }
+    }
+  }, [activeFolderId, tabs, folders]);
+
   // T066: Register navigation history keyboard shortcuts (Alt+Left, Alt+Right)
   useEffect(() => {
     const handleNavigateBack = async () => {
@@ -497,10 +528,62 @@ const AppLayout: React.FC = () => {
     // Listen for directory listing events
     window.addEventListener('show-directory-listing', handleShowDirectoryListing);
 
+    // Handle Ctrl+Click to open file in new tab
+    const handleOpenFileInNewTab = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ filePath: string }>;
+      const { filePath } = customEvent.detail;
+      const { openFileInNewTab } = useTabsStore.getState();
+      const { activeFolderId } = useFoldersStore.getState();
+
+      console.log('[AppLayout] Opening file in new tab:', filePath);
+      await openFileInNewTab(filePath, activeFolderId || undefined);
+    };
+
+    // Handle Shift+Click to open file in new window
+    const handleOpenFileInNewWindow = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ filePath: string }>;
+      const { filePath } = customEvent.detail;
+      const { openFileInNewWindow } = useTabsStore.getState();
+      const { activeFolderId } = useFoldersStore.getState();
+
+      console.log('[AppLayout] Opening file in new window:', filePath);
+      await openFileInNewWindow(filePath, activeFolderId || undefined);
+    };
+
+    // Handle reveal in sidebar
+    const handleRevealInSidebar = (event: Event) => {
+      const customEvent = event as CustomEvent<{ filePath: string; folderId?: string }>;
+      const { filePath, folderId } = customEvent.detail;
+
+      console.log('[AppLayout] Revealing file in sidebar:', filePath, folderId);
+
+      // Switch to the folder if needed
+      if (folderId && folderId !== activeFolderId) {
+        const { setActiveFolder } = useFoldersStore.getState();
+        setActiveFolder(folderId);
+      }
+
+      // Show files view if not already
+      setSidebarView('files');
+
+      // Trigger reveal
+      setRevealFilePath(filePath);
+
+      // Clear reveal path after a short delay to allow it to be triggered again
+      setTimeout(() => setRevealFilePath(null), 500);
+    };
+
+    window.addEventListener('open-file-in-new-tab', handleOpenFileInNewTab);
+    window.addEventListener('open-file-in-new-window', handleOpenFileInNewWindow);
+    window.addEventListener('reveal-in-sidebar', handleRevealInSidebar);
+
     return () => {
       unregisterHistoryShortcuts();
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
+      window.removeEventListener('open-file-in-new-tab', handleOpenFileInNewTab);
+      window.removeEventListener('open-file-in-new-window', handleOpenFileInNewWindow);
+      window.removeEventListener('reveal-in-sidebar', handleRevealInSidebar);
     };
   }, []);
 
@@ -755,6 +838,8 @@ const AppLayout: React.FC = () => {
 
         const firstFilePath = findFirstMarkdownFile(result.tree);
 
+        const { tabs, addTab } = useTabsStore.getState();
+
         if (firstFilePath) {
           // Read and open the first file
           const fileResult = await window.electronAPI?.file?.read({ filePath: firstFilePath });
@@ -765,7 +850,6 @@ const AppLayout: React.FC = () => {
             setError(null);
 
             // Create a tab for this file with the correct folder ID
-            const { tabs, addTab } = useTabsStore.getState();
             const existingTab = Array.from(tabs.values()).find(t => t.filePath === firstFilePath);
 
             if (!existingTab) {
@@ -799,7 +883,48 @@ const AppLayout: React.FC = () => {
             console.log('Auto-opened first file:', firstFilePath, 'with folderId:', folderId);
           }
         } else {
-          console.log('No markdown files found in folder');
+          // No markdown files found - create a tab showing folder overview
+          console.log('No markdown files found in folder, creating overview tab');
+
+          const folderName = folderPath.split(/[/\\]/).pop() || 'Folder';
+          const overviewPath = `${folderPath}/[Folder Overview]`;
+
+          // Check if tab already exists for this folder
+          const existingTab = Array.from(tabs.values()).find(t =>
+            t.folderId === folderId && t.filePath.includes('[Folder Overview]')
+          );
+
+          if (!existingTab) {
+            const newTab = {
+              id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+              filePath: overviewPath,
+              title: `${folderName}/`,
+              scrollPosition: 0,
+              zoomLevel: 100,
+              searchState: null,
+              modificationTimestamp: Date.now(),
+              isDirty: false,
+              renderCache: null,
+              navigationHistory: [{
+                filePath: overviewPath,
+                scrollPosition: 0,
+                scrollLeft: 0,
+                zoomLevel: 100,
+                timestamp: Date.now(),
+              }],
+              currentHistoryIndex: 0,
+              forwardHistory: [],
+              createdAt: Date.now(),
+              folderId: folderId,
+              isDirectFile: false,
+            };
+            addTab(newTab);
+          }
+
+          // Set empty content with a message
+          setCurrentFile(overviewPath);
+          setCurrentContent(`# ${folderName}\n\n*This folder contains no markdown files.*\n\nCreate a markdown file to get started.`);
+          setError(null);
         }
       }
     } catch (err) {
@@ -1124,6 +1249,7 @@ const AppLayout: React.FC = () => {
                   <FileTree
                     key={fileTreeKey}
                     folderId={activeFolderId}
+                    revealFilePath={revealFilePath}
                     onFileSelect={async (filePath) => {
                       try {
                         // Load file content first
