@@ -124,14 +124,16 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
   // T159d: File menu items
   const fileMenuItems = [
     {
-      label: 'Open File...',
+      label: 'Open File',
+      shortcut: 'Ctrl+O',
       action: () => {
         window.electronAPI?.on('menu:open-file', () => {});
         window.dispatchEvent(new CustomEvent('menu:open-file'));
       },
     },
     {
-      label: 'Open Folder...',
+      label: 'Open Folder',
+      shortcut: 'Ctrl+Shift+O',
       action: () => {
         window.electronAPI?.on('menu:open-folder', () => {});
         window.dispatchEvent(new CustomEvent('menu:open-folder'));
@@ -140,6 +142,7 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
     { separator: true, label: '', action: () => {} },
     {
       label: 'Close Current',
+      shortcut: 'Ctrl+W',
       action: () => {
         window.dispatchEvent(new CustomEvent('menu:close-current'));
       },
@@ -152,6 +155,7 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
     },
     {
       label: 'Close All',
+      shortcut: 'Ctrl+Shift+W',
       action: () => {
         window.dispatchEvent(new CustomEvent('menu:close-all'));
       },

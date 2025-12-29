@@ -27,7 +27,9 @@ import {
   registerContentZoomShortcuts,
   unregisterContentZoomShortcuts,
   registerGlobalZoomShortcuts,
-  unregisterGlobalZoomShortcuts
+  unregisterGlobalZoomShortcuts,
+  registerFileShortcuts,
+  unregisterFileShortcuts
 } from '../services/keyboard-handler';
 import type { Folder } from '@shared/types/entities.d.ts';
 import './AppLayout.css';
@@ -254,12 +256,12 @@ const AppLayout: React.FC = () => {
       setGlobalZoom(zoom);
     };
 
-    // Register event listeners
-    window.electronAPI?.on('menu:open-file', handleMenuOpenFile);
-    window.electronAPI?.on('menu:open-folder', handleMenuOpenFolder);
-    window.electronAPI?.on('menu:close-current', handleMenuCloseCurrent);
-    window.electronAPI?.on('menu:close-folder', handleMenuCloseFolder);
-    window.electronAPI?.on('menu:close-all', handleMenuCloseAll);
+    // Register event listeners for menu commands
+    window.addEventListener('menu:open-file', handleMenuOpenFile);
+    window.addEventListener('menu:open-folder', handleMenuOpenFolder);
+    window.addEventListener('menu:close-current', handleMenuCloseCurrent);
+    window.addEventListener('menu:close-folder', handleMenuCloseFolder);
+    window.addEventListener('menu:close-all', handleMenuCloseAll);
 
     // T051k-view: Register zoom menu event listeners
     window.electronAPI?.on('menu:content-zoom-in', handleContentZoomIn);
@@ -271,9 +273,13 @@ const AppLayout: React.FC = () => {
     window.electronAPI?.on('menu:global-zoom-reset', handleGlobalZoomReset);
     window.electronAPI?.on('menu:global-zoom-preset', handleGlobalZoomPreset);
 
-    // Cleanup (note: electron IPC doesn't have removeListener in this simple implementation)
+    // Cleanup
     return () => {
-      // No cleanup needed with current implementation
+      window.removeEventListener('menu:open-file', handleMenuOpenFile);
+      window.removeEventListener('menu:open-folder', handleMenuOpenFolder);
+      window.removeEventListener('menu:close-current', handleMenuCloseCurrent);
+      window.removeEventListener('menu:close-folder', handleMenuCloseFolder);
+      window.removeEventListener('menu:close-all', handleMenuCloseAll);
     };
   }, [activeFolderId]);
 
@@ -733,6 +739,19 @@ const AppLayout: React.FC = () => {
       onMoveTabRight: handleMoveTabRight,
     });
 
+    // Register file menu shortcuts (Ctrl+O, Ctrl+Shift+O, Ctrl+Shift+W)
+    registerFileShortcuts({
+      onOpenFile: () => {
+        window.dispatchEvent(new CustomEvent('menu:open-file'));
+      },
+      onOpenFolder: () => {
+        window.dispatchEvent(new CustomEvent('menu:open-folder'));
+      },
+      onCloseAll: () => {
+        window.dispatchEvent(new CustomEvent('menu:close-all'));
+      },
+    });
+
     // Listen for navigate-to-history events (for Home navigation)
     window.addEventListener('navigate-to-history', handleNavigateToHistory);
     // Listen for directory listing events
@@ -790,6 +809,7 @@ const AppLayout: React.FC = () => {
     return () => {
       unregisterHistoryShortcuts();
       unregisterTabShortcuts();
+      unregisterFileShortcuts();
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
       window.removeEventListener('open-file-in-new-tab', handleOpenFileInNewTab);

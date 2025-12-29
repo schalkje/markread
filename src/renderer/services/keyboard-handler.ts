@@ -574,4 +574,61 @@ export function unregisterSplitShortcuts(): void {
   keyboardHandler.unregister('split.horizontal');
 }
 
+/**
+ * Register file menu keyboard shortcuts
+ * - Ctrl+O: Open File
+ * - Ctrl+Shift+O: Open Folder
+ * - Ctrl+Shift+W: Close All
+ */
+export function registerFileShortcuts(callbacks: {
+  onOpenFile: () => void;
+  onOpenFolder: () => void;
+  onCloseAll: () => void;
+}): void {
+  // Open File: Ctrl+O
+  keyboardHandler.register({
+    id: 'file.open',
+    keys: ['o', 'O'],
+    ctrlKey: true,
+    shiftKey: false,
+    handler: () => {
+      callbacks.onOpenFile();
+    },
+    description: 'Open file',
+  });
+
+  // Open Folder: Ctrl+Shift+O
+  keyboardHandler.register({
+    id: 'file.openFolder',
+    keys: ['o', 'O'],
+    ctrlKey: true,
+    shiftKey: true,
+    handler: () => {
+      callbacks.onOpenFolder();
+    },
+    description: 'Open folder',
+  });
+
+  // Close All: Ctrl+Shift+W
+  keyboardHandler.register({
+    id: 'file.closeAll',
+    keys: ['w', 'W'],
+    ctrlKey: true,
+    shiftKey: true,
+    handler: () => {
+      callbacks.onCloseAll();
+    },
+    description: 'Close all tabs and folders',
+  });
+}
+
+/**
+ * Unregister file shortcuts
+ */
+export function unregisterFileShortcuts(): void {
+  keyboardHandler.unregister('file.open');
+  keyboardHandler.unregister('file.openFolder');
+  keyboardHandler.unregister('file.closeAll');
+}
+
 export default keyboardHandler;
