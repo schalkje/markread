@@ -66,6 +66,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   const viewerRef = useRef<HTMLDivElement>(null);
   const bufferARef = useRef<HTMLDivElement>(null);
   const bufferBRef = useRef<HTMLDivElement>(null);
+  const contentARef = useRef<HTMLDivElement>(null);
+  const contentBRef = useRef<HTMLDivElement>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
 
@@ -429,6 +431,14 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       return;
     }
 
+    // Get content wrapper element
+    const activeContentRef = activeBuffer === 'A' ? contentARef : contentBRef;
+    const contentElement = activeContentRef.current;
+    if (!contentElement) {
+      console.log('[MarkdownViewer] Content element not ready for zoom');
+      return;
+    }
+
     console.log('[MarkdownViewer] Applying zoom transform:', zoomLevel);
     // Capture scroll position BEFORE applying transform
     const currentScrollLeft = bufferElement.scrollLeft;
@@ -436,10 +446,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const currentScrollHeight = bufferElement.scrollHeight;
     const currentScrollWidth = bufferElement.scrollWidth;
 
-    // Apply zoom via CSS transform
+    // Apply zoom via CSS transform to content wrapper (not buffer)
     const zoomFactor = zoomLevel / 100;
-    bufferElement.style.transform = `scale(${zoomFactor})`;
-    bufferElement.style.transformOrigin = 'top left';
+    contentElement.style.transform = `scale(${zoomFactor})`;
+    contentElement.style.transformOrigin = 'top left';
 
     // Update ref to match
     currentZoomRef.current = zoomLevel;
@@ -605,7 +615,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     // Determine target buffer: use preparing buffer if set, otherwise active buffer
     const targetBuffer: 'A' | 'B' = preparingBuffer || activeBuffer;
     const targetBufferRef = targetBuffer === 'A' ? bufferARef : bufferBRef;
+    const targetContentRef = targetBuffer === 'A' ? contentARef : contentBRef;
     const targetElement = targetBufferRef.current;
+    const targetContentElement = targetContentRef.current;
 
     console.log('[MarkdownViewer] Render effect:', {
       targetBuffer,
@@ -616,9 +628,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       contentLength: content.length
     });
 
-    // Wait for target buffer ref to be ready
-    if (!targetElement) {
-      console.log('[MarkdownViewer] Target buffer ref not ready:', targetBuffer);
+    // Wait for target buffer and content refs to be ready
+    if (!targetElement || !targetContentElement) {
+      console.log('[MarkdownViewer] Target buffer or content ref not ready:', targetBuffer);
       // Don't retry - just wait for next effect run when dependencies truly change
       return;
     }
@@ -655,11 +667,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         }
 
         // Step 2: Insert HTML into DOM (hidden buffer if transitioning)
-        targetElement.innerHTML = html;
-        console.log('[MarkdownViewer] HTML inserted into buffer', targetBuffer);
+        targetContentElement.innerHTML = html;
+        console.log('[MarkdownViewer] HTML inserted into content wrapper', targetBuffer);
 
         // Step 3: Render Mermaid diagrams
-        await renderMermaidDiagrams(targetElement);
+        await renderMermaidDiagrams(targetContentElement);
         console.log('[MarkdownViewer] Mermaid diagrams rendered');
 
         // Check if cancelled after async operation
@@ -670,12 +682,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
         // Step 3.5: Apply syntax highlighting and copy buttons
         // This must happen AFTER HTML is in the DOM for highlightjs-copy to work
-        applySyntaxHighlighting(targetElement);
+        applySyntaxHighlighting(targetContentElement);
         console.log('[MarkdownViewer] Syntax highlighting applied');
 
         // Step 4: Process images with file:// protocol if filePath provided
         if (filePath) {
-          await resolveImagePaths(targetElement, filePath);
+          await resolveImagePaths(targetContentElement, filePath);
           console.log('[MarkdownViewer] Image paths resolved');
         }
 
@@ -686,7 +698,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         }
 
         // Step 5: Add click handlers for checkboxes (task lists)
-        addTaskListHandlers(targetElement);
+        addTaskListHandlers(targetContentElement);
         console.log('[MarkdownViewer] Task list handlers added');
 
         if (!isCancelled) {
@@ -936,10 +948,16 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         const beforeX = (cursorX + bufferElement.scrollLeft) / (prevZoom / 100);
         const beforeY = (cursorY + bufferElement.scrollTop) / (prevZoom / 100);
 
+        // Get content wrapper element
+        const activeContentRef = activeBuffer === 'A' ? contentARef : contentBRef;
+        const contentElement = activeContentRef.current;
+        if (!contentElement) return;
+
         // Apply zoom transform synchronously (no waiting for React)
         currentZoomRef.current = newZoom;
         const zoomFactor = newZoom / 100;
-        bufferElement.style.transform = `scale(${zoomFactor})`;
+        contentElement.style.transform = `scale(${zoomFactor})`;
+        contentElement.style.transformOrigin = 'top left';
 
         // Adjust scroll position synchronously to keep cursor point stable
         const afterX = beforeX * (newZoom / 100);
@@ -1289,12 +1307,16 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     >
       {/* Buffer A */}
       <div className={getBufferClass('A')} ref={bufferARef} onScroll={handleScroll}>
-        {/* Content will be injected here */}
+        <div className="markdown-viewer__content" ref={contentARef}>
+          {/* Content will be injected here */}
+        </div>
       </div>
 
       {/* Buffer B */}
       <div className={getBufferClass('B')} ref={bufferBRef} onScroll={handleScroll}>
-        {/* Content will be injected here */}
+        <div className="markdown-viewer__content" ref={contentBRef}>
+          {/* Content will be injected here */}
+        </div>
       </div>
 
       {/* Optional overlay during transition */}

@@ -29,14 +29,21 @@
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 2rem;
-  transform-origin: top left;
   overflow-y: auto;
   overflow-x: auto;
   background: var(--color-bg-primary, #ffffff);
   color: var(--color-text-primary, #24292f);
   /* Smooth crossfade transition */
   transition: opacity 300ms ease-out;
+}
+
+/* Content wrapper - gets zoomed via transform */
+.markdown-viewer__content {
+  padding: 2rem;
+  transform-origin: top left;
+  display: inline-block;
+  min-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Active buffer - currently visible */
