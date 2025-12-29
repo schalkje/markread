@@ -897,11 +897,25 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       return;
     }
 
-    const handleWheel = (e: WheelEvent) => {
-      // Ctrl+Scroll (without Alt) = Content zoom
+    const handleWheel = async (e: WheelEvent) => {
+      // Ctrl+Alt+Scroll = Application zoom (global UI zoom)
+      if (e.ctrlKey && e.altKey) {
+        e.preventDefault();
+        console.log('[MarkdownViewer] Application zoom triggered');
+
+        const { useUIStore } = await import('../../stores/ui');
+        const { incrementGlobalZoom } = useUIStore.getState();
+
+        // Calculate zoom delta (10% per notch)
+        const delta = e.deltaY > 0 ? -10 : 10;
+        incrementGlobalZoom(delta);
+        return;
+      }
+
+      // Ctrl+Scroll (without Alt) = Document zoom
       if (e.ctrlKey && !e.altKey) {
         e.preventDefault();
-        console.log('[MarkdownViewer] Wheel zoom triggered');
+        console.log('[MarkdownViewer] Document zoom triggered');
 
         // Get current zoom from ref (not prop, to avoid re-render delays)
         const prevZoom = currentZoomRef.current;

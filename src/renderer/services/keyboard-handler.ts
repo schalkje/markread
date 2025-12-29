@@ -247,8 +247,9 @@ export function registerContentZoomShortcuts(callbacks: {
   // Document zoom in: Ctrl+= or Ctrl++ (accepts with or without Shift)
   keyboardHandler.register({
     id: 'zoom.content.in',
-    keys: ['Plus', '=', '+'],
+    keys: ['=', '+'],
     ctrlKey: true,
+    altKey: false,
     // Don't specify shiftKey - accept both with and without Shift
     handler: () => {
       callbacks.onZoomIn();
@@ -259,8 +260,9 @@ export function registerContentZoomShortcuts(callbacks: {
   // Document zoom out: Ctrl+- or Ctrl+_ (accepts with or without Shift)
   keyboardHandler.register({
     id: 'zoom.content.out',
-    keys: ['Minus', '-', '_'],
+    keys: ['-', '_'],
     ctrlKey: true,
+    altKey: false,
     // Don't specify shiftKey - accept both with and without Shift
     handler: () => {
       callbacks.onZoomOut();
@@ -273,6 +275,7 @@ export function registerContentZoomShortcuts(callbacks: {
     id: 'zoom.content.reset',
     keys: ['Digit0', '0'],
     ctrlKey: true,
+    altKey: false,
     shiftKey: false, // Explicitly require NO shift
     handler: () => {
       callbacks.onZoomReset();
