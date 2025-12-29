@@ -24,7 +24,8 @@
       "Bash(powershell:*)",
       "Bash(taskkill:*)",
       "Bash(npm run:*)",
-      "Bash(npx electron-vite dev)"
+      "Bash(npx electron-vite dev)",
+      "Bash(npx electron-log-viewer)"
     ],
     "deny": [],
     "ask": []

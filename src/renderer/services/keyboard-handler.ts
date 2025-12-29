@@ -405,6 +405,7 @@ export function registerTabShortcuts(callbacks: {
     id: 'tabs.next',
     keys: ['Tab'],
     ctrlKey: true,
+    shiftKey: false,
     handler: () => {
       callbacks.onNextTab();
     },

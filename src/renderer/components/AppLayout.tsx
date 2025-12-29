@@ -22,6 +22,8 @@ import { useFileAutoReload, useFileWatcher } from '../hooks/useFileWatcher';
 import {
   registerHistoryShortcuts,
   unregisterHistoryShortcuts,
+  registerTabShortcuts,
+  unregisterTabShortcuts,
   registerContentZoomShortcuts,
   unregisterContentZoomShortcuts,
   registerGlobalZoomShortcuts,
@@ -304,32 +306,175 @@ const AppLayout: React.FC = () => {
     }
   );
 
+  // Track folders seen by auto-switch to prevent switching away from newly added folders
+  const autoSwitchSeenFoldersRef = useRef<Set<string>>(new Set());
+
   // Auto-switch folder when active tab changes (only for user-initiated tab switches)
   useEffect(() => {
     if (!activeTab || !activeTabId) return;
 
-    // Only auto-switch if the tab has a different folder
-    if (activeTab.folderId && activeTab.folderId !== activeFolderId) {
+    // Check if the current active folder has been seen before by this effect
+    const wasFolderJustAdded = activeFolderId && !autoSwitchSeenFoldersRef.current.has(activeFolderId);
+
+    // Mark current folder as seen
+    if (activeFolderId) {
+      autoSwitchSeenFoldersRef.current.add(activeFolderId);
+    }
+
+    // Only auto-switch if:
+    // - The tab has a different folder than the current active folder
+    // - The current active folder is not being initialized
+    // - The current active folder was not just added
+    if (activeTab.folderId &&
+        activeTab.folderId !== activeFolderId &&
+        activeFolderId &&
+        !initializingFoldersRef.current.has(activeFolderId) &&
+        !wasFolderJustAdded) {
       const { setActiveFolder } = useFoldersStore.getState();
-      console.log(`[AppLayout] Auto-switching folder to match active tab: ${activeTab.folderId}`);
       setActiveFolder(activeTab.folderId);
     }
-  }, [activeTabId]); // Only depend on activeTabId, not activeFolderId to avoid loops
+  }, [activeTabId, activeFolderId]); // Depend on both to detect newly added folders
 
-  // Create tab when folder is selected but has no tabs
+  // Track folders that are currently being initialized to prevent duplicate tab creation
+  const initializingFoldersRef = useRef<Set<string>>(new Set());
+
+  // Track if we're in the middle of cleanup to prevent auto-create from interfering
+  const isCleaningUpRef = useRef<boolean>(false);
+
+  // Track the previous folders list to detect newly added folders
+  const previousFoldersRef = useRef<Folder[]>([]);
+
+  // Monitor tab removals and handle folder cleanup - RUNS FIRST to set flags
+  const previousTabsRef = useRef<Map<string, any>>(new Map());
+  useEffect(() => {
+    // Check if a tab was removed
+    const previousTabs = previousTabsRef.current;
+    const currentTabIds = new Set(tabs.keys());
+    const previousTabIds = new Set(previousTabs.keys());
+
+    // Find removed tabs
+    const removedTabIds = Array.from(previousTabIds).filter(id => !currentTabIds.has(id));
+
+    if (removedTabIds.length > 0) {
+      console.log('[AppLayout] Tabs removed, checking for cleanup:', removedTabIds);
+
+      // Set cleanup flag IMMEDIATELY and SYNCHRONOUSLY to prevent auto-create
+      isCleaningUpRef.current = true;
+
+      // Handle cleanup asynchronously but properly
+      (async () => {
+        for (const removedTabId of removedTabIds) {
+          const removedTab = previousTabs.get(removedTabId);
+          console.log('[AppLayout] Removed tab:', removedTab);
+
+          if (!removedTab) continue;
+
+          // Skip if tab has no folder (direct file)
+          if (!removedTab.folderId) {
+            console.log('[AppLayout] Removed tab has no folderId, skipping');
+            // If this was the last tab, show welcome screen
+            if (tabs.size === 0) {
+              console.log('[AppLayout] All tabs closed (direct file), showing welcome screen');
+              setCurrentFile(null);
+              setCurrentContent('');
+              setError(null);
+            }
+            isCleaningUpRef.current = false;
+            continue;
+          }
+
+          // Check if this was the last tab for the folder
+          const remainingTabsForFolder = Array.from(tabs.values()).filter(
+            tab => tab.folderId === removedTab.folderId
+          );
+
+          console.log('[AppLayout] Remaining tabs for folder:', remainingTabsForFolder.length);
+
+          if (remainingTabsForFolder.length === 0) {
+            // This was the last tab for the folder
+            const folder = folders.find(f => f.id === removedTab.folderId);
+            if (!folder) {
+              console.warn('[AppLayout] Folder not found:', removedTab.folderId);
+              isCleaningUpRef.current = false;
+              continue;
+            }
+
+            console.log(`[AppLayout] Last tab closed for folder: ${folder.displayName}, automatically closing folder`);
+
+            // Automatically close the folder (no dialog)
+            const { removeFolder, setActiveFolder } = useFoldersStore.getState();
+
+            removeFolder(removedTab.folderId);
+
+            // Get folders AFTER removal to get the correct remaining list
+            const { folders: currentFolders } = useFoldersStore.getState();
+
+            if (currentFolders.length > 0) {
+              // Switch to another folder if available
+              setActiveFolder(currentFolders[0].id);
+            } else {
+              // No folders left - show welcome screen
+              console.log('[AppLayout] All folders closed, showing welcome screen');
+              setCurrentFile(null);
+              setCurrentContent('');
+              setError(null);
+            }
+
+            // Clear cleanup flag after a delay to prevent auto-create from running
+            setTimeout(() => {
+              isCleaningUpRef.current = false;
+            }, 0);
+          } else {
+            // There are still tabs for this folder, clear the cleanup flag
+            console.log('[AppLayout] Still has tabs, clearing cleanup flag');
+            setTimeout(() => {
+              isCleaningUpRef.current = false;
+            }, 0);
+          }
+        }
+      })();
+    }
+
+    // Update the ref for next comparison
+    previousTabsRef.current = new Map(tabs);
+  }, [tabs, folders]);
+
+  // Create tab when folder is selected but has no tabs - RUNS AFTER cleanup
   useEffect(() => {
     if (!activeFolderId) return;
 
     const tabsForFolder = Array.from(tabs.values()).filter(tab => tab.folderId === activeFolderId);
 
-    // If the active folder has no tabs, create one
-    if (tabsForFolder.length === 0) {
-      console.log(`[AppLayout] Active folder ${activeFolderId} has no tabs, creating one`);
+    // Detect if this folder was just added (to prevent double tab creation on folder open)
+    const previousFolders = previousFoldersRef.current;
+    const wasJustAdded = !previousFolders.some(f => f.id === activeFolderId);
+
+    // Update the previous folders ref
+    previousFoldersRef.current = folders;
+
+    // If the active folder has no tabs and we should create one
+    // Don't create if:
+    // - We're already initializing this folder
+    // - We're in cleanup mode (showing dialog)
+    // - The folder was just added (handleFolderOpened will be called)
+    // - ALL tabs are closed (user intentionally closed everything, show welcome screen)
+    if (tabsForFolder.length === 0 &&
+        !initializingFoldersRef.current.has(activeFolderId) &&
+        !isCleaningUpRef.current &&
+        !wasJustAdded &&
+        tabs.size > 0) {  // Don't auto-create if all tabs were closed
+      console.log(`[AppLayout] Active folder ${activeFolderId} has no tabs (manual switch), creating one`);
+
+      // Mark folder as being initialized
+      initializingFoldersRef.current.add(activeFolderId);
 
       // Call handleFolderOpened to create a tab for this folder
       const activeFolder = folders.find(f => f.id === activeFolderId);
       if (activeFolder) {
-        handleFolderOpened(activeFolder.path);
+        handleFolderOpened(activeFolder.path).finally(() => {
+          // Remove from initializing set after tab is created
+          initializingFoldersRef.current.delete(activeFolderId);
+        });
       }
     }
   }, [activeFolderId, tabs, folders]);
@@ -523,6 +668,49 @@ const AppLayout: React.FC = () => {
       onNavigateForward: handleNavigateForward,
     });
 
+    // T061, T063n: Register tab navigation shortcuts
+    const handleNextTab = () => {
+      const { tabs, activeTabId, setActiveTab } = useTabsStore.getState();
+      const tabArray = Array.from(tabs.values());
+      if (tabArray.length === 0) return;
+
+      const currentIndex = tabArray.findIndex(t => t.id === activeTabId);
+      const nextIndex = (currentIndex + 1) % tabArray.length;
+      setActiveTab(tabArray[nextIndex].id);
+    };
+
+    const handlePreviousTab = () => {
+      const { tabs, activeTabId, setActiveTab } = useTabsStore.getState();
+      const tabArray = Array.from(tabs.values());
+      if (tabArray.length === 0) return;
+
+      const currentIndex = tabArray.findIndex(t => t.id === activeTabId);
+      const prevIndex = currentIndex <= 0 ? tabArray.length - 1 : currentIndex - 1;
+      setActiveTab(tabArray[prevIndex].id);
+    };
+
+    const handleJumpToTab = (index: number) => {
+      const { tabs, setActiveTab } = useTabsStore.getState();
+      const tabArray = Array.from(tabs.values());
+      if (index < tabArray.length) {
+        setActiveTab(tabArray[index].id);
+      }
+    };
+
+    const handleCloseTab = () => {
+      const { activeTabId, removeTab } = useTabsStore.getState();
+      if (activeTabId) {
+        removeTab(activeTabId);
+      }
+    };
+
+    registerTabShortcuts({
+      onNextTab: handleNextTab,
+      onPreviousTab: handlePreviousTab,
+      onJumpToTab: handleJumpToTab,
+      onCloseTab: handleCloseTab,
+    });
+
     // Listen for navigate-to-history events (for Home navigation)
     window.addEventListener('navigate-to-history', handleNavigateToHistory);
     // Listen for directory listing events
@@ -579,6 +767,7 @@ const AppLayout: React.FC = () => {
 
     return () => {
       unregisterHistoryShortcuts();
+      unregisterTabShortcuts();
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
       window.removeEventListener('open-file-in-new-tab', handleOpenFileInNewTab);
@@ -793,13 +982,16 @@ const AppLayout: React.FC = () => {
    * Auto-opens the first markdown file in the folder
    */
   const handleFolderOpened = async (folderPath: string) => {
-    console.log('Folder opened:', folderPath);
-
     try {
       // Get the folder ID that was just added (FolderOpener already added it to the store)
       const { folders, activeFolderId: currentActiveFolderId } = useFoldersStore.getState();
       const addedFolder = folders.find(f => f.path === folderPath);
       const folderId = addedFolder?.id || currentActiveFolderId;
+
+      // Mark folder as being initialized to prevent auto-switch
+      if (folderId) {
+        initializingFoldersRef.current.add(folderId);
+      }
 
       // Get the folder tree to find the first markdown file
       const result = await window.electronAPI?.file?.getFolderTree({
@@ -837,7 +1029,6 @@ const AppLayout: React.FC = () => {
         };
 
         const firstFilePath = findFirstMarkdownFile(result.tree);
-
         const { tabs, addTab } = useTabsStore.getState();
 
         if (firstFilePath) {
@@ -852,7 +1043,12 @@ const AppLayout: React.FC = () => {
             // Create a tab for this file with the correct folder ID
             const existingTab = Array.from(tabs.values()).find(t => t.filePath === firstFilePath);
 
-            if (!existingTab) {
+            if (existingTab) {
+              // Tab already exists, just set it as active
+              const { setActiveTab } = useTabsStore.getState();
+              setActiveTab(existingTab.id);
+            } else {
+              // Create new tab
               const fileName = firstFilePath.split(/[/\\]/).pop() || 'Untitled';
               const newTab = {
                 id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
@@ -878,9 +1074,11 @@ const AppLayout: React.FC = () => {
                 isDirectFile: false, // This is from a folder, not a direct file
               };
               addTab(newTab);
-            }
 
-            console.log('Auto-opened first file:', firstFilePath, 'with folderId:', folderId);
+              // Set the new tab as active so it's visible
+              const { setActiveTab } = useTabsStore.getState();
+              setActiveTab(newTab.id);
+            }
           }
         } else {
           // No markdown files found - create a tab showing folder overview
@@ -919,6 +1117,10 @@ const AppLayout: React.FC = () => {
               isDirectFile: false,
             };
             addTab(newTab);
+
+            // Set the new tab as active so it's visible
+            const { setActiveTab } = useTabsStore.getState();
+            setActiveTab(newTab.id);
           }
 
           // Set empty content with a message
@@ -929,6 +1131,13 @@ const AppLayout: React.FC = () => {
       }
     } catch (err) {
       console.error('Error auto-opening first file:', err);
+    } finally {
+      // Clear initializing flag
+      const { folders } = useFoldersStore.getState();
+      const addedFolder = folders.find(f => f.path === folderPath);
+      if (addedFolder) {
+        initializingFoldersRef.current.delete(addedFolder.id);
+      }
     }
   };
 
@@ -1029,7 +1238,7 @@ const AppLayout: React.FC = () => {
           <div className="sidebar">
             <div className="sidebar-header">
             {/* T111-T113: Folder Switcher */}
-            {folders.length > 0 && <FolderSwitcher />}
+            {folders.length > 0 && <FolderSwitcher onFolderOpened={handleFolderOpened} />}
 
             {/* Sidebar view toggle: Files / History */}
             {tabs.size > 0 && (

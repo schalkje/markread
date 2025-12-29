@@ -974,21 +974,29 @@ process.on("unhandledRejection", (reason) => {
 let mainWindow = null;
 initLogger();
 console.log("[Main] About to register protocol schemes...");
-electron.protocol.registerSchemesAsPrivileged([
-  {
-    scheme: "mdfile",
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      stream: true,
-      // Required for loading media (images, videos, etc.)
-      corsEnabled: true,
-      bypassCSP: true
-    }
+try {
+  if (electron.protocol && typeof electron.protocol.registerSchemesAsPrivileged === "function") {
+    electron.protocol.registerSchemesAsPrivileged([
+      {
+        scheme: "mdfile",
+        privileges: {
+          standard: true,
+          secure: true,
+          supportFetchAPI: true,
+          stream: true,
+          // Required for loading media (images, videos, etc.)
+          corsEnabled: true,
+          bypassCSP: true
+        }
+      }
+    ]);
+    console.log('[Main] Custom protocol "mdfile" registered with privileges');
+  } else {
+    console.warn("[Main] protocol.registerSchemesAsPrivileged not available");
   }
-]);
-console.log('[Main] Custom protocol "mdfile" registered with privileges');
+} catch (error) {
+  console.error("[Main] Protocol registration failed:", error);
+}
 const gotTheLock = electron.app.requestSingleInstanceLock();
 if (!gotTheLock) {
   electron.app.quit();

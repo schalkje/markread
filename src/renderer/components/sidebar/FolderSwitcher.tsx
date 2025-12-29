@@ -19,6 +19,8 @@ export interface FolderSwitcherProps {
   onFolderChange?: (folderId: string) => void;
   /** Callback when folder is closed */
   onFolderClose?: (folderId: string) => void;
+  /** Callback when folder is opened */
+  onFolderOpened?: (folderPath: string) => void;
 }
 
 /**
@@ -27,6 +29,7 @@ export interface FolderSwitcherProps {
 export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
   onFolderChange,
   onFolderClose,
+  onFolderOpened,
 }) => {
   const folders = useFoldersStore((state) => state.folders);
   const activeFolderId = useFoldersStore((state) => state.activeFolderId);
@@ -167,6 +170,9 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
       } catch (err) {
         console.error('Failed to start watching folder:', err);
       }
+
+      // Notify parent to handle tab creation
+      onFolderOpened?.(folderPath);
     } catch (err) {
       console.error('Error opening folder:', err);
     }

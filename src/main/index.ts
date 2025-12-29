@@ -26,20 +26,28 @@ initLogger();
 // This must be done before app.ready (at module level)
 // CRITICAL: This can only be called ONCE - if called again it silently overwrites!
 console.log('[Main] About to register protocol schemes...');
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: 'mdfile',
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      stream: true, // Required for loading media (images, videos, etc.)
-      corsEnabled: true,
-      bypassCSP: true,
-    },
-  },
-]);
-console.log('[Main] Custom protocol "mdfile" registered with privileges');
+try {
+  if (protocol && typeof protocol.registerSchemesAsPrivileged === 'function') {
+    protocol.registerSchemesAsPrivileged([
+      {
+        scheme: 'mdfile',
+        privileges: {
+          standard: true,
+          secure: true,
+          supportFetchAPI: true,
+          stream: true, // Required for loading media (images, videos, etc.)
+          corsEnabled: true,
+          bypassCSP: true,
+        },
+      },
+    ]);
+    console.log('[Main] Custom protocol "mdfile" registered with privileges');
+  } else {
+    console.warn('[Main] protocol.registerSchemesAsPrivileged not available');
+  }
+} catch (error) {
+  console.error('[Main] Protocol registration failed:', error);
+}
 
 // MIME type mapping for common image formats
 const getMimeType = (filepath: string): string => {
