@@ -1,5 +1,3 @@
-# revamp to MAUI
-
 # Support multiple folders
 
 # connect to git repositories
@@ -73,3 +71,6 @@ Support split window: 2 documents horizontal / vertical
 * compare 2 files and highlight the differences
 * compare 2 folders and find and hightlight the diferences
 
+# small improvements
+
+- when zoomed in (application), also zoom in mouse over (e.g. file tree, chapters in scroll bar)

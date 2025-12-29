@@ -183,20 +183,8 @@ export const CustomScrollbar: React.FC<CustomScrollbarProps> = ({
     }
   }, [isDragging]);
 
-  // Debug logging
-  console.log(`[CustomScrollbar ${orientation}]`, {
-    hasScroll,
-    maxScroll,
-    scrollSize,
-    viewportSize,
-    scrollPosition,
-    thumbSizePercent,
-    thumbPositionPercent,
-  });
-
   // Don't render if no scroll is needed
   if (!hasScroll) {
-    console.log(`[CustomScrollbar ${orientation}] Not rendering - no scroll needed`);
     return null;
   }
 

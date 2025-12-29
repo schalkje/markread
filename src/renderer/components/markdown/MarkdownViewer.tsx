@@ -862,7 +862,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         clientWidth: element.clientWidth,
       };
 
-      console.log('[MarkdownViewer] Updating scroll state:', newScrollState);
+      // console.log('[MarkdownViewer] Updating scroll state:', newScrollState);
       setScrollState(newScrollState);
 
       // Extract heading markers for overview ruler
@@ -870,7 +870,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         element,
         element.scrollHeight
       );
-      console.log('[MarkdownViewer] Extracted markers:', headingMarkers.length);
+      // console.log('[MarkdownViewer] Extracted markers:', headingMarkers.length);
       setMarkers(headingMarkers);
     };
 
@@ -879,7 +879,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
     // Set up ResizeObserver to track size changes
     const resizeObserver = new ResizeObserver(() => {
-      console.log('[MarkdownViewer] ResizeObserver triggered');
+      // console.log('[MarkdownViewer] ResizeObserver triggered');
       updateDimensions();
     });
 
@@ -899,13 +899,13 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
     const bufferElement = activeBufferRef.current;
 
-    console.log('[MarkdownViewer] Wheel zoom effect setup:', {
-      hasBuffer: !!bufferElement,
-      hasOnZoomChange: !!onZoomChange
-    });
+    // console.log('[MarkdownViewer] Wheel zoom effect setup:', {
+    //   hasBuffer: !!bufferElement,
+    //   hasOnZoomChange: !!onZoomChange
+    // });
 
     if (!bufferElement || !onZoomChange) {
-      console.log('[MarkdownViewer] Wheel zoom NOT registered - missing dependency');
+      // console.log('[MarkdownViewer] Wheel zoom NOT registered - missing dependency');
       return;
     }
 
@@ -978,10 +978,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       }
     };
 
-    console.log('[MarkdownViewer] Wheel zoom handler registered');
+    // console.log('[MarkdownViewer] Wheel zoom handler registered');
     bufferElement.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
-      console.log('[MarkdownViewer] Wheel zoom handler unregistered');
+      // console.log('[MarkdownViewer] Wheel zoom handler unregistered');
       bufferElement.removeEventListener('wheel', handleWheel);
       if (zoomUpdateTimeoutRef.current) {
         clearTimeout(zoomUpdateTimeoutRef.current);
