@@ -21,7 +21,7 @@ export const TitleBarRight: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [showZoomMenu, setShowZoomMenu] = useState(false);
 
-  // T051k: Get active tab ID and zoom level (with proper reactivity)
+  // Get active tab ID and document zoom level
   const activeTabId = useTabsStore((state) => state.activeTabId);
   const contentZoom = useTabsStore((state) => {
     const activeId = state.activeTabId;
@@ -60,12 +60,11 @@ export const TitleBarRight: React.FC = () => {
     window.dispatchEvent(new CustomEvent('menu:export-pdf'));
   };
 
-  // T051k: Content zoom handlers
+  // Document zoom handlers (content zoom)
   const handleZoomIn = () => {
     if (!activeTabId) return;
     const newZoom = Math.min(2000, contentZoom + 10);
     const { updateTabZoomLevel } = useTabsStore.getState();
-    console.log('[TitleBarRight] handleZoomIn:', { activeTabId, contentZoom, newZoom });
     updateTabZoomLevel(activeTabId, newZoom);
   };
 
@@ -73,14 +72,12 @@ export const TitleBarRight: React.FC = () => {
     if (!activeTabId) return;
     const newZoom = Math.max(10, contentZoom - 10);
     const { updateTabZoomLevel } = useTabsStore.getState();
-    console.log('[TitleBarRight] handleZoomOut:', { activeTabId, contentZoom, newZoom });
     updateTabZoomLevel(activeTabId, newZoom);
   };
 
   const handleZoomPreset = (zoom: number) => {
     if (!activeTabId) return;
     const { updateTabZoomLevel } = useTabsStore.getState();
-    console.log('[TitleBarRight] handleZoomPreset:', { activeTabId, zoom });
     updateTabZoomLevel(activeTabId, zoom);
     setShowZoomMenu(false);
   };
@@ -88,7 +85,6 @@ export const TitleBarRight: React.FC = () => {
   const handleZoomReset = () => {
     if (!activeTabId) return;
     const { updateTabZoomLevel } = useTabsStore.getState();
-    console.log('[TitleBarRight] handleZoomReset:', { activeTabId });
     updateTabZoomLevel(activeTabId, 100);
     setShowZoomMenu(false);
   };
@@ -157,13 +153,13 @@ export const TitleBarRight: React.FC = () => {
         ⬇️
       </button>
 
-      {/* T051k: Content zoom controls */}
+      {/* Document zoom controls */}
       {activeTabId && (
         <div className="title-bar__zoom-controls">
           <button
             className="title-bar__button title-bar__zoom-button"
             onClick={handleZoomOut}
-            title="Zoom Out (Ctrl+-)"
+            title="Document Zoom Out (Ctrl+-)"
             type="button"
             disabled={contentZoom <= 10}
           >
@@ -172,7 +168,7 @@ export const TitleBarRight: React.FC = () => {
           <button
             className="title-bar__button title-bar__zoom-display"
             onClick={() => setShowZoomMenu(!showZoomMenu)}
-            title="Content Zoom Level - Click for presets"
+            title="Document Zoom Level - Click for presets"
             type="button"
           >
             {Math.round(contentZoom)}% ▾
@@ -180,14 +176,14 @@ export const TitleBarRight: React.FC = () => {
           <button
             className="title-bar__button title-bar__zoom-button"
             onClick={handleZoomIn}
-            title="Zoom In (Ctrl+=)"
+            title="Document Zoom In (Ctrl+=)"
             type="button"
             disabled={contentZoom >= 2000}
           >
             ⊕
           </button>
 
-          {/* Zoom preset menu */}
+          {/* Zoom preset menu - Document zoom levels (10-2000%) */}
           {showZoomMenu && (
             <div className="title-bar__zoom-menu">
               <div className="title-bar__zoom-menu-section">

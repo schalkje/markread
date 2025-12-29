@@ -213,7 +213,7 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       },
     },
     {
-      label: 'Reset Document Zoom',
+      label: 'Reset Document Zoom (Ctrl+0)',
       action: () => {
         const { activeTabId, updateTabZoomLevel } = useTabsStore.getState();
         if (activeTabId) {
@@ -222,9 +222,9 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       },
     },
     { separator: true, label: '', action: () => {} },
-    // Window Zoom (Entire UI)
+    // Application Zoom (Entire UI)
     {
-      label: 'Window Zoom In (Ctrl+Alt+=)',
+      label: 'Application Zoom In (Ctrl+Alt+=)',
       action: async () => {
         const { useUIStore } = await import('../../stores/ui');
         const { incrementGlobalZoom } = useUIStore.getState();
@@ -232,7 +232,7 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       },
     },
     {
-      label: 'Window Zoom Out (Ctrl+Alt+-)',
+      label: 'Application Zoom Out (Ctrl+Alt+-)',
       action: async () => {
         const { useUIStore } = await import('../../stores/ui');
         const { incrementGlobalZoom } = useUIStore.getState();
@@ -240,7 +240,7 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       },
     },
     {
-      label: 'Reset Window Zoom',
+      label: 'Reset Application Zoom (Ctrl+Alt+0)',
       action: async () => {
         const { useUIStore } = await import('../../stores/ui');
         const { resetGlobalZoom } = useUIStore.getState();

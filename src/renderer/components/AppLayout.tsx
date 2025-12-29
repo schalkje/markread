@@ -19,7 +19,14 @@ import { TabBar } from './editor/TabBar';
 import { Toast } from './common/Toast';
 import { TitleBar } from './titlebar/TitleBar';
 import { useFileAutoReload, useFileWatcher } from '../hooks/useFileWatcher';
-import { registerHistoryShortcuts, unregisterHistoryShortcuts } from '../services/keyboard-handler';
+import {
+  registerHistoryShortcuts,
+  unregisterHistoryShortcuts,
+  registerContentZoomShortcuts,
+  unregisterContentZoomShortcuts,
+  registerGlobalZoomShortcuts,
+  unregisterGlobalZoomShortcuts
+} from '../services/keyboard-handler';
 import type { Folder } from '@shared/types/entities.d.ts';
 import './AppLayout.css';
 
@@ -481,6 +488,63 @@ const AppLayout: React.FC = () => {
       unregisterHistoryShortcuts();
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
+    };
+  }, []);
+
+  // Register zoom keyboard shortcuts (Ctrl+=/-/0 for document, Ctrl+Alt+=/-/0 for application)
+  useEffect(() => {
+    // Document zoom shortcuts
+    registerContentZoomShortcuts({
+      onZoomIn: () => {
+        const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) {
+            const newZoom = Math.min(2000, (tab.zoomLevel || 100) + 10);
+            updateTabZoomLevel(activeTabId, newZoom);
+          }
+        }
+      },
+      onZoomOut: () => {
+        const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) {
+            const newZoom = Math.max(10, (tab.zoomLevel || 100) - 10);
+            updateTabZoomLevel(activeTabId, newZoom);
+          }
+        }
+      },
+      onZoomReset: () => {
+        const { activeTabId, updateTabZoomLevel } = useTabsStore.getState();
+        if (activeTabId) {
+          updateTabZoomLevel(activeTabId, 100);
+        }
+      },
+    });
+
+    // Application zoom shortcuts
+    registerGlobalZoomShortcuts({
+      onGlobalZoomIn: async () => {
+        const { useUIStore } = await import('../stores/ui');
+        const { incrementGlobalZoom } = useUIStore.getState();
+        incrementGlobalZoom(10);
+      },
+      onGlobalZoomOut: async () => {
+        const { useUIStore } = await import('../stores/ui');
+        const { incrementGlobalZoom } = useUIStore.getState();
+        incrementGlobalZoom(-10);
+      },
+      onGlobalZoomReset: async () => {
+        const { useUIStore } = await import('../stores/ui');
+        const { resetGlobalZoom } = useUIStore.getState();
+        resetGlobalZoom();
+      },
+    });
+
+    return () => {
+      unregisterContentZoomShortcuts();
+      unregisterGlobalZoomShortcuts();
     };
   }, []);
 

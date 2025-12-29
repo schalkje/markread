@@ -285,6 +285,7 @@ export interface UIState {
   folders: Folder[];                 // Array of open folders
   recentItems: RecentItem[];         // Global recent files/folders (max 20)
   splitLayouts: Record<string, PanelLayout>; // Split layouts per folder
+  globalZoomLevel?: number;          // Global window zoom level (50-300%, optional)
 }
 
 export interface AnimationSettings {

@@ -234,104 +234,101 @@ class KeyboardHandlerService {
 export const keyboardHandler = new KeyboardHandlerService();
 
 /**
- * T051h: Register CONTENT zoom keyboard shortcuts (updated from T046)
- * - Ctrl+Shift+Plus or Ctrl+=: Zoom in content
- * - Ctrl+Shift+Minus or Ctrl+-: Zoom out content
- * - Ctrl+Shift+0: Reset content zoom
+ * Register DOCUMENT zoom keyboard shortcuts
+ * - Ctrl+= or Ctrl++: Zoom in document (both work)
+ * - Ctrl+- or Ctrl+_: Zoom out document (both work)
+ * - Ctrl+0: Reset document zoom
  */
 export function registerContentZoomShortcuts(callbacks: {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
 }): void {
-  // Content zoom in: Ctrl+Shift+Plus or Ctrl+= (simpler)
+  // Document zoom in: Ctrl+= or Ctrl++ (accepts with or without Shift)
   keyboardHandler.register({
     id: 'zoom.content.in',
-    keys: ['Plus', '='],
+    keys: ['Plus', '=', '+'],
     ctrlKey: true,
-    shiftKey: false, // Accept both with and without Shift
-    handler: (event) => {
-      // Only handle if it's Ctrl+= (no shift) or Ctrl+Shift+Plus
-      if (event.shiftKey || event.key === '=') {
-        callbacks.onZoomIn();
-      }
+    // Don't specify shiftKey - accept both with and without Shift
+    handler: () => {
+      callbacks.onZoomIn();
     },
-    description: 'Zoom in content (Ctrl+= or Ctrl+Shift+Plus)',
+    description: 'Zoom in document (Ctrl+= or Ctrl++)',
   });
 
-  // Content zoom out: Ctrl+Shift+Minus or Ctrl+- (simpler)
+  // Document zoom out: Ctrl+- or Ctrl+_ (accepts with or without Shift)
   keyboardHandler.register({
     id: 'zoom.content.out',
     keys: ['Minus', '-', '_'],
     ctrlKey: true,
-    shiftKey: false,
-    handler: (event) => {
-      // Only handle if it's Ctrl+- (no shift) or Ctrl+Shift+Minus
-      if (event.shiftKey || event.key === '-') {
-        callbacks.onZoomOut();
-      }
+    // Don't specify shiftKey - accept both with and without Shift
+    handler: () => {
+      callbacks.onZoomOut();
     },
-    description: 'Zoom out content (Ctrl+- or Ctrl+Shift+Minus)',
+    description: 'Zoom out document (Ctrl+- or Ctrl+_)',
   });
 
-  // Content zoom reset: Ctrl+Shift+0
+  // Document zoom reset: Ctrl+0 (no Shift required)
   keyboardHandler.register({
     id: 'zoom.content.reset',
     keys: ['Digit0', '0'],
     ctrlKey: true,
-    shiftKey: true,
+    shiftKey: false, // Explicitly require NO shift
     handler: () => {
       callbacks.onZoomReset();
     },
-    description: 'Reset content zoom to 100%',
+    description: 'Reset document zoom to 100%',
   });
 }
 
 /**
- * T051e: Register GLOBAL zoom keyboard shortcuts
- * - Ctrl+Alt+Plus or Ctrl+Alt+=: Global zoom in
- * - Ctrl+Alt+Minus or Ctrl+Alt+-: Global zoom out
- * - Ctrl+Alt+0: Reset global zoom
+ * Register APPLICATION zoom keyboard shortcuts
+ * - Ctrl+Alt+= or Ctrl+Alt++: Zoom in application (both work)
+ * - Ctrl+Alt+- or Ctrl+Alt+_: Zoom out application (both work)
+ * - Ctrl+Alt+0: Reset application zoom
  */
 export function registerGlobalZoomShortcuts(callbacks: {
   onGlobalZoomIn: () => void;
   onGlobalZoomOut: () => void;
   onGlobalZoomReset: () => void;
 }): void {
-  // Global zoom in: Ctrl+Alt+Plus or Ctrl+Alt+=
+  // Application zoom in: Ctrl+Alt+= or Ctrl+Alt++ (accepts with or without Shift)
   keyboardHandler.register({
     id: 'zoom.global.in',
-    keys: ['Plus', '='],
+    keys: ['Plus', '=', '+'],
     ctrlKey: true,
     altKey: true,
+    // Don't specify shiftKey - accept both with and without Shift
     handler: () => {
       callbacks.onGlobalZoomIn();
     },
-    description: 'Global zoom in (Ctrl+Alt+=)',
+    description: 'Application zoom in (Ctrl+Alt+= or Ctrl+Alt++)',
   });
 
-  // Global zoom out: Ctrl+Alt+Minus or Ctrl+Alt+-
+  // Application zoom out: Ctrl+Alt+- or Ctrl+Alt+_ (accepts with or without Shift)
   keyboardHandler.register({
     id: 'zoom.global.out',
-    keys: ['Minus', '-'],
+    keys: ['Minus', '-', '_'],
     ctrlKey: true,
     altKey: true,
+    // Don't specify shiftKey - accept both with and without Shift
     handler: () => {
       callbacks.onGlobalZoomOut();
     },
-    description: 'Global zoom out (Ctrl+Alt+-)',
+    description: 'Application zoom out (Ctrl+Alt+- or Ctrl+Alt+_)',
   });
 
-  // Global zoom reset: Ctrl+Alt+0
+  // Application zoom reset: Ctrl+Alt+0 (no Shift required)
   keyboardHandler.register({
     id: 'zoom.global.reset',
     keys: ['Digit0', '0'],
     ctrlKey: true,
     altKey: true,
+    shiftKey: false, // Explicitly require NO shift
     handler: () => {
       callbacks.onGlobalZoomReset();
     },
-    description: 'Reset global zoom to 100%',
+    description: 'Reset application zoom to 100%',
   });
 }
 
