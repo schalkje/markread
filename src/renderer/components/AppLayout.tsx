@@ -29,8 +29,18 @@ import {
   registerGlobalZoomShortcuts,
   unregisterGlobalZoomShortcuts,
   registerFileShortcuts,
-  unregisterFileShortcuts
+  unregisterFileShortcuts,
+  registerHelpShortcuts,
+  unregisterHelpShortcuts
 } from '../services/keyboard-handler';
+import { ShortcutsReference } from './help/ShortcutsReference';
+import {
+  registerFileCommands,
+  registerNavigationCommands,
+  registerViewCommands,
+  registerSearchCommands,
+  registerApplicationCommands,
+} from '../services/command-service';
 import type { Folder } from '@shared/types/entities.d.ts';
 import './AppLayout.css';
 
@@ -54,6 +64,9 @@ const AppLayout: React.FC = () => {
 
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'warning' | 'error' | 'success' } | null>(null);
+
+  // Shortcuts reference state
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
@@ -113,6 +126,208 @@ const AppLayout: React.FC = () => {
     return () => {
       window.removeEventListener('show-files', handleShowFiles);
     };
+  }, []);
+
+  // Listen for menu:shortcuts events from Help menu
+  useEffect(() => {
+    const handleShowShortcuts = () => {
+      setShowShortcuts(true);
+    };
+
+    window.addEventListener('menu:shortcuts', handleShowShortcuts);
+    return () => {
+      window.removeEventListener('menu:shortcuts', handleShowShortcuts);
+    };
+  }, []);
+
+  // Register all commands for the shortcuts reference
+  useEffect(() => {
+    // File commands
+    registerFileCommands({
+      onOpenFile: () => {
+        const fileOpenerButton = document.querySelector('.file-opener__button') as HTMLButtonElement;
+        fileOpenerButton?.click();
+      },
+      onOpenFolder: () => {
+        const folderOpenerButton = document.querySelector('.folder-opener__button') as HTMLButtonElement;
+        folderOpenerButton?.click();
+      },
+      onCloseTab: () => {
+        const { activeTabId, removeTab } = useTabsStore.getState();
+        if (activeTabId) removeTab(activeTabId);
+      },
+      onCloseAllTabs: () => {
+        const { tabs, removeTab } = useTabsStore.getState();
+        Array.from(tabs.keys()).forEach(tabId => removeTab(tabId));
+      },
+      onSaveAsPDF: () => {
+        console.log('Save as PDF not implemented yet');
+      },
+      onCopyFilePath: () => {
+        const { activeTabId, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) navigator.clipboard.writeText(tab.filePath);
+        }
+      },
+      onRevealInExplorer: () => {
+        const { activeTabId, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) {
+            // TODO: Implement reveal in explorer
+            console.log('Reveal in explorer:', tab.filePath);
+          }
+        }
+      },
+      onReload: () => {
+        const { activeTabId, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) window.location.reload();
+        }
+      },
+    });
+
+    // Navigation commands
+    registerNavigationCommands({
+      onNextTab: () => {
+        const { tabs, activeTabId, setActiveTab } = useTabsStore.getState();
+        if (!activeTabId || tabs.size === 0) return;
+        const tabIds = Array.from(tabs.keys());
+        const currentIndex = tabIds.indexOf(activeTabId);
+        const nextIndex = (currentIndex + 1) % tabIds.length;
+        setActiveTab(tabIds[nextIndex]);
+      },
+      onPreviousTab: () => {
+        const { tabs, activeTabId, setActiveTab } = useTabsStore.getState();
+        if (!activeTabId || tabs.size === 0) return;
+        const tabIds = Array.from(tabs.keys());
+        const currentIndex = tabIds.indexOf(activeTabId);
+        const prevIndex = (currentIndex - 1 + tabIds.length) % tabIds.length;
+        setActiveTab(tabIds[prevIndex]);
+      },
+      onJumpToTab: (index: number) => {
+        const { tabs, setActiveTab } = useTabsStore.getState();
+        const tabIds = Array.from(tabs.keys());
+        if (index < tabIds.length) setActiveTab(tabIds[index]);
+      },
+      onNavigateBack: () => {
+        window.dispatchEvent(new CustomEvent('navigation:back'));
+      },
+      onNavigateForward: () => {
+        window.dispatchEvent(new CustomEvent('navigation:forward'));
+      },
+      onGoToLine: () => {
+        console.log('Go to line not implemented yet');
+      },
+      onGoToHeading: () => {
+        window.dispatchEvent(new CustomEvent('toggle-toc'));
+      },
+      onSplitVertical: () => {
+        console.log('Split vertical not implemented yet');
+      },
+      onSplitHorizontal: () => {
+        console.log('Split horizontal not implemented yet');
+      },
+      onClosePane: () => {
+        console.log('Close pane not implemented yet');
+      },
+      onFocusNextPane: () => {
+        console.log('Focus next pane not implemented yet');
+      },
+      onFocusPreviousPane: () => {
+        console.log('Focus previous pane not implemented yet');
+      },
+    });
+
+    // View commands
+    registerViewCommands({
+      onZoomIn: () => {
+        const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) {
+            const newZoom = Math.min(2000, (tab.zoomLevel || 100) + 10);
+            updateTabZoomLevel(activeTabId, newZoom);
+          }
+        }
+      },
+      onZoomOut: () => {
+        const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) {
+            const newZoom = Math.max(10, (tab.zoomLevel || 100) - 10);
+            updateTabZoomLevel(activeTabId, newZoom);
+          }
+        }
+      },
+      onZoomReset: () => {
+        const { activeTabId, updateTabZoomLevel } = useTabsStore.getState();
+        if (activeTabId) updateTabZoomLevel(activeTabId, 100);
+      },
+      onToggleSidebar: () => {
+        setShowSidebar(prev => !prev);
+      },
+      onToggleFileTree: () => {
+        setShowSidebar(true);
+        setSidebarView('files');
+      },
+      onToggleTableOfContents: () => {
+        window.dispatchEvent(new CustomEvent('toggle-toc'));
+      },
+      onChangeTheme: () => {
+        console.log('Change theme not implemented yet');
+      },
+      onToggleFullScreen: () => {
+        window.dispatchEvent(new CustomEvent('menu:toggle-fullscreen'));
+      },
+    });
+
+    // Search commands
+    registerSearchCommands({
+      onFindInPage: () => {
+        window.dispatchEvent(new CustomEvent('menu:find'));
+      },
+      onFindNext: () => {
+        console.log('Find next not implemented yet');
+      },
+      onFindPrevious: () => {
+        console.log('Find previous not implemented yet');
+      },
+      onReplace: () => {
+        console.log('Replace not implemented yet');
+      },
+      onFindInFiles: () => {
+        window.dispatchEvent(new CustomEvent('menu:find-in-files'));
+      },
+      onReplaceInFiles: () => {
+        console.log('Replace in files not implemented yet');
+      },
+    });
+
+    // Application commands
+    registerApplicationCommands({
+      onOpenCommandPalette: () => {
+        console.log('Command palette not implemented yet');
+      },
+      onOpenSettings: () => {
+        console.log('Settings not implemented yet');
+      },
+      onShowShortcuts: () => {
+        setShowShortcuts(true);
+      },
+      onCheckForUpdates: () => {
+        console.log('Check for updates not implemented yet');
+      },
+      onAbout: () => {
+        window.dispatchEvent(new CustomEvent('menu:about'));
+      },
+      onQuit: () => {
+        window.close();
+      },
+    });
   }, []);
 
   // Memoize callback to prevent unnecessary re-renders
@@ -752,6 +967,13 @@ const AppLayout: React.FC = () => {
       },
     });
 
+    // Register help shortcuts (F1)
+    registerHelpShortcuts({
+      onShowShortcuts: () => {
+        setShowShortcuts(true);
+      },
+    });
+
     // Listen for navigate-to-history events (for Home navigation)
     window.addEventListener('navigate-to-history', handleNavigateToHistory);
     // Listen for directory listing events
@@ -810,6 +1032,7 @@ const AppLayout: React.FC = () => {
       unregisterHistoryShortcuts();
       unregisterTabShortcuts();
       unregisterFileShortcuts();
+      unregisterHelpShortcuts();
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
       window.removeEventListener('open-file-in-new-tab', handleOpenFileInNewTab);
@@ -1722,6 +1945,12 @@ const AppLayout: React.FC = () => {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* Keyboard Shortcuts Reference */}
+      <ShortcutsReference
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+      />
     </div>
   );
 };

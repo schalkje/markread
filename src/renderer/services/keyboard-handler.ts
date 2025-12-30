@@ -631,4 +631,29 @@ export function unregisterFileShortcuts(): void {
   keyboardHandler.unregister('file.closeAll');
 }
 
+/**
+ * Register help shortcuts
+ * - F1: Show keyboard shortcuts reference
+ */
+export function registerHelpShortcuts(callbacks: {
+  onShowShortcuts: () => void;
+}): void {
+  // Show keyboard shortcuts: F1
+  keyboardHandler.register({
+    id: 'help.showShortcuts',
+    keys: ['F1'],
+    handler: () => {
+      callbacks.onShowShortcuts();
+    },
+    description: 'Show keyboard shortcuts reference',
+  });
+}
+
+/**
+ * Unregister help shortcuts
+ */
+export function unregisterHelpShortcuts(): void {
+  keyboardHandler.unregister('help.showShortcuts');
+}
+
 export default keyboardHandler;
