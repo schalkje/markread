@@ -70,8 +70,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
             markdownOnly: true,
           });
 
-          if (!result?.success || !result.tree) {
-            console.error('Failed to load repository tree:', result?.error);
+          if (!result?.success || !result.data) {
+            console.error('Failed to load repository tree:', result?.error?.message || result?.error);
             setTreeData([]);
             return;
           }
@@ -85,7 +85,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
             children: node.children?.map((child) => convertGitNode(child, depth + 1)),
           });
 
-          treeWithDepth = result.tree.map((node: TreeNode) => convertGitNode(node, 0));
+          treeWithDepth = result.data.tree.map((node: TreeNode) => convertGitNode(node, 0));
         } else {
           // Load local folder tree from file system
           const result = await window.electronAPI?.file?.getFolderTree({

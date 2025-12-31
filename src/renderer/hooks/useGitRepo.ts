@@ -174,7 +174,9 @@ export const useGitRepo = () => {
   const fetchTree = useCallback(
     async (request: FetchRepositoryTreeRequest) => {
       setError(null);
-      let hasCachedTree = false;
+
+      // Set loading state immediately
+      setIsFetchingTree(true);
 
       try {
         // Step 1: Try to get cached tree first
@@ -187,13 +189,10 @@ export const useGitRepo = () => {
             true, // fromCache
             cachedResponse.data.fetchedAt
           );
-          hasCachedTree = true;
 
-          // Now fetch fresh tree in background
+          // Switch from loading to refreshing state
+          setIsFetchingTree(false);
           setIsRefreshingTree(true);
-        } else {
-          // No cached tree, show loading state
-          setIsFetchingTree(true);
         }
 
         // Step 2: Fetch fresh tree from GitHub
@@ -212,6 +211,7 @@ export const useGitRepo = () => {
 
         return response.data;
       } catch (err: any) {
+        console.error('[useGitRepo] fetchTree error:', err);
         const errorMessage = err.message || 'An unexpected error occurred';
         setError(errorMessage);
         throw err;
