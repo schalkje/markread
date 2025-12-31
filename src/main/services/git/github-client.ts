@@ -8,8 +8,8 @@
  */
 
 import { gitHttpClient } from './http-client';
-import type { BranchInfo } from '@/shared/types/git-contracts';
-import type { TreeNode } from '@/shared/types/repository';
+import type { BranchInfo } from '../../../shared/types/git-contracts';
+import type { TreeNode } from '../../../shared/types/repository';
 
 /**
  * GitHub API client

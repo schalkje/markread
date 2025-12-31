@@ -15,6 +15,7 @@ import { FolderOpener } from './FolderOpener';
 import { FileTree } from './sidebar/FileTree';
 import { HistoryPanel } from './sidebar/HistoryPanel';
 import { FolderSwitcher } from './sidebar/FolderSwitcher';
+import { BranchSwitcher } from './sidebar/BranchSwitcher';
 import { TabBar } from './editor/TabBar';
 import { Toast } from './common/Toast';
 import { TitleBar } from './titlebar/TitleBar';
@@ -48,8 +49,8 @@ const AppLayout: React.FC = () => {
   const { folders, activeFolderId } = useFoldersStore();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
 
-  // Sidebar view state: 'files', 'history', or 'repository'
-  const [sidebarView, setSidebarView] = useState<'files' | 'history' | 'repository'>('files');
+  // Sidebar view state: 'files' or 'history'
+  const [sidebarView, setSidebarView] = useState<'files' | 'history'>('files');
 
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'warning' | 'error' | 'success' } | null>(null);
@@ -58,7 +59,7 @@ const AppLayout: React.FC = () => {
   const [showRepoConnectDialog, setShowRepoConnectDialog] = useState(false);
 
   // Git repository integration
-  const { connectedRepository, fetchFile, repositoryId } = useGitRepo();
+  const { connectedRepository, fetchFile, fetchTree, repositoryId } = useGitRepo();
 
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
@@ -132,13 +133,6 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
-  // Auto-switch to repository view when connected
-  useEffect(() => {
-    if (connectedRepository && repositoryId) {
-      setShowSidebar(true);
-      setSidebarView('repository');
-    }
-  }, [connectedRepository, repositoryId]);
 
   // Memoize callback to prevent unnecessary re-renders
   const handleRenderComplete = useCallback(() => {
@@ -756,6 +750,76 @@ const AppLayout: React.FC = () => {
   );
 
   /**
+   * Handle repository connection completion
+   * Adds repo to folders store and auto-opens first markdown file
+   */
+  const handleRepositoryConnected = useCallback(async () => {
+    if (!connectedRepository || !repositoryId) return;
+
+    try {
+      // Add repository as a folder
+      const { addRepositoryFolder } = useFoldersStore.getState();
+      const repoFolder = addRepositoryFolder({
+        id: `repo-${repositoryId}`,
+        url: connectedRepository.url,
+        displayName: connectedRepository.displayName,
+        repositoryId,
+        currentBranch: connectedRepository.currentBranch,
+        defaultBranch: connectedRepository.defaultBranch,
+        branches: connectedRepository.branches,
+      });
+
+      // Fetch file tree to find first markdown file
+      const treeResponse = await fetchTree({
+        repositoryId,
+        branch: connectedRepository.currentBranch,
+        markdownOnly: true,
+      });
+
+      if (treeResponse && treeResponse.tree && treeResponse.tree.length > 0) {
+        // Find first markdown file in tree (depth-first search)
+        const findFirstMarkdownFile = (nodes: any[]): string | null => {
+          for (const node of nodes) {
+            if (node.type === 'file' && node.isMarkdown) {
+              return node.path;
+            }
+            if (node.type === 'directory' && node.children) {
+              const found = findFirstMarkdownFile(node.children);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
+        const firstMarkdownPath = findFirstMarkdownFile(treeResponse.tree);
+        if (firstMarkdownPath) {
+          // Auto-open the first markdown file
+          await handleRepoFileClick(firstMarkdownPath);
+        }
+      }
+
+      // Show success toast
+      setToast({
+        message: `Connected to ${connectedRepository.displayName}`,
+        type: 'success',
+      });
+    } catch (err) {
+      console.error('Error handling repository connection:', err);
+      setToast({
+        message: 'Repository connected, but failed to load files',
+        type: 'warning',
+      });
+    }
+  }, [connectedRepository, repositoryId, fetchTree, handleRepoFileClick]);
+
+  // Trigger connection handler when repository is connected
+  useEffect(() => {
+    if (connectedRepository && repositoryId) {
+      handleRepositoryConnected();
+    }
+  }, [connectedRepository, repositoryId, handleRepositoryConnected]);
+
+  /**
    * Handle link clicks from markdown content (relative file links)
    * Updates the current tab to show the linked file
    */
@@ -1056,7 +1120,18 @@ const AppLayout: React.FC = () => {
             {/* T111-T113: Folder Switcher */}
             {folders.length > 0 && <FolderSwitcher />}
 
-            {/* Sidebar view toggle: Files / History / Repository */}
+            {/* Branch Switcher - show when active folder is a repository */}
+            {activeFolderId && (
+              <BranchSwitcher
+                folderId={activeFolderId}
+                onBranchChange={(branch) => {
+                  // Force FileTree to reload by updating key
+                  setFileTreeKey(prev => prev + 1);
+                }}
+              />
+            )}
+
+            {/* Sidebar view toggle: Files / History */}
             {tabs.size > 0 && (
               <div className="sidebar-view-toggle">
                 <button
@@ -1075,34 +1150,10 @@ const AppLayout: React.FC = () => {
                 >
                   🕐 History
                 </button>
-                {connectedRepository && (
-                  <button
-                    className={`sidebar-view-toggle__button ${sidebarView === 'repository' ? 'sidebar-view-toggle__button--active' : ''}`}
-                    onClick={() => setSidebarView('repository')}
-                    title="Show Repository Files"
-                    type="button"
-                  >
-                    🌐 Repo
-                  </button>
-                )}
               </div>
             )}
           </div>
           <div className="sidebar-content">
-            {/* Show Repository File Tree when repository view is active */}
-            {sidebarView === 'repository' && connectedRepository && (
-              <div className="sidebar-repo-view">
-                <div className="sidebar-repo-header">
-                  <h3 className="sidebar-repo-title">{connectedRepository.displayName}</h3>
-                  <span className="sidebar-repo-branch">Branch: {connectedRepository.currentBranch}</span>
-                </div>
-                <RepoFileTree
-                  onFileClick={handleRepoFileClick}
-                  markdownOnly={true}
-                />
-              </div>
-            )}
-
             {/* Show History Panel when history view is active */}
             {sidebarView === 'history' && tabs.size > 0 && (
               <HistoryPanel
@@ -1294,13 +1345,24 @@ const AppLayout: React.FC = () => {
 
               // Mode 3: Folder mode
               if (activeFolderId) {
+                // Get the active folder to check its type
+                const activeFolder = folders.find(f => f.id === activeFolderId);
+                const isRepoFolder = activeFolder?.type === 'repository';
+
                 return (
                   <FileTree
                     key={fileTreeKey}
                     folderId={activeFolderId}
                     onFileSelect={async (filePath) => {
                       try {
-                        // Load file content first
+                        // Use repository handler for repo folders, local file handler for local folders
+                        if (isRepoFolder) {
+                          // Repository file - use handleRepoFileClick
+                          await handleRepoFileClick(filePath);
+                          return;
+                        }
+
+                        // Load local file content
                         const result = await window.electronAPI?.file?.read({ filePath });
                         if (result?.success && result.content) {
                           // Mark as manually loaded
@@ -1384,6 +1446,14 @@ const AppLayout: React.FC = () => {
                     }}
                     onFileOpen={async (filePath) => {
                       try {
+                        // Use repository handler for repo folders, local file handler for local folders
+                        if (isRepoFolder) {
+                          // Repository file - use handleRepoFileClick
+                          await handleRepoFileClick(filePath);
+                          return;
+                        }
+
+                        // Load local file
                         const result = await window.electronAPI?.file?.read({ filePath });
                         if (result?.success && result.content) {
                           await handleFileOpened(filePath, result.content);
@@ -1438,10 +1508,19 @@ const AppLayout: React.FC = () => {
           {!currentFile ? (
             <div className="welcome">
               <h1>Welcome to MarkRead</h1>
-              <p>Open a markdown file or folder to get started</p>
+              <p>Open a markdown file, folder, or connect to a Git repository to get started</p>
               <div className="welcome-buttons">
                 <FileOpener onFileOpened={handleFileOpened} />
                 <FolderOpener onFolderOpened={handleFolderOpened} />
+                <button
+                  className="folder-opener welcome-repo-button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('menu:connect-repository'));
+                  }}
+                  type="button"
+                >
+                  🌐 Connect to Repository
+                </button>
               </div>
             </div>
           ) : (
@@ -1529,10 +1608,6 @@ const AppLayout: React.FC = () => {
         onClose={() => setShowRepoConnectDialog(false)}
         onConnected={() => {
           setShowRepoConnectDialog(false);
-          setToast({
-            message: 'Successfully connected to repository',
-            type: 'success',
-          });
         }}
       />
     </div>

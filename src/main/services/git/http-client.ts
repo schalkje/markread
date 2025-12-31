@@ -67,8 +67,28 @@ export class GitHttpClient {
           };
         }
 
-        // Handle 403 Forbidden (permission denied)
+        // Handle 403 Forbidden (permission denied OR rate limit)
         if (error.response?.status === 403) {
+          // Check if this is a rate limit error (GitHub specific)
+          const rateLimitRemaining = error.response.headers['x-ratelimit-remaining'];
+          const rateLimitReset = error.response.headers['x-ratelimit-reset'];
+
+          if (rateLimitRemaining === '0' || rateLimitRemaining === 0) {
+            // This is a rate limit error
+            const resetTime = rateLimitReset ? parseInt(rateLimitReset, 10) : Date.now() / 1000 + 3600;
+            const secondsUntilReset = Math.max(0, resetTime - Date.now() / 1000);
+
+            throw {
+              code: 'RATE_LIMIT',
+              message: 'GitHub API rate limit exceeded. Please wait or authenticate to increase limits.',
+              statusCode: 403,
+              retryable: true,
+              retryAfterSeconds: Math.ceil(secondsUntilReset),
+              details: 'Unauthenticated requests are limited to 60 per hour. Consider authenticating with a Personal Access Token.',
+            };
+          }
+
+          // This is a permission error
           throw {
             code: 'PERMISSION_DENIED',
             message: 'You do not have permission to access this resource.',

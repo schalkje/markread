@@ -12,12 +12,22 @@ interface FoldersState {
 
   // Actions
   addFolder: (folder: Folder) => Folder;
+  addRepositoryFolder: (repositoryData: {
+    id: string;
+    url: string;
+    displayName: string;
+    repositoryId: string;
+    currentBranch: string;
+    defaultBranch: string;
+    branches: Array<{name: string; isDefault: boolean; sha: string}>;
+  }) => Folder;
   removeFolder: (folderId: string) => void;
   setActiveFolder: (folderId: string) => void;
   updateFileTreeState: (folderId: string, fileTreeState: Partial<FileTreeState>) => void;
   updateSplitLayout: (folderId: string, splitLayout: PanelLayout) => void;
   addRecentFile: (folderId: string, item: RecentItem) => void;
   clearRecentFiles: (folderId: string) => void;
+  updateRepositoryBranch: (folderId: string, branch: string) => void;
   // T163n: Open folder in new window
   openFolderInNewWindow: (folderPath: string) => Promise<boolean>;
 }
@@ -40,6 +50,51 @@ export const useFoldersStore = create<FoldersState>((set, get) => ({
       activeFolderId: folder.id,
     }));
     return folder;
+  },
+
+  addRepositoryFolder: (repositoryData) => {
+    const { folders } = get();
+    // Check for existing repo with SAME URL AND SAME BRANCH
+    const existing = folders.find(
+      (f) => f.path === repositoryData.url &&
+             f.type === 'repository' &&
+             f.currentBranch === repositoryData.currentBranch
+    );
+
+    if (existing) {
+      set({ activeFolderId: existing.id });
+      return existing;
+    }
+
+    const newFolder: Folder = {
+      id: `${repositoryData.id}-${repositoryData.currentBranch}`, // Include branch in ID
+      path: repositoryData.url,
+      displayName: `${repositoryData.displayName}`, // Keep clean name, branch shows in UI
+      type: 'repository',
+      fileTreeState: {
+        expandedPaths: [],
+        collapsedPaths: [],
+        scrollPosition: 0,
+        selectedPath: null,
+      },
+      activeFolderId: null,
+      tabCollection: [],
+      activeTabId: null,
+      recentFiles: [],
+      splitLayout: { type: 'single', primarySize: 100 },
+      createdAt: Date.now(),
+      lastAccessedAt: Date.now(),
+      repositoryId: repositoryData.repositoryId,
+      currentBranch: repositoryData.currentBranch,
+      defaultBranch: repositoryData.defaultBranch,
+      branches: repositoryData.branches,
+    };
+
+    set((state) => ({
+      folders: [...state.folders, newFolder],
+      activeFolderId: newFolder.id,
+    }));
+    return newFolder;
   },
 
   removeFolder: (folderId) => {
@@ -101,6 +156,14 @@ export const useFoldersStore = create<FoldersState>((set, get) => ({
   clearRecentFiles: (folderId) => {
     set((state) => ({
       folders: state.folders.map((f) => (f.id === folderId ? { ...f, recentFiles: [] } : f)),
+    }));
+  },
+
+  updateRepositoryBranch: (folderId, branch) => {
+    set((state) => ({
+      folders: state.folders.map((f) =>
+        f.id === folderId && f.type === 'repository' ? { ...f, currentBranch: branch } : f
+      ),
     }));
   },
 

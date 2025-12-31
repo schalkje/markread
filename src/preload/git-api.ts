@@ -59,8 +59,28 @@ export const exposeGitAPI = () => {
 
     // Authentication operations (Phase 4 - US2)
     auth: {
-      // TODO: T060 - Implement git.auth.authenticateWithPAT()
-      // TODO: T095-T097 - Implement git.auth.initiateOAuth() (if needed)
+      /**
+       * Initiate Device Flow authentication
+       * Opens browser for GitHub authorization using Device Flow (no client secret required)
+       */
+      initiateDeviceFlow: (request: import('../shared/types/git-contracts').InitiateDeviceFlowRequest): Promise<import('../shared/types/git-contracts').InitiateDeviceFlowIPCResponse> => {
+        return ipcRenderer.invoke('git:auth:deviceflow:initiate', request);
+      },
+
+      /**
+       * Check Device Flow authentication status
+       * Poll this to determine when Device Flow is complete
+       */
+      checkDeviceFlowStatus: (request: import('../shared/types/git-contracts').CheckDeviceFlowStatusRequest): Promise<import('../shared/types/git-contracts').CheckDeviceFlowStatusIPCResponse> => {
+        return ipcRenderer.invoke('git:auth:deviceflow:status', request);
+      },
+
+      /**
+       * Cancel Device Flow authentication
+       */
+      cancelDeviceFlow: (sessionId: string): Promise<any> => {
+        return ipcRenderer.invoke('git:auth:deviceflow:cancel', sessionId);
+      },
     },
 
     // Connectivity operations (Phase 3 - US1)

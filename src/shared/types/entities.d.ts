@@ -15,8 +15,9 @@ export interface FileTreeState {
 
 export interface Folder {
   id: string;                        // UUID v4
-  path: string;                      // Absolute file system path
+  path: string;                      // Absolute file system path (or repository URL for repos)
   displayName: string;               // Human-readable folder name
+  type: 'local' | 'repository';      // Folder type discriminator
   fileTreeState: FileTreeState;      // Expansion state of directories
   activeFolderId: string | null;     // Currently active folder ID
   tabCollection: Tab[];              // Array of open tabs (max 50)
@@ -25,6 +26,11 @@ export interface Folder {
   splitLayout: PanelLayout;          // Split pane configuration
   createdAt: number;                 // Unix timestamp (ms)
   lastAccessedAt: number;            // Unix timestamp (ms)
+  // Repository-specific fields
+  repositoryId?: string;             // Repository ID (for type='repository')
+  currentBranch?: string;            // Current branch (for type='repository')
+  defaultBranch?: string;            // Default branch (for type='repository')
+  branches?: Array<{name: string; isDefault: boolean; sha: string}>;  // Available branches
 }
 
 export interface SearchState {

@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import { exposeGitAPI } from './git-api';
 
 // T010: Preload script with contextBridge exposing IPC APIs (contracts/README.md)
 // Security: No direct access to ipcRenderer from renderer process
@@ -121,9 +122,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 } as ElectronAPI);
 
+// Expose Git API
+exposeGitAPI();
+
 // Type declaration for global window object
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
+    git: {
+      repo: {
+        connect: (request: any) => Promise<any>;
+        fetchFile: (request: any) => Promise<any>;
+        fetchTree: (request: any) => Promise<any>;
+      };
+      auth: Record<string, any>;
+      connectivity: {
+        check: (request?: any) => Promise<any>;
+      };
+      recent: Record<string, any>;
+    };
   }
 }

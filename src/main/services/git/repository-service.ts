@@ -9,8 +9,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { githubClient } from './github-client';
 import { credentialStore } from '../storage/credential-store';
 import { cacheManager } from '../storage/cache-manager';
-import { parseRepositoryUrl } from '@/shared/utils/url-parser';
-import { normalizeRepositoryUrl } from '@/shared/utils/url-normalizer';
+import { gitHttpClient } from './http-client';
+import { parseRepositoryUrl } from '../../../shared/utils/url-parser';
+import { normalizeRepositoryUrl } from '../../../shared/utils/url-normalizer';
 import type {
   ConnectRepositoryRequest,
   ConnectRepositoryResponse,
@@ -18,8 +19,8 @@ import type {
   FetchFileResponse,
   FetchRepositoryTreeRequest,
   FetchRepositoryTreeResponse,
-} from '@/shared/types/git-contracts';
-import type { Repository } from '@/shared/types/repository';
+} from '../../../shared/types/git-contracts';
+import type { Repository } from '../../../shared/types/repository';
 
 /**
  * Repository service
@@ -32,6 +33,45 @@ import type { Repository } from '@/shared/types/repository';
  */
 export class RepositoryService {
   private repositories: Map<string, Repository> = new Map();
+  private tokenProviderInitialized = false;
+
+  constructor() {
+    // Initialize token provider for HTTP client
+    this.initializeTokenProvider();
+  }
+
+  /**
+   * Initialize the token provider for the HTTP client
+   * This provides authentication tokens for all GitHub API requests
+   */
+  private initializeTokenProvider(): void {
+    if (this.tokenProviderInitialized) return;
+
+    gitHttpClient.setTokenProvider(async (url: string) => {
+      try {
+        // Determine provider from URL
+        const urlObj = new URL(url);
+        let provider: 'github' | 'azure' | null = null;
+
+        if (urlObj.hostname.includes('github')) {
+          provider = 'github';
+        } else if (urlObj.hostname.includes('azure')) {
+          provider = 'azure';
+        }
+
+        if (!provider) return null;
+
+        // Get stored token for this provider
+        const token = await credentialStore.getToken(provider);
+        return token;
+      } catch (error) {
+        // If token retrieval fails, proceed without authentication
+        return null;
+      }
+    });
+
+    this.tokenProviderInitialized = true;
+  }
 
   /**
    * Connect to a Git repository

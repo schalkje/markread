@@ -273,3 +273,136 @@ export interface GetConnectivityStatusResponse {
 }
 
 export type GetConnectivityStatusIPCResponse = IPCResponse<GetConnectivityStatusResponse>;
+
+// ============================================================================
+// Authentication - Personal Access Token
+// ============================================================================
+
+/**
+ * Request to authenticate using a Personal Access Token
+ * Aligns with FR-004, User Story 2
+ */
+export interface AuthenticateWithPATRequest {
+  /** Git provider */
+  provider: 'github' | 'azure';
+
+  /** Personal Access Token */
+  token: string;
+
+  /** Repository URL (optional, for testing token validity) */
+  testRepository?: string;
+}
+
+export const AuthenticateWithPATRequestSchema = z.object({
+  provider: z.enum(['github', 'azure']),
+  token: z.string()
+    .min(1, 'Token cannot be empty')
+    .max(500, 'Token too long'),
+  testRepository: z.string().url().startsWith('https://').optional(),
+});
+
+/**
+ * Response from PAT authentication
+ */
+export interface AuthenticateWithPATResponse {
+  /** Whether token was successfully stored */
+  tokenStored: boolean;
+
+  /** Whether token was validated (if testRepository was provided) */
+  validated: boolean;
+
+  /** User information (if available from token validation) */
+  user?: {
+    username: string;
+    email?: string;
+  };
+
+  /** Token scopes (if detectable) */
+  scopes?: string[];
+}
+
+export type AuthenticateWithPATIPCResponse = IPCResponse<AuthenticateWithPATResponse>;
+
+// ============================================================================
+// Authentication - Device Flow (GitHub)
+// ============================================================================
+
+/**
+ * Request to initiate GitHub Device Flow authentication
+ * No client secret required - perfect for desktop applications
+ */
+export interface InitiateDeviceFlowRequest {
+  /** Git provider to authenticate with */
+  provider: 'github' | 'azure';
+
+  /** OAuth scopes to request (optional, uses defaults if not provided) */
+  scopes?: string[];
+}
+
+export const InitiateDeviceFlowRequestSchema = z.object({
+  provider: z.enum(['github', 'azure']),
+  scopes: z.array(z.string()).optional(),
+});
+
+/**
+ * Response from initiating Device Flow
+ */
+export interface InitiateDeviceFlowResponse {
+  /** Device Flow session ID (for tracking) */
+  sessionId: string;
+
+  /** User code to display to the user (e.g., "ABCD-1234") */
+  userCode: string;
+
+  /** URL where user should enter the code (e.g., "https://github.com/login/device") */
+  verificationUri: string;
+
+  /** Seconds until the user_code and device_code expire */
+  expiresIn: number;
+
+  /** Minimum seconds between polling requests */
+  interval: number;
+
+  /** Whether browser was successfully opened */
+  browserOpened: boolean;
+}
+
+export type InitiateDeviceFlowIPCResponse = IPCResponse<InitiateDeviceFlowResponse>;
+
+/**
+ * Request to check Device Flow completion status
+ */
+export interface CheckDeviceFlowStatusRequest {
+  /** Device Flow session ID */
+  sessionId: string;
+}
+
+export const CheckDeviceFlowStatusRequestSchema = z.object({
+  sessionId: z.string().uuid(),
+});
+
+/**
+ * Response from checking Device Flow status
+ */
+export interface CheckDeviceFlowStatusResponse {
+  /** Whether Device Flow is complete */
+  isComplete: boolean;
+
+  /** Whether authentication was successful */
+  isSuccess: boolean;
+
+  /** Current polling interval in seconds (may increase if GitHub requests slowdown) */
+  interval?: number;
+
+  /** User information (if successful) */
+  user?: {
+    username: string;
+    email?: string;
+    avatarUrl?: string;
+  };
+
+  /** Error message (if failed) */
+  error?: string;
+}
+
+export type CheckDeviceFlowStatusIPCResponse = IPCResponse<CheckDeviceFlowStatusResponse>;

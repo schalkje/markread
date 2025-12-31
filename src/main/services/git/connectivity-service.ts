@@ -8,7 +8,7 @@
  */
 
 import axios from 'axios';
-import type { GitProvider } from '@/shared/types/git';
+import type { GitProvider } from '../../../shared/types/git';
 
 /**
  * Connectivity check result

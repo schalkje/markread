@@ -73,13 +73,32 @@ export const useGitRepo = () => {
         const response = await window.git.repo.connect(request);
 
         if (!response.success) {
-          throw new Error(response.error?.message || 'Failed to connect to repository');
+          // Preserve full error object for better error handling
+          const error = response.error || {
+            code: 'UNKNOWN',
+            message: 'Failed to connect to repository',
+            retryable: false,
+          };
+          throw error;
         }
 
         setConnectedRepository(response.data);
         return response.data;
       } catch (err: any) {
-        const errorMessage = err.message || 'An unexpected error occurred';
+        // Extract error message, include details if available
+        let errorMessage = err.message || 'An unexpected error occurred';
+
+        // Add details for better user guidance
+        if (err.details) {
+          errorMessage = `${errorMessage}\n\n${err.details}`;
+        }
+
+        // For rate limit errors, add time information
+        if (err.code === 'RATE_LIMIT' && err.retryAfterSeconds) {
+          const minutes = Math.ceil(err.retryAfterSeconds / 60);
+          errorMessage = `${errorMessage}\n\nRate limit will reset in approximately ${minutes} minute${minutes !== 1 ? 's' : ''}.`;
+        }
+
         setError(errorMessage);
         throw err;
       } finally {

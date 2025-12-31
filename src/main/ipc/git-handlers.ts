@@ -8,21 +8,28 @@
 import { ipcMain } from 'electron';
 import { repositoryService } from '../services/git/repository-service';
 import { connectivityService } from '../services/git/connectivity-service';
-import { createSuccessResponse, createErrorResponse } from '@/shared/types/ipc';
+import { oauthService } from '../services/git/oauth-service';
+import { createSuccessResponse, createErrorResponse } from '../../shared/types/ipc';
 import {
   ConnectRepositoryRequestSchema,
   FetchFileRequestSchema,
   FetchRepositoryTreeRequestSchema,
   CheckConnectivityRequestSchema,
+  InitiateDeviceFlowRequestSchema,
+  CheckDeviceFlowStatusRequestSchema,
   type ConnectRepositoryRequest,
   type FetchFileRequest,
   type FetchRepositoryTreeRequest,
   type CheckConnectivityRequest,
+  type InitiateDeviceFlowRequest,
+  type CheckDeviceFlowStatusRequest,
   type ConnectRepositoryIPCResponse,
   type FetchFileIPCResponse,
   type FetchRepositoryTreeIPCResponse,
   type CheckConnectivityIPCResponse,
-} from '@/shared/types/git-contracts';
+  type InitiateDeviceFlowIPCResponse,
+  type CheckDeviceFlowStatusIPCResponse,
+} from '../../shared/types/git-contracts';
 
 /**
  * Register all Git IPC handlers
@@ -119,6 +126,59 @@ export function registerGitHandlers(): void {
         retryable: error.retryable ?? false,
         retryAfterSeconds: error.retryAfterSeconds,
         statusCode: error.statusCode,
+      });
+    }
+  });
+
+  // Initiate Device Flow authentication
+  ipcMain.handle('git:auth:deviceflow:initiate', async (_event, payload): Promise<InitiateDeviceFlowIPCResponse> => {
+    try {
+      // Validate request
+      const request = InitiateDeviceFlowRequestSchema.parse(payload) as InitiateDeviceFlowRequest;
+
+      // Initiate Device Flow
+      const response = await oauthService.initiateDeviceFlow(request);
+
+      return createSuccessResponse(response);
+    } catch (error: any) {
+      return createErrorResponse({
+        code: error.code || 'UNKNOWN',
+        message: error.message || 'An unexpected error occurred',
+        retryable: error.retryable ?? false,
+        details: error.details,
+      });
+    }
+  });
+
+  // Check Device Flow status
+  ipcMain.handle('git:auth:deviceflow:status', async (_event, payload): Promise<CheckDeviceFlowStatusIPCResponse> => {
+    try {
+      // Validate request
+      const request = CheckDeviceFlowStatusRequestSchema.parse(payload) as CheckDeviceFlowStatusRequest;
+
+      // Check status
+      const response = await oauthService.checkDeviceFlowStatus(request.sessionId);
+
+      return createSuccessResponse(response);
+    } catch (error: any) {
+      return createErrorResponse({
+        code: error.code || 'UNKNOWN',
+        message: error.message || 'An unexpected error occurred',
+        retryable: false,
+      });
+    }
+  });
+
+  // Cancel Device Flow
+  ipcMain.handle('git:auth:deviceflow:cancel', async (_event, sessionId: string): Promise<any> => {
+    try {
+      oauthService.cancelDeviceFlow(sessionId);
+      return createSuccessResponse({ cancelled: true });
+    } catch (error: any) {
+      return createErrorResponse({
+        code: error.code || 'UNKNOWN',
+        message: error.message || 'An unexpected error occurred',
+        retryable: false,
       });
     }
   });

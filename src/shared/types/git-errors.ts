@@ -107,7 +107,7 @@ export const ERROR_MESSAGES: Record<GitErrorCode, string> = {
 
   NETWORK_ERROR: 'Network error. Please check your internet connection and try again.',
   TIMEOUT: 'The operation timed out. Please try again.',
-  RATE_LIMIT: 'Rate limit exceeded. Please wait before trying again.',
+  RATE_LIMIT: 'GitHub API rate limit exceeded. Unauthenticated requests are limited to 60 per hour. Please wait or authenticate with a Personal Access Token to increase limits.',
 
   INVALID_URL: 'Invalid repository URL. Please check the URL and try again.',
   REPOSITORY_NOT_FOUND: 'Repository not found. Please check the URL and your access permissions.',

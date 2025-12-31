@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFoldersStore } from '../../stores/folders';
 import { useTabsStore } from '../../stores/tabs';
+import type { TreeNode } from '../../../shared/types/repository';
 import './FileTree.css';
 
 export interface FileTreeProps {
@@ -53,37 +54,65 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
-  // T102: Load tree data from IPC handler
+  // T102: Load tree data from IPC handler (local folders) or Git API (repositories)
   useEffect(() => {
     if (!folder) return;
 
     const loadFileTree = async () => {
       try {
-        // Call file:getFolderTree IPC handler
-        const result = await window.electronAPI?.file?.getFolderTree({
-          folderPath: folder.path,
-          includeHidden: false,
-          maxDepth: undefined, // No limit
-        });
+        let treeWithDepth: FileTreeNode[] = [];
 
-        if (!result?.success || !result.tree) {
-          console.error('Failed to load file tree:', result?.error);
-          setTreeData([]);
-          return;
+        if (folder.type === 'repository') {
+          // Load repository file tree from Git API
+          const result = await window.git?.repo?.fetchTree({
+            repositoryId: folder.repositoryId!,
+            branch: folder.currentBranch!,
+            markdownOnly: true,
+          });
+
+          if (!result?.success || !result.tree) {
+            console.error('Failed to load repository tree:', result?.error);
+            setTreeData([]);
+            return;
+          }
+
+          // Convert Git TreeNode to FileTreeNode with depth
+          const convertGitNode = (node: TreeNode, depth: number = 0): FileTreeNode => ({
+            name: node.path.split('/').pop() || node.path,
+            path: node.path,
+            type: node.type === 'directory' ? 'directory' : 'file',
+            depth,
+            children: node.children?.map((child) => convertGitNode(child, depth + 1)),
+          });
+
+          treeWithDepth = result.tree.map((node: TreeNode) => convertGitNode(node, 0));
+        } else {
+          // Load local folder tree from file system
+          const result = await window.electronAPI?.file?.getFolderTree({
+            folderPath: folder.path,
+            includeHidden: false,
+            maxDepth: undefined, // No limit
+          });
+
+          if (!result?.success || !result.tree) {
+            console.error('Failed to load file tree:', result?.error);
+            setTreeData([]);
+            return;
+          }
+
+          // Convert the tree structure to include depth for rendering
+          const addDepth = (node: any, depth: number = 0): FileTreeNode => ({
+            name: node.name,
+            path: node.path,
+            type: node.type,
+            depth,
+            children: node.children?.map((child: any) => addDepth(child, depth + 1)),
+          });
+
+          treeWithDepth = result.tree.children?.map((child: any) =>
+            addDepth(child, 0)
+          ) || [];
         }
-
-        // Convert the tree structure to include depth for rendering
-        const addDepth = (node: any, depth: number = 0): FileTreeNode => ({
-          name: node.name,
-          path: node.path,
-          type: node.type,
-          depth,
-          children: node.children?.map((child: any) => addDepth(child, depth + 1)),
-        });
-
-        const treeWithDepth = result.tree.children?.map((child: any) =>
-          addDepth(child, 0)
-        ) || [];
 
         setTreeData(treeWithDepth);
       } catch (error) {

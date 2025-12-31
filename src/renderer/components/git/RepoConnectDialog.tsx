@@ -9,7 +9,7 @@
  * - Connection progress indicator
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useGitRepo } from '../../hooks/useGitRepo';
 import type { ConnectRepositoryRequest } from '../../../shared/types/git-contracts';
 import './RepoConnectDialog.css';
@@ -21,6 +21,18 @@ export interface RepoConnectDialogProps {
   onClose: () => void;
   /** Callback when successfully connected */
   onConnected?: () => void;
+}
+
+/**
+ * Device Flow session state
+ */
+interface DeviceFlowSessionState {
+  sessionId: string;
+  userCode: string;
+  verificationUri: string;
+  expiresIn: number;
+  interval: number;
+  statusMessage: string;
 }
 
 /**
@@ -44,8 +56,164 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
 
   // Form state
   const [url, setUrl] = useState('');
-  const [authMethod, setAuthMethod] = useState<'oauth' | 'pat'>('oauth');
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Device Flow state
+  const [deviceFlowSession, setDeviceFlowSession] = useState<DeviceFlowSessionState | null>(null);
+  const [isManuallyChecking, setIsManuallyChecking] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const deviceFlowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+  const currentIntervalRef = useRef<number>(5); // Track current polling interval
+
+  /**
+   * Check Device Flow status (used by both automatic polling and manual checks)
+   */
+  const checkDeviceFlowStatus = useCallback(async (sessionId: string): Promise<boolean> => {
+    try {
+      const statusResponse = await window.git.auth.checkDeviceFlowStatus({
+        sessionId,
+      });
+
+      if (!statusResponse.success) {
+        return false; // Continue polling
+      }
+
+      const status = statusResponse.data;
+
+      // Check if interval has changed (GitHub requested slowdown)
+      if (status.interval && status.interval !== currentIntervalRef.current) {
+        console.log(`[Device Flow] Interval changed from ${currentIntervalRef.current}s to ${status.interval}s`);
+        currentIntervalRef.current = status.interval;
+
+        // Restart polling with new interval
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+          startPolling(sessionId, status.interval);
+        }
+        return false;
+      }
+
+      if (status.isComplete) {
+        // Clear polling and timeout
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+        if (deviceFlowTimeoutRef.current) {
+          clearTimeout(deviceFlowTimeoutRef.current);
+          deviceFlowTimeoutRef.current = null;
+        }
+
+        if (status.isSuccess) {
+          // Device Flow successful - now connect to repository
+          setDeviceFlowSession((prev) =>
+            prev ? { ...prev, statusMessage: 'Authentication successful! Connecting...' } : null
+          );
+
+          const request: ConnectRepositoryRequest = {
+            url: url.trim(),
+            authMethod: 'oauth',
+          };
+
+          await connectRepository(request);
+
+          // Success - close dialog and notify parent
+          onConnected?.();
+          onClose();
+
+          // Reset form
+          setUrl('');
+          setDeviceFlowSession(null);
+          setValidationError(null);
+        } else {
+          // Device Flow failed
+          setDeviceFlowSession(null);
+          setValidationError(status.error || 'Authentication failed');
+        }
+        return true; // Completed
+      } else {
+        // Update status message
+        setDeviceFlowSession((prev) =>
+          prev ? { ...prev, statusMessage: 'Waiting for authorization on GitHub...' } : null
+        );
+        return false; // Continue polling
+      }
+    } catch (pollError: any) {
+      console.error('Error polling Device Flow status:', pollError);
+      return false;
+    }
+  }, [url, connectRepository, onConnected, onClose]);
+
+  /**
+   * Start or restart polling with the current interval
+   */
+  const startPolling = useCallback((sessionId: string, intervalSeconds: number) => {
+    // Clear existing interval if any
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
+    // Update current interval
+    currentIntervalRef.current = intervalSeconds;
+    console.log(`[Device Flow] Starting polling with ${intervalSeconds}s interval`);
+
+    // Start new polling interval
+    pollIntervalRef.current = setInterval(async () => {
+      await checkDeviceFlowStatus(sessionId);
+    }, intervalSeconds * 1000);
+  }, [checkDeviceFlowStatus]);
+
+  /**
+   * Manually check Device Flow status
+   */
+  const handleManualCheck = useCallback(async () => {
+    if (!sessionIdRef.current || isManuallyChecking) {
+      return;
+    }
+
+    setIsManuallyChecking(true);
+    console.log('[Device Flow] Manual check triggered');
+
+    try {
+      await checkDeviceFlowStatus(sessionIdRef.current);
+    } finally {
+      setIsManuallyChecking(false);
+    }
+  }, [checkDeviceFlowStatus, isManuallyChecking]);
+
+  /**
+   * Cleanup Device Flow session and intervals
+   */
+  const cleanupDeviceFlowSession = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    if (deviceFlowTimeoutRef.current) {
+      clearTimeout(deviceFlowTimeoutRef.current);
+      deviceFlowTimeoutRef.current = null;
+    }
+    if (sessionIdRef.current) {
+      window.git.auth.cancelDeviceFlow(sessionIdRef.current).catch(() => {
+        // Ignore cancellation errors
+      });
+      sessionIdRef.current = null;
+    }
+    setDeviceFlowSession(null);
+    currentIntervalRef.current = 5; // Reset interval
+  }, []);
+
+  /**
+   * Cleanup on unmount or when dialog closes
+   */
+  useEffect(() => {
+    return () => {
+      cleanupDeviceFlowSession();
+    };
+  }, [cleanupDeviceFlowSession]);
 
   /**
    * Validate repository URL
@@ -91,25 +259,57 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
       }
 
       try {
-        const request: ConnectRepositoryRequest = {
-          url: url.trim(),
-          authMethod,
-        };
-
-        await connectRepository(request);
-
-        // Success - close dialog and notify parent
-        onConnected?.();
-        onClose();
-
-        // Reset form
-        setUrl('');
         setValidationError(null);
-      } catch (err) {
-        // Error is handled by useGitRepo hook and displayed in the dialog
+
+        // Initiate Device Flow
+        console.log('[Device Flow] Initiating...');
+        const deviceFlowResponse = await window.git.auth.initiateDeviceFlow({
+          provider: 'github',
+          scopes: ['repo', 'user:email'],
+        });
+
+        console.log('[Device Flow] Response:', deviceFlowResponse);
+
+        if (!deviceFlowResponse.success) {
+          throw new Error(deviceFlowResponse.error?.message || 'Failed to initiate authentication');
+        }
+
+        const { sessionId, userCode, verificationUri, expiresIn, interval, browserOpened } = deviceFlowResponse.data;
+        console.log('[Device Flow] User code:', userCode);
+
+        // Set initial status message
+        const statusMessage = browserOpened
+          ? 'Opening GitHub in your browser...'
+          : 'Please open GitHub manually to authorize';
+
+        const session = {
+          sessionId,
+          userCode,
+          verificationUri,
+          expiresIn,
+          interval,
+          statusMessage,
+        };
+        console.log('[Device Flow] Setting session state:', session);
+        sessionIdRef.current = sessionId;
+        setDeviceFlowSession(session);
+
+        // Set timeout for Device Flow (uses expiresIn from GitHub)
+        deviceFlowTimeoutRef.current = setTimeout(() => {
+          cleanupDeviceFlowSession();
+          setValidationError('Authentication timed out. Please try again.');
+        }, expiresIn * 1000);
+
+        // Start polling for Device Flow completion (use interval from GitHub)
+        startPolling(sessionId, interval);
+
+        return;
+      } catch (err: any) {
+        cleanupDeviceFlowSession();
+        setValidationError(err.message || 'An error occurred during authentication');
       }
     },
-    [url, authMethod, validateUrl, connectRepository, onConnected, onClose]
+    [url, validateUrl, connectRepository, onConnected, onClose, cleanupDeviceFlowSession, startPolling]
   );
 
   /**
@@ -124,12 +324,13 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
    * Handle close
    */
   const handleClose = useCallback(() => {
-    if (!isConnecting) {
+    if (!isConnecting && !deviceFlowSession) {
+      cleanupDeviceFlowSession();
       setUrl('');
       setValidationError(null);
       onClose();
     }
-  }, [isConnecting, onClose]);
+  }, [isConnecting, deviceFlowSession, cleanupDeviceFlowSession, onClose]);
 
   /**
    * Handle escape key
@@ -154,6 +355,9 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
     },
     [isConnecting, handleClose]
   );
+
+  // Debug log
+  console.log('[Device Flow] Render - deviceFlowSession:', deviceFlowSession);
 
   if (!isOpen) return null;
 
@@ -201,41 +405,52 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
             </span>
           </div>
 
-          {/* Auth Method Selection */}
-          <div className="repo-connect-dialog__field">
-            <label className="repo-connect-dialog__label">
-              Authentication Method
-            </label>
-            <div className="repo-connect-dialog__radio-group">
-              <label className="repo-connect-dialog__radio-label">
-                <input
-                  type="radio"
-                  name="authMethod"
-                  value="oauth"
-                  checked={authMethod === 'oauth'}
-                  onChange={() => setAuthMethod('oauth')}
-                  disabled={isConnecting}
-                />
-                <span>OAuth (Recommended)</span>
-              </label>
-              <label className="repo-connect-dialog__radio-label">
-                <input
-                  type="radio"
-                  name="authMethod"
-                  value="pat"
-                  checked={authMethod === 'pat'}
-                  onChange={() => setAuthMethod('pat')}
-                  disabled={isConnecting}
-                />
-                <span>Personal Access Token</span>
-              </label>
+          {/* Device Flow Status Display */}
+          {(() => {
+            console.log('[Device Flow] Checking deviceFlowSession for render:', !!deviceFlowSession);
+            return deviceFlowSession && (
+            <div className="repo-connect-dialog__device-flow-status" role="status">
+              <div className="repo-connect-dialog__device-flow-message">
+                {deviceFlowSession.statusMessage}
+              </div>
+              <div className="repo-connect-dialog__device-code-box">
+                <div className="repo-connect-dialog__device-code-label">Enter this code on GitHub:</div>
+                <div className="repo-connect-dialog__device-code">{deviceFlowSession.userCode}</div>
+                <a
+                  href={deviceFlowSession.verificationUri}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="repo-connect-dialog__device-code-link"
+                >
+                  Open GitHub to authorize
+                </a>
+              </div>
+              <div className="repo-connect-dialog__polling-info">
+                <div className="repo-connect-dialog__polling-interval">
+                  Auto-checking every {currentIntervalRef.current} seconds
+                </div>
+                <button
+                  type="button"
+                  className="repo-connect-dialog__check-now-btn"
+                  onClick={handleManualCheck}
+                  disabled={isManuallyChecking}
+                >
+                  {isManuallyChecking ? 'Checking...' : 'Check Now'}
+                </button>
+              </div>
             </div>
-          </div>
+            );
+          })()}
 
           {/* Error Display */}
-          {(validationError || error) && (
+          {(validationError || error) && !deviceFlowSession && (
             <div className="repo-connect-dialog__error" role="alert">
-              {validationError || error}
+              {(validationError || error)?.split('\n').map((line, index) => (
+                <React.Fragment key={index}>
+                  {line}
+                  {index < (validationError || error)!.split('\n').length - 1 && <br />}
+                </React.Fragment>
+              ))}
             </div>
           )}
 
@@ -244,17 +459,17 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
             <button
               type="button"
               className="repo-connect-dialog__btn repo-connect-dialog__btn--secondary"
-              onClick={handleClose}
-              disabled={isConnecting}
+              onClick={deviceFlowSession ? cleanupDeviceFlowSession : handleClose}
+              disabled={isConnecting && !deviceFlowSession}
             >
-              Cancel
+              {deviceFlowSession ? 'Cancel Authentication' : 'Cancel'}
             </button>
             <button
               type="submit"
               className="repo-connect-dialog__btn repo-connect-dialog__btn--primary"
-              disabled={isConnecting || !url.trim()}
+              disabled={isConnecting || !url.trim() || !!deviceFlowSession}
             >
-              {isConnecting ? 'Connecting...' : 'Connect'}
+              {isConnecting ? 'Connecting...' : deviceFlowSession ? 'Waiting...' : 'Connect'}
             </button>
           </div>
         </form>

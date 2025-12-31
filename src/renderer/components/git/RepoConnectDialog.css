@@ -165,6 +165,98 @@
   cursor: not-allowed;
 }
 
+/* Device Flow Status Display */
+.repo-connect-dialog__device-flow-status {
+  padding: 16px;
+  background-color: #e6f3ff;
+  border-left: 4px solid #0066cc;
+  border-radius: 4px;
+}
+
+.repo-connect-dialog__device-flow-message {
+  color: #0052a3;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.repo-connect-dialog__device-code-box {
+  background-color: #ffffff;
+  border: 2px dashed #0066cc;
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+}
+
+.repo-connect-dialog__device-code-label {
+  font-size: 13px;
+  color: #666666;
+  margin-bottom: 8px;
+}
+
+.repo-connect-dialog__device-code {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  color: #0052a3;
+  margin: 12px 0;
+  -webkit-user-select: all;
+  user-select: all;
+  cursor: text;
+}
+
+.repo-connect-dialog__device-code-link {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--primary-color, #0066cc);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.repo-connect-dialog__device-code-link:hover {
+  text-decoration: underline;
+}
+
+.repo-connect-dialog__polling-info {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 102, 204, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.repo-connect-dialog__polling-interval {
+  font-size: 13px;
+  color: #0052a3;
+  font-weight: 500;
+}
+
+.repo-connect-dialog__check-now-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: #0066cc;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.repo-connect-dialog__check-now-btn:hover:not(:disabled) {
+  background-color: #0052a3;
+}
+
+.repo-connect-dialog__check-now-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Error Display */
 .repo-connect-dialog__error {
   padding: 12px;
@@ -173,6 +265,15 @@
   color: #c00;
   font-size: 14px;
   border-radius: 4px;
+}
+
+.repo-connect-dialog__hint a {
+  color: var(--primary-color, #0066cc);
+  text-decoration: none;
+}
+
+.repo-connect-dialog__hint a:hover {
+  text-decoration: underline;
 }
 
 /* Actions */

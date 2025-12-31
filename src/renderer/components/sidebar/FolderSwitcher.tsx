@@ -126,8 +126,10 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
         id: `folder-${Date.now()}`,
         path: folderPath,
         displayName: folderName,
+        type: 'local',
         fileTreeState: {
-          expandedDirectories: new Set<string>(),
+          expandedPaths: [],
+          collapsedPaths: [],
           scrollPosition: 0,
           selectedPath: null,
         },
@@ -136,15 +138,8 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
         activeTabId: null,
         recentFiles: [],
         splitLayout: {
-          rootPane: {
-            id: 'pane-root',
-            tabs: [],
-            activeTabId: null,
-            orientation: 'vertical',
-            sizeRatio: 1.0,
-            splitChildren: null,
-          },
-          layoutType: 'single',
+          type: 'single',
+          primarySize: 100,
         },
         createdAt: Date.now(),
         lastAccessedAt: Date.now(),
@@ -190,12 +185,17 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
         aria-haspopup="true"
         type="button"
       >
-        {/* T063h: Show different icon and text for direct files */}
+        {/* Show different icon for direct files, repositories, and local folders */}
         <span className="folder-switcher__icon">
-          {isDirectFile ? '📄' : '📁'}
+          {isDirectFile ? '📄' : (activeFolder?.type === 'repository' ? '🌐' : '📁')}
         </span>
         <span className="folder-switcher__name">
-          {isDirectFile ? 'Direct File' : (activeFolder?.displayName || 'Select folder')}
+          {isDirectFile
+            ? 'Direct File'
+            : activeFolder?.type === 'repository'
+              ? `${activeFolder.displayName} (${activeFolder.currentBranch})`
+              : (activeFolder?.displayName || 'Select folder')
+          }
         </span>
         <span className="folder-switcher__chevron">
           {isOpen ? '▲' : '▼'}
@@ -235,7 +235,7 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
             <div className="folder-switcher__divider" />
           )}
 
-          {/* Regular folders */}
+          {/* Regular folders and repositories */}
           {folders.map((folder) => (
             <div
               key={folder.id}
@@ -243,10 +243,15 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
               onClick={() => handleFolderSelect(folder.id)}
               data-testid={`folder-item-${folder.id}`}
             >
-              <span className="folder-switcher__item-icon">📁</span>
+              <span className="folder-switcher__item-icon">
+                {folder.type === 'repository' ? '🌐' : '📁'}
+              </span>
               <div className="folder-switcher__item-info">
                 <span className="folder-switcher__item-name">
                   {folder.displayName}
+                  {folder.type === 'repository' && folder.currentBranch && (
+                    <span className="folder-switcher__branch"> ({folder.currentBranch})</span>
+                  )}
                 </span>
                 <span className="folder-switcher__item-path" title={folder.path}>
                   {folder.path}
@@ -255,7 +260,7 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
               <button
                 className="folder-switcher__close"
                 onClick={(e) => handleFolderClose(e, folder.id)}
-                title="Close folder"
+                title={folder.type === 'repository' ? 'Disconnect repository' : 'Close folder'}
                 aria-label={`Close ${folder.displayName}`}
               >
                 ×
@@ -263,14 +268,24 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
             </div>
           ))}
 
-          {/* Add folder button */}
+          {/* Add folder/repository buttons */}
           <div className="folder-switcher__divider" />
           <button
             className="folder-switcher__add"
             onClick={handleOpenFolder}
           >
-            <span className="folder-switcher__add-icon">+</span>
+            <span className="folder-switcher__add-icon">📁</span>
             <span>Open Folder...</span>
+          </button>
+          <button
+            className="folder-switcher__add"
+            onClick={() => {
+              setIsOpen(false);
+              window.dispatchEvent(new CustomEvent('menu:connect-repository'));
+            }}
+          >
+            <span className="folder-switcher__add-icon">🌐</span>
+            <span>Connect to Repository...</span>
           </button>
         </div>
       )}

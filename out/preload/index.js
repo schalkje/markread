@@ -1,5 +1,73 @@
 "use strict";
 const electron = require("electron");
+const exposeGitAPI = () => {
+  electron.contextBridge.exposeInMainWorld("git", {
+    // Repository operations (Phase 3 - US1)
+    repo: {
+      /**
+       * Connect to a Git repository
+       * T042
+       */
+      connect: (request) => {
+        return electron.ipcRenderer.invoke("git:connect", request);
+      },
+      /**
+       * Fetch a file from repository
+       * T043
+       */
+      fetchFile: (request) => {
+        return electron.ipcRenderer.invoke("git:fetchFile", request);
+      },
+      /**
+       * Fetch repository file tree
+       * T044
+       */
+      fetchTree: (request) => {
+        return electron.ipcRenderer.invoke("git:fetchTree", request);
+      }
+      // TODO: T069 - Implement git.repo.switchBranch() and listBranches() (Phase 5 - US3)
+      // TODO: T084 - Implement git.repo.openBranchInNewTab() (Phase 7 - US5)
+    },
+    // Authentication operations (Phase 4 - US2)
+    auth: {
+      /**
+       * Initiate Device Flow authentication
+       * Opens browser for GitHub authorization using Device Flow (no client secret required)
+       */
+      initiateDeviceFlow: (request) => {
+        return electron.ipcRenderer.invoke("git:auth:deviceflow:initiate", request);
+      },
+      /**
+       * Check Device Flow authentication status
+       * Poll this to determine when Device Flow is complete
+       */
+      checkDeviceFlowStatus: (request) => {
+        return electron.ipcRenderer.invoke("git:auth:deviceflow:status", request);
+      },
+      /**
+       * Cancel Device Flow authentication
+       */
+      cancelDeviceFlow: (sessionId) => {
+        return electron.ipcRenderer.invoke("git:auth:deviceflow:cancel", sessionId);
+      }
+    },
+    // Connectivity operations (Phase 3 - US1)
+    connectivity: {
+      /**
+       * Check connectivity to Git providers
+       * T045
+       */
+      check: (request) => {
+        return electron.ipcRenderer.invoke("git:connectivity:check", request || {});
+      }
+      // TODO: Implement git.connectivity.onChanged() event listener
+    },
+    // Recent items (Phase 6 - US4)
+    recent: {
+      // TODO: T078 - Implement git.recent.list()
+    }
+  });
+};
 electron.contextBridge.exposeInMainWorld("electronAPI", {
   file: {
     read: (payload) => electron.ipcRenderer.invoke("file:read", payload),
@@ -64,3 +132,4 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
     }
   }
 });
+exposeGitAPI();
