@@ -10,8 +10,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { useFoldersStore } from '../stores/folders';
 import { MarkdownViewer } from './markdown/MarkdownViewer';
-import { FileOpener } from './FileOpener';
-import { FolderOpener } from './FolderOpener';
+import { Home } from './Home';
 import { FileTree } from './sidebar/FileTree';
 import { HistoryPanel } from './sidebar/HistoryPanel';
 import { FolderSwitcher } from './sidebar/FolderSwitcher';
@@ -62,6 +61,9 @@ const AppLayout: React.FC = () => {
 
   // Sidebar view state: 'files' or 'history'
   const [sidebarView, setSidebarView] = useState<'files' | 'history'>('files');
+
+  // Home view state - tracks if home page is active
+  const [showHome, setShowHome] = useState(false);
 
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'warning' | 'error' | 'success' } | null>(null);
@@ -1855,6 +1857,7 @@ const AppLayout: React.FC = () => {
         {hasTabs && (
           <TabBar
             onTabClick={(tabId) => {
+              setShowHome(false); // Hide home when clicking a regular tab
               const { getTab, setActiveTab } = useTabsStore.getState();
               const tab = getTab(tabId);
               if (tab) {
@@ -1873,19 +1876,20 @@ const AppLayout: React.FC = () => {
                 }
               }
             }}
+            onHomeClick={() => {
+              setShowHome(true);
+              setCurrentFile(null); // Clear current file to ensure home is shown
+              // Deselect any active tab
+              const { setActiveTab } = useTabsStore.getState();
+              setActiveTab(null);
+            }}
+            isHomeActive={showHome}
           />
         )}
 
         <div className="editor-area">
-          {!currentFile ? (
-            <div className="welcome">
-              <h1>Welcome to MarkRead</h1>
-              <p>Open a markdown file or folder to get started</p>
-              <div className="welcome-buttons">
-                <FileOpener onFileOpened={handleFileOpened} />
-                <FolderOpener onFolderOpened={handleFolderOpened} />
-              </div>
-            </div>
+          {showHome || !currentFile ? (
+            <Home onFileOpened={handleFileOpened} onFolderOpened={handleFolderOpened} />
           ) : (
             <MarkdownViewer
               content={contentForCurrentFile}

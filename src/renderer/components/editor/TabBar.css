@@ -86,6 +86,19 @@
   flex-shrink: 0;
 }
 
+/* Home tab - small icon-only tab */
+.tab--home {
+  min-width: 40px;
+  max-width: 40px;
+  padding: 0;
+  justify-content: center;
+  border-right: 1px solid var(--border-color, #d0d7de);
+}
+
+.tab--home svg {
+  flex-shrink: 0;
+}
+
 /* T063e: Folder indicator */
 .tab__folder-indicator {
   width: 3px;
