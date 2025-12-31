@@ -179,6 +179,7 @@ export interface FetchRepositoryTreeResponse {
   markdownFileCount: number;
   branch: string;
   fetchedAt: number;
+  fromCache?: boolean; // Indicates if tree was loaded from cache
 }
 
 export type FetchRepositoryTreeIPCResponse = IPCResponse<FetchRepositoryTreeResponse>;

@@ -188,40 +188,55 @@ export class RepositoryService {
       };
     }
 
-    const fileData = await githubClient.getFileContent(
-      repository.owner,
-      repository.name,
-      request.filePath,
-      branch
-    );
+    try {
+      const fileData = await githubClient.getFileContent(
+        repository.owner,
+        repository.name,
+        request.filePath,
+        branch
+      );
 
-    const isMarkdown = request.filePath.match(/\.(md|markdown|mdown)$/i) !== null;
+      const isMarkdown = request.filePath.match(/\.(md|markdown|mdown)$/i) !== null;
 
-    // Store in cache
-    await cacheManager.set(
-      request.repositoryId,
-      request.filePath,
-      branch,
-      fileData.content
-    );
+      // Store in cache
+      await cacheManager.set(
+        request.repositoryId,
+        request.filePath,
+        branch,
+        fileData.content
+      );
 
-    return {
-      filePath: request.filePath,
-      content: fileData.content,
-      size: fileData.size,
-      sha: fileData.sha,
-      isMarkdown,
-      cached: false,
-      fetchedAt: Date.now(),
-      branch,
-    };
+      return {
+        filePath: request.filePath,
+        content: fileData.content,
+        size: fileData.size,
+        sha: fileData.sha,
+        isMarkdown,
+        cached: false,
+        fetchedAt: Date.now(),
+        branch,
+      };
+    } catch (error: any) {
+      // Provide a more specific error message for file 404s
+      if (error.statusCode === 404) {
+        throw {
+          code: 'FILE_NOT_FOUND',
+          message: `File not found: ${request.filePath}`,
+          details: 'This file may have been moved, renamed, or deleted. Please refresh the file tree to see the latest files.',
+          statusCode: 404,
+          retryable: false,
+        };
+      }
+      // Re-throw other errors
+      throw error;
+    }
   }
 
   /**
    * Fetch repository file tree
    *
    * @param request - Tree fetch request
-   * @returns File tree structure
+   * @returns File tree structure (from cache if available, then fresh from GitHub)
    */
   async fetchTree(request: FetchRepositoryTreeRequest): Promise<FetchRepositoryTreeResponse> {
     const repository = this.repositories.get(request.repositoryId);
@@ -243,6 +258,10 @@ export class RepositoryService {
       };
     }
 
+    // Try to get from cache first
+    const cachedTree = await cacheManager.getTree(request.repositoryId, branch);
+
+    // Fetch fresh tree from GitHub
     const tree = await githubClient.getRepositoryTree(
       repository.owner,
       repository.name,
@@ -270,13 +289,46 @@ export class RepositoryService {
 
     countFiles(tree);
 
-    return {
+    const response: FetchRepositoryTreeResponse = {
       tree,
       fileCount,
       markdownFileCount,
       branch,
       fetchedAt: Date.now(),
+      fromCache: false,
     };
+
+    // Cache the tree for future use (fire and forget)
+    cacheManager.setTree(request.repositoryId, branch, response).catch(() => {
+      // Ignore cache errors
+    });
+
+    return response;
+  }
+
+  /**
+   * Get cached repository file tree if available
+   *
+   * @param request - Tree fetch request
+   * @returns Cached file tree structure, or null if not cached
+   */
+  async getCachedTree(request: FetchRepositoryTreeRequest): Promise<FetchRepositoryTreeResponse | null> {
+    const repository = this.repositories.get(request.repositoryId);
+    if (!repository) {
+      return null;
+    }
+
+    const branch = request.branch || repository.currentBranch;
+    const cachedTree = await cacheManager.getTree(request.repositoryId, branch);
+
+    if (cachedTree) {
+      return {
+        ...cachedTree,
+        fromCache: true,
+      };
+    }
+
+    return null;
   }
 
   /**

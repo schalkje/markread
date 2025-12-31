@@ -23,6 +23,8 @@ interface GitStoreState {
 
   // File tree state
   fileTree: TreeNode[] | null;
+  treeFromCache: boolean;
+  treeFetchedAt: number | null;
   currentFilePath: string | null;
   currentFileContent: string | null;
 
@@ -34,6 +36,7 @@ interface GitStoreState {
   isConnecting: boolean;
   isFetchingFile: boolean;
   isFetchingTree: boolean;
+  isRefreshingTree: boolean; // Background refresh while showing cached tree
   isSwitchingBranch: boolean;
 
   // Error state
@@ -43,13 +46,14 @@ interface GitStoreState {
   setConnectedRepository: (repository: ConnectRepositoryResponse | null) => void;
   setCurrentBranch: (branch: string) => void;
   setBranches: (branches: BranchInfo[]) => void;
-  setFileTree: (tree: TreeNode[] | null) => void;
+  setFileTree: (tree: TreeNode[] | null, fromCache?: boolean, fetchedAt?: number) => void;
   setCurrentFile: (path: string | null, content: string | null) => void;
   setIsOnline: (isOnline: boolean) => void;
   setLastConnectivityCheck: (timestamp: number) => void;
   setIsConnecting: (isConnecting: boolean) => void;
   setIsFetchingFile: (isFetching: boolean) => void;
   setIsFetchingTree: (isFetching: boolean) => void;
+  setIsRefreshingTree: (isRefreshing: boolean) => void;
   setIsSwitchingBranch: (isSwitching: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => void;
@@ -61,6 +65,8 @@ const initialState = {
   currentBranch: null,
   branches: [],
   fileTree: null,
+  treeFromCache: false,
+  treeFetchedAt: null,
   currentFilePath: null,
   currentFileContent: null,
   isOnline: true,
@@ -68,6 +74,7 @@ const initialState = {
   isConnecting: false,
   isFetchingFile: false,
   isFetchingTree: false,
+  isRefreshingTree: false,
   isSwitchingBranch: false,
   error: null,
 };
@@ -92,13 +99,18 @@ export const useGitStore = create<GitStoreState>((set) => ({
 
   setCurrentBranch: (branch) => set({ currentBranch: branch }),
   setBranches: (branches) => set({ branches }),
-  setFileTree: (tree) => set({ fileTree: tree }),
+  setFileTree: (tree, fromCache = false, fetchedAt = Date.now()) => set({
+    fileTree: tree,
+    treeFromCache: fromCache,
+    treeFetchedAt: fetchedAt
+  }),
   setCurrentFile: (path, content) => set({ currentFilePath: path, currentFileContent: content }),
   setIsOnline: (isOnline) => set({ isOnline }),
   setLastConnectivityCheck: (timestamp) => set({ lastConnectivityCheck: timestamp }),
   setIsConnecting: (isConnecting) => set({ isConnecting }),
   setIsFetchingFile: (isFetching) => set({ isFetchingFile: isFetching }),
   setIsFetchingTree: (isFetching) => set({ isFetchingTree: isFetching }),
+  setIsRefreshingTree: (isRefreshing) => set({ isRefreshingTree: isRefreshing }),
   setIsSwitchingBranch: (isSwitching) => set({ isSwitchingBranch: isSwitching }),
   setError: (error) => set({ error }),
   reset: () => set(initialState),

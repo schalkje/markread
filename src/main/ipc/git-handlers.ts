@@ -98,6 +98,33 @@ export function registerGitHandlers(): void {
     }
   });
 
+  // Get cached repository tree
+  ipcMain.handle('git:getCachedTree', async (_event, payload): Promise<FetchRepositoryTreeIPCResponse> => {
+    try {
+      // Validate request
+      const request = FetchRepositoryTreeRequestSchema.parse(payload) as FetchRepositoryTreeRequest;
+
+      // Get cached tree
+      const response = await repositoryService.getCachedTree(request);
+
+      if (response) {
+        return createSuccessResponse(response);
+      } else {
+        return createErrorResponse({
+          code: 'NOT_CACHED',
+          message: 'Tree not found in cache',
+          retryable: false,
+        });
+      }
+    } catch (error: any) {
+      return createErrorResponse({
+        code: error.code || 'UNKNOWN',
+        message: error.message || 'An unexpected error occurred',
+        retryable: error.retryable ?? false,
+      });
+    }
+  });
+
   // Check connectivity
   ipcMain.handle('git:connectivity:check', async (_event, payload): Promise<CheckConnectivityIPCResponse> => {
     try {

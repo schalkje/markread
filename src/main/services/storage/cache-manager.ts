@@ -169,6 +169,87 @@ export class CacheManager {
   }
 
   /**
+   * Get cached tree structure
+   *
+   * @param repositoryId - Repository identifier
+   * @param branch - Branch name
+   * @returns Cached tree structure, or null if not cached
+   */
+  async getTree(
+    repositoryId: string,
+    branch: string
+  ): Promise<any | null> {
+    const key = this.generateTreeKey(repositoryId, branch);
+    const entry = this.metadata.entries.get(key);
+
+    if (!entry) return null;
+
+    // Update last accessed timestamp (LRU tracking)
+    entry.lastAccessedAt = Date.now();
+    this.metadata.entries.set(key, entry);
+    await this.saveMetadata();
+
+    // Read from file system
+    const cacheFilePath = this.getCacheFilePath(key);
+    try {
+      const content = await fs.readFile(cacheFilePath, 'utf-8');
+      return JSON.parse(content);
+    } catch (error) {
+      // Cache file missing or corrupt, remove from metadata
+      this.metadata.entries.delete(key);
+      return null;
+    }
+  }
+
+  /**
+   * Store tree structure in cache
+   *
+   * @param repositoryId - Repository identifier
+   * @param branch - Branch name
+   * @param tree - Tree structure to cache
+   */
+  async setTree(
+    repositoryId: string,
+    branch: string,
+    tree: any
+  ): Promise<void> {
+    const key = this.generateTreeKey(repositoryId, branch);
+    const content = JSON.stringify(tree);
+    const size = Buffer.byteLength(content, 'utf-8');
+
+    // Check if adding this tree would exceed limits
+    await this.ensureSpace(repositoryId, size);
+
+    // Write to file system
+    const cacheFilePath = this.getCacheFilePath(key);
+    await fs.mkdir(path.dirname(cacheFilePath), { recursive: true });
+    await fs.writeFile(cacheFilePath, content, 'utf-8');
+
+    // Update metadata
+    const existingEntry = this.metadata.entries.get(key);
+    const oldSize = existingEntry?.size || 0;
+
+    const entry: CacheEntry = {
+      key,
+      repositoryId,
+      filePath: '__TREE__',
+      branch,
+      size,
+      fetchedAt: existingEntry?.fetchedAt || Date.now(),
+      lastAccessedAt: Date.now(),
+      diskPath: cacheFilePath,
+    };
+
+    this.metadata.entries.set(key, entry);
+    this.metadata.totalSize += (size - oldSize);
+
+    const repoSize = this.metadata.repositorySizes.get(repositoryId) || 0;
+    this.metadata.repositorySizes.set(repositoryId, repoSize + (size - oldSize));
+
+    await this.saveMetadata();
+  }
+
+  /**
    * Get cache statistics
    */
   getStats() {
@@ -235,6 +316,13 @@ export class CacheManager {
    */
   private generateKey(repositoryId: string, filePath: string, branch: string): string {
     return `${repositoryId}/${branch}/${filePath}`;
+  }
+
+  /**
+   * Generate cache key for tree structure
+   */
+  private generateTreeKey(repositoryId: string, branch: string): string {
+    return `${repositoryId}/${branch}/__TREE__`;
   }
 
   /**

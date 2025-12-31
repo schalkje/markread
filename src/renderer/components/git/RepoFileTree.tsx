@@ -44,7 +44,9 @@ export const RepoFileTree: React.FC<RepoFileTreeProps> = ({
     repositoryId,
     currentBranch,
     fileTree,
+    treeFromCache,
     isFetchingTree,
+    isRefreshingTree,
     error,
     fetchTree,
   } = useGitRepo();
@@ -173,8 +175,8 @@ export const RepoFileTree: React.FC<RepoFileTreeProps> = ({
     );
   }
 
-  // Loading state
-  if (isFetchingTree) {
+  // Loading state (only show full loading when there's no cached tree)
+  if (isFetchingTree && !fileTree) {
     return (
       <div className={`repo-file-tree ${className}`}>
         <div className="repo-file-tree__loading">
@@ -228,6 +230,13 @@ export const RepoFileTree: React.FC<RepoFileTreeProps> = ({
   // Render tree
   return (
     <div className={`repo-file-tree ${className}`} role="tree">
+      {/* Refresh indicator for background updates */}
+      {isRefreshingTree && (
+        <div className="repo-file-tree__refresh-indicator">
+          <div className="repo-file-tree__refresh-spinner" />
+          <span>Refreshing...</span>
+        </div>
+      )}
       {renderTree}
     </div>
   );

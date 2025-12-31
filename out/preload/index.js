@@ -24,6 +24,13 @@ const exposeGitAPI = () => {
        */
       fetchTree: (request) => {
         return electron.ipcRenderer.invoke("git:fetchTree", request);
+      },
+      /**
+       * Get cached repository file tree
+       * Returns cached tree if available, otherwise returns error
+       */
+      getCachedTree: (request) => {
+        return electron.ipcRenderer.invoke("git:getCachedTree", request);
       }
       // TODO: T069 - Implement git.repo.switchBranch() and listBranches() (Phase 5 - US3)
       // TODO: T084 - Implement git.repo.openBranchInNewTab() (Phase 7 - US5)

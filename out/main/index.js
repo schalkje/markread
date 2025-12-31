@@ -1015,6 +1015,62 @@ class CacheManager {
     await this.saveMetadata();
   }
   /**
+   * Get cached tree structure
+   *
+   * @param repositoryId - Repository identifier
+   * @param branch - Branch name
+   * @returns Cached tree structure, or null if not cached
+   */
+  async getTree(repositoryId, branch) {
+    const key = this.generateTreeKey(repositoryId, branch);
+    const entry = this.metadata.entries.get(key);
+    if (!entry) return null;
+    entry.lastAccessedAt = Date.now();
+    this.metadata.entries.set(key, entry);
+    await this.saveMetadata();
+    const cacheFilePath = this.getCacheFilePath(key);
+    try {
+      const content = await fs__namespace.readFile(cacheFilePath, "utf-8");
+      return JSON.parse(content);
+    } catch (error) {
+      this.metadata.entries.delete(key);
+      return null;
+    }
+  }
+  /**
+   * Store tree structure in cache
+   *
+   * @param repositoryId - Repository identifier
+   * @param branch - Branch name
+   * @param tree - Tree structure to cache
+   */
+  async setTree(repositoryId, branch, tree) {
+    const key = this.generateTreeKey(repositoryId, branch);
+    const content = JSON.stringify(tree);
+    const size = Buffer.byteLength(content, "utf-8");
+    await this.ensureSpace(repositoryId, size);
+    const cacheFilePath = this.getCacheFilePath(key);
+    await fs__namespace.mkdir(path__namespace.dirname(cacheFilePath), { recursive: true });
+    await fs__namespace.writeFile(cacheFilePath, content, "utf-8");
+    const existingEntry = this.metadata.entries.get(key);
+    const oldSize = existingEntry?.size || 0;
+    const entry = {
+      key,
+      repositoryId,
+      filePath: "__TREE__",
+      branch,
+      size,
+      fetchedAt: existingEntry?.fetchedAt || Date.now(),
+      lastAccessedAt: Date.now(),
+      diskPath: cacheFilePath
+    };
+    this.metadata.entries.set(key, entry);
+    this.metadata.totalSize += size - oldSize;
+    const repoSize = this.metadata.repositorySizes.get(repositoryId) || 0;
+    this.metadata.repositorySizes.set(repositoryId, repoSize + (size - oldSize));
+    await this.saveMetadata();
+  }
+  /**
    * Get cache statistics
    */
   getStats() {
@@ -1064,6 +1120,12 @@ class CacheManager {
    */
   generateKey(repositoryId, filePath, branch) {
     return `${repositoryId}/${branch}/${filePath}`;
+  }
+  /**
+   * Generate cache key for tree structure
+   */
+  generateTreeKey(repositoryId, branch) {
+    return `${repositoryId}/${branch}/__TREE__`;
   }
   /**
    * Get safe file path for cache entry
@@ -1250,14 +1312,14 @@ class RepositoryService {
         branch
       );
       if (cachedContent) {
-        const isMarkdown2 = request.filePath.match(/\.(md|markdown|mdown)$/i) !== null;
+        const isMarkdown = request.filePath.match(/\.(md|markdown|mdown)$/i) !== null;
         return {
           filePath: request.filePath,
           content: cachedContent,
           size: Buffer.byteLength(cachedContent, "utf-8"),
           sha: "",
           // SHA not stored in cache metadata for now
-          isMarkdown: isMarkdown2,
+          isMarkdown,
           cached: true,
           fetchedAt: Date.now(),
           branch
@@ -1271,35 +1333,48 @@ class RepositoryService {
         retryable: false
       };
     }
-    const fileData = await githubClient.getFileContent(
-      repository.owner,
-      repository.name,
-      request.filePath,
-      branch
-    );
-    const isMarkdown = request.filePath.match(/\.(md|markdown|mdown)$/i) !== null;
-    await cacheManager.set(
-      request.repositoryId,
-      request.filePath,
-      branch,
-      fileData.content
-    );
-    return {
-      filePath: request.filePath,
-      content: fileData.content,
-      size: fileData.size,
-      sha: fileData.sha,
-      isMarkdown,
-      cached: false,
-      fetchedAt: Date.now(),
-      branch
-    };
+    try {
+      const fileData = await githubClient.getFileContent(
+        repository.owner,
+        repository.name,
+        request.filePath,
+        branch
+      );
+      const isMarkdown = request.filePath.match(/\.(md|markdown|mdown)$/i) !== null;
+      await cacheManager.set(
+        request.repositoryId,
+        request.filePath,
+        branch,
+        fileData.content
+      );
+      return {
+        filePath: request.filePath,
+        content: fileData.content,
+        size: fileData.size,
+        sha: fileData.sha,
+        isMarkdown,
+        cached: false,
+        fetchedAt: Date.now(),
+        branch
+      };
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw {
+          code: "FILE_NOT_FOUND",
+          message: `File not found: ${request.filePath}`,
+          details: "This file may have been moved, renamed, or deleted. Please refresh the file tree to see the latest files.",
+          statusCode: 404,
+          retryable: false
+        };
+      }
+      throw error;
+    }
   }
   /**
    * Fetch repository file tree
    *
    * @param request - Tree fetch request
-   * @returns File tree structure
+   * @returns File tree structure (from cache if available, then fresh from GitHub)
    */
   async fetchTree(request) {
     const repository = this.repositories.get(request.repositoryId);
@@ -1318,6 +1393,7 @@ class RepositoryService {
         retryable: false
       };
     }
+    await cacheManager.getTree(request.repositoryId, branch);
     const tree = await githubClient.getRepositoryTree(
       repository.owner,
       repository.name,
@@ -1340,13 +1416,38 @@ class RepositoryService {
       }
     };
     countFiles(tree);
-    return {
+    const response = {
       tree,
       fileCount,
       markdownFileCount,
       branch,
-      fetchedAt: Date.now()
+      fetchedAt: Date.now(),
+      fromCache: false
     };
+    cacheManager.setTree(request.repositoryId, branch, response).catch(() => {
+    });
+    return response;
+  }
+  /**
+   * Get cached repository file tree if available
+   *
+   * @param request - Tree fetch request
+   * @returns Cached file tree structure, or null if not cached
+   */
+  async getCachedTree(request) {
+    const repository = this.repositories.get(request.repositoryId);
+    if (!repository) {
+      return null;
+    }
+    const branch = request.branch || repository.currentBranch;
+    const cachedTree = await cacheManager.getTree(request.repositoryId, branch);
+    if (cachedTree) {
+      return {
+        ...cachedTree,
+        fromCache: true
+      };
+    }
+    return null;
   }
   /**
    * Get repository by ID
@@ -1798,6 +1899,27 @@ function registerGitHandlers() {
         retryable: error.retryable ?? false,
         retryAfterSeconds: error.retryAfterSeconds,
         statusCode: error.statusCode
+      });
+    }
+  });
+  electron.ipcMain.handle("git:getCachedTree", async (_event, payload) => {
+    try {
+      const request = FetchRepositoryTreeRequestSchema.parse(payload);
+      const response = await repositoryService.getCachedTree(request);
+      if (response) {
+        return createSuccessResponse(response);
+      } else {
+        return createErrorResponse({
+          code: "NOT_CACHED",
+          message: "Tree not found in cache",
+          retryable: false
+        });
+      }
+    } catch (error) {
+      return createErrorResponse({
+        code: error.code || "UNKNOWN",
+        message: error.message || "An unexpected error occurred",
+        retryable: error.retryable ?? false
       });
     }
   });

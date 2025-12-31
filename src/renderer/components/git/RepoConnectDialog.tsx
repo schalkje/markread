@@ -12,6 +12,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useGitRepo } from '../../hooks/useGitRepo';
 import type { ConnectRepositoryRequest } from '../../../shared/types/git-contracts';
+import { getConnectionHistory, type ConnectionHistoryEntry } from '../../utils/connection-history';
 import './RepoConnectDialog.css';
 
 export interface RepoConnectDialogProps {
@@ -57,6 +58,9 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   // Form state
   const [url, setUrl] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Connection history state
+  const [connectionHistory, setConnectionHistory] = useState<ConnectionHistoryEntry[]>([]);
 
   // Device Flow state
   const [deviceFlowSession, setDeviceFlowSession] = useState<DeviceFlowSessionState | null>(null);
@@ -207,6 +211,15 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   }, []);
 
   /**
+   * Load connection history when dialog opens
+   */
+  useEffect(() => {
+    if (isOpen) {
+      setConnectionHistory(getConnectionHistory());
+    }
+  }, [isOpen]);
+
+  /**
    * Cleanup on unmount or when dialog closes
    */
   useEffect(() => {
@@ -261,7 +274,36 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
       try {
         setValidationError(null);
 
-        // Initiate Device Flow
+        // Step 1: Try to connect with stored credentials first
+        console.log('[Connect] Attempting connection with stored credentials...');
+        const request: ConnectRepositoryRequest = {
+          url: url.trim(),
+          authMethod: 'oauth',
+        };
+
+        try {
+          await connectRepository(request);
+
+          // Success - close dialog and notify parent
+          onConnected?.();
+          onClose();
+
+          // Reset form
+          setUrl('');
+          setValidationError(null);
+          return;
+        } catch (connectError: any) {
+          // Check if error is due to missing/invalid credentials
+          if (connectError.code === 'AUTH_FAILED' || connectError.code === 'RATE_LIMIT') {
+            console.log('[Connect] No valid credentials found, initiating Device Flow...');
+            // Fall through to Device Flow
+          } else {
+            // Other error - throw it
+            throw connectError;
+          }
+        }
+
+        // Step 2: If connection failed due to auth, initiate Device Flow
         console.log('[Device Flow] Initiating...');
         const deviceFlowResponse = await window.git.auth.initiateDeviceFlow({
           provider: 'github',
@@ -317,6 +359,14 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
    */
   const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setUrl(e.target.value);
+    setValidationError(null);
+  }, []);
+
+  /**
+   * Handle clicking a history entry
+   */
+  const handleHistoryEntryClick = useCallback((entry: ConnectionHistoryEntry) => {
+    setUrl(entry.url);
     setValidationError(null);
   }, []);
 
@@ -404,6 +454,34 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
               Supported: GitHub and Azure DevOps repositories
             </span>
           </div>
+
+          {/* Connection History */}
+          {!deviceFlowSession && connectionHistory.length > 0 && (
+            <div className="repo-connect-dialog__history">
+              <h3 className="repo-connect-dialog__history-title">Recent Connections</h3>
+              <div className="repo-connect-dialog__history-list">
+                {connectionHistory.map((entry, index) => (
+                  <button
+                    key={`${entry.url}-${entry.branch}-${index}`}
+                    type="button"
+                    className="repo-connect-dialog__history-item"
+                    onClick={() => handleHistoryEntryClick(entry)}
+                    disabled={isConnecting}
+                  >
+                    <div className="repo-connect-dialog__history-item-name">
+                      {entry.displayName}
+                    </div>
+                    <div className="repo-connect-dialog__history-item-branch">
+                      Branch: {entry.branch}
+                    </div>
+                    <div className="repo-connect-dialog__history-item-url">
+                      {entry.url}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Device Flow Status Display */}
           {(() => {

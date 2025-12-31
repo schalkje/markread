@@ -135,6 +135,30 @@
   }
 }
 
+/* Refresh Indicator (for background updates) */
+.repo-file-tree__refresh-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--refresh-bg, #e8f4fd);
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  color: var(--text-secondary, #666666);
+  font-size: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.repo-file-tree__refresh-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-top-color: var(--primary-color, #0066cc);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
 /* Error State */
 .repo-file-tree__error {
   display: flex;
@@ -189,5 +213,6 @@
     --primary-color: #4a9eff;
     --primary-hover: #3a8eef;
     --error-color: #ff6b6b;
+    --refresh-bg: #1a3a4a;
   }
 }
