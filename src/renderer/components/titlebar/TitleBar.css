@@ -39,6 +39,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
+  -webkit-app-region: drag; /* Allow dragging window from middle section */
 }
 
 /* Right Section */
