@@ -294,23 +294,27 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose, onHomeCl
                 </span>
               )}
 
-              <button
-                className="tab__close"
-                onClick={(e) => handleTabClose(e, tab.id)}
-                aria-label={`Close ${getTabTitle(tab)}`}
-                title="Close tab (Ctrl+W)"
-                data-testid="tab-close"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                  <path d="M2.22 2.22a.75.75 0 0 1 1.06 0L6 4.94l2.72-2.72a.75.75 0 1 1 1.06 1.06L7.06 6l2.72 2.72a.75.75 0 1 1-1.06 1.06L6 7.06l-2.72 2.72a.75.75 0 0 1-1.06-1.06L4.94 6 2.22 3.28a.75.75 0 0 1 0-1.06z" />
-                </svg>
-              </button>
+              {/* Wrapper for overlapping close button and shortcut */}
+              <div className="tab__actions">
+                <button
+                  type="button"
+                  className="tab__close"
+                  onClick={(e) => handleTabClose(e, tab.id)}
+                  aria-label={`Close ${getTabTitle(tab)}`}
+                  title="Close tab (Ctrl+W)"
+                  data-testid="tab-close"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                    <path d="M2.22 2.22a.75.75 0 0 1 1.06 0L6 4.94l2.72-2.72a.75.75 0 1 1 1.06 1.06L7.06 6l2.72 2.72a.75.75 0 1 1-1.06 1.06L6 7.06l-2.72 2.72a.75.75 0 0 1-1.06-1.06L4.94 6 2.22 3.28a.75.75 0 0 1 0-1.06z" />
+                  </svg>
+                </button>
 
-              {index < 9 && (
-                <span className="tab__shortcut" title={`Ctrl+${index + 1}`}>
-                  {index + 1}
-                </span>
-              )}
+                {index < 9 && (
+                  <span className="tab__shortcut" title={`Ctrl+${index + 1}`}>
+                    {index + 1}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
