@@ -34,6 +34,7 @@ import {
   unregisterHelpShortcuts
 } from '../services/keyboard-handler';
 import { ShortcutsReference } from './help/ShortcutsReference';
+import { About } from './help/About';
 import {
   registerFileCommands,
   registerNavigationCommands,
@@ -67,6 +68,9 @@ const AppLayout: React.FC = () => {
 
   // Shortcuts reference state
   const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // About dialog state
+  const [showAbout, setShowAbout] = useState(false);
 
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
@@ -137,6 +141,18 @@ const AppLayout: React.FC = () => {
     window.addEventListener('menu:shortcuts', handleShowShortcuts);
     return () => {
       window.removeEventListener('menu:shortcuts', handleShowShortcuts);
+    };
+  }, []);
+
+  // Listen for menu:about events from Help menu
+  useEffect(() => {
+    const handleShowAbout = () => {
+      setShowAbout(true);
+    };
+
+    window.addEventListener('menu:about', handleShowAbout);
+    return () => {
+      window.removeEventListener('menu:about', handleShowAbout);
     };
   }, []);
 
@@ -1950,6 +1966,12 @@ const AppLayout: React.FC = () => {
       <ShortcutsReference
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
+      />
+
+      {/* About Dialog */}
+      <About
+        isOpen={showAbout}
+        onClose={() => setShowAbout(false)}
       />
     </div>
   );
