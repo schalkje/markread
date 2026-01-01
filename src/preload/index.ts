@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { exposeGitAPI } from './git-api';
 
+console.log('[Preload] Script starting...');
+
 // T010: Preload script with contextBridge exposing IPC APIs (contracts/README.md)
 // Security: No direct access to ipcRenderer from renderer process
 
@@ -122,8 +124,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 } as ElectronAPI);
 
+console.log('[Preload] ElectronAPI exposed successfully');
+
 // Expose Git API
-exposeGitAPI();
+try {
+  console.log('[Preload] Exposing Git API...');
+  exposeGitAPI();
+  console.log('[Preload] Git API exposed successfully');
+} catch (error) {
+  console.error('[Preload] Failed to expose Git API:', error);
+}
 
 // Type declaration for global window object
 declare global {

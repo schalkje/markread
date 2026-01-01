@@ -132,6 +132,10 @@ if (!gotTheLock) {
       });
     });
 
+    // Initialize cache manager (must be done after app is ready)
+    const { cacheManager } = await import('./services/storage/cache-manager');
+    await cacheManager.initialize();
+
     // T011: Register all IPC handlers (must be done after window is created)
     registerIpcHandlers(mainWindow);
 

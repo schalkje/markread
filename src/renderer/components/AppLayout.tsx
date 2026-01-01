@@ -17,6 +17,7 @@ import { FolderSwitcher } from './sidebar/FolderSwitcher';
 import { TabBar } from './editor/TabBar';
 import { Toast } from './common/Toast';
 import { TitleBar } from './titlebar/TitleBar';
+import { RepoConnectDialog } from './git/RepoConnectDialog';
 import { useFileAutoReload, useFileWatcher } from '../hooks/useFileWatcher';
 import {
   registerHistoryShortcuts,
@@ -73,6 +74,9 @@ const AppLayout: React.FC = () => {
 
   // About dialog state
   const [showAbout, setShowAbout] = useState(false);
+
+  // Repository connect dialog state
+  const [showRepoConnect, setShowRepoConnect] = useState(false);
 
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
@@ -1744,9 +1748,30 @@ const AppLayout: React.FC = () => {
                     revealFilePath={revealFilePath}
                     onFileSelect={async (filePath) => {
                       try {
-                        // Load file content first
-                        const result = await window.electronAPI?.file?.read({ filePath });
-                        if (result?.success && result.content) {
+                        // Get the active folder to determine if it's a repository
+                        const activeFolder = folders.find(f => f.id === activeFolderId);
+                        let fileContent: string | null = null;
+
+                        if (activeFolder?.type === 'repository') {
+                          // Load file from repository using Git API
+                          const result = await window.git?.repo?.fetchFile({
+                            repositoryId: activeFolder.repositoryId!,
+                            filePath: filePath,
+                            branch: activeFolder.currentBranch!,
+                          });
+
+                          if (result?.success && result.data) {
+                            fileContent = result.data.content;
+                          }
+                        } else {
+                          // Load file from local file system
+                          const result = await window.electronAPI?.file?.read({ filePath });
+                          if (result?.success && result.content) {
+                            fileContent = result.content;
+                          }
+                        }
+
+                        if (fileContent) {
                           // Mark as manually loaded
                           contentLoadedManually.current = true;
 
@@ -1798,8 +1823,8 @@ const AppLayout: React.FC = () => {
 
                           // Update file and content atomically
                           setCurrentFile(filePath);
-                          contentCacheRef.current.set(filePath, result.content);
-                          setCurrentContent(result.content);
+                          contentCacheRef.current.set(filePath, fileContent);
+                          setCurrentContent(fileContent);
 
                           // Update active tab to reflect the new file being viewed
                           // IMPORTANT: Get FRESH state after addHistoryEntry to avoid overwriting history!
@@ -1807,7 +1832,7 @@ const AppLayout: React.FC = () => {
                             const { tabs: freshTabs } = useTabsStore.getState(); // Get fresh state!
                             const freshTab = freshTabs.get(activeTabId);
                             if (freshTab) {
-                              const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
+                              const fileName = filePath.split(/[/\\\/]/).pop() || 'Untitled';
                               const updatedTab = {
                                 ...freshTab, // Use fresh tab with updated history!
                                 filePath: filePath,
@@ -1828,9 +1853,31 @@ const AppLayout: React.FC = () => {
                     }}
                     onFileOpen={async (filePath) => {
                       try {
-                        const result = await window.electronAPI?.file?.read({ filePath });
-                        if (result?.success && result.content) {
-                          await handleFileOpened(filePath, result.content);
+                        // Get the active folder to determine if it's a repository
+                        const activeFolder = folders.find(f => f.id === activeFolderId);
+                        let fileContent: string | null = null;
+
+                        if (activeFolder?.type === 'repository') {
+                          // Load file from repository using Git API
+                          const result = await window.git?.repo?.fetchFile({
+                            repositoryId: activeFolder.repositoryId!,
+                            filePath: filePath,
+                            branch: activeFolder.currentBranch!,
+                          });
+
+                          if (result?.success && result.data) {
+                            fileContent = result.data.content;
+                          }
+                        } else {
+                          // Load file from local file system
+                          const result = await window.electronAPI?.file?.read({ filePath });
+                          if (result?.success && result.content) {
+                            fileContent = result.content;
+                          }
+                        }
+
+                        if (fileContent) {
+                          await handleFileOpened(filePath, fileContent);
                         }
                       } catch (err) {
                         console.error('Error opening file:', err);
@@ -1889,7 +1936,11 @@ const AppLayout: React.FC = () => {
 
         <div className="editor-area">
           {showHome || !currentFile ? (
-            <Home onFileOpened={handleFileOpened} onFolderOpened={handleFolderOpened} />
+            <Home
+              onFileOpened={handleFileOpened}
+              onFolderOpened={handleFolderOpened}
+              onConnectRepository={() => setShowRepoConnect(true)}
+            />
           ) : (
             <MarkdownViewer
               content={contentForCurrentFile}
@@ -1976,6 +2027,168 @@ const AppLayout: React.FC = () => {
       <About
         isOpen={showAbout}
         onClose={() => setShowAbout(false)}
+      />
+
+      {/* Repository Connect Dialog */}
+      <RepoConnectDialog
+        isOpen={showRepoConnect}
+        onClose={() => setShowRepoConnect(false)}
+        onConnected={async () => {
+          setShowRepoConnect(false);
+
+          // Get the connected repository from git store
+          const { useGitStore } = await import('../stores/git-store');
+          const { connectedRepository } = useGitStore.getState();
+
+          if (!connectedRepository) {
+            console.error('[AppLayout] No connected repository in git store');
+            return;
+          }
+
+          // Create a folder entry for the repository
+          const { addFolder, setActiveFolder } = useFoldersStore.getState();
+
+          const repoFolder: Folder = {
+            id: `repo:${connectedRepository.repositoryId}:${connectedRepository.currentBranch}`,
+            path: connectedRepository.url,
+            displayName: connectedRepository.displayName,
+            type: 'repository',
+            fileTreeState: {
+              expandedDirectories: new Set<string>(),
+              scrollPosition: 0,
+              selectedPath: null,
+            },
+            activeFolderId: null,
+            tabCollection: [],
+            activeTabId: null,
+            recentFiles: [],
+            splitLayout: {
+              rootPane: {
+                id: 'pane-root',
+                tabs: [],
+                activeTabId: null,
+                orientation: 'vertical',
+                sizeRatio: 1.0,
+                splitChildren: null,
+              },
+              layoutType: 'single',
+            },
+            createdAt: Date.now(),
+            lastAccessedAt: Date.now(),
+            // Repository-specific fields
+            repositoryId: connectedRepository.repositoryId,
+            repositoryUrl: connectedRepository.url,
+            currentBranch: connectedRepository.currentBranch,
+            defaultBranch: connectedRepository.defaultBranch,
+            repositoryMetadata: {
+              branches: connectedRepository.branches.map(b => ({
+                name: b.name,
+                isDefault: b.isDefault,
+                sha: b.sha
+              })),
+              owner: connectedRepository.owner,
+              name: connectedRepository.name,
+            },
+          };
+
+          addFolder(repoFolder);
+          setActiveFolder(repoFolder.id);
+
+          // Fetch the file tree and open the first markdown file
+          try {
+            const treeResult = await window.git?.repo?.fetchTree({
+              repositoryId: connectedRepository.repositoryId,
+              branch: connectedRepository.currentBranch,
+              markdownOnly: true,
+            });
+
+            if (treeResult?.success && treeResult.data?.tree) {
+              // Find the first markdown file using breadth-first search
+              const findFirstMarkdownFile = (nodes: any[]): string | null => {
+                const queue = [...nodes];
+
+                while (queue.length > 0) {
+                  const levelSize = queue.length;
+
+                  // Process all nodes at current level before going deeper
+                  for (let i = 0; i < levelSize; i++) {
+                    const node = queue.shift()!;
+
+                    // Check if this node is a markdown file
+                    if (node.type === 'file' && node.isMarkdown) {
+                      return node.path;
+                    }
+
+                    // Add children to queue for next level
+                    if (node.children) {
+                      queue.push(...node.children);
+                    }
+                  }
+                }
+
+                return null;
+              };
+
+              const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+
+              if (firstFilePath) {
+                // Fetch the first file's content
+                const fileResult = await window.git?.repo?.fetchFile({
+                  repositoryId: connectedRepository.repositoryId,
+                  filePath: firstFilePath,
+                  branch: connectedRepository.currentBranch,
+                });
+
+                if (fileResult?.success && fileResult.data) {
+                  const { tabs, addTab, setActiveTab } = useTabsStore.getState();
+
+                  // Create a tab for this file
+                  const fileName = firstFilePath.split('/').pop() || 'Untitled';
+                  const newTab = {
+                    id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+                    filePath: firstFilePath,
+                    title: fileName,
+                    scrollPosition: 0,
+                    zoomLevel: 100,
+                    searchState: null,
+                    modificationTimestamp: Date.now(),
+                    isDirty: false,
+                    renderCache: null,
+                    navigationHistory: [{
+                      filePath: firstFilePath,
+                      scrollPosition: 0,
+                      scrollLeft: 0,
+                      zoomLevel: 100,
+                      timestamp: Date.now(),
+                    }],
+                    currentHistoryIndex: 0,
+                    forwardHistory: [],
+                    createdAt: Date.now(),
+                    folderId: repoFolder.id,
+                    isDirectFile: false,
+                  };
+
+                  addTab(newTab);
+                  setActiveTab(newTab.id);
+
+                  // Set the file content
+                  setCurrentFile(firstFilePath);
+                  contentCacheRef.current.set(firstFilePath, fileResult.data.content);
+                  setCurrentContent(fileResult.data.content);
+                  setError(null);
+                }
+              }
+            }
+          } catch (err) {
+            console.error('[AppLayout] Error loading first repository file:', err);
+          }
+
+          // Show success toast
+          setToast({
+            message: `Connected to ${connectedRepository.displayName}`,
+            type: 'success',
+          });
+        }}
       />
     </div>
   );

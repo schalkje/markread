@@ -284,9 +284,13 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
         try {
           await connectRepository(request);
 
+          console.log('[Connect] Connection successful, calling callbacks...');
           // Success - close dialog and notify parent
+          console.log('[Connect] Calling onConnected');
           onConnected?.();
+          console.log('[Connect] Calling onClose');
           onClose();
+          console.log('[Connect] Dialog should be closing now');
 
           // Reset form
           setUrl('');

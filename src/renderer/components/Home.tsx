@@ -6,9 +6,10 @@ import './Home.css';
 interface HomeProps {
   onFileOpened: (filePath: string, content: string) => void;
   onFolderOpened: (folderPath: string) => void;
+  onConnectRepository?: () => void;
 }
 
-export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened }) => {
+export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConnectRepository }) => {
   return (
     <div className="welcome">
       <h1>Welcome to MarkRead</h1>
@@ -16,6 +17,11 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened }) => {
       <div className="welcome-buttons">
         <FileOpener onFileOpened={onFileOpened} />
         <FolderOpener onFolderOpened={onFolderOpened} />
+        {onConnectRepository && (
+          <button type="button" className="connect-repo-button" onClick={onConnectRepository}>
+            Connect to Repository
+          </button>
+        )}
       </div>
     </div>
   );

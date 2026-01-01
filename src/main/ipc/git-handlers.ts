@@ -37,15 +37,20 @@ import {
 export function registerGitHandlers(): void {
   // Repository connection
   ipcMain.handle('git:connect', async (_event, payload): Promise<ConnectRepositoryIPCResponse> => {
+    console.log('[IPC] git:connect received:', payload);
     try {
       // Validate request
       const request = ConnectRepositoryRequestSchema.parse(payload) as ConnectRepositoryRequest;
+      console.log('[IPC] Request validated:', request);
 
       // Connect to repository
+      console.log('[IPC] Calling repositoryService.connect...');
       const response = await repositoryService.connect(request);
+      console.log('[IPC] Repository connected successfully');
 
       return createSuccessResponse(response);
     } catch (error: any) {
+      console.error('[IPC] Error connecting to repository:', error);
       return createErrorResponse({
         code: error.code || 'UNKNOWN',
         message: error.message || 'An unexpected error occurred',

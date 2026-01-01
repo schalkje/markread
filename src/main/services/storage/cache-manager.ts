@@ -32,13 +32,12 @@ interface CacheMetadata {
  * - Fast access (<1s for cached files)
  */
 export class CacheManager {
-  private readonly CACHE_DIR: string;
+  private CACHE_DIR!: string;
   private readonly MAX_TOTAL_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
   private readonly MAX_REPO_SIZE = 100 * 1024 * 1024; // 100MB
   private metadata: CacheMetadata;
 
   constructor() {
-    this.CACHE_DIR = path.join(app.getPath('userData'), 'git-cache');
     this.metadata = {
       entries: new Map(),
       totalSize: 0,
@@ -48,8 +47,10 @@ export class CacheManager {
 
   /**
    * Initialize cache directory and load metadata
+   * MUST be called after Electron app is ready
    */
   async initialize(): Promise<void> {
+    this.CACHE_DIR = path.join(app.getPath('userData'), 'git-cache');
     await fs.mkdir(this.CACHE_DIR, { recursive: true });
     await this.loadMetadata();
   }

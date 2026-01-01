@@ -75,9 +75,12 @@ export const useGitRepo = () => {
       setError(null);
 
       try {
+        console.log('[useGitRepo] Calling window.git.repo.connect with:', request);
         const response = await window.git.repo.connect(request);
+        console.log('[useGitRepo] Received response:', response);
 
         if (!response.success) {
+          console.log('[useGitRepo] Response indicates failure:', response.error);
           // Preserve full error object for better error handling
           const error = response.error || {
             code: 'UNKNOWN',
@@ -87,6 +90,7 @@ export const useGitRepo = () => {
           throw error;
         }
 
+        console.log('[useGitRepo] Connection successful, setting connected repository');
         setConnectedRepository(response.data);
 
         // Save to connection history
