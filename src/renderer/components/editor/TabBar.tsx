@@ -24,12 +24,16 @@ export interface TabBarProps {
   onTabClick?: (tabId: string) => void;
   /** Callback when a tab close button is clicked */
   onTabClose?: (tabId: string) => void;
+  /** Callback when home tab is clicked */
+  onHomeClick?: () => void;
+  /** Whether the home view is currently active */
+  isHomeActive?: boolean;
 }
 
 /**
  * T060, T063a-T063f, T063m: Enhanced TabBar component
  */
-export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose }) => {
+export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose, onHomeClick, isHomeActive }) => {
   const tabs = useTabsStore((state) => state.getAllTabs());
   const activeTabId = useTabsStore((state) => state.activeTabId);
   const setActiveTab = useTabsStore((state) => state.setActiveTab);
@@ -134,6 +138,17 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose }) => {
     setContextMenu(null);
   };
 
+  const handleContextMenuRevealInSidebar = (tabId: string) => {
+    const tab = tabs.get(tabId);
+    if (tab && tab.filePath) {
+      // Dispatch event to reveal file in sidebar
+      window.dispatchEvent(new CustomEvent('reveal-in-sidebar', {
+        detail: { filePath: tab.filePath, folderId: tab.folderId }
+      }));
+    }
+    setContextMenu(null);
+  };
+
   // T063m: Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, tabId: string) => {
     setDraggedTabId(tabId);
@@ -217,6 +232,19 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose }) => {
       )}
 
       <div className="tab-bar__tabs" ref={tabsContainerRef}>
+        {/* Home tab - always visible when tabs exist */}
+        <button
+          className={`tab tab--home ${isHomeActive ? 'tab--active' : ''}`}
+          onClick={() => onHomeClick?.()}
+          aria-label="Home"
+          title="Home"
+          data-testid="tab-home"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z" />
+          </svg>
+        </button>
+
         {tabs.map((tab, index) => {
           // T063f: Determine if tab is from active folder
           const isActiveFolder = tab.folderId === activeFolderId;
@@ -266,23 +294,27 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose }) => {
                 </span>
               )}
 
-              <button
-                className="tab__close"
-                onClick={(e) => handleTabClose(e, tab.id)}
-                aria-label={`Close ${getTabTitle(tab)}`}
-                title="Close tab (Ctrl+W)"
-                data-testid="tab-close"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                  <path d="M2.22 2.22a.75.75 0 0 1 1.06 0L6 4.94l2.72-2.72a.75.75 0 1 1 1.06 1.06L7.06 6l2.72 2.72a.75.75 0 1 1-1.06 1.06L6 7.06l-2.72 2.72a.75.75 0 0 1-1.06-1.06L4.94 6 2.22 3.28a.75.75 0 0 1 0-1.06z" />
-                </svg>
-              </button>
+              {/* Wrapper for overlapping close button and shortcut */}
+              <div className="tab__actions">
+                <button
+                  type="button"
+                  className="tab__close"
+                  onClick={(e) => handleTabClose(e, tab.id)}
+                  aria-label={`Close ${getTabTitle(tab)}`}
+                  title="Close tab (Ctrl+W)"
+                  data-testid="tab-close"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                    <path d="M2.22 2.22a.75.75 0 0 1 1.06 0L6 4.94l2.72-2.72a.75.75 0 1 1 1.06 1.06L7.06 6l2.72 2.72a.75.75 0 1 1-1.06 1.06L6 7.06l-2.72 2.72a.75.75 0 0 1-1.06-1.06L4.94 6 2.22 3.28a.75.75 0 0 1 0-1.06z" />
+                  </svg>
+                </button>
 
-              {index < 9 && (
-                <span className="tab__shortcut" title={`Ctrl+${index + 1}`}>
-                  {index + 1}
-                </span>
-              )}
+                {index < 9 && (
+                  <span className="tab__shortcut" title={`Ctrl+${index + 1}`}>
+                    {index + 1}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
@@ -318,6 +350,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose }) => {
           onClose={handleContextMenuClose}
           onDuplicate={handleContextMenuDuplicate}
           onMoveToNewWindow={handleContextMenuMoveToNewWindow}
+          onRevealInSidebar={handleContextMenuRevealInSidebar}
           onHide={() => setContextMenu(null)}
         />
       )}

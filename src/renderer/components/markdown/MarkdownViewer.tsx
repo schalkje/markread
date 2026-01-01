@@ -66,6 +66,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   const viewerRef = useRef<HTMLDivElement>(null);
   const bufferARef = useRef<HTMLDivElement>(null);
   const bufferBRef = useRef<HTMLDivElement>(null);
+  const contentARef = useRef<HTMLDivElement>(null);
+  const contentBRef = useRef<HTMLDivElement>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
 
@@ -288,6 +290,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
       e.preventDefault();
 
+      // Detect modifier keys for opening in new tab/window
+      const ctrlOrCmd = e.ctrlKey || e.metaKey;
+      const shiftKey = e.shiftKey;
+
       // Handle internal links (same-document anchors)
       if (href.startsWith('#')) {
         const targetElement = container.querySelector(href);
@@ -385,8 +391,22 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
                 }));
               }
             } else {
-              console.log(`Opening relative link: ${href} -> ${result.absolutePath}`);
-              onFileLink(result.absolutePath);
+              console.log(`Opening relative link: ${href} -> ${result.absolutePath}`, { ctrlOrCmd, shiftKey });
+
+              // Ctrl/Cmd+Click: Open in new tab
+              // Shift+Click: Open in new window
+              if (shiftKey) {
+                window.dispatchEvent(new CustomEvent('open-file-in-new-window', {
+                  detail: { filePath: result.absolutePath }
+                }));
+              } else if (ctrlOrCmd) {
+                window.dispatchEvent(new CustomEvent('open-file-in-new-tab', {
+                  detail: { filePath: result.absolutePath }
+                }));
+              } else {
+                // Normal click: Open in current tab
+                onFileLink(result.absolutePath);
+              }
             }
           } else {
             console.warn(`Failed to resolve link: ${href}`, result?.error);
@@ -429,6 +449,14 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       return;
     }
 
+    // Get content wrapper element
+    const activeContentRef = activeBuffer === 'A' ? contentARef : contentBRef;
+    const contentElement = activeContentRef.current;
+    if (!contentElement) {
+      console.log('[MarkdownViewer] Content element not ready for zoom');
+      return;
+    }
+
     console.log('[MarkdownViewer] Applying zoom transform:', zoomLevel);
     // Capture scroll position BEFORE applying transform
     const currentScrollLeft = bufferElement.scrollLeft;
@@ -436,10 +464,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const currentScrollHeight = bufferElement.scrollHeight;
     const currentScrollWidth = bufferElement.scrollWidth;
 
-    // Apply zoom via CSS transform
+    // Apply zoom via CSS transform to content wrapper (not buffer)
     const zoomFactor = zoomLevel / 100;
-    bufferElement.style.transform = `scale(${zoomFactor})`;
-    bufferElement.style.transformOrigin = 'top left';
+    contentElement.style.transform = `scale(${zoomFactor})`;
+    contentElement.style.transformOrigin = 'top left';
 
     // Update ref to match
     currentZoomRef.current = zoomLevel;
@@ -605,7 +633,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     // Determine target buffer: use preparing buffer if set, otherwise active buffer
     const targetBuffer: 'A' | 'B' = preparingBuffer || activeBuffer;
     const targetBufferRef = targetBuffer === 'A' ? bufferARef : bufferBRef;
+    const targetContentRef = targetBuffer === 'A' ? contentARef : contentBRef;
     const targetElement = targetBufferRef.current;
+    const targetContentElement = targetContentRef.current;
 
     console.log('[MarkdownViewer] Render effect:', {
       targetBuffer,
@@ -616,9 +646,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       contentLength: content.length
     });
 
-    // Wait for target buffer ref to be ready
-    if (!targetElement) {
-      console.log('[MarkdownViewer] Target buffer ref not ready:', targetBuffer);
+    // Wait for target buffer and content refs to be ready
+    if (!targetElement || !targetContentElement) {
+      console.log('[MarkdownViewer] Target buffer or content ref not ready:', targetBuffer);
       // Don't retry - just wait for next effect run when dependencies truly change
       return;
     }
@@ -655,11 +685,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         }
 
         // Step 2: Insert HTML into DOM (hidden buffer if transitioning)
-        targetElement.innerHTML = html;
-        console.log('[MarkdownViewer] HTML inserted into buffer', targetBuffer);
+        targetContentElement.innerHTML = html;
+        console.log('[MarkdownViewer] HTML inserted into content wrapper', targetBuffer);
 
         // Step 3: Render Mermaid diagrams
-        await renderMermaidDiagrams(targetElement);
+        await renderMermaidDiagrams(targetContentElement);
         console.log('[MarkdownViewer] Mermaid diagrams rendered');
 
         // Check if cancelled after async operation
@@ -670,12 +700,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
         // Step 3.5: Apply syntax highlighting and copy buttons
         // This must happen AFTER HTML is in the DOM for highlightjs-copy to work
-        applySyntaxHighlighting(targetElement);
+        applySyntaxHighlighting(targetContentElement);
         console.log('[MarkdownViewer] Syntax highlighting applied');
 
         // Step 4: Process images with file:// protocol if filePath provided
         if (filePath) {
-          await resolveImagePaths(targetElement, filePath);
+          await resolveImagePaths(targetContentElement, filePath);
           console.log('[MarkdownViewer] Image paths resolved');
         }
 
@@ -686,7 +716,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         }
 
         // Step 5: Add click handlers for checkboxes (task lists)
-        addTaskListHandlers(targetElement);
+        addTaskListHandlers(targetContentElement);
         console.log('[MarkdownViewer] Task list handlers added');
 
         if (!isCancelled) {
@@ -850,7 +880,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         clientWidth: element.clientWidth,
       };
 
-      console.log('[MarkdownViewer] Updating scroll state:', newScrollState);
+      // console.log('[MarkdownViewer] Updating scroll state:', newScrollState);
       setScrollState(newScrollState);
 
       // Extract heading markers for overview ruler
@@ -858,7 +888,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         element,
         element.scrollHeight
       );
-      console.log('[MarkdownViewer] Extracted markers:', headingMarkers.length);
+      // console.log('[MarkdownViewer] Extracted markers:', headingMarkers.length);
       setMarkers(headingMarkers);
     };
 
@@ -867,7 +897,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
     // Set up ResizeObserver to track size changes
     const resizeObserver = new ResizeObserver(() => {
-      console.log('[MarkdownViewer] ResizeObserver triggered');
+      // console.log('[MarkdownViewer] ResizeObserver triggered');
       updateDimensions();
     });
 
@@ -887,13 +917,13 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     const activeBufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
     const bufferElement = activeBufferRef.current;
 
-    console.log('[MarkdownViewer] Wheel zoom effect setup:', {
-      hasBuffer: !!bufferElement,
-      hasOnZoomChange: !!onZoomChange
-    });
+    // console.log('[MarkdownViewer] Wheel zoom effect setup:', {
+    //   hasBuffer: !!bufferElement,
+    //   hasOnZoomChange: !!onZoomChange
+    // });
 
     if (!bufferElement || !onZoomChange) {
-      console.log('[MarkdownViewer] Wheel zoom NOT registered - missing dependency');
+      // console.log('[MarkdownViewer] Wheel zoom NOT registered - missing dependency');
       return;
     }
 
@@ -936,10 +966,16 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         const beforeX = (cursorX + bufferElement.scrollLeft) / (prevZoom / 100);
         const beforeY = (cursorY + bufferElement.scrollTop) / (prevZoom / 100);
 
+        // Get content wrapper element
+        const activeContentRef = activeBuffer === 'A' ? contentARef : contentBRef;
+        const contentElement = activeContentRef.current;
+        if (!contentElement) return;
+
         // Apply zoom transform synchronously (no waiting for React)
         currentZoomRef.current = newZoom;
         const zoomFactor = newZoom / 100;
-        bufferElement.style.transform = `scale(${zoomFactor})`;
+        contentElement.style.transform = `scale(${zoomFactor})`;
+        contentElement.style.transformOrigin = 'top left';
 
         // Adjust scroll position synchronously to keep cursor point stable
         const afterX = beforeX * (newZoom / 100);
@@ -960,10 +996,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       }
     };
 
-    console.log('[MarkdownViewer] Wheel zoom handler registered');
+    // console.log('[MarkdownViewer] Wheel zoom handler registered');
     bufferElement.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
-      console.log('[MarkdownViewer] Wheel zoom handler unregistered');
+      // console.log('[MarkdownViewer] Wheel zoom handler unregistered');
       bufferElement.removeEventListener('wheel', handleWheel);
       if (zoomUpdateTimeoutRef.current) {
         clearTimeout(zoomUpdateTimeoutRef.current);
@@ -1200,19 +1236,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   };
 
 
-  // T040: Loading state
-  if (isLoading || isRendering) {
-    return (
-      <div className="markdown-viewer markdown-viewer--loading">
-        <div className="markdown-viewer__spinner">
-          <div className="spinner"></div>
-          <p>Loading markdown...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // T040: Error state
+  // T040: Handle error state (still early return for errors)
   if (error || renderError) {
     return (
       <div className="markdown-viewer markdown-viewer--error">
@@ -1224,6 +1248,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       </div>
     );
   }
+
+  // T040: Loading state (now rendered as overlay, not early return)
 
   // Determine cursor style (T049)
   const getCursorClass = () => {
@@ -1289,13 +1315,27 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     >
       {/* Buffer A */}
       <div className={getBufferClass('A')} ref={bufferARef} onScroll={handleScroll}>
-        {/* Content will be injected here */}
+        <div className="markdown-viewer__content" ref={contentARef}>
+          {/* Content will be injected here */}
+        </div>
       </div>
 
       {/* Buffer B */}
       <div className={getBufferClass('B')} ref={bufferBRef} onScroll={handleScroll}>
-        {/* Content will be injected here */}
+        <div className="markdown-viewer__content" ref={contentBRef}>
+          {/* Content will be injected here */}
+        </div>
       </div>
+
+      {/* Loading overlay - shown on top of buffers during rendering */}
+      {(isLoading || isRendering) && (
+        <div className="markdown-viewer__loading-overlay">
+          <div className="markdown-viewer__spinner">
+            <div className="spinner"></div>
+            <p>Loading markdown...</p>
+          </div>
+        </div>
+      )}
 
       {/* Optional overlay during transition */}
       {showOverlay && overlaySnapshot && (

@@ -133,25 +133,29 @@ export const TitleBarRight: React.FC = () => {
         {isDarkTheme ? '☀️' : '🌙'}
       </button>
 
-      {/* Search button */}
-      <button
-        className="title-bar__button title-bar__icon-button"
-        onClick={handleSearchClick}
-        title="Find in Page (Ctrl+F)"
-        type="button"
-      >
-        🔍
-      </button>
+      {/* Search button - only visible when there's an active document */}
+      {activeTabId && (
+        <button
+          className="title-bar__button title-bar__icon-button"
+          onClick={handleSearchClick}
+          title="Find in Page (Ctrl+F)"
+          type="button"
+        >
+          🔍
+        </button>
+      )}
 
-      {/* Download button */}
-      <button
-        className="title-bar__button title-bar__icon-button"
-        onClick={handleDownloadClick}
-        title="Export to PDF"
-        type="button"
-      >
-        ⬇️
-      </button>
+      {/* Download button - only visible when there's an active document */}
+      {activeTabId && (
+        <button
+          className="title-bar__button title-bar__icon-button"
+          onClick={handleDownloadClick}
+          title="Export to PDF"
+          type="button"
+        >
+          ⬇️
+        </button>
+      )}
 
       {/* Document zoom controls */}
       {activeTabId && (

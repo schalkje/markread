@@ -19,7 +19,7 @@ interface TabsState {
   // Actions - Tab Management (T059)
   addTab: (tab: Tab) => Tab | undefined;
   removeTab: (tabId: string) => void;
-  setActiveTab: (tabId: string) => void;
+  setActiveTab: (tabId: string | null) => void;
   getActiveTab: () => Tab | undefined;
   getTab: (tabId: string) => Tab | undefined;
   getAllTabs: () => Tab[];
@@ -139,6 +139,10 @@ export const useTabsStore = create<TabsState>((set, get) => ({
   },
 
   setActiveTab: (tabId) => {
+    if (tabId === null) {
+      set({ activeTabId: null });
+      return;
+    }
     const { tabs } = get();
     if (tabs.has(tabId)) {
       set({ activeTabId: tabId });

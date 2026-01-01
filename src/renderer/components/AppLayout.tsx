@@ -10,27 +10,37 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { useFoldersStore } from '../stores/folders';
 import { MarkdownViewer } from './markdown/MarkdownViewer';
-import { FileOpener } from './FileOpener';
-import { FolderOpener } from './FolderOpener';
+import { Home } from './Home';
 import { FileTree } from './sidebar/FileTree';
 import { HistoryPanel } from './sidebar/HistoryPanel';
 import { FolderSwitcher } from './sidebar/FolderSwitcher';
 import { TabBar } from './editor/TabBar';
 import { Toast } from './common/Toast';
 import { TitleBar } from './titlebar/TitleBar';
-import { Statusbar } from './statusbar/Statusbar';
-import { RepoConnectDialog } from './git/RepoConnectDialog';
-import { RepoFileTree } from './git/RepoFileTree';
-import { useGitRepo } from '../hooks/useGitRepo';
 import { useFileAutoReload, useFileWatcher } from '../hooks/useFileWatcher';
 import {
   registerHistoryShortcuts,
   unregisterHistoryShortcuts,
+  registerTabShortcuts,
+  unregisterTabShortcuts,
   registerContentZoomShortcuts,
   unregisterContentZoomShortcuts,
   registerGlobalZoomShortcuts,
-  unregisterGlobalZoomShortcuts
+  unregisterGlobalZoomShortcuts,
+  registerFileShortcuts,
+  unregisterFileShortcuts,
+  registerHelpShortcuts,
+  unregisterHelpShortcuts
 } from '../services/keyboard-handler';
+import { ShortcutsReference } from './help/ShortcutsReference';
+import { About } from './help/About';
+import {
+  registerFileCommands,
+  registerNavigationCommands,
+  registerViewCommands,
+  registerSearchCommands,
+  registerApplicationCommands,
+} from '../services/command-service';
 import type { Folder } from '@shared/types/entities.d.ts';
 import './AppLayout.css';
 
@@ -47,18 +57,22 @@ const AppLayout: React.FC = () => {
   const activeTab = activeTabId ? tabs.get(activeTabId) : null;
   const { folders, activeFolderId } = useFoldersStore();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
+  const [revealFilePath, setRevealFilePath] = useState<string | null>(null); // File to reveal in sidebar
 
   // Sidebar view state: 'files' or 'history'
   const [sidebarView, setSidebarView] = useState<'files' | 'history'>('files');
 
+  // Home view state - tracks if home page is active
+  const [showHome, setShowHome] = useState(false);
+
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'warning' | 'error' | 'success' } | null>(null);
 
-  // Repository connect dialog state
-  const [showRepoConnectDialog, setShowRepoConnectDialog] = useState(false);
+  // Shortcuts reference state
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
-  // Git repository integration
-  const { connectedRepository, fetchFile, fetchTree, repositoryId } = useGitRepo();
+  // About dialog state
+  const [showAbout, setShowAbout] = useState(false);
 
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
@@ -120,16 +134,218 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
-  // Listen for menu:connect-repository events
+  // Listen for menu:shortcuts events from Help menu
   useEffect(() => {
-    const handleConnectRepository = () => {
-      setShowRepoConnectDialog(true);
+    const handleShowShortcuts = () => {
+      setShowShortcuts(true);
     };
 
-    window.addEventListener('menu:connect-repository', handleConnectRepository);
+    window.addEventListener('menu:shortcuts', handleShowShortcuts);
     return () => {
-      window.removeEventListener('menu:connect-repository', handleConnectRepository);
+      window.removeEventListener('menu:shortcuts', handleShowShortcuts);
     };
+  }, []);
+
+  // Listen for menu:about events from Help menu
+  useEffect(() => {
+    const handleShowAbout = () => {
+      setShowAbout(true);
+    };
+
+    window.addEventListener('menu:about', handleShowAbout);
+    return () => {
+      window.removeEventListener('menu:about', handleShowAbout);
+    };
+  }, []);
+
+  // Register all commands for the shortcuts reference
+  useEffect(() => {
+    // File commands
+    registerFileCommands({
+      onOpenFile: () => {
+        const fileOpenerButton = document.querySelector('.file-opener__button') as HTMLButtonElement;
+        fileOpenerButton?.click();
+      },
+      onOpenFolder: () => {
+        const folderOpenerButton = document.querySelector('.folder-opener__button') as HTMLButtonElement;
+        folderOpenerButton?.click();
+      },
+      onCloseTab: () => {
+        const { activeTabId, removeTab } = useTabsStore.getState();
+        if (activeTabId) removeTab(activeTabId);
+      },
+      onCloseAllTabs: () => {
+        const { tabs, removeTab } = useTabsStore.getState();
+        Array.from(tabs.keys()).forEach(tabId => removeTab(tabId));
+      },
+      onSaveAsPDF: () => {
+        console.log('Save as PDF not implemented yet');
+      },
+      onCopyFilePath: () => {
+        const { activeTabId, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) navigator.clipboard.writeText(tab.filePath);
+        }
+      },
+      onRevealInExplorer: () => {
+        const { activeTabId, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) {
+            // TODO: Implement reveal in explorer
+            console.log('Reveal in explorer:', tab.filePath);
+          }
+        }
+      },
+      onReload: () => {
+        const { activeTabId, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) window.location.reload();
+        }
+      },
+    });
+
+    // Navigation commands
+    registerNavigationCommands({
+      onNextTab: () => {
+        const { tabs, activeTabId, setActiveTab } = useTabsStore.getState();
+        if (!activeTabId || tabs.size === 0) return;
+        const tabIds = Array.from(tabs.keys());
+        const currentIndex = tabIds.indexOf(activeTabId);
+        const nextIndex = (currentIndex + 1) % tabIds.length;
+        setActiveTab(tabIds[nextIndex]);
+      },
+      onPreviousTab: () => {
+        const { tabs, activeTabId, setActiveTab } = useTabsStore.getState();
+        if (!activeTabId || tabs.size === 0) return;
+        const tabIds = Array.from(tabs.keys());
+        const currentIndex = tabIds.indexOf(activeTabId);
+        const prevIndex = (currentIndex - 1 + tabIds.length) % tabIds.length;
+        setActiveTab(tabIds[prevIndex]);
+      },
+      onJumpToTab: (index: number) => {
+        const { tabs, setActiveTab } = useTabsStore.getState();
+        const tabIds = Array.from(tabs.keys());
+        if (index < tabIds.length) setActiveTab(tabIds[index]);
+      },
+      onNavigateBack: () => {
+        window.dispatchEvent(new CustomEvent('navigation:back'));
+      },
+      onNavigateForward: () => {
+        window.dispatchEvent(new CustomEvent('navigation:forward'));
+      },
+      onGoToLine: () => {
+        console.log('Go to line not implemented yet');
+      },
+      onGoToHeading: () => {
+        window.dispatchEvent(new CustomEvent('toggle-toc'));
+      },
+      onSplitVertical: () => {
+        console.log('Split vertical not implemented yet');
+      },
+      onSplitHorizontal: () => {
+        console.log('Split horizontal not implemented yet');
+      },
+      onClosePane: () => {
+        console.log('Close pane not implemented yet');
+      },
+      onFocusNextPane: () => {
+        console.log('Focus next pane not implemented yet');
+      },
+      onFocusPreviousPane: () => {
+        console.log('Focus previous pane not implemented yet');
+      },
+    });
+
+    // View commands
+    registerViewCommands({
+      onZoomIn: () => {
+        const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) {
+            const newZoom = Math.min(2000, (tab.zoomLevel || 100) + 10);
+            updateTabZoomLevel(activeTabId, newZoom);
+          }
+        }
+      },
+      onZoomOut: () => {
+        const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab) {
+            const newZoom = Math.max(10, (tab.zoomLevel || 100) - 10);
+            updateTabZoomLevel(activeTabId, newZoom);
+          }
+        }
+      },
+      onZoomReset: () => {
+        const { activeTabId, updateTabZoomLevel } = useTabsStore.getState();
+        if (activeTabId) updateTabZoomLevel(activeTabId, 100);
+      },
+      onToggleSidebar: () => {
+        setShowSidebar(prev => !prev);
+      },
+      onToggleFileTree: () => {
+        setShowSidebar(true);
+        setSidebarView('files');
+      },
+      onToggleTableOfContents: () => {
+        window.dispatchEvent(new CustomEvent('toggle-toc'));
+      },
+      onChangeTheme: () => {
+        console.log('Change theme not implemented yet');
+      },
+      onToggleFullScreen: () => {
+        window.dispatchEvent(new CustomEvent('menu:toggle-fullscreen'));
+      },
+    });
+
+    // Search commands
+    registerSearchCommands({
+      onFindInPage: () => {
+        window.dispatchEvent(new CustomEvent('menu:find'));
+      },
+      onFindNext: () => {
+        console.log('Find next not implemented yet');
+      },
+      onFindPrevious: () => {
+        console.log('Find previous not implemented yet');
+      },
+      onReplace: () => {
+        console.log('Replace not implemented yet');
+      },
+      onFindInFiles: () => {
+        window.dispatchEvent(new CustomEvent('menu:find-in-files'));
+      },
+      onReplaceInFiles: () => {
+        console.log('Replace in files not implemented yet');
+      },
+    });
+
+    // Application commands
+    registerApplicationCommands({
+      onOpenCommandPalette: () => {
+        console.log('Command palette not implemented yet');
+      },
+      onOpenSettings: () => {
+        console.log('Settings not implemented yet');
+      },
+      onShowShortcuts: () => {
+        setShowShortcuts(true);
+      },
+      onCheckForUpdates: () => {
+        console.log('Check for updates not implemented yet');
+      },
+      onAbout: () => {
+        window.dispatchEvent(new CustomEvent('menu:about'));
+      },
+      onQuit: () => {
+        window.close();
+      },
+    });
   }, []);
 
   // Memoize callback to prevent unnecessary re-renders
@@ -273,12 +489,12 @@ const AppLayout: React.FC = () => {
       setGlobalZoom(zoom);
     };
 
-    // Register event listeners
-    window.electronAPI?.on('menu:open-file', handleMenuOpenFile);
-    window.electronAPI?.on('menu:open-folder', handleMenuOpenFolder);
-    window.electronAPI?.on('menu:close-current', handleMenuCloseCurrent);
-    window.electronAPI?.on('menu:close-folder', handleMenuCloseFolder);
-    window.electronAPI?.on('menu:close-all', handleMenuCloseAll);
+    // Register event listeners for menu commands
+    window.addEventListener('menu:open-file', handleMenuOpenFile);
+    window.addEventListener('menu:open-folder', handleMenuOpenFolder);
+    window.addEventListener('menu:close-current', handleMenuCloseCurrent);
+    window.addEventListener('menu:close-folder', handleMenuCloseFolder);
+    window.addEventListener('menu:close-all', handleMenuCloseAll);
 
     // T051k-view: Register zoom menu event listeners
     window.electronAPI?.on('menu:content-zoom-in', handleContentZoomIn);
@@ -290,9 +506,13 @@ const AppLayout: React.FC = () => {
     window.electronAPI?.on('menu:global-zoom-reset', handleGlobalZoomReset);
     window.electronAPI?.on('menu:global-zoom-preset', handleGlobalZoomPreset);
 
-    // Cleanup (note: electron IPC doesn't have removeListener in this simple implementation)
+    // Cleanup
     return () => {
-      // No cleanup needed with current implementation
+      window.removeEventListener('menu:open-file', handleMenuOpenFile);
+      window.removeEventListener('menu:open-folder', handleMenuOpenFolder);
+      window.removeEventListener('menu:close-current', handleMenuCloseCurrent);
+      window.removeEventListener('menu:close-folder', handleMenuCloseFolder);
+      window.removeEventListener('menu:close-all', handleMenuCloseAll);
     };
   }, [activeFolderId]);
 
@@ -324,6 +544,179 @@ const AppLayout: React.FC = () => {
       console.error('File watch error:', error);
     }
   );
+
+  // Track folders seen by auto-switch to prevent switching away from newly added folders
+  const autoSwitchSeenFoldersRef = useRef<Set<string>>(new Set());
+
+  // Auto-switch folder when active tab changes (only for user-initiated tab switches)
+  useEffect(() => {
+    if (!activeTab || !activeTabId) return;
+
+    // Check if the current active folder has been seen before by this effect
+    const wasFolderJustAdded = activeFolderId && !autoSwitchSeenFoldersRef.current.has(activeFolderId);
+
+    // Mark current folder as seen
+    if (activeFolderId) {
+      autoSwitchSeenFoldersRef.current.add(activeFolderId);
+    }
+
+    // Only auto-switch if:
+    // - The tab has a different folder than the current active folder
+    // - The current active folder is not being initialized
+    // - The current active folder was not just added
+    if (activeTab.folderId &&
+        activeTab.folderId !== activeFolderId &&
+        activeFolderId &&
+        !initializingFoldersRef.current.has(activeFolderId) &&
+        !wasFolderJustAdded) {
+      const { setActiveFolder } = useFoldersStore.getState();
+      setActiveFolder(activeTab.folderId);
+    }
+  }, [activeTabId, activeFolderId]); // Depend on both to detect newly added folders
+
+  // Track folders that are currently being initialized to prevent duplicate tab creation
+  const initializingFoldersRef = useRef<Set<string>>(new Set());
+
+  // Track if we're in the middle of cleanup to prevent auto-create from interfering
+  const isCleaningUpRef = useRef<boolean>(false);
+
+  // Track the previous folders list to detect newly added folders
+  const previousFoldersRef = useRef<Folder[]>([]);
+
+  // Monitor tab removals and handle folder cleanup - RUNS FIRST to set flags
+  const previousTabsRef = useRef<Map<string, any>>(new Map());
+  useEffect(() => {
+    // Check if a tab was removed
+    const previousTabs = previousTabsRef.current;
+    const currentTabIds = new Set(tabs.keys());
+    const previousTabIds = new Set(previousTabs.keys());
+
+    // Find removed tabs
+    const removedTabIds = Array.from(previousTabIds).filter(id => !currentTabIds.has(id));
+
+    if (removedTabIds.length > 0) {
+      console.log('[AppLayout] Tabs removed, checking for cleanup:', removedTabIds);
+
+      // Set cleanup flag IMMEDIATELY and SYNCHRONOUSLY to prevent auto-create
+      isCleaningUpRef.current = true;
+
+      // Handle cleanup asynchronously but properly
+      (async () => {
+        for (const removedTabId of removedTabIds) {
+          const removedTab = previousTabs.get(removedTabId);
+          console.log('[AppLayout] Removed tab:', removedTab);
+
+          if (!removedTab) continue;
+
+          // Skip if tab has no folder (direct file)
+          if (!removedTab.folderId) {
+            console.log('[AppLayout] Removed tab has no folderId, skipping');
+            // If this was the last tab, show welcome screen
+            if (tabs.size === 0) {
+              console.log('[AppLayout] All tabs closed (direct file), showing welcome screen');
+              setCurrentFile(null);
+              setCurrentContent('');
+              setError(null);
+            }
+            isCleaningUpRef.current = false;
+            continue;
+          }
+
+          // Check if this was the last tab for the folder
+          const remainingTabsForFolder = Array.from(tabs.values()).filter(
+            tab => tab.folderId === removedTab.folderId
+          );
+
+          console.log('[AppLayout] Remaining tabs for folder:', remainingTabsForFolder.length);
+
+          if (remainingTabsForFolder.length === 0) {
+            // This was the last tab for the folder
+            const folder = folders.find(f => f.id === removedTab.folderId);
+            if (!folder) {
+              console.warn('[AppLayout] Folder not found:', removedTab.folderId);
+              isCleaningUpRef.current = false;
+              continue;
+            }
+
+            console.log(`[AppLayout] Last tab closed for folder: ${folder.displayName}, automatically closing folder`);
+
+            // Automatically close the folder (no dialog)
+            const { removeFolder, setActiveFolder } = useFoldersStore.getState();
+
+            removeFolder(removedTab.folderId);
+
+            // Get folders AFTER removal to get the correct remaining list
+            const { folders: currentFolders } = useFoldersStore.getState();
+
+            if (currentFolders.length > 0) {
+              // Switch to another folder if available
+              setActiveFolder(currentFolders[0].id);
+            } else {
+              // No folders left - show welcome screen
+              console.log('[AppLayout] All folders closed, showing welcome screen');
+              setCurrentFile(null);
+              setCurrentContent('');
+              setError(null);
+            }
+
+            // Clear cleanup flag after a delay to prevent auto-create from running
+            setTimeout(() => {
+              isCleaningUpRef.current = false;
+            }, 0);
+          } else {
+            // There are still tabs for this folder, clear the cleanup flag
+            console.log('[AppLayout] Still has tabs, clearing cleanup flag');
+            setTimeout(() => {
+              isCleaningUpRef.current = false;
+            }, 0);
+          }
+        }
+      })();
+    }
+
+    // Update the ref for next comparison
+    previousTabsRef.current = new Map(tabs);
+  }, [tabs, folders]);
+
+  // Create tab when folder is selected but has no tabs - RUNS AFTER cleanup
+  useEffect(() => {
+    if (!activeFolderId) return;
+
+    const tabsForFolder = Array.from(tabs.values()).filter(tab => tab.folderId === activeFolderId);
+
+    // Detect if this folder was just added (to prevent double tab creation on folder open)
+    const previousFolders = previousFoldersRef.current;
+    const wasJustAdded = !previousFolders.some(f => f.id === activeFolderId);
+
+    // Update the previous folders ref
+    previousFoldersRef.current = folders;
+
+    // If the active folder has no tabs and we should create one
+    // Don't create if:
+    // - We're already initializing this folder
+    // - We're in cleanup mode (showing dialog)
+    // - The folder was just added (handleFolderOpened will be called)
+    // - ALL tabs are closed (user intentionally closed everything, show welcome screen)
+    if (tabsForFolder.length === 0 &&
+        !initializingFoldersRef.current.has(activeFolderId) &&
+        !isCleaningUpRef.current &&
+        !wasJustAdded &&
+        tabs.size > 0) {  // Don't auto-create if all tabs were closed
+      console.log(`[AppLayout] Active folder ${activeFolderId} has no tabs (manual switch), creating one`);
+
+      // Mark folder as being initialized
+      initializingFoldersRef.current.add(activeFolderId);
+
+      // Call handleFolderOpened to create a tab for this folder
+      const activeFolder = folders.find(f => f.id === activeFolderId);
+      if (activeFolder) {
+        handleFolderOpened(activeFolder.path).finally(() => {
+          // Remove from initializing set after tab is created
+          initializingFoldersRef.current.delete(activeFolderId);
+        });
+      }
+    }
+  }, [activeFolderId, tabs, folders]);
 
   // T066: Register navigation history keyboard shortcuts (Alt+Left, Alt+Right)
   useEffect(() => {
@@ -514,15 +907,155 @@ const AppLayout: React.FC = () => {
       onNavigateForward: handleNavigateForward,
     });
 
+    // T061, T063n: Register tab navigation shortcuts
+    const handleNextTab = () => {
+      const { tabOrder, activeTabId, setActiveTab } = useTabsStore.getState();
+      if (tabOrder.length === 0) return;
+
+      const currentIndex = tabOrder.indexOf(activeTabId || '');
+      const nextIndex = (currentIndex + 1) % tabOrder.length;
+      setActiveTab(tabOrder[nextIndex]);
+    };
+
+    const handlePreviousTab = () => {
+      const { tabOrder, activeTabId, setActiveTab } = useTabsStore.getState();
+      if (tabOrder.length === 0) return;
+
+      const currentIndex = tabOrder.indexOf(activeTabId || '');
+      const prevIndex = currentIndex <= 0 ? tabOrder.length - 1 : currentIndex - 1;
+      setActiveTab(tabOrder[prevIndex]);
+    };
+
+    const handleJumpToTab = (index: number) => {
+      const { tabOrder, setActiveTab } = useTabsStore.getState();
+      if (index < tabOrder.length) {
+        setActiveTab(tabOrder[index]);
+      }
+    };
+
+    const handleCloseTab = () => {
+      const { activeTabId, removeTab } = useTabsStore.getState();
+      if (activeTabId) {
+        removeTab(activeTabId);
+      }
+    };
+
+    // T063n: Move tab left/right handlers
+    const handleMoveTabLeft = () => {
+      const { tabOrder, activeTabId, reorderTab } = useTabsStore.getState();
+      if (tabOrder.length === 0 || !activeTabId) return;
+
+      const currentIndex = tabOrder.indexOf(activeTabId);
+      if (currentIndex > 0) {
+        // Move tab one position to the left
+        reorderTab(currentIndex, currentIndex - 1);
+      }
+    };
+
+    const handleMoveTabRight = () => {
+      const { tabOrder, activeTabId, reorderTab } = useTabsStore.getState();
+      if (tabOrder.length === 0 || !activeTabId) return;
+
+      const currentIndex = tabOrder.indexOf(activeTabId);
+      if (currentIndex < tabOrder.length - 1) {
+        // Move tab one position to the right
+        reorderTab(currentIndex, currentIndex + 1);
+      }
+    };
+
+    registerTabShortcuts({
+      onNextTab: handleNextTab,
+      onPreviousTab: handlePreviousTab,
+      onJumpToTab: handleJumpToTab,
+      onCloseTab: handleCloseTab,
+      onMoveTabLeft: handleMoveTabLeft,
+      onMoveTabRight: handleMoveTabRight,
+    });
+
+    // Register file menu shortcuts (Ctrl+O, Ctrl+Shift+O, Ctrl+Shift+W)
+    registerFileShortcuts({
+      onOpenFile: () => {
+        window.dispatchEvent(new CustomEvent('menu:open-file'));
+      },
+      onOpenFolder: () => {
+        window.dispatchEvent(new CustomEvent('menu:open-folder'));
+      },
+      onCloseAll: () => {
+        window.dispatchEvent(new CustomEvent('menu:close-all'));
+      },
+    });
+
+    // Register help shortcuts (F1)
+    registerHelpShortcuts({
+      onShowShortcuts: () => {
+        setShowShortcuts(true);
+      },
+    });
+
     // Listen for navigate-to-history events (for Home navigation)
     window.addEventListener('navigate-to-history', handleNavigateToHistory);
     // Listen for directory listing events
     window.addEventListener('show-directory-listing', handleShowDirectoryListing);
 
+    // Handle Ctrl+Click to open file in new tab
+    const handleOpenFileInNewTab = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ filePath: string }>;
+      const { filePath } = customEvent.detail;
+      const { openFileInNewTab } = useTabsStore.getState();
+      const { activeFolderId } = useFoldersStore.getState();
+
+      console.log('[AppLayout] Opening file in new tab:', filePath);
+      await openFileInNewTab(filePath, activeFolderId || undefined);
+    };
+
+    // Handle Shift+Click to open file in new window
+    const handleOpenFileInNewWindow = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ filePath: string }>;
+      const { filePath } = customEvent.detail;
+      const { openFileInNewWindow } = useTabsStore.getState();
+      const { activeFolderId } = useFoldersStore.getState();
+
+      console.log('[AppLayout] Opening file in new window:', filePath);
+      await openFileInNewWindow(filePath, activeFolderId || undefined);
+    };
+
+    // Handle reveal in sidebar
+    const handleRevealInSidebar = (event: Event) => {
+      const customEvent = event as CustomEvent<{ filePath: string; folderId?: string }>;
+      const { filePath, folderId } = customEvent.detail;
+
+      console.log('[AppLayout] Revealing file in sidebar:', filePath, folderId);
+
+      // Switch to the folder if needed
+      if (folderId && folderId !== activeFolderId) {
+        const { setActiveFolder } = useFoldersStore.getState();
+        setActiveFolder(folderId);
+      }
+
+      // Show files view if not already
+      setSidebarView('files');
+
+      // Trigger reveal
+      setRevealFilePath(filePath);
+
+      // Clear reveal path after a short delay to allow it to be triggered again
+      setTimeout(() => setRevealFilePath(null), 500);
+    };
+
+    window.addEventListener('open-file-in-new-tab', handleOpenFileInNewTab);
+    window.addEventListener('open-file-in-new-window', handleOpenFileInNewWindow);
+    window.addEventListener('reveal-in-sidebar', handleRevealInSidebar);
+
     return () => {
       unregisterHistoryShortcuts();
+      unregisterTabShortcuts();
+      unregisterFileShortcuts();
+      unregisterHelpShortcuts();
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
+      window.removeEventListener('open-file-in-new-tab', handleOpenFileInNewTab);
+      window.removeEventListener('open-file-in-new-window', handleOpenFileInNewWindow);
+      window.removeEventListener('reveal-in-sidebar', handleRevealInSidebar);
     };
   }, []);
 
@@ -626,317 +1159,6 @@ const AppLayout: React.FC = () => {
       addTab(newTab);
     }
   };
-
-  /**
-   * Handle file click from repository file tree
-   * Fetches and displays file content from Git repository
-   */
-  const handleRepoFileClick = useCallback(
-    async (filePath: string) => {
-      // Get the active folder to determine which repository and branch to use
-      const activeFolder = folders.find(f => f.id === activeFolderId);
-
-      if (!activeFolder || activeFolder.type !== 'repository') {
-        console.error('No repository folder active');
-        return;
-      }
-
-      const repoId = activeFolder.repositoryId;
-      const branch = activeFolder.currentBranch;
-
-      if (!repoId || !branch) {
-        console.error('Repository folder missing repositoryId or branch');
-        return;
-      }
-
-      try {
-        // Fetch file from repository using the active folder's branch
-        const fileData = await fetchFile({
-          repositoryId: repoId,
-          filePath,
-          branch,
-        });
-
-        // Mark as manually loaded
-        contentLoadedManually.current = true;
-
-        // Clear loading and error states
-        setIsLoading(false);
-        setError(null);
-
-        // Add to navigation history
-        const { activeTabId, tabs, addHistoryEntry, updateTabZoomLevel } = useTabsStore.getState();
-
-        if (activeTabId) {
-          const currentTab = tabs.get(activeTabId);
-
-          if (currentTab && currentTab.filePath && currentTab.filePath !== filePath) {
-            // Save current file's history entry
-            const viewer = document.querySelector('.markdown-viewer') as HTMLElement;
-            const currentScrollTop = viewer?.scrollTop || currentTab.scrollPosition || 0;
-            const currentScrollLeft = viewer?.scrollLeft || currentTab.scrollLeft || 0;
-            addHistoryEntry(activeTabId, {
-              filePath: currentTab.filePath,
-              scrollPosition: currentScrollTop,
-              scrollLeft: currentScrollLeft,
-              zoomLevel: currentTab.zoomLevel || 100,
-              timestamp: Date.now(),
-            });
-
-            // Add new file to history
-            addHistoryEntry(activeTabId, {
-              filePath: filePath,
-              scrollPosition: 0,
-              scrollLeft: 0,
-              zoomLevel: 100,
-              timestamp: Date.now(),
-            });
-
-            // Reset zoom for new file
-            updateTabZoomLevel(activeTabId, 100);
-          }
-        }
-
-        // Update file and content
-        setCurrentFile(filePath);
-        contentCacheRef.current.set(filePath, fileData.content);
-        setCurrentContent(fileData.content);
-
-        // Update active tab
-        if (activeTabId) {
-          const { tabs: freshTabs } = useTabsStore.getState();
-          const freshTab = freshTabs.get(activeTabId);
-          if (freshTab) {
-            const fileName = filePath.split('/').pop() || 'Untitled';
-            const updatedTab = {
-              ...freshTab,
-              filePath: filePath,
-              title: fileName,
-              modificationTimestamp: Date.now(),
-            };
-            freshTabs.set(activeTabId, updatedTab);
-            useTabsStore.setState({ tabs: new Map(freshTabs) });
-          }
-        }
-
-        // Create tab if none exists
-        if (!activeTabId) {
-          const { addTab } = useTabsStore.getState();
-          const fileName = filePath.split('/').pop() || 'Untitled';
-          const newTab = {
-            id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-            filePath,
-            title: fileName,
-            scrollPosition: 0,
-            zoomLevel: 100,
-            searchState: null,
-            modificationTimestamp: Date.now(),
-            isDirty: false,
-            renderCache: null,
-            navigationHistory: [{
-              filePath,
-              scrollPosition: 0,
-              scrollLeft: 0,
-              zoomLevel: 100,
-              timestamp: Date.now(),
-            }],
-            currentHistoryIndex: 0,
-            forwardHistory: [],
-            createdAt: Date.now(),
-            folderId: null,
-            isDirectFile: false,
-          };
-          addTab(newTab);
-        }
-      } catch (err) {
-        console.error('Error fetching repository file:', err);
-        setToast({
-          message: `Failed to load file: ${err instanceof Error ? err.message : 'Unknown error'}`,
-          type: 'error',
-        });
-      }
-    },
-    [folders, activeFolderId, fetchFile]
-  );
-
-  // Listen for repository:branch-opened events (when a new branch is opened)
-  useEffect(() => {
-    const handleBranchOpened = async (event: Event) => {
-      const customEvent = event as CustomEvent<{ folderId: string; repositoryId: string; branchName: string }>;
-      const { folderId, repositoryId: repoId, branchName } = customEvent.detail;
-
-      // Force FileTree to reload for the new branch
-      setFileTreeKey(prev => prev + 1);
-
-      // Auto-open the first markdown file from the new branch
-      try {
-        console.log(`Fetching file tree for ${repoId} branch ${branchName}`);
-        const treeResponse = await fetchTree({
-          repositoryId: repoId,
-          branch: branchName,
-          markdownOnly: true,
-        });
-
-        console.log('Tree response:', treeResponse);
-
-        if (treeResponse && treeResponse.tree && treeResponse.tree.length > 0) {
-          // Find first markdown file in tree (depth-first search)
-          const findFirstMarkdownFile = (nodes: any[]): string | null => {
-            for (const node of nodes) {
-              if (node.type === 'file' && node.isMarkdown) {
-                return node.path;
-              }
-              if (node.type === 'directory' && node.children) {
-                const found = findFirstMarkdownFile(node.children);
-                if (found) return found;
-              }
-            }
-            return null;
-          };
-
-          const firstMarkdownPath = findFirstMarkdownFile(treeResponse.tree);
-          if (firstMarkdownPath) {
-            console.log(`Auto-opening first markdown file: ${firstMarkdownPath}`);
-            // Auto-open the first markdown file (the active folder will already be switched to the new branch)
-            await handleRepoFileClick(firstMarkdownPath);
-          } else {
-            console.log('No markdown files found in tree');
-            setToast({
-              message: `Branch "${branchName}" opened (no markdown files found)`,
-              type: 'info',
-            });
-          }
-        } else {
-          console.log('No tree or empty tree response');
-          setToast({
-            message: `Branch "${branchName}" opened`,
-            type: 'info',
-          });
-        }
-      } catch (err) {
-        console.error('Error auto-opening file for new branch:', err);
-        setToast({
-          message: `Opened branch "${branchName}", but failed to load files: ${err instanceof Error ? err.message : 'Unknown error'}`,
-          type: 'warning',
-        });
-      }
-    };
-
-    window.addEventListener('repository:branch-opened', handleBranchOpened);
-    return () => {
-      window.removeEventListener('repository:branch-opened', handleBranchOpened);
-    };
-  }, [fetchTree, handleRepoFileClick]);
-
-  /**
-   * Handle repository connection completion
-   * Adds repo to folders store and auto-opens first markdown file
-   */
-  const handleRepositoryConnected = useCallback(async () => {
-    if (!connectedRepository || !repositoryId) return;
-
-    try {
-      // Add repository as a folder
-      const { addRepositoryFolder } = useFoldersStore.getState();
-      const repoFolder = addRepositoryFolder({
-        url: connectedRepository.url,
-        displayName: connectedRepository.displayName,
-        repositoryId,
-        currentBranch: connectedRepository.currentBranch,
-        defaultBranch: connectedRepository.defaultBranch,
-        branches: connectedRepository.branches,
-      });
-
-      // Fetch file tree to find first markdown file
-      console.log(`Fetching file tree for initial connection: ${repositoryId}, branch: ${connectedRepository.currentBranch}`);
-      const treeResponse = await fetchTree({
-        repositoryId,
-        branch: connectedRepository.currentBranch,
-        markdownOnly: true,
-      });
-
-      console.log('Initial connection tree response:', treeResponse);
-
-      if (treeResponse && treeResponse.tree && treeResponse.tree.length > 0) {
-        // Find first markdown file in tree (depth-first search)
-        const findFirstMarkdownFile = (nodes: any[]): string | null => {
-          for (const node of nodes) {
-            if (node.type === 'file' && node.isMarkdown) {
-              return node.path;
-            }
-            if (node.type === 'directory' && node.children) {
-              const found = findFirstMarkdownFile(node.children);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-
-        const firstMarkdownPath = findFirstMarkdownFile(treeResponse.tree);
-        if (firstMarkdownPath) {
-          console.log(`Opening first markdown file from initial connection: ${firstMarkdownPath}`);
-          // Fetch file directly instead of relying on handleRepoFileClick which needs active folder state
-          const fileData = await fetchFile({
-            repositoryId,
-            filePath: firstMarkdownPath,
-            branch: connectedRepository.currentBranch,
-          });
-
-          // Mark as manually loaded
-          contentLoadedManually.current = true;
-          setIsLoading(false);
-          setError(null);
-
-          // Open in new tab
-          const fileName = firstMarkdownPath.split('/').pop() || 'Untitled';
-          const { addTab } = useTabsStore.getState();
-          const newTab = {
-            id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-            filePath: firstMarkdownPath,
-            title: fileName,
-            scrollPosition: 0,
-            zoomLevel: 100,
-            searchState: null,
-            modificationTimestamp: Date.now(),
-            isDirty: false,
-            renderCache: null,
-            navigationHistory: [{
-              filePath: firstMarkdownPath,
-              scrollPosition: 0,
-              scrollLeft: 0,
-              zoomLevel: 100,
-              timestamp: Date.now(),
-            }],
-            currentHistoryIndex: 0,
-            forwardHistory: [],
-            createdAt: Date.now(),
-            folderId: repoFolder.id,
-            isDirectFile: false,
-          };
-          addTab(newTab);
-        }
-      }
-
-      // Show success toast
-      setToast({
-        message: `Connected to ${connectedRepository.displayName}`,
-        type: 'success',
-      });
-    } catch (err) {
-      console.error('Error handling repository connection:', err);
-      setToast({
-        message: 'Repository connected, but failed to load files',
-        type: 'warning',
-      });
-    }
-  }, [connectedRepository, repositoryId, fetchTree, fetchFile]);
-
-  // Trigger connection handler when repository is connected
-  useEffect(() => {
-    if (connectedRepository && repositoryId) {
-      handleRepositoryConnected();
-    }
-  }, [connectedRepository, repositoryId, handleRepositoryConnected]);
 
   /**
    * Handle link clicks from markdown content (relative file links)
@@ -1043,13 +1265,16 @@ const AppLayout: React.FC = () => {
    * Auto-opens the first markdown file in the folder
    */
   const handleFolderOpened = async (folderPath: string) => {
-    console.log('Folder opened:', folderPath);
-
     try {
       // Get the folder ID that was just added (FolderOpener already added it to the store)
       const { folders, activeFolderId: currentActiveFolderId } = useFoldersStore.getState();
       const addedFolder = folders.find(f => f.path === folderPath);
       const folderId = addedFolder?.id || currentActiveFolderId;
+
+      // Mark folder as being initialized to prevent auto-switch
+      if (folderId) {
+        initializingFoldersRef.current.add(folderId);
+      }
 
       // Get the folder tree to find the first markdown file
       const result = await window.electronAPI?.file?.getFolderTree({
@@ -1087,6 +1312,7 @@ const AppLayout: React.FC = () => {
         };
 
         const firstFilePath = findFirstMarkdownFile(result.tree);
+        const { tabs, addTab } = useTabsStore.getState();
 
         if (firstFilePath) {
           // Read and open the first file
@@ -1098,10 +1324,14 @@ const AppLayout: React.FC = () => {
             setError(null);
 
             // Create a tab for this file with the correct folder ID
-            const { tabs, addTab } = useTabsStore.getState();
             const existingTab = Array.from(tabs.values()).find(t => t.filePath === firstFilePath);
 
-            if (!existingTab) {
+            if (existingTab) {
+              // Tab already exists, just set it as active
+              const { setActiveTab } = useTabsStore.getState();
+              setActiveTab(existingTab.id);
+            } else {
+              // Create new tab
               const fileName = firstFilePath.split(/[/\\]/).pop() || 'Untitled';
               const newTab = {
                 id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
@@ -1127,16 +1357,70 @@ const AppLayout: React.FC = () => {
                 isDirectFile: false, // This is from a folder, not a direct file
               };
               addTab(newTab);
-            }
 
-            console.log('Auto-opened first file:', firstFilePath, 'with folderId:', folderId);
+              // Set the new tab as active so it's visible
+              const { setActiveTab } = useTabsStore.getState();
+              setActiveTab(newTab.id);
+            }
           }
         } else {
-          console.log('No markdown files found in folder');
+          // No markdown files found - create a tab showing folder overview
+          console.log('No markdown files found in folder, creating overview tab');
+
+          const folderName = folderPath.split(/[/\\]/).pop() || 'Folder';
+          const overviewPath = `${folderPath}/[Folder Overview]`;
+
+          // Check if tab already exists for this folder
+          const existingTab = Array.from(tabs.values()).find(t =>
+            t.folderId === folderId && t.filePath.includes('[Folder Overview]')
+          );
+
+          if (!existingTab) {
+            const newTab = {
+              id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+              filePath: overviewPath,
+              title: `${folderName}/`,
+              scrollPosition: 0,
+              zoomLevel: 100,
+              searchState: null,
+              modificationTimestamp: Date.now(),
+              isDirty: false,
+              renderCache: null,
+              navigationHistory: [{
+                filePath: overviewPath,
+                scrollPosition: 0,
+                scrollLeft: 0,
+                zoomLevel: 100,
+                timestamp: Date.now(),
+              }],
+              currentHistoryIndex: 0,
+              forwardHistory: [],
+              createdAt: Date.now(),
+              folderId: folderId,
+              isDirectFile: false,
+            };
+            addTab(newTab);
+
+            // Set the new tab as active so it's visible
+            const { setActiveTab } = useTabsStore.getState();
+            setActiveTab(newTab.id);
+          }
+
+          // Set empty content with a message
+          setCurrentFile(overviewPath);
+          setCurrentContent(`# ${folderName}\n\n*This folder contains no markdown files.*\n\nCreate a markdown file to get started.`);
+          setError(null);
         }
       }
     } catch (err) {
       console.error('Error auto-opening first file:', err);
+    } finally {
+      // Clear initializing flag
+      const { folders } = useFoldersStore.getState();
+      const addedFolder = folders.find(f => f.path === folderPath);
+      if (addedFolder) {
+        initializingFoldersRef.current.delete(addedFolder.id);
+      }
     }
   };
 
@@ -1237,7 +1521,7 @@ const AppLayout: React.FC = () => {
           <div className="sidebar">
             <div className="sidebar-header">
             {/* T111-T113: Folder Switcher */}
-            {folders.length > 0 && <FolderSwitcher />}
+            {folders.length > 0 && <FolderSwitcher onFolderOpened={handleFolderOpened} />}
 
             {/* Sidebar view toggle: Files / History */}
             {tabs.size > 0 && (
@@ -1453,24 +1737,14 @@ const AppLayout: React.FC = () => {
 
               // Mode 3: Folder mode
               if (activeFolderId) {
-                // Get the active folder to check its type
-                const activeFolder = folders.find(f => f.id === activeFolderId);
-                const isRepoFolder = activeFolder?.type === 'repository';
-
                 return (
                   <FileTree
                     key={fileTreeKey}
                     folderId={activeFolderId}
+                    revealFilePath={revealFilePath}
                     onFileSelect={async (filePath) => {
                       try {
-                        // Use repository handler for repo folders, local file handler for local folders
-                        if (isRepoFolder) {
-                          // Repository file - use handleRepoFileClick
-                          await handleRepoFileClick(filePath);
-                          return;
-                        }
-
-                        // Load local file content
+                        // Load file content first
                         const result = await window.electronAPI?.file?.read({ filePath });
                         if (result?.success && result.content) {
                           // Mark as manually loaded
@@ -1554,14 +1828,6 @@ const AppLayout: React.FC = () => {
                     }}
                     onFileOpen={async (filePath) => {
                       try {
-                        // Use repository handler for repo folders, local file handler for local folders
-                        if (isRepoFolder) {
-                          // Repository file - use handleRepoFileClick
-                          await handleRepoFileClick(filePath);
-                          return;
-                        }
-
-                        // Load local file
                         const result = await window.electronAPI?.file?.read({ filePath });
                         if (result?.success && result.content) {
                           await handleFileOpened(filePath, result.content);
@@ -1591,6 +1857,7 @@ const AppLayout: React.FC = () => {
         {hasTabs && (
           <TabBar
             onTabClick={(tabId) => {
+              setShowHome(false); // Hide home when clicking a regular tab
               const { getTab, setActiveTab } = useTabsStore.getState();
               const tab = getTab(tabId);
               if (tab) {
@@ -1609,28 +1876,20 @@ const AppLayout: React.FC = () => {
                 }
               }
             }}
+            onHomeClick={() => {
+              setShowHome(true);
+              setCurrentFile(null); // Clear current file to ensure home is shown
+              // Deselect any active tab
+              const { setActiveTab } = useTabsStore.getState();
+              setActiveTab(null);
+            }}
+            isHomeActive={showHome}
           />
         )}
 
         <div className="editor-area">
-          {!currentFile ? (
-            <div className="welcome">
-              <h1>Welcome to MarkRead</h1>
-              <p>Open a markdown file, folder, or connect to a Git repository to get started</p>
-              <div className="welcome-buttons">
-                <FileOpener onFileOpened={handleFileOpened} />
-                <FolderOpener onFolderOpened={handleFolderOpened} />
-                <button
-                  className="folder-opener welcome-repo-button"
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('menu:connect-repository'));
-                  }}
-                  type="button"
-                >
-                  🌐 Connect to Repository
-                </button>
-              </div>
-            </div>
+          {showHome || !currentFile ? (
+            <Home onFileOpened={handleFileOpened} onFolderOpened={handleFolderOpened} />
           ) : (
             <MarkdownViewer
               content={contentForCurrentFile}
@@ -1698,9 +1957,6 @@ const AppLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* Statusbar */}
-      <Statusbar />
-
       {/* Toast notification */}
       {toast && (
         <Toast
@@ -1710,13 +1966,16 @@ const AppLayout: React.FC = () => {
         />
       )}
 
-      {/* Repository Connect Dialog */}
-      <RepoConnectDialog
-        isOpen={showRepoConnectDialog}
-        onClose={() => setShowRepoConnectDialog(false)}
-        onConnected={() => {
-          setShowRepoConnectDialog(false);
-        }}
+      {/* Keyboard Shortcuts Reference */}
+      <ShortcutsReference
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+      />
+
+      {/* About Dialog */}
+      <About
+        isOpen={showAbout}
+        onClose={() => setShowAbout(false)}
       />
     </div>
   );

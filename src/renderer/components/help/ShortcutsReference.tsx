@@ -35,13 +35,16 @@ export const ShortcutsReference: React.FC<ShortcutsReferenceProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Get all commands with shortcuts
+  // Get all commands with shortcuts - refresh when dialog opens
   const allCommands = useMemo(() => {
-    return commandService
-      .getAllCommands()
-      .filter(cmd => cmd.defaultShortcut !== null)
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, []);
+    if (!isOpen) return []; // Don't fetch if dialog is closed
+    const commands = commandService.getAllCommands();
+    console.log('[ShortcutsReference] Total commands:', commands.length);
+    const withShortcuts = commands.filter(cmd => cmd.defaultShortcut !== null);
+    console.log('[ShortcutsReference] Commands with shortcuts:', withShortcuts.length);
+    console.log('[ShortcutsReference] Commands:', withShortcuts);
+    return withShortcuts.sort((a, b) => a.label.localeCompare(b.label));
+  }, [isOpen]);
 
   // T092: Detect shortcut conflicts
   const conflicts = useMemo(() => {

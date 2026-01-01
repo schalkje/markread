@@ -405,6 +405,7 @@ export function registerTabShortcuts(callbacks: {
     id: 'tabs.next',
     keys: ['Tab'],
     ctrlKey: true,
+    shiftKey: false,
     handler: () => {
       callbacks.onNextTab();
     },
@@ -571,6 +572,88 @@ export function registerSplitShortcuts(callbacks: {
 export function unregisterSplitShortcuts(): void {
   keyboardHandler.unregister('split.vertical');
   keyboardHandler.unregister('split.horizontal');
+}
+
+/**
+ * Register file menu keyboard shortcuts
+ * - Ctrl+O: Open File
+ * - Ctrl+Shift+O: Open Folder
+ * - Ctrl+Shift+W: Close All
+ */
+export function registerFileShortcuts(callbacks: {
+  onOpenFile: () => void;
+  onOpenFolder: () => void;
+  onCloseAll: () => void;
+}): void {
+  // Open File: Ctrl+O
+  keyboardHandler.register({
+    id: 'file.open',
+    keys: ['o', 'O'],
+    ctrlKey: true,
+    shiftKey: false,
+    handler: () => {
+      callbacks.onOpenFile();
+    },
+    description: 'Open file',
+  });
+
+  // Open Folder: Ctrl+Shift+O
+  keyboardHandler.register({
+    id: 'file.openFolder',
+    keys: ['o', 'O'],
+    ctrlKey: true,
+    shiftKey: true,
+    handler: () => {
+      callbacks.onOpenFolder();
+    },
+    description: 'Open folder',
+  });
+
+  // Close All: Ctrl+Shift+W
+  keyboardHandler.register({
+    id: 'file.closeAll',
+    keys: ['w', 'W'],
+    ctrlKey: true,
+    shiftKey: true,
+    handler: () => {
+      callbacks.onCloseAll();
+    },
+    description: 'Close all tabs and folders',
+  });
+}
+
+/**
+ * Unregister file shortcuts
+ */
+export function unregisterFileShortcuts(): void {
+  keyboardHandler.unregister('file.open');
+  keyboardHandler.unregister('file.openFolder');
+  keyboardHandler.unregister('file.closeAll');
+}
+
+/**
+ * Register help shortcuts
+ * - F1: Show keyboard shortcuts reference
+ */
+export function registerHelpShortcuts(callbacks: {
+  onShowShortcuts: () => void;
+}): void {
+  // Show keyboard shortcuts: F1
+  keyboardHandler.register({
+    id: 'help.showShortcuts',
+    keys: ['F1'],
+    handler: () => {
+      callbacks.onShowShortcuts();
+    },
+    description: 'Show keyboard shortcuts reference',
+  });
+}
+
+/**
+ * Unregister help shortcuts
+ */
+export function unregisterHelpShortcuts(): void {
+  keyboardHandler.unregister('help.showShortcuts');
 }
 
 export default keyboardHandler;

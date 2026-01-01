@@ -13,6 +13,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useFoldersStore } from '../../stores/folders';
 import { useTabsStore } from '../../stores/tabs';
 import type { TreeNode } from '../../../shared/types/repository';
+import { FileTreeContextMenu } from './FileTreeContextMenu';
 import './FileTree.css';
 
 export interface FileTreeProps {
@@ -22,6 +23,8 @@ export interface FileTreeProps {
   onFileSelect?: (filePath: string) => void;
   /** Callback when file is double-clicked (open) */
   onFileOpen?: (filePath: string) => void;
+  /** File path to reveal (expand parents and scroll into view) */
+  revealFilePath?: string | null;
 }
 
 /**
@@ -42,6 +45,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   folderId,
   onFileSelect,
   onFileOpen,
+  revealFilePath,
 }) => {
   const folder = useFoldersStore((state) =>
     state.folders.find((f) => f.id === folderId)
@@ -53,8 +57,14 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const [treeData, setTreeData] = useState<FileTreeNode[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    type: 'file' | 'folder';
+    path: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
-  // T102: Load tree data from IPC handler (local folders) or Git API (repositories)
+  // T102: Load tree data from IPC handler
   useEffect(() => {
     if (!folder) return;
 
@@ -130,6 +140,61 @@ export const FileTree: React.FC<FileTreeProps> = ({
     setSelectedPath(folder.fileTreeState.selectedPath);
   }, [folder]);
 
+  // Handle reveal file path - expand parents and scroll into view
+  useEffect(() => {
+    if (!revealFilePath || !folder) return;
+
+    console.log('[FileTree] Revealing file:', revealFilePath);
+
+    // Find all parent directories of the file
+    const pathParts = revealFilePath.split(/[/\\]/);
+    const dirsToExpand = new Set<string>();
+
+    // Build all parent paths
+    let currentPath = '';
+    for (let i = 0; i < pathParts.length - 1; i++) {
+      if (i === 0) {
+        currentPath = pathParts[i];
+      } else {
+        currentPath = currentPath + '/' + pathParts[i];
+      }
+      // Also try with backslashes for Windows paths
+      const winPath = currentPath.replace(/\//g, '\\');
+      dirsToExpand.add(currentPath);
+      dirsToExpand.add(winPath);
+    }
+
+    console.log('[FileTree] Expanding directories:', Array.from(dirsToExpand));
+
+    // Expand all parent directories
+    setExpandedDirs((prev) => {
+      const newSet = new Set(prev);
+      dirsToExpand.forEach(dir => newSet.add(dir));
+
+      // Persist to store
+      updateFileTreeState(folderId, {
+        expandedDirectories: newSet,
+      });
+
+      return newSet;
+    });
+
+    // Select the file
+    setSelectedPath(revealFilePath);
+    updateFileTreeState(folderId, { selectedPath: revealFilePath });
+
+    // Scroll into view after a short delay to allow rendering
+    setTimeout(() => {
+      const element = document.querySelector(`[title="${revealFilePath}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        console.log('[FileTree] Scrolled to file:', revealFilePath);
+      } else {
+        console.warn('[FileTree] Could not find element to scroll to:', revealFilePath);
+      }
+    }, 100);
+  }, [revealFilePath, folder, folderId, updateFileTreeState]);
+
   // T105: Persist expansion state
   const toggleDirectory = (dirPath: string) => {
     setExpandedDirs((prev) => {
@@ -149,7 +214,28 @@ export const FileTree: React.FC<FileTreeProps> = ({
     });
   };
 
-  const handleFileClick = (filePath: string) => {
+  const handleFileClick = (filePath: string, event?: React.MouseEvent) => {
+    // Check for modifier keys
+    const ctrlOrCmd = event?.ctrlKey || event?.metaKey;
+    const shiftKey = event?.shiftKey;
+
+    if (shiftKey) {
+      // Shift+Click: Open in new window
+      window.dispatchEvent(new CustomEvent('open-file-in-new-window', {
+        detail: { filePath }
+      }));
+      return;
+    }
+
+    if (ctrlOrCmd) {
+      // Ctrl/Cmd+Click: Open in new tab
+      window.dispatchEvent(new CustomEvent('open-file-in-new-tab', {
+        detail: { filePath }
+      }));
+      return;
+    }
+
+    // Normal click: Select and call callback
     setSelectedPath(filePath);
     updateFileTreeState(folderId, { selectedPath: filePath });
     onFileSelect?.(filePath);
@@ -157,6 +243,45 @@ export const FileTree: React.FC<FileTreeProps> = ({
 
   const handleFileDoubleClick = (filePath: string) => {
     onFileOpen?.(filePath);
+  };
+
+  const handleContextMenu = (
+    type: 'file' | 'folder',
+    path: string,
+    event: React.MouseEvent
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      type,
+      path,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  };
+
+  const handleContextMenuOpen = (path: string) => {
+    if (contextMenu?.type === 'file') {
+      onFileSelect?.(path);
+    }
+  };
+
+  const handleContextMenuOpenInNewTab = (path: string) => {
+    window.dispatchEvent(new CustomEvent('open-file-in-new-tab', {
+      detail: { filePath: path }
+    }));
+  };
+
+  const handleContextMenuOpenInNewWindow = (path: string) => {
+    window.dispatchEvent(new CustomEvent('open-file-in-new-window', {
+      detail: { filePath: path }
+    }));
+  };
+
+  const handleContextMenuOpenAsNewFolder = (path: string) => {
+    window.dispatchEvent(new CustomEvent('open-folder', {
+      detail: { folderPath: path }
+    }));
   };
 
   // Flatten tree for rendering (needed for virtualization)
@@ -216,9 +341,25 @@ export const FileTree: React.FC<FileTreeProps> = ({
               onToggle={toggleDirectory}
               onClick={handleFileClick}
               onDoubleClick={handleFileDoubleClick}
+              onContextMenu={handleContextMenu}
             />
           ))}
         </div>
+      )}
+
+      {/* Render context menu */}
+      {contextMenu && (
+        <FileTreeContextMenu
+          type={contextMenu.type}
+          path={contextMenu.path}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onOpen={handleContextMenuOpen}
+          onOpenInNewTab={handleContextMenuOpenInNewTab}
+          onOpenInNewWindow={handleContextMenuOpenInNewWindow}
+          onOpenAsNewFolder={handleContextMenuOpenAsNewFolder}
+          onHide={() => setContextMenu(null)}
+        />
       )}
     </div>
   );
@@ -232,8 +373,9 @@ interface FileTreeItemProps {
   isExpanded: boolean;
   isSelected: boolean;
   onToggle: (path: string) => void;
-  onClick: (path: string) => void;
+  onClick: (path: string, event?: React.MouseEvent) => void;
   onDoubleClick: (path: string) => void;
+  onContextMenu: (type: 'file' | 'folder', path: string, event: React.MouseEvent) => void;
 }
 
 const FileTreeItem: React.FC<FileTreeItemProps> = ({
@@ -243,12 +385,13 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
   onToggle,
   onClick,
   onDoubleClick,
+  onContextMenu,
 }) => {
-  const handleClick = () => {
+  const handleClick = (event: React.MouseEvent) => {
     if (node.type === 'directory') {
       onToggle(node.path);
     } else {
-      onClick(node.path);
+      onClick(node.path, event);
     }
   };
 
@@ -256,6 +399,12 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
     if (node.type === 'file') {
       onDoubleClick(node.path);
     }
+  };
+
+  const handleContextMenu = (event: React.MouseEvent) => {
+    // Convert 'directory' to 'folder' for context menu
+    const menuType = node.type === 'directory' ? 'folder' : 'file';
+    onContextMenu(menuType, node.path, event);
   };
 
   const icon = node.type === 'directory'
@@ -268,6 +417,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
       style={{ paddingLeft: `${node.depth * 20 + 8}px` }}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      onContextMenu={handleContextMenu}
       data-testid={`file-tree-item-${node.name}`}
       title={node.path}
     >

@@ -25,13 +25,24 @@
 
 .tab-bar__tabs {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   flex: 1;
-  gap: 2px;
+  gap: 0;
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
+  height: 100%;
+}
+
+/* Hide scrollbar */
+.tab-bar__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-bar__tabs {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 /* T063a-T063b: Navigation buttons */
@@ -75,7 +86,7 @@
   padding: 0 12px;
   background: var(--tab-bg, #e6e6e6);
   border: none;
-  border-right: 1px solid var(--border-color, #d0d7de);
+  border-right: 1px solid var(--tab-separator, #f0f0f0);
   cursor: pointer;
   font-size: 13px;
   color: var(--text-primary, #24292f);
@@ -86,11 +97,25 @@
   flex-shrink: 0;
 }
 
+/* Home tab - small icon-only tab */
+.tab--home {
+  min-width: 40px;
+  max-width: 40px;
+  padding: 0;
+  justify-content: center;
+  border-right: 1px solid var(--tab-separator, #f0f0f0);
+}
+
+.tab--home svg {
+  flex-shrink: 0;
+}
+
 /* T063e: Folder indicator */
 .tab__folder-indicator {
-  width: 3px;
+  width: 100%;
   height: 100%;
   position: absolute;
+  opacity: 20%;
   left: 0;
   top: 0;
   background-color: var(--folder-color, #999);
@@ -112,7 +137,7 @@
 
 /* T063m: Drag and drop */
 .tab--drag-over {
-  border-left: 2px solid var(--accent-color, #0969da);
+  border-left: 2px solid var(--tab-separator, #f0f0f0);
   padding-left: 10px;
 }
 
@@ -139,8 +164,19 @@
   margin-left: -2px;
 }
 
+/* Container for shortcut and close button to overlap */
+.tab__actions {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 .tab__close {
-  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 20px;
@@ -151,11 +187,14 @@
   border-radius: 3px;
   cursor: pointer;
   color: var(--text-secondary, #57606a);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .tab:hover .tab__close {
-  display: flex;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .tab__close:hover {
@@ -164,21 +203,27 @@
 }
 
 .tab__shortcut {
-  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   font-size: 10px;
   font-weight: 600;
   color: var(--text-tertiary, #8c959f);
   background: var(--shortcut-bg, #f3f3f3);
   border-radius: 2px;
   padding: 2px;
+  transition: opacity 0.15s ease;
+  opacity: 1;
 }
 
-.tab:not(:hover) .tab__shortcut {
-  display: flex;
+.tab:hover .tab__shortcut {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .tab-bar__warning {
@@ -223,6 +268,7 @@
     --tab-hover-bg: #3d3d3d;
     --tab-active-bg: #2d2d2d;
     --border-color: #444;
+    --tab-separator: #3a3a3a;
     --text-primary: #e6e6e6;
     --text-secondary: #a0a0a0;
     --text-tertiary: #666;

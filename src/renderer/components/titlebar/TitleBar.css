@@ -39,6 +39,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
+  -webkit-app-region: drag; /* Allow dragging window from middle section */
 }
 
 /* Right Section */
@@ -150,7 +151,7 @@
   background-color: var(--menu-background, #252526);
   border: 1px solid var(--menu-border, #454545);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  min-width: 180px;
+  min-width: 240px;
   z-index: 10000;
   padding: 4px 0;
 }
@@ -163,7 +164,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 32px;
   padding: 6px 16px;
   cursor: pointer;
   font-size: 13px;
@@ -172,6 +173,7 @@
   width: 100%;
   text-align: left;
   color: inherit;
+  white-space: nowrap;
 }
 
 .title-bar__dropdown-item:hover {
@@ -187,6 +189,8 @@
   font-size: 12px;
   opacity: 0.9;
   color: var(--menu-shortcut-color, var(--text-secondary, #7d8590));
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .title-bar__dropdown-item--submenu {

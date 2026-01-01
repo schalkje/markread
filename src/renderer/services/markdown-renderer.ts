@@ -166,8 +166,8 @@ md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const encodedCode = encodeURIComponent(code);
 
     // Return a div with data attribute for Mermaid to process
-    // We'll initialize Mermaid after markdown rendering
-    return `<div class="mermaid-diagram" data-mermaid-code="${encodedCode}">${md.utils.escapeHtml(code)}</div>`;
+    // Empty placeholder (page is hidden during rendering anyway)
+    return `<div class="mermaid-diagram" data-mermaid-code="${encodedCode}"></div>`;
   }
 
   // Use default fence rendering for other languages
@@ -201,6 +201,7 @@ mermaid.initialize({
  */
 export async function renderMermaidDiagrams(container: HTMLElement): Promise<void> {
   const diagrams = container.querySelectorAll('.mermaid-diagram');
+  console.log(`[Mermaid] Found ${diagrams.length} diagrams to render`);
 
   for (let i = 0; i < diagrams.length; i++) {
     const diagram = diagrams[i] as HTMLElement;
@@ -211,6 +212,7 @@ export async function renderMermaidDiagrams(container: HTMLElement): Promise<voi
     const code = decodeURIComponent(encodedCode);
 
     try {
+      console.log(`[Mermaid] Rendering diagram ${i + 1}/${diagrams.length}`);
       // Generate unique ID for Mermaid
       const id = `mermaid-${Date.now()}-${i}`;
 
@@ -220,6 +222,7 @@ export async function renderMermaidDiagrams(container: HTMLElement): Promise<voi
       // Replace text with SVG
       diagram.innerHTML = svg;
       diagram.classList.add('mermaid-rendered');
+      console.log(`[Mermaid] Diagram ${i + 1} rendered successfully`);
     } catch (err) {
       console.error('Mermaid rendering error:', err);
       diagram.innerHTML = `<pre class="mermaid-error">Failed to render diagram:\n${md.utils.escapeHtml(
@@ -227,6 +230,8 @@ export async function renderMermaidDiagrams(container: HTMLElement): Promise<voi
       )}</pre>`;
     }
   }
+
+  console.log('[Mermaid] All diagrams rendered');
 }
 
 /**

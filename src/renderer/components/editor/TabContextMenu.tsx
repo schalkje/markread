@@ -24,6 +24,8 @@ export interface TabContextMenuProps {
   onDuplicate: (tabId: string) => void;
   /** Callback when move to new window is clicked */
   onMoveToNewWindow: (tabId: string) => void;
+  /** Callback when reveal in sidebar is clicked */
+  onRevealInSidebar?: (tabId: string) => void;
   /** Callback when menu should be hidden */
   onHide: () => void;
 }
@@ -38,6 +40,7 @@ export const TabContextMenu: React.FC<TabContextMenuProps> = ({
   onClose,
   onDuplicate,
   onMoveToNewWindow,
+  onRevealInSidebar,
   onHide,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -80,6 +83,11 @@ export const TabContextMenu: React.FC<TabContextMenuProps> = ({
     onHide();
   };
 
+  const handleRevealInSidebar = () => {
+    onRevealInSidebar?.(tabId);
+    onHide();
+  };
+
   return (
     <div
       ref={menuRef}
@@ -107,6 +115,18 @@ export const TabContextMenu: React.FC<TabContextMenuProps> = ({
       </button>
 
       <div className="tab-context-menu__divider" />
+
+      {onRevealInSidebar && (
+        <button
+          type="button"
+          className="tab-context-menu__item"
+          onClick={handleRevealInSidebar}
+          data-testid="tab-context-menu-reveal-in-sidebar"
+        >
+          <span className="tab-context-menu__icon">📍</span>
+          <span className="tab-context-menu__label">Reveal in Sidebar</span>
+        </button>
+      )}
 
       <button
         className="tab-context-menu__item"
