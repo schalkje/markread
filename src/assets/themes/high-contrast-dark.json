@@ -1,0 +1,25 @@
+{
+  "id": "high-contrast-dark",
+  "name": "High Contrast Dark",
+  "type": "high-contrast",
+  "colorMappings": {
+    "background": "#000000",
+    "foreground": "#ffffff",
+    "accent": "#ffff00",
+    "sidebarBackground": "#1a1a1a",
+    "sidebarForeground": "#ffffff",
+    "sidebarBorder": "#ffffff",
+    "tabBackground": "#2a2a2a",
+    "tabActiveBackground": "#000000",
+    "tabForeground": "#ffffff",
+    "tabBorder": "#ffffff",
+    "contentBackground": "#000000",
+    "contentForeground": "#ffffff",
+    "markdownHeading": "#ffff00",
+    "markdownLink": "#00ffff",
+    "markdownCodeBackground": "#1a1a1a",
+    "markdownBlockquoteBackground": "#1a1a1a"
+  },
+  "syntaxHighlightTheme": "a11y-dark",
+  "mermaidTheme": "dark"
+}

@@ -1,0 +1,439 @@
+/**
+ * TitleBarLeft Component
+ * Task: T159a
+ *
+ * Left section of title bar:
+ * - Burger button (toggles sidebar visibility)
+ * - Menu bar (File, Edit, View, Help)
+ * - Back/Forward navigation buttons
+ */
+
+import React, { useState } from 'react';
+import { useActiveTabNavigation, useTabsStore } from '../../stores/tabs';
+import './TitleBar.css';
+
+interface MenuItem {
+  label: string;
+  action?: () => void;
+  separator?: boolean;
+  disabled?: boolean;
+  submenu?: MenuItem[];
+  shortcut?: string;
+}
+
+interface MenuDropdownProps {
+  isOpen: boolean;
+  onClose: () => void;
+  items: MenuItem[];
+}
+
+const MenuDropdown: React.FC<MenuDropdownProps> = ({ isOpen, onClose, items }) => {
+  const [openSubmenu, setOpenSubmenu] = useState<number | null>(null);
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div className="title-bar__dropdown-backdrop" onClick={onClose} />
+      <div className="title-bar__dropdown">
+        {items.map((item, index) =>
+          item.separator ? (
+            <div key={index} className="title-bar__dropdown-separator" />
+          ) : item.submenu ? (
+            <div
+              key={index}
+              className="title-bar__dropdown-item-container"
+              onMouseEnter={() => setOpenSubmenu(index)}
+              onMouseLeave={() => setOpenSubmenu(null)}
+            >
+              <button
+                className={`title-bar__dropdown-item title-bar__dropdown-item--submenu${item.disabled ? ' title-bar__dropdown-item--disabled' : ''}`}
+                disabled={item.disabled}
+                type="button"
+              >
+                <span className="title-bar__dropdown-item-label">{item.label}</span>
+                {item.shortcut && <span className="title-bar__dropdown-item-shortcut">{item.shortcut}</span>}
+                <span className="title-bar__submenu-arrow">▶</span>
+              </button>
+              {openSubmenu === index && (
+                <div className="title-bar__submenu">
+                  {item.submenu.map((subitem, subindex) =>
+                    subitem.separator ? (
+                      <div key={subindex} className="title-bar__dropdown-separator" />
+                    ) : (
+                      <button
+                        key={subindex}
+                        className={`title-bar__dropdown-item${subitem.disabled ? ' title-bar__dropdown-item--disabled' : ''}`}
+                        onClick={() => {
+                          if (!subitem.disabled && subitem.action) {
+                            subitem.action();
+                            onClose();
+                          }
+                        }}
+                        disabled={subitem.disabled}
+                        type="button"
+                      >
+                        <span className="title-bar__dropdown-item-label">{subitem.label}</span>
+                        {subitem.shortcut && <span className="title-bar__dropdown-item-shortcut">{subitem.shortcut}</span>}
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              key={index}
+              className={`title-bar__dropdown-item${item.disabled ? ' title-bar__dropdown-item--disabled' : ''}`}
+              onClick={() => {
+                if (!item.disabled && item.action) {
+                  item.action();
+                  onClose();
+                }
+              }}
+              disabled={item.disabled}
+              type="button"
+            >
+              <span className="title-bar__dropdown-item-label">{item.label}</span>
+              {item.shortcut && <span className="title-bar__dropdown-item-shortcut">{item.shortcut}</span>}
+            </button>
+          )
+        )}
+      </div>
+    </>
+  );
+};
+
+interface TitleBarLeftProps {
+  onToggleSidebar?: () => void;
+}
+
+export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) => {
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const { canGoBack, canGoForward, goBack, goForward } = useActiveTabNavigation();
+
+  const handleBurgerClick = () => {
+    if (onToggleSidebar) {
+      onToggleSidebar();
+    } else {
+      // Fallback: dispatch custom event for AppLayout to handle
+      window.dispatchEvent(new CustomEvent('toggle-sidebar'));
+    }
+  };
+
+  // T159d: File menu items
+  const fileMenuItems = [
+    {
+      label: 'Open File',
+      shortcut: 'Ctrl+O',
+      action: () => {
+        window.electronAPI?.on('menu:open-file', () => {});
+        window.dispatchEvent(new CustomEvent('menu:open-file'));
+      },
+    },
+    {
+      label: 'Open Folder',
+      shortcut: 'Ctrl+Shift+O',
+      action: () => {
+        window.electronAPI?.on('menu:open-folder', () => {});
+        window.dispatchEvent(new CustomEvent('menu:open-folder'));
+      },
+    },
+    { separator: true, label: '', action: () => {} },
+    {
+      label: 'Close Current',
+      shortcut: 'Ctrl+W',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:close-current'));
+      },
+    },
+    {
+      label: 'Close Folder',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:close-folder'));
+      },
+    },
+    {
+      label: 'Close All',
+      shortcut: 'Ctrl+Shift+W',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:close-all'));
+      },
+    },
+  ];
+
+  const editMenuItems = [
+    {
+      label: 'Find in Page...',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:find'));
+      },
+    },
+    {
+      label: 'Find in Files...',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:find-in-files'));
+      },
+    },
+  ];
+
+  // Get active tab state for Home button
+  const activeTab = useTabsStore((state) =>
+    state.activeTabId ? state.tabs.get(state.activeTabId) : undefined
+  );
+  const isAtHome = !activeTab || activeTab.currentHistoryIndex === 0 || activeTab.navigationHistory.length === 0;
+
+  const viewMenuItems = [
+    {
+      label: 'Back',
+      action: () => goBack(),
+      disabled: !canGoBack,  // Now a boolean, not a function!
+    },
+    {
+      label: 'Forward',
+      action: () => goForward(),
+      disabled: !canGoForward,  // Now a boolean, not a function!
+    },
+    {
+      label: 'Home',
+      action: () => {
+        // Navigate to the first file in history (position 0 in the queue)
+        const { activeTabId, tabs } = useTabsStore.getState();
+        if (activeTabId) {
+          const tab = tabs.get(activeTabId);
+          if (tab && tab.navigationHistory.length > 0 && tab.currentHistoryIndex !== 0) {
+            const homeEntry = tab.navigationHistory[0];
+
+            // Update the history index to 0
+            const newTabs = new Map(tabs);
+            newTabs.set(activeTabId, {
+              ...tab,
+              currentHistoryIndex: 0
+            });
+            useTabsStore.setState({ tabs: newTabs });
+
+            // Dispatch event to navigate
+            window.dispatchEvent(new CustomEvent('navigate-to-history', { detail: homeEntry }));
+          }
+        }
+      },
+      disabled: isAtHome,  // Now reactive!
+    },
+    { separator: true, label: '', action: () => {} },
+    {
+      label: 'Show History',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('show-history'));
+      },
+    },
+    {
+      label: 'Show Files',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('show-files'));
+      },
+    },
+    { separator: true, label: '', action: () => {} },
+    {
+      label: 'Toggle Sidebar',
+      action: handleBurgerClick,
+    },
+    {
+      label: 'Toggle Full Screen',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:toggle-fullscreen'));
+      },
+    },
+    { separator: true, label: '', action: () => {} },
+    // Document Zoom submenu
+    {
+      label: 'Document Zoom',
+      submenu: [
+        {
+          label: 'Zoom In',
+          shortcut: 'Ctrl+=',
+          action: () => {
+            const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+            if (activeTabId) {
+              const tab = tabs.get(activeTabId);
+              if (tab) {
+                const newZoom = Math.min(2000, (tab.zoomLevel || 100) + 10);
+                updateTabZoomLevel(activeTabId, newZoom);
+              }
+            }
+          },
+        },
+        {
+          label: 'Zoom Out',
+          shortcut: 'Ctrl+-',
+          action: () => {
+            const { activeTabId, updateTabZoomLevel, tabs } = useTabsStore.getState();
+            if (activeTabId) {
+              const tab = tabs.get(activeTabId);
+              if (tab) {
+                const newZoom = Math.max(10, (tab.zoomLevel || 100) - 10);
+                updateTabZoomLevel(activeTabId, newZoom);
+              }
+            }
+          },
+        },
+        {
+          label: 'Reset Zoom',
+          shortcut: 'Ctrl+0',
+          action: () => {
+            const { activeTabId, updateTabZoomLevel } = useTabsStore.getState();
+            if (activeTabId) {
+              updateTabZoomLevel(activeTabId, 100);
+            }
+          },
+        },
+      ],
+    },
+    // Application Zoom submenu
+    {
+      label: 'Application Zoom',
+      submenu: [
+        {
+          label: 'Zoom In',
+          shortcut: 'Ctrl+Alt+=',
+          action: async () => {
+            const { useUIStore } = await import('../../stores/ui');
+            const { incrementGlobalZoom } = useUIStore.getState();
+            incrementGlobalZoom(10);
+          },
+        },
+        {
+          label: 'Zoom Out',
+          shortcut: 'Ctrl+Alt+-',
+          action: async () => {
+            const { useUIStore } = await import('../../stores/ui');
+            const { incrementGlobalZoom } = useUIStore.getState();
+            incrementGlobalZoom(-10);
+          },
+        },
+        {
+          label: 'Reset Zoom',
+          shortcut: 'Ctrl+Alt+0',
+          action: async () => {
+            const { useUIStore } = await import('../../stores/ui');
+            const { resetGlobalZoom } = useUIStore.getState();
+            resetGlobalZoom();
+          },
+        },
+      ],
+    },
+  ];
+
+  const helpMenuItems = [
+    {
+      label: 'Keyboard Shortcuts',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:shortcuts'));
+      },
+    },
+    {
+      label: 'About MarkRead',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:about'));
+      },
+    },
+  ];
+
+  return (
+    <div className="title-bar__left">
+      {/* Burger button */}
+      <button
+        className="title-bar__button title-bar__burger"
+        onClick={handleBurgerClick}
+        title="Toggle Sidebar"
+        type="button"
+      >
+        ☰
+      </button>
+
+      {/* Menu bar */}
+      <div className="title-bar__menubar">
+        <div className="title-bar__menu-item">
+          <button
+            className="title-bar__button"
+            onClick={() => setOpenMenu(openMenu === 'file' ? null : 'file')}
+            type="button"
+          >
+            File
+          </button>
+          <MenuDropdown
+            isOpen={openMenu === 'file'}
+            onClose={() => setOpenMenu(null)}
+            items={fileMenuItems}
+          />
+        </div>
+
+        <div className="title-bar__menu-item">
+          <button
+            className="title-bar__button"
+            onClick={() => setOpenMenu(openMenu === 'edit' ? null : 'edit')}
+            type="button"
+          >
+            Edit
+          </button>
+          <MenuDropdown
+            isOpen={openMenu === 'edit'}
+            onClose={() => setOpenMenu(null)}
+            items={editMenuItems}
+          />
+        </div>
+
+        <div className="title-bar__menu-item">
+          <button
+            className="title-bar__button"
+            onClick={() => setOpenMenu(openMenu === 'view' ? null : 'view')}
+            type="button"
+          >
+            View
+          </button>
+          <MenuDropdown
+            isOpen={openMenu === 'view'}
+            onClose={() => setOpenMenu(null)}
+            items={viewMenuItems}
+          />
+        </div>
+
+        <div className="title-bar__menu-item">
+          <button
+            className="title-bar__button"
+            onClick={() => setOpenMenu(openMenu === 'help' ? null : 'help')}
+            type="button"
+          >
+            Help
+          </button>
+          <MenuDropdown
+            isOpen={openMenu === 'help'}
+            onClose={() => setOpenMenu(null)}
+            items={helpMenuItems}
+          />
+        </div>
+      </div>
+
+      {/* Navigation buttons */}
+      <div className="title-bar__nav-buttons">
+        <button
+          className="title-bar__button title-bar__nav-button"
+          onClick={() => goBack()}
+          disabled={!canGoBack}
+          title="Go Back"
+          type="button"
+        >
+          ◀
+        </button>
+        <button
+          className="title-bar__button title-bar__nav-button"
+          onClick={() => goForward()}
+          disabled={!canGoForward}
+          title="Go Forward"
+          type="button"
+        >
+          ▶
+        </button>
+      </div>
+    </div>
+  );
+};

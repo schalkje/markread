@@ -1,0 +1,74 @@
+/**
+ * Statusbar Styles
+ * Task: T051f
+ */
+
+.statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 24px;
+  padding: 0 12px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  user-select: none;
+}
+
+.statusbar__left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.statusbar__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.statusbar__zoom-indicators {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusbar__zoom-item {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--color-surface-elevated, rgba(255, 255, 255, 0.05));
+  transition: background 0.2s ease;
+}
+
+.statusbar__zoom-item:hover {
+  background: var(--color-surface-hover, rgba(255, 255, 255, 0.1));
+}
+
+.statusbar__zoom-item--content {
+  color: var(--color-primary, #007acc);
+}
+
+.statusbar__separator {
+  color: var(--color-border);
+  margin: 0 4px;
+}
+
+/* Dark theme adjustments */
+@media (prefers-color-scheme: dark) {
+  .statusbar {
+    background: var(--color-surface, #1e1e1e);
+    border-top-color: var(--color-border, #333);
+    color: var(--color-text-secondary, #aaa);
+  }
+
+  .statusbar__zoom-item {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .statusbar__zoom-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}

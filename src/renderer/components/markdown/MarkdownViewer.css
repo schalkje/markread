@@ -1,0 +1,537 @@
+/**
+ * MarkdownViewer Styles
+ * Tasks: T037, T040, T047, T049
+ */
+
+.markdown-viewer {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden; /* Buffers handle scrolling */
+  background: var(--color-bg-primary, #ffffff);
+  color: var(--color-text-primary, #24292f);
+  font-family: var(--font-content, 'Segoe UI', system-ui, -apple-system, sans-serif);
+  font-size: 16px;
+  line-height: 1.6;
+  position: relative;
+}
+
+/* Dark mode viewer background */
+[data-theme="dark"] .markdown-viewer {
+  background: #0d1117; /* Dark background to prevent white flash */
+  color: #e6edf3;
+}
+
+/* Double-buffer system for smooth page transitions */
+.markdown-viewer__buffer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: var(--color-bg-primary, #ffffff);
+  color: var(--color-text-primary, #24292f);
+  /* Smooth crossfade transition */
+  transition: opacity 300ms ease-out;
+}
+
+/* Content wrapper - gets zoomed via transform */
+.markdown-viewer__content {
+  padding: 2rem;
+  transform-origin: top left;
+  display: inline-block;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Active buffer - currently visible */
+.markdown-viewer__buffer--active {
+  opacity: 1;
+  z-index: 2;
+  pointer-events: auto;
+  visibility: visible; /* Ensure it's visible */
+}
+
+/* Preparing buffer - hidden, being rendered */
+.markdown-viewer__buffer--preparing {
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+  visibility: hidden; /* Extra safety - completely hide */
+}
+
+/* During crossfade transition */
+.markdown-viewer__buffer--fading-in {
+  opacity: 1;
+  z-index: 2;
+  pointer-events: auto;
+  visibility: visible; /* Override hidden state */
+}
+
+.markdown-viewer__buffer--fading-out {
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+  visibility: visible; /* Keep visible during fade-out for smooth transition */
+}
+
+/* Dark mode buffer background */
+[data-theme="dark"] .markdown-viewer__buffer {
+  background: #0d1117;
+  color: #e6edf3;
+}
+
+/* T049: Grab cursor when zoomed in */
+.markdown-viewer--grab {
+  cursor: grab;
+}
+
+.markdown-viewer--grab .markdown-viewer__content {
+  cursor: grab;
+}
+
+.markdown-viewer--grabbing {
+  cursor: grabbing;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.markdown-viewer--grabbing .markdown-viewer__content {
+  cursor: grabbing;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Loading overlay - positioned on top of buffers */
+.markdown-viewer__loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.85); /* Semi-transparent */
+  -webkit-backdrop-filter: blur(4px); /* Safari support */
+  backdrop-filter: blur(4px); /* Blur the content underneath */
+  pointer-events: auto;
+}
+
+/* Dark mode loading overlay */
+[data-theme="dark"] .markdown-viewer__loading-overlay {
+  background-color: rgba(13, 17, 23, 0.85);
+}
+
+.markdown-viewer__spinner {
+  text-align: center;
+  padding: 2rem;
+  background-color: var(--md-code-bg, rgba(175, 184, 193, 0.2));
+  border-radius: 8px;
+}
+
+.markdown-viewer__spinner p {
+  color: var(--md-text-color, #24292f);
+  font-size: 14px;
+  margin: 0;
+}
+
+.markdown-viewer__spinner .spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  border: 4px solid var(--md-border-color, rgba(175, 184, 193, 0.3));
+  border-top-color: var(--md-link-color, #0969da);
+  animation: spinner-rotate 0.8s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Transition overlay - shown during page navigation and initial load */
+.markdown-viewer__transition-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto; /* Allow clicking to dismiss */
+  cursor: pointer;
+  overflow: hidden;
+  background-color: rgb(255, 255, 255); /* 100% opaque white background */
+  opacity: 1;
+  transition: opacity 300ms ease-out;
+}
+
+/* Dismiss hint shown on overlay */
+.markdown-viewer__overlay-dismiss {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .markdown-viewer__overlay-dismiss {
+  background: rgba(255, 255, 255, 0.8);
+  color: #0d1117;
+}
+
+/* Fading out state */
+.markdown-viewer__transition-overlay--fading {
+  opacity: 0;
+}
+
+/* Dark mode overlay background */
+[data-theme="dark"] .markdown-viewer__transition-overlay {
+  background-color: rgb(28, 28, 28); /* 100% opaque dark background */
+}
+
+/* Blurred snapshot of old page */
+.markdown-viewer__snapshot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2rem;
+  overflow: auto;
+  filter: blur(8px) brightness(0.9);
+  opacity: 1.0; /* 100% opaque to prevent white flash */
+  pointer-events: none;
+  /* Inherit markdown styling */
+  font-family: var(--font-content, 'Segoe UI', system-ui, -apple-system, sans-serif);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text-primary, #24292f);
+  background: var(--color-bg-primary, #ffffff);
+}
+
+/* Dark mode snapshot */
+[data-theme="dark"] .markdown-viewer__snapshot {
+  filter: blur(8px) brightness(0.7);
+  color: var(--color-text-primary-dark, #e6edf3);
+  background: var(--color-bg-primary-dark, #0d1117);
+}
+
+/* Error state */
+.markdown-viewer--error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.markdown-viewer__error {
+  text-align: center;
+  max-width: 600px;
+  padding: 2rem;
+}
+
+.markdown-viewer__error h3 {
+  color: #cf222e;
+  margin-bottom: 1rem;
+}
+
+.markdown-viewer__error button {
+  padding: 0.5rem 1rem;
+  background: #0969da;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.markdown-viewer__error button:hover {
+  background: #0860ca;
+}
+
+/* Markdown Content Styles */
+
+.markdown-viewer h1,
+.markdown-viewer h2,
+.markdown-viewer h3,
+.markdown-viewer h4,
+.markdown-viewer h5,
+.markdown-viewer h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-viewer h1 {
+  font-size: 2em;
+  border-bottom: 1px solid var(--color-border-default, #d0d7de);
+  padding-bottom: 0.3em;
+}
+
+.markdown-viewer h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--color-border-default, #d0d7de);
+  padding-bottom: 0.3em;
+}
+
+.markdown-viewer h3 {
+  font-size: 1.25em;
+}
+
+.markdown-viewer p {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-viewer a {
+  color: var(--color-link, #0969da);
+  text-decoration: none;
+}
+
+.markdown-viewer a:hover {
+  text-decoration: underline;
+}
+
+/* Code blocks */
+.markdown-viewer pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: var(--color-code-bg, #f6f8fa);
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.markdown-viewer code {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: var(--color-code-bg, #f6f8fa);
+  border-radius: 3px;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+}
+
+.markdown-viewer pre code {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+/* highlightjs-copy wrapper - prevents horizontal scrollbar issues */
+.markdown-viewer .hljs-copy-wrapper {
+  position: relative;
+  overflow: visible; /* Allow button to show outside */
+  margin-bottom: 16px;
+}
+
+.markdown-viewer .hljs-copy-wrapper > pre {
+  margin-bottom: 0; /* Remove bottom margin since wrapper has it */
+}
+
+/* Copy button styling */
+.markdown-viewer .hljs-copy-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-text-secondary, #57606a);
+  background-color: var(--color-bg-primary, #ffffff);
+  border: 1px solid var(--color-border-default, #d0d7de);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  z-index: 10;
+}
+
+.markdown-viewer .hljs-copy-wrapper:hover .hljs-copy-button,
+.markdown-viewer .hljs-copy-button:focus {
+  opacity: 1;
+}
+
+.markdown-viewer .hljs-copy-button:hover {
+  background-color: var(--color-bg-secondary, #f6f8fa);
+  border-color: var(--color-border-hover-color, #afb8c1);
+}
+
+.markdown-viewer .hljs-copy-button:active {
+  background-color: var(--color-border-default, #d0d7de);
+}
+
+/* Copied state - success feedback */
+.markdown-viewer .hljs-copy-button[data-copied="true"] {
+  color: #1a7f37;
+  border-color: #1a7f37;
+  background-color: #dafbe1;
+  opacity: 1;
+}
+
+/* Tables */
+.markdown-viewer table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.markdown-viewer table th,
+.markdown-viewer table td {
+  padding: 6px 13px;
+  border: 1px solid var(--color-border-default, #d0d7de);
+}
+
+.markdown-viewer table th {
+  font-weight: 600;
+  background-color: var(--color-table-header-bg, #f6f8fa);
+}
+
+.markdown-viewer table tr:nth-child(2n) {
+  background-color: var(--color-table-row-bg, #f6f8fa);
+}
+
+/* Task lists */
+.markdown-viewer input[type='checkbox'] {
+  margin-right: 0.5em;
+  cursor: not-allowed;
+}
+
+.markdown-viewer input[type='checkbox']:disabled {
+  opacity: 0.6;
+}
+
+/* Blockquotes */
+.markdown-viewer blockquote {
+  margin: 0 0 16px 0;
+  padding: 0 1em;
+  color: var(--color-text-secondary, #57606a);
+  border-left: 0.25em solid var(--color-border-default, #d0d7de);
+}
+
+/* Lists */
+.markdown-viewer ul,
+.markdown-viewer ol {
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding-left: 2em;
+}
+
+.markdown-viewer li {
+  margin-bottom: 0.25em;
+}
+
+/* Horizontal rules */
+.markdown-viewer hr {
+  height: 0.25em;
+  padding: 0;
+  margin: 24px 0;
+  background-color: var(--color-border-default, #d0d7de);
+  border: 0;
+}
+
+/* Images */
+.markdown-viewer img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 1em 0;
+}
+
+/* Mermaid diagrams */
+.markdown-viewer .mermaid-diagram {
+  margin: 1em 0;
+  text-align: center;
+}
+
+.markdown-viewer .mermaid-rendered svg {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+
+.markdown-viewer .mermaid-error {
+  background-color: #ffebe9;
+  color: #cf222e;
+  padding: 1em;
+  border-radius: 4px;
+  border: 1px solid #ff8182;
+}
+
+/* Hide native scrollbars (using custom overlay scrollbars instead) */
+.markdown-viewer__buffer::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Hide but keep functional */
+}
+
+/* Firefox scrollbar hiding */
+.markdown-viewer__buffer {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* Keep scroll functionality but hide scrollbars */
+.markdown-viewer__buffer {
+  overflow: auto; /* Still scrollable */
+}
+
+/* Link preview overlay */
+.markdown-viewer__link-preview {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  max-width: 600px;
+  background: var(--color-bg-overlay, rgba(36, 41, 47, 0.95));
+  color: var(--color-text-on-overlay, #ffffff);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: fadeIn 0.15s ease-out;
+  pointer-events: none;
+}
+
+.markdown-viewer__link-preview-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.markdown-viewer__link-preview-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

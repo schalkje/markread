@@ -1,0 +1,277 @@
+/**
+ * CustomScrollbar Styles
+ * VSCode-inspired overlay scrollbars with overview ruler
+ */
+
+.custom-scrollbar {
+  position: absolute;
+  z-index: 100;
+  transition: opacity 0.15s ease-out;
+  pointer-events: auto;
+}
+
+/* Auto-hide behavior */
+.custom-scrollbar--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.custom-scrollbar--visible,
+.custom-scrollbar:hover,
+.custom-scrollbar--dragging {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Vertical scrollbar */
+.custom-scrollbar--vertical {
+  top: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Horizontal scrollbar */
+.custom-scrollbar--horizontal {
+  left: 0;
+  right: 14px; /* Leave space for vertical scrollbar */
+  bottom: 0;
+}
+
+/* When only horizontal scrollbar exists, extend full width */
+.custom-scrollbar--horizontal:only-child {
+  right: 0;
+}
+
+/* Track */
+.custom-scrollbar__track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Thumb */
+.custom-scrollbar__thumb {
+  position: absolute;
+  background: rgba(100, 100, 100, 0.4);
+  border-radius: 7px;
+  cursor: grab;
+  transition: background-color 0.15s ease-out;
+  box-sizing: border-box;
+}
+
+/* Vertical thumb */
+.custom-scrollbar--vertical .custom-scrollbar__thumb {
+  width: 100%;
+  min-height: 20px;
+}
+
+/* Horizontal thumb */
+.custom-scrollbar--horizontal .custom-scrollbar__thumb {
+  height: 100%;
+  min-width: 20px;
+}
+
+/* Thumb hover state */
+.custom-scrollbar__thumb:hover {
+  background: rgba(100, 100, 100, 0.6);
+}
+
+/* Thumb active/dragging state */
+.custom-scrollbar__thumb:active,
+.custom-scrollbar--dragging .custom-scrollbar__thumb {
+  background: rgba(100, 100, 100, 0.8);
+  cursor: grabbing;
+}
+
+/* Dark theme */
+.custom-scrollbar--dark .custom-scrollbar__thumb,
+[data-theme="dark"] .custom-scrollbar__thumb {
+  background: rgba(200, 200, 200, 0.3);
+}
+
+.custom-scrollbar--dark .custom-scrollbar__thumb:hover,
+[data-theme="dark"] .custom-scrollbar__thumb:hover {
+  background: rgba(200, 200, 200, 0.5);
+}
+
+.custom-scrollbar--dark .custom-scrollbar__thumb:active,
+.custom-scrollbar--dark.custom-scrollbar--dragging .custom-scrollbar__thumb,
+[data-theme="dark"] .custom-scrollbar__thumb:active,
+[data-theme="dark"] .custom-scrollbar--dragging .custom-scrollbar__thumb {
+  background: rgba(200, 200, 200, 0.7);
+}
+
+/* Light theme (explicit) */
+.custom-scrollbar--light .custom-scrollbar__thumb {
+  background: rgba(100, 100, 100, 0.4);
+}
+
+.custom-scrollbar--light .custom-scrollbar__thumb:hover {
+  background: rgba(100, 100, 100, 0.6);
+}
+
+.custom-scrollbar--light .custom-scrollbar__thumb:active,
+.custom-scrollbar--light.custom-scrollbar--dragging .custom-scrollbar__thumb {
+  background: rgba(100, 100, 100, 0.8);
+}
+
+/* Shadows (VSCode-style depth effect) */
+.custom-scrollbar--shadow-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.custom-scrollbar--shadow-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.2), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Dark theme shadows */
+[data-theme="dark"] .custom-scrollbar--shadow-top::before,
+.custom-scrollbar--dark.custom-scrollbar--shadow-top::before {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), transparent);
+}
+
+[data-theme="dark"] .custom-scrollbar--shadow-bottom::after,
+.custom-scrollbar--dark.custom-scrollbar--shadow-bottom::after {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.4), transparent);
+}
+
+/* Overview ruler container */
+.custom-scrollbar__overview {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none; /* Markers don't block scrollbar interaction */
+}
+
+/* Overview ruler markers */
+.custom-scrollbar__marker {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  border-radius: 1px;
+  transform: translateY(-50%); /* Center on position */
+  pointer-events: auto; /* Allow hover for tooltips */
+  cursor: pointer;
+}
+
+/* Horizontal markers */
+.custom-scrollbar--horizontal .custom-scrollbar__marker {
+  width: 2px;
+  height: 100%;
+  transform: translateX(-50%);
+}
+
+/* Marker types - Light theme */
+.custom-scrollbar__marker--heading {
+  background: #0969da; /* Blue */
+}
+
+.custom-scrollbar__marker--search {
+  background: #fb8500; /* Orange */
+}
+
+.custom-scrollbar__marker--error {
+  background: #cf222e; /* Red */
+}
+
+.custom-scrollbar__marker--warning {
+  background: #fb8500; /* Orange */
+}
+
+.custom-scrollbar__marker--info {
+  background: #1a7f37; /* Green */
+}
+
+/* Marker types - Dark theme */
+[data-theme="dark"] .custom-scrollbar__marker--heading,
+.custom-scrollbar--dark .custom-scrollbar__marker--heading {
+  background: #58a6ff;
+}
+
+[data-theme="dark"] .custom-scrollbar__marker--search,
+.custom-scrollbar--dark .custom-scrollbar__marker--search {
+  background: #ffa657;
+}
+
+[data-theme="dark"] .custom-scrollbar__marker--error,
+.custom-scrollbar--dark .custom-scrollbar__marker--error {
+  background: #ff7b72;
+}
+
+[data-theme="dark"] .custom-scrollbar__marker--warning,
+.custom-scrollbar--dark .custom-scrollbar__marker--warning {
+  background: #ffa657;
+}
+
+[data-theme="dark"] .custom-scrollbar__marker--info,
+.custom-scrollbar--dark .custom-scrollbar__marker--info {
+  background: #3fb950;
+}
+
+/* Marker hover effect */
+.custom-scrollbar__marker:hover {
+  opacity: 0.8;
+  height: 3px; /* Slightly larger on hover */
+}
+
+.custom-scrollbar--horizontal .custom-scrollbar__marker:hover {
+  width: 3px;
+  height: 100%;
+}
+
+/* Accessibility: High contrast mode */
+@media (prefers-contrast: high) {
+  .custom-scrollbar__thumb {
+    background: CanvasText;
+    border: 1px solid CanvasText;
+  }
+
+  .custom-scrollbar__thumb:hover {
+    background: Highlight;
+    border-color: Highlight;
+  }
+
+  .custom-scrollbar__marker {
+    border: 1px solid CanvasText;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .custom-scrollbar,
+  .custom-scrollbar__thumb {
+    transition: none;
+  }
+}
+
+/* Scrollbar corner (where vertical and horizontal meet) */
+.custom-scrollbar-corner {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 12px;
+  background: transparent;
+  z-index: 99; /* Below scrollbars */
+  pointer-events: none;
+}

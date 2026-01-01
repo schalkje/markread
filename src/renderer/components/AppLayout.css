@@ -1,0 +1,346 @@
+/**
+ * AppLayout Component Styles
+ * Tasks: T016, T039, T159
+ */
+
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-layout__content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  background: var(--color-bg-sidebar, #f6f8fa);
+  border-right: 1px solid var(--color-border-default, #d0d7de);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border-default, #d0d7de);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--color-text-primary, #24292f);
+}
+
+/* Sidebar view toggle */
+.sidebar-view-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--toggle-bg, #f0f2f5);
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.sidebar-view-toggle__button {
+  flex: 1;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #57606a);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.sidebar-view-toggle__button:hover {
+  background: var(--toggle-button-hover, rgba(0, 0, 0, 0.05));
+  color: var(--text-primary, #24292f);
+}
+
+.sidebar-view-toggle__button--active {
+  background: var(--accent-color, #0969da);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-view-toggle__button--active:hover {
+  background: var(--accent-color-hover, #0860ca);
+  color: #ffffff;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-placeholder {
+  padding: 1rem;
+  color: #666;
+  text-align: center;
+}
+
+.sidebar-hint {
+  font-size: 0.875rem;
+  color: #999;
+  margin-top: 0.5rem;
+}
+
+/* Direct File Mode */
+.sidebar-direct-file-mode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  height: 100%;
+}
+
+.sidebar-direct-file-content {
+  max-width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar-direct-file-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.sidebar-direct-file-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #24292f);
+}
+
+.sidebar-direct-file-message {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary, #57606a);
+  line-height: 1.5;
+}
+
+.sidebar-open-folder-button {
+  margin-top: 8px;
+  padding: 10px 16px;
+  background: var(--accent-color, #0969da);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar-open-folder-button:hover {
+  background: var(--accent-color-hover, #0860ca);
+}
+
+.sidebar-open-folder-button:active {
+  background: var(--accent-color-active, #0757ba);
+}
+
+.sidebar-direct-file-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-tertiary, #8c959f);
+}
+
+/* Open files list in direct file mode */
+.sidebar-open-files {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--files-list-bg, rgba(0, 0, 0, 0.05));
+  border-radius: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.sidebar-open-files-title {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #24292f);
+  text-align: left;
+}
+
+.sidebar-open-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-open-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--file-item-bg, #ffffff);
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  text-align: left;
+}
+
+.sidebar-open-file-item:hover {
+  background: var(--file-item-hover-bg, #f6f8fa);
+  border-color: var(--accent-color, #0969da);
+}
+
+.sidebar-open-file-item--active {
+  background: var(--file-item-active-bg, #ddf4ff);
+  border-color: var(--accent-color, #0969da);
+  font-weight: 500;
+}
+
+.sidebar-open-file-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.sidebar-open-file-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary, #24292f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-tabs {
+  padding: 1rem;
+}
+
+.sidebar-tabs h3 {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  color: var(--color-text-primary, #24292f);
+}
+
+.sidebar-tab {
+  padding: 0.5rem;
+  cursor: pointer;
+  background: transparent;
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+  transition: background 0.2s;
+}
+
+.sidebar-tab:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-tab--active {
+  background: #e1e4e8;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.toolbar {
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-toolbar, #ffffff);
+  border-bottom: 1px solid var(--color-border-default, #d0d7de);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toolbar button {
+  padding: 0.5rem 1rem;
+  background: var(--color-btn-bg, #f6f8fa);
+  color: var(--color-btn-text, #24292f);
+  border: 1px solid var(--color-border-default, #d0d7de);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toolbar button:hover {
+  background: var(--color-btn-hover-bg, #e1e4e8);
+}
+
+.toolbar button:active {
+  background: var(--color-btn-active-bg, #d0d7de);
+}
+
+.editor-area {
+  flex: 1;
+  overflow: hidden;
+  background: var(--color-bg-editor, #ffffff);
+}
+
+/* Welcome Screen */
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 2rem;
+}
+
+.welcome h1 {
+  font-size: 2.5rem;
+  color: var(--color-text-primary, #24292f);
+  margin-bottom: 1rem;
+}
+
+.welcome p {
+  font-size: 1.125rem;
+  color: var(--color-text-secondary, #57606a);
+  margin-bottom: 2rem;
+}
+
+.welcome-buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .sidebar-open-folder-button {
+    --accent-color: #1f6feb;
+    --accent-color-hover: #388bfd;
+    --accent-color-active: #1a69db;
+  }
+
+  .sidebar-open-files {
+    --files-list-bg: rgba(255, 255, 255, 0.05);
+  }
+
+  .sidebar-open-file-item {
+    --file-item-bg: #161b22;
+    --file-item-hover-bg: #21262d;
+    --file-item-active-bg: #1f6feb;
+    --border-color: #30363d;
+  }
+}

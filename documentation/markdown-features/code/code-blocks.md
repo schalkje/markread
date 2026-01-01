@@ -95,7 +95,7 @@ MarkRead supports syntax highlighting for many languages:
 - **JavaScript** - `javascript`, `js`
 - **TypeScript** - `typescript`, `ts`
 - **React JSX** - `jsx`, `tsx`
-- **Vue** - `vue`
+- **React** - `tsx`
 - **HTML** - `html`
 - **CSS/SCSS** - `css`, `scss`, `sass`
 

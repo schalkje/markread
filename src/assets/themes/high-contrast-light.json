@@ -1,0 +1,25 @@
+{
+  "id": "high-contrast-light",
+  "name": "High Contrast Light",
+  "type": "high-contrast",
+  "colorMappings": {
+    "background": "#ffffff",
+    "foreground": "#000000",
+    "accent": "#0000ff",
+    "sidebarBackground": "#f0f0f0",
+    "sidebarForeground": "#000000",
+    "sidebarBorder": "#000000",
+    "tabBackground": "#e0e0e0",
+    "tabActiveBackground": "#ffffff",
+    "tabForeground": "#000000",
+    "tabBorder": "#000000",
+    "contentBackground": "#ffffff",
+    "contentForeground": "#000000",
+    "markdownHeading": "#0000ff",
+    "markdownLink": "#0000ff",
+    "markdownCodeBackground": "#f0f0f0",
+    "markdownBlockquoteBackground": "#f0f0f0"
+  },
+  "syntaxHighlightTheme": "a11y-light",
+  "mermaidTheme": "default"
+}
