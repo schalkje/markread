@@ -5,6 +5,11 @@
 
 import { create } from 'zustand';
 import type { Folder, FileTreeState, RecentItem, PanelLayout } from '@shared/types/entities.d.ts';
+import {
+  generateRepoFolderId,
+  migrateRepositoryFolders,
+  getRepositoryId,
+} from '@shared/utils/repository-utils';
 
 interface FoldersState {
   folders: Folder[];
@@ -13,7 +18,6 @@ interface FoldersState {
   // Actions
   addFolder: (folder: Folder) => Folder;
   addRepositoryFolder: (repositoryData: {
-    id: string;
     url: string;
     displayName: string;
     repositoryId: string;
@@ -21,6 +25,7 @@ interface FoldersState {
     defaultBranch: string;
     branches: Array<{name: string; isDefault: boolean; sha: string}>;
   }) => Folder;
+  openRepositoryBranch: (repositoryId: string, branchName: string) => Promise<Folder | null>;
   removeFolder: (folderId: string) => void;
   setActiveFolder: (folderId: string) => void;
   updateFileTreeState: (folderId: string, fileTreeState: Partial<FileTreeState>) => void;
@@ -28,6 +33,11 @@ interface FoldersState {
   addRecentFile: (folderId: string, item: RecentItem) => void;
   clearRecentFiles: (folderId: string) => void;
   updateRepositoryBranch: (folderId: string, branch: string) => void;
+  updateRepositoryMetadata: (repositoryId: string, metadata: {
+    branches: Array<{name: string; isDefault: boolean; sha: string}>;
+    owner?: string;
+    name?: string;
+  }) => void;
   // T163n: Open folder in new window
   openFolderInNewWindow: (folderPath: string) => Promise<boolean>;
 }
@@ -54,26 +64,41 @@ export const useFoldersStore = create<FoldersState>((set, get) => ({
 
   addRepositoryFolder: (repositoryData) => {
     const { folders } = get();
-    // Check for existing repo with SAME URL AND SAME BRANCH
-    const existing = folders.find(
-      (f) => f.path === repositoryData.url &&
-             f.type === 'repository' &&
-             f.currentBranch === repositoryData.currentBranch
-    );
+
+    // Generate deterministic ID for this repo/branch combination
+    const folderId = generateRepoFolderId(repositoryData.repositoryId, repositoryData.currentBranch);
+
+    // Check if this exact repo/branch combination already exists
+    const existing = folders.find((f) => f.id === folderId);
 
     if (existing) {
-      set({ activeFolderId: existing.id });
+      // Update metadata in case branches changed
+      set((state) => ({
+        folders: state.folders.map((f) =>
+          f.id === folderId
+            ? {
+                ...f,
+                repositoryMetadata: {
+                  branches: repositoryData.branches,
+                  owner: repositoryData.displayName.split('/')[0],
+                  name: repositoryData.displayName.split('/')[1],
+                },
+                lastAccessedAt: Date.now(),
+              }
+            : f
+        ),
+        activeFolderId: folderId,
+      }));
       return existing;
     }
 
     const newFolder: Folder = {
-      id: `${repositoryData.id}-${repositoryData.currentBranch}`, // Include branch in ID
+      id: folderId, // Deterministic: repo:${repoId}:${branch}
       path: repositoryData.url,
-      displayName: `${repositoryData.displayName}`, // Keep clean name, branch shows in UI
+      displayName: repositoryData.displayName,
       type: 'repository',
       fileTreeState: {
-        expandedPaths: [],
-        collapsedPaths: [],
+        expandedDirectories: new Set<string>(),
         scrollPosition: 0,
         selectedPath: null,
       },
@@ -81,13 +106,28 @@ export const useFoldersStore = create<FoldersState>((set, get) => ({
       tabCollection: [],
       activeTabId: null,
       recentFiles: [],
-      splitLayout: { type: 'single', primarySize: 100 },
+      splitLayout: {
+        rootPane: {
+          id: crypto.randomUUID(),
+          tabs: [],
+          activeTabId: null,
+          orientation: 'vertical',
+          sizeRatio: 1.0,
+          splitChildren: null,
+        },
+        layoutType: 'single',
+      },
       createdAt: Date.now(),
       lastAccessedAt: Date.now(),
       repositoryId: repositoryData.repositoryId,
+      repositoryUrl: repositoryData.url,
       currentBranch: repositoryData.currentBranch,
       defaultBranch: repositoryData.defaultBranch,
-      branches: repositoryData.branches,
+      repositoryMetadata: {
+        branches: repositoryData.branches,
+        owner: repositoryData.displayName.split('/')[0],
+        name: repositoryData.displayName.split('/')[1],
+      },
     };
 
     set((state) => ({
@@ -165,6 +205,86 @@ export const useFoldersStore = create<FoldersState>((set, get) => ({
         f.id === folderId && f.type === 'repository' ? { ...f, currentBranch: branch } : f
       ),
     }));
+  },
+
+  updateRepositoryMetadata: (repositoryId, metadata) => {
+    set((state) => ({
+      folders: state.folders.map((f) => {
+        const folderRepoId = getRepositoryId(f);
+        return folderRepoId === repositoryId
+          ? { ...f, repositoryMetadata: metadata }
+          : f;
+      }),
+    }));
+  },
+
+  openRepositoryBranch: async (repositoryId, branchName) => {
+    const { folders } = get();
+
+    // Generate deterministic ID for this repo/branch
+    const folderId = generateRepoFolderId(repositoryId, branchName);
+
+    // Check if already open
+    const existing = folders.find((f) => f.id === folderId);
+    if (existing) {
+      set({ activeFolderId: folderId });
+      return existing;
+    }
+
+    // Find any existing folder from the same repository to copy metadata
+    const sameRepoFolder = folders.find((f) => getRepositoryId(f) === repositoryId);
+    if (!sameRepoFolder || !sameRepoFolder.repositoryMetadata) {
+      console.error('Cannot open branch: no existing folder found for repository', repositoryId);
+      return null;
+    }
+
+    // Create new folder for this branch
+    const newFolder: Folder = {
+      id: folderId,
+      path: sameRepoFolder.path,
+      displayName: sameRepoFolder.displayName,
+      type: 'repository',
+      fileTreeState: {
+        expandedDirectories: new Set<string>(),
+        scrollPosition: 0,
+        selectedPath: null,
+      },
+      activeFolderId: null,
+      tabCollection: [],
+      activeTabId: null,
+      recentFiles: [],
+      splitLayout: {
+        rootPane: {
+          id: crypto.randomUUID(),
+          tabs: [],
+          activeTabId: null,
+          orientation: 'vertical',
+          sizeRatio: 1.0,
+          splitChildren: null,
+        },
+        layoutType: 'single',
+      },
+      createdAt: Date.now(),
+      lastAccessedAt: Date.now(),
+      repositoryId: sameRepoFolder.repositoryId,
+      repositoryUrl: sameRepoFolder.repositoryUrl,
+      currentBranch: branchName,
+      defaultBranch: sameRepoFolder.defaultBranch,
+      repositoryMetadata: sameRepoFolder.repositoryMetadata,
+    };
+
+    set((state) => ({
+      folders: [...state.folders, newFolder],
+      activeFolderId: newFolder.id,
+    }));
+
+    // Trigger file tree fetch for new branch
+    // This will be handled by the component after switching
+    window.dispatchEvent(new CustomEvent('repository:branch-opened', {
+      detail: { folderId, repositoryId, branchName },
+    }));
+
+    return newFolder;
   },
 
   // T163n: Open folder in new window

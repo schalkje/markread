@@ -183,6 +183,209 @@
   margin: 4px 0;
 }
 
+/* Repository group */
+.folder-switcher__repo-group {
+  border-bottom: 1px solid var(--border-light, #eaeef2);
+}
+
+.folder-switcher__repo-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  background: var(--repo-header-bg, #f6f8fa);
+  transition: background-color 0.1s ease;
+  font-weight: 600;
+}
+
+.folder-switcher__repo-header:hover {
+  background: var(--repo-header-hover-bg, #e6e6e6);
+}
+
+.folder-switcher__repo-chevron {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-tertiary, #8c959f);
+  transition: transform 0.15s ease;
+}
+
+.folder-switcher__repo-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary, #24292f);
+}
+
+.folder-switcher__repo-count {
+  font-size: 11px;
+  color: var(--text-tertiary, #8c959f);
+  font-weight: 400;
+}
+
+.folder-switcher__repo-branches {
+  /* Container for branch items */
+}
+
+/* Branch items */
+.folder-switcher__branch-item {
+  position: relative;
+}
+
+.folder-switcher__branch-item--nested {
+  padding-left: 32px;
+  background: var(--branch-nested-bg, #fafbfc);
+}
+
+.folder-switcher__branch-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  margin-right: -6px;
+}
+
+.folder-switcher__branch {
+  color: var(--text-tertiary, #8c959f);
+  font-weight: 400;
+}
+
+.folder-switcher__default-badge {
+  color: var(--text-tertiary, #8c959f);
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.folder-switcher__active-indicator {
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--accent-color, #0969da);
+  margin-left: 4px;
+}
+
+/* Branch picker */
+.folder-switcher__branch-picker {
+  padding: 0 12px 8px 32px;
+  background: var(--branch-nested-bg, #fafbfc);
+}
+
+.folder-switcher__add-branch {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px dashed var(--border-color, #d0d7de);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--accent-color, #0969da);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.folder-switcher__add-branch:hover {
+  background: var(--item-hover-bg, #ffffff);
+  border-color: var(--accent-color, #0969da);
+}
+
+.folder-switcher__branch-picker-dropdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--dropdown-bg, #ffffff);
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.folder-switcher__branch-search {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 4px;
+  font-size: 13px;
+  background: var(--input-bg, #ffffff);
+  color: var(--text-primary, #24292f);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.folder-switcher__branch-search:focus {
+  border-color: var(--accent-color, #0969da);
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+}
+
+.folder-switcher__branch-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.folder-switcher__branch-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.folder-switcher__branch-list::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #d0d7de);
+  border-radius: 3px;
+}
+
+.folder-switcher__branch-empty {
+  padding: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary, #8c959f);
+}
+
+.folder-switcher__branch-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.1s ease;
+}
+
+.folder-switcher__branch-option:hover {
+  background: var(--item-hover-bg, #f6f8fa);
+}
+
+.folder-switcher__branch-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary, #24292f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-switcher__branch-sha {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-tertiary, #8c959f);
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.folder-switcher__branch-cancel {
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary, #57606a);
+  font-size: 12px;
+  transition: background-color 0.15s ease;
+}
+
+.folder-switcher__branch-cancel:hover {
+  background: var(--item-hover-bg, #f6f8fa);
+}
+
 /* Add folder button */
 .folder-switcher__add {
   width: 100%;
@@ -227,10 +430,18 @@
     --close-hover-bg: #5a1e1e;
     --danger-color: #ff7b72;
     --scrollbar-thumb: #484f58;
+    --repo-header-bg: #0d1117;
+    --repo-header-hover-bg: #161b22;
+    --branch-nested-bg: #0d1117;
+    --input-bg: #0d1117;
   }
 
   .folder-switcher__dropdown {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .folder-switcher__branch-picker-dropdown {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 }
 

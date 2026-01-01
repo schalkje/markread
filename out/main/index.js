@@ -45,11 +45,11 @@ function _interopNamespaceDefault(e) {
 }
 const path__namespace = /* @__PURE__ */ _interopNamespaceDefault(path);
 const fs__namespace = /* @__PURE__ */ _interopNamespaceDefault(fs);
-function getUIStatePath() {
+function getUIStatePath$1() {
   const userDataPath = electron.app.getPath("userData");
   return path.join(userDataPath, "ui-state.json");
 }
-function getDefaultUIState() {
+function getDefaultUIState$1() {
   return {
     version: "1.0.0",
     windowBounds: {
@@ -66,18 +66,18 @@ function getDefaultUIState() {
     splitLayouts: {}
   };
 }
-async function loadUIState() {
+async function loadUIState$1() {
   try {
-    const filePath = getUIStatePath();
+    const filePath = getUIStatePath$1();
     const content = await fs.readFile(filePath, "utf-8");
     const state = JSON.parse(content);
     return {
-      ...getDefaultUIState(),
+      ...getDefaultUIState$1(),
       ...state
     };
   } catch (error) {
     console.log("UI state file not found or corrupted, using defaults:", error.message);
-    return getDefaultUIState();
+    return getDefaultUIState$1();
   }
 }
 let saveTimeout = null;
@@ -89,14 +89,14 @@ async function saveUIState(state) {
   return new Promise((resolve, reject) => {
     saveTimeout = setTimeout(async () => {
       try {
-        const filePath = getUIStatePath();
+        const filePath = getUIStatePath$1();
         const dir = path.dirname(filePath);
         await fs.mkdir(dir, { recursive: true });
         let currentState;
         try {
-          currentState = await loadUIState();
+          currentState = await loadUIState$1();
         } catch {
-          currentState = getDefaultUIState();
+          currentState = getDefaultUIState$1();
         }
         const mergedState = {
           ...currentState,
@@ -110,35 +110,10 @@ async function saveUIState(state) {
     }, SAVE_DEBOUNCE_MS);
   });
 }
-async function saveUIStateImmediate(state) {
-  if (saveTimeout) {
-    clearTimeout(saveTimeout);
-    saveTimeout = null;
-  }
-  try {
-    const filePath = getUIStatePath();
-    const dir = path.dirname(filePath);
-    await fs.mkdir(dir, { recursive: true });
-    let currentState;
-    try {
-      currentState = await loadUIState();
-    } catch {
-      currentState = getDefaultUIState();
-    }
-    const mergedState = {
-      ...currentState,
-      ...state
-    };
-    await fs.writeFile(filePath, JSON.stringify(mergedState, null, 2), "utf-8");
-  } catch (error) {
-    console.error("Failed to save UI state:", error);
-  }
-}
-const windows = /* @__PURE__ */ new Map();
-const windowZoomLevels = /* @__PURE__ */ new Map();
-let saveWindowBoundsTimeout = null;
-const SAVE_WINDOW_BOUNDS_DEBOUNCE_MS = 500;
-function createWindow(options) {
+const windows$1 = /* @__PURE__ */ new Map();
+let saveWindowBoundsTimeout$1 = null;
+const SAVE_WINDOW_BOUNDS_DEBOUNCE_MS$1 = 500;
+function createWindow$1(options) {
   const win = new electron.BrowserWindow({
     x: options?.x,
     y: options?.y,
@@ -195,15 +170,15 @@ function createWindow(options) {
     }
     win.show();
   });
-  windows.set(win.id, win);
+  windows$1.set(win.id, win);
   win.on("closed", () => {
-    windows.delete(win.id);
+    windows$1.delete(win.id);
   });
   const saveWindowBounds = () => {
-    if (saveWindowBoundsTimeout) {
-      clearTimeout(saveWindowBoundsTimeout);
+    if (saveWindowBoundsTimeout$1) {
+      clearTimeout(saveWindowBoundsTimeout$1);
     }
-    saveWindowBoundsTimeout = setTimeout(() => {
+    saveWindowBoundsTimeout$1 = setTimeout(() => {
       const bounds = win.getBounds();
       const isMaximized = win.isMaximized();
       saveUIState({
@@ -217,26 +192,11 @@ function createWindow(options) {
       }).catch((error) => {
         console.error("Failed to save window bounds:", error);
       });
-    }, SAVE_WINDOW_BOUNDS_DEBOUNCE_MS);
+    }, SAVE_WINDOW_BOUNDS_DEBOUNCE_MS$1);
   };
   win.on("resize", saveWindowBounds);
   win.on("move", saveWindowBounds);
   return win;
-}
-function setGlobalZoom(windowId, zoomFactor) {
-  const window = windows.get(windowId);
-  if (!window || window.isDestroyed()) {
-    console.warn(`Window ${windowId} not found or destroyed`);
-    return 1;
-  }
-  const clampedZoom = Math.max(0.5, Math.min(3, zoomFactor));
-  window.webContents.setZoomFactor(clampedZoom);
-  windowZoomLevels.set(windowId, clampedZoom);
-  console.log(`Set global zoom for window ${windowId}: ${Math.round(clampedZoom * 100)}%`);
-  return clampedZoom;
-}
-function getGlobalZoom(windowId) {
-  return windowZoomLevels.get(windowId) || 1;
 }
 let chokidar = null;
 async function getChokidar() {
@@ -245,10 +205,10 @@ async function getChokidar() {
   }
   return chokidar;
 }
-const activeWatchers = /* @__PURE__ */ new Map();
+const activeWatchers$1 = /* @__PURE__ */ new Map();
 async function startWatching(config, window) {
-  if (activeWatchers.has(config.watcherId)) {
-    await stopWatching(config.watcherId);
+  if (activeWatchers$1.has(config.watcherId)) {
+    await stopWatching$1(config.watcherId);
   }
   try {
     const { watch } = await getChokidar();
@@ -307,7 +267,7 @@ async function startWatching(config, window) {
         error: error.message
       });
     });
-    activeWatchers.set(config.watcherId, {
+    activeWatchers$1.set(config.watcherId, {
       watcher,
       config
     });
@@ -317,26 +277,121 @@ async function startWatching(config, window) {
     throw error;
   }
 }
-async function stopWatching(watcherId) {
-  const activeWatcher = activeWatchers.get(watcherId);
+async function stopWatching$1(watcherId) {
+  const activeWatcher = activeWatchers$1.get(watcherId);
   if (!activeWatcher) {
     console.warn(`Watcher ${watcherId} not found`);
     return;
   }
   try {
     await activeWatcher.watcher.close();
-    activeWatchers.delete(watcherId);
+    activeWatchers$1.delete(watcherId);
     console.log(`Stopped watching: ${watcherId}`);
   } catch (error) {
     console.error(`Error stopping watcher ${watcherId}:`, error);
     throw error;
   }
 }
-async function stopAllWatchers() {
-  const watcherIds = Array.from(activeWatchers.keys());
-  await Promise.all(
-    watcherIds.map((id) => stopWatching(id))
-  );
+const windows = /* @__PURE__ */ new Map();
+const windowZoomLevels = /* @__PURE__ */ new Map();
+let saveWindowBoundsTimeout = null;
+const SAVE_WINDOW_BOUNDS_DEBOUNCE_MS = 500;
+function createWindow(options) {
+  const win = new electron.BrowserWindow({
+    x: options?.x,
+    y: options?.y,
+    width: 1200,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    frame: false,
+    // T159k: Remove default frame for custom title bar
+    titleBarStyle: "hidden",
+    // T159k: Hide title bar
+    webPreferences: {
+      // Security best practices from research.md Section 6
+      nodeIntegration: false,
+      // Prevent direct Node.js access in renderer
+      contextIsolation: true,
+      // Isolate preload scripts from renderer
+      sandbox: true,
+      // Enable OS-level sandboxing
+      webSecurity: true,
+      // Enforce same-origin policy
+      allowRunningInsecureContent: false,
+      preload: path.join(__dirname, "../preload/index.js")
+    },
+    show: false
+    // Don't show until ready-to-show
+  });
+  electron.session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [
+          "default-src 'none';",
+          "script-src 'self' 'unsafe-inline';",
+          // Mermaid requires inline scripts
+          "style-src 'self' 'unsafe-inline';",
+          // Syntax highlighting styles
+          "img-src 'self' mdfile: data: https:;",
+          // mdfile: protocol for local images + external HTTPS images (badges, etc.)
+          "font-src 'self' data:;",
+          "connect-src 'none';"
+        ].join(" ")
+      }
+    });
+  });
+  if (process.env.NODE_ENV === "development") {
+    win.loadURL("http://localhost:5173");
+  } else {
+    win.loadFile(path.join(__dirname, "../renderer/index.html"));
+  }
+  win.once("ready-to-show", () => {
+    win.show();
+  });
+  windows.set(win.id, win);
+  win.on("closed", () => {
+    windows.delete(win.id);
+  });
+  const saveWindowBounds = () => {
+    if (saveWindowBoundsTimeout) {
+      clearTimeout(saveWindowBoundsTimeout);
+    }
+    saveWindowBoundsTimeout = setTimeout(() => {
+      const bounds = win.getBounds();
+      const isMaximized = win.isMaximized();
+      saveUIState({
+        windowBounds: {
+          x: bounds.x,
+          y: bounds.y,
+          width: bounds.width,
+          height: bounds.height,
+          isMaximized
+        }
+      }).catch((error) => {
+        console.error("Failed to save window bounds:", error);
+      });
+    }, SAVE_WINDOW_BOUNDS_DEBOUNCE_MS);
+  };
+  win.on("resize", saveWindowBounds);
+  win.on("move", saveWindowBounds);
+  return win;
+}
+function setGlobalZoom(windowId, zoomFactor) {
+  const window = windows.get(windowId);
+  if (!window || window.isDestroyed()) {
+    console.warn(`Window ${windowId} not found or destroyed`);
+    return 1;
+  }
+  const clampedZoom = Math.max(0.5, Math.min(3, zoomFactor));
+  window.webContents.setZoomFactor(clampedZoom);
+  windowZoomLevels.set(windowId, clampedZoom);
+  console.log(`Set global zoom for window ${windowId}: ${Math.round(clampedZoom * 100)}%`);
+  return clampedZoom;
+}
+function getGlobalZoom(windowId) {
+  return windowZoomLevels.get(windowId) || 1;
 }
 const byteToHex = [];
 for (let i = 0; i < 256; ++i) {
@@ -2353,7 +2408,7 @@ function registerIpcHandlers(mainWindow2) {
         watcherId: zod.z.string().min(1)
       });
       const { watcherId } = validatePayload(StopWatchingSchema, payload);
-      await stopWatching(watcherId);
+      await stopWatching$1(watcherId);
       return {
         success: true
       };
@@ -2529,7 +2584,7 @@ function registerIpcHandlers(mainWindow2) {
   });
   electron.ipcMain.handle("uiState:load", async (_event, _payload) => {
     try {
-      const uiState = await loadUIState();
+      const uiState = await loadUIState$1();
       return {
         success: true,
         uiState
@@ -2617,6 +2672,83 @@ let currentConfig = { ...defaultConfig };
 function initLogger(config) {
   console.log("Logger initialized:", currentConfig);
 }
+const activeWatchers = /* @__PURE__ */ new Map();
+async function stopWatching(watcherId) {
+  const activeWatcher = activeWatchers.get(watcherId);
+  if (!activeWatcher) {
+    console.warn(`Watcher ${watcherId} not found`);
+    return;
+  }
+  try {
+    await activeWatcher.watcher.close();
+    activeWatchers.delete(watcherId);
+    console.log(`Stopped watching: ${watcherId}`);
+  } catch (error) {
+    console.error(`Error stopping watcher ${watcherId}:`, error);
+    throw error;
+  }
+}
+async function stopAllWatchers() {
+  const watcherIds = Array.from(activeWatchers.keys());
+  await Promise.all(
+    watcherIds.map((id) => stopWatching(id))
+  );
+}
+function getUIStatePath() {
+  const userDataPath = electron.app.getPath("userData");
+  return path.join(userDataPath, "ui-state.json");
+}
+function getDefaultUIState() {
+  return {
+    version: "1.0.0",
+    windowBounds: {
+      x: 100,
+      y: 100,
+      width: 1200,
+      height: 800,
+      isMaximized: false
+    },
+    sidebarWidth: 250,
+    activeFolder: null,
+    folders: [],
+    recentItems: [],
+    splitLayouts: {}
+  };
+}
+async function loadUIState() {
+  try {
+    const filePath = getUIStatePath();
+    const content = await fs.readFile(filePath, "utf-8");
+    const state = JSON.parse(content);
+    return {
+      ...getDefaultUIState(),
+      ...state
+    };
+  } catch (error) {
+    console.log("UI state file not found or corrupted, using defaults:", error.message);
+    return getDefaultUIState();
+  }
+}
+async function saveUIStateImmediate(state) {
+  try {
+    const filePath = getUIStatePath();
+    const dir = path.dirname(filePath);
+    await fs.mkdir(dir, { recursive: true });
+    let currentState;
+    try {
+      currentState = await loadUIState();
+    } catch {
+      currentState = getDefaultUIState();
+    }
+    const mergedState = {
+      ...currentState,
+      ...state
+    };
+    await fs.writeFile(filePath, JSON.stringify(mergedState, null, 2), "utf-8");
+  } catch (error) {
+    console.error("Failed to save UI state:", error);
+  }
+}
 process.on("uncaughtException", (error) => {
   console.error("Uncaught exception:", error);
 });
@@ -2675,7 +2807,7 @@ if (!gotTheLock) {
     });
     console.log("[Main] Protocol handler registered successfully");
     const uiState = await loadUIState();
-    mainWindow = createWindow({
+    mainWindow = createWindow$1({
       x: uiState.windowBounds.x,
       y: uiState.windowBounds.y,
       width: uiState.windowBounds.width,
@@ -2693,7 +2825,7 @@ if (!gotTheLock) {
     registerIpcHandlers(mainWindow);
     electron.app.on("activate", () => {
       if (electron.BrowserWindow.getAllWindows().length === 0) {
-        mainWindow = createWindow();
+        mainWindow = createWindow$1();
       }
     });
   });

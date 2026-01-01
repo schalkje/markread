@@ -15,7 +15,6 @@ import { FolderOpener } from './FolderOpener';
 import { FileTree } from './sidebar/FileTree';
 import { HistoryPanel } from './sidebar/HistoryPanel';
 import { FolderSwitcher } from './sidebar/FolderSwitcher';
-import { BranchSwitcher } from './sidebar/BranchSwitcher';
 import { TabBar } from './editor/TabBar';
 import { Toast } from './common/Toast';
 import { TitleBar } from './titlebar/TitleBar';
@@ -132,7 +131,6 @@ const AppLayout: React.FC = () => {
       window.removeEventListener('menu:connect-repository', handleConnectRepository);
     };
   }, []);
-
 
   // Memoize callback to prevent unnecessary re-renders
   const handleRenderComplete = useCallback(() => {
@@ -635,16 +633,28 @@ const AppLayout: React.FC = () => {
    */
   const handleRepoFileClick = useCallback(
     async (filePath: string) => {
-      if (!repositoryId) {
-        console.error('No repository connected');
+      // Get the active folder to determine which repository and branch to use
+      const activeFolder = folders.find(f => f.id === activeFolderId);
+
+      if (!activeFolder || activeFolder.type !== 'repository') {
+        console.error('No repository folder active');
+        return;
+      }
+
+      const repoId = activeFolder.repositoryId;
+      const branch = activeFolder.currentBranch;
+
+      if (!repoId || !branch) {
+        console.error('Repository folder missing repositoryId or branch');
         return;
       }
 
       try {
-        // Fetch file from repository
+        // Fetch file from repository using the active folder's branch
         const fileData = await fetchFile({
-          repositoryId,
+          repositoryId: repoId,
           filePath,
+          branch,
         });
 
         // Mark as manually loaded
@@ -746,8 +756,77 @@ const AppLayout: React.FC = () => {
         });
       }
     },
-    [repositoryId, fetchFile]
+    [folders, activeFolderId, fetchFile]
   );
+
+  // Listen for repository:branch-opened events (when a new branch is opened)
+  useEffect(() => {
+    const handleBranchOpened = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ folderId: string; repositoryId: string; branchName: string }>;
+      const { folderId, repositoryId: repoId, branchName } = customEvent.detail;
+
+      // Force FileTree to reload for the new branch
+      setFileTreeKey(prev => prev + 1);
+
+      // Auto-open the first markdown file from the new branch
+      try {
+        console.log(`Fetching file tree for ${repoId} branch ${branchName}`);
+        const treeResponse = await fetchTree({
+          repositoryId: repoId,
+          branch: branchName,
+          markdownOnly: true,
+        });
+
+        console.log('Tree response:', treeResponse);
+
+        if (treeResponse && treeResponse.tree && treeResponse.tree.length > 0) {
+          // Find first markdown file in tree (depth-first search)
+          const findFirstMarkdownFile = (nodes: any[]): string | null => {
+            for (const node of nodes) {
+              if (node.type === 'file' && node.isMarkdown) {
+                return node.path;
+              }
+              if (node.type === 'directory' && node.children) {
+                const found = findFirstMarkdownFile(node.children);
+                if (found) return found;
+              }
+            }
+            return null;
+          };
+
+          const firstMarkdownPath = findFirstMarkdownFile(treeResponse.tree);
+          if (firstMarkdownPath) {
+            console.log(`Auto-opening first markdown file: ${firstMarkdownPath}`);
+            // Auto-open the first markdown file (the active folder will already be switched to the new branch)
+            await handleRepoFileClick(firstMarkdownPath);
+          } else {
+            console.log('No markdown files found in tree');
+            setToast({
+              message: `Branch "${branchName}" opened (no markdown files found)`,
+              type: 'info',
+            });
+          }
+        } else {
+          console.log('No tree or empty tree response');
+          setToast({
+            message: `Branch "${branchName}" opened`,
+            type: 'info',
+          });
+        }
+      } catch (err) {
+        console.error('Error auto-opening file for new branch:', err);
+        setToast({
+          message: `Opened branch "${branchName}", but failed to load files: ${err instanceof Error ? err.message : 'Unknown error'}`,
+          type: 'warning',
+        });
+      }
+    };
+
+    window.addEventListener('repository:branch-opened', handleBranchOpened);
+    return () => {
+      window.removeEventListener('repository:branch-opened', handleBranchOpened);
+    };
+  }, [fetchTree, handleRepoFileClick]);
 
   /**
    * Handle repository connection completion
@@ -760,7 +839,6 @@ const AppLayout: React.FC = () => {
       // Add repository as a folder
       const { addRepositoryFolder } = useFoldersStore.getState();
       const repoFolder = addRepositoryFolder({
-        id: `repo-${repositoryId}`,
         url: connectedRepository.url,
         displayName: connectedRepository.displayName,
         repositoryId,
@@ -770,11 +848,14 @@ const AppLayout: React.FC = () => {
       });
 
       // Fetch file tree to find first markdown file
+      console.log(`Fetching file tree for initial connection: ${repositoryId}, branch: ${connectedRepository.currentBranch}`);
       const treeResponse = await fetchTree({
         repositoryId,
         branch: connectedRepository.currentBranch,
         markdownOnly: true,
       });
+
+      console.log('Initial connection tree response:', treeResponse);
 
       if (treeResponse && treeResponse.tree && treeResponse.tree.length > 0) {
         // Find first markdown file in tree (depth-first search)
@@ -793,8 +874,46 @@ const AppLayout: React.FC = () => {
 
         const firstMarkdownPath = findFirstMarkdownFile(treeResponse.tree);
         if (firstMarkdownPath) {
-          // Auto-open the first markdown file
-          await handleRepoFileClick(firstMarkdownPath);
+          console.log(`Opening first markdown file from initial connection: ${firstMarkdownPath}`);
+          // Fetch file directly instead of relying on handleRepoFileClick which needs active folder state
+          const fileData = await fetchFile({
+            repositoryId,
+            filePath: firstMarkdownPath,
+            branch: connectedRepository.currentBranch,
+          });
+
+          // Mark as manually loaded
+          contentLoadedManually.current = true;
+          setIsLoading(false);
+          setError(null);
+
+          // Open in new tab
+          const fileName = firstMarkdownPath.split('/').pop() || 'Untitled';
+          const { addTab } = useTabsStore.getState();
+          const newTab = {
+            id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+            filePath: firstMarkdownPath,
+            title: fileName,
+            scrollPosition: 0,
+            zoomLevel: 100,
+            searchState: null,
+            modificationTimestamp: Date.now(),
+            isDirty: false,
+            renderCache: null,
+            navigationHistory: [{
+              filePath: firstMarkdownPath,
+              scrollPosition: 0,
+              scrollLeft: 0,
+              zoomLevel: 100,
+              timestamp: Date.now(),
+            }],
+            currentHistoryIndex: 0,
+            forwardHistory: [],
+            createdAt: Date.now(),
+            folderId: repoFolder.id,
+            isDirectFile: false,
+          };
+          addTab(newTab);
         }
       }
 
@@ -810,7 +929,7 @@ const AppLayout: React.FC = () => {
         type: 'warning',
       });
     }
-  }, [connectedRepository, repositoryId, fetchTree, handleRepoFileClick]);
+  }, [connectedRepository, repositoryId, fetchTree, fetchFile]);
 
   // Trigger connection handler when repository is connected
   useEffect(() => {
@@ -1119,17 +1238,6 @@ const AppLayout: React.FC = () => {
             <div className="sidebar-header">
             {/* T111-T113: Folder Switcher */}
             {folders.length > 0 && <FolderSwitcher />}
-
-            {/* Branch Switcher - show when active folder is a repository */}
-            {activeFolderId && (
-              <BranchSwitcher
-                folderId={activeFolderId}
-                onBranchChange={(branch) => {
-                  // Force FileTree to reload by updating key
-                  setFileTreeKey(prev => prev + 1);
-                }}
-              />
-            )}
 
             {/* Sidebar view toggle: Files / History */}
             {tabs.size > 0 && (
