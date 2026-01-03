@@ -15,6 +15,8 @@ import { normalizeRepositoryUrl } from '../../../shared/utils/url-normalizer';
 import type {
   ConnectRepositoryRequest,
   ConnectRepositoryResponse,
+  FetchRepositoryInfoRequest,
+  FetchRepositoryInfoResponse,
   FetchFileRequest,
   FetchFileResponse,
   FetchRepositoryTreeRequest,
@@ -71,6 +73,44 @@ export class RepositoryService {
     });
 
     this.tokenProviderInitialized = true;
+  }
+
+  /**
+   * Fetch repository information without creating a connection
+   * Used for branch selection before connecting
+   *
+   * @param request - Repository info request
+   * @returns Repository metadata including branches
+   */
+  async fetchRepositoryInfo(request: FetchRepositoryInfoRequest): Promise<FetchRepositoryInfoResponse> {
+    // Normalize and parse URL
+    const normalizedUrl = normalizeRepositoryUrl(request.url);
+    const parsed = parseRepositoryUrl(normalizedUrl);
+
+    if (parsed.provider !== 'github') {
+      throw {
+        code: 'INVALID_URL',
+        message: 'Only GitHub repositories are supported in this phase',
+        retryable: false,
+      };
+    }
+
+    // Fetch repository information
+    const defaultBranch = await githubClient.getDefaultBranch(parsed.owner, parsed.name);
+    const allBranches = await githubClient.listBranches(parsed.owner, parsed.name);
+
+    // Mark default branch
+    const branches = allBranches.map(b => ({
+      ...b,
+      isDefault: b.name === defaultBranch,
+    }));
+
+    return {
+      displayName: `${parsed.owner}/${parsed.name}`,
+      defaultBranch,
+      branches,
+      provider: 'github',
+    };
   }
 
   /**

@@ -134,3 +134,50 @@ export function migrateRepositoryFolder(folder: Folder): Folder {
 export function migrateRepositoryFolders(folders: Folder[]): Folder[] {
   return folders.map(migrateRepositoryFolder);
 }
+
+/**
+ * Sort branch names by priority: main > master > development > alphabetical
+ *
+ * @param branches - Array of branch names to sort
+ * @returns Sorted array of branch names
+ */
+export function sortBranchesByPriority(branches: string[]): string[] {
+  const priorityOrder = ['main', 'master', 'development'];
+
+  return [...branches].sort((a, b) => {
+    const aIndex = priorityOrder.indexOf(a.toLowerCase());
+    const bIndex = priorityOrder.indexOf(b.toLowerCase());
+
+    // Both are priority branches
+    if (aIndex !== -1 && bIndex !== -1) {
+      return aIndex - bIndex;
+    }
+
+    // Only a is a priority branch
+    if (aIndex !== -1) {
+      return -1;
+    }
+
+    // Only b is a priority branch
+    if (bIndex !== -1) {
+      return 1;
+    }
+
+    // Neither are priority branches, sort alphabetically
+    return a.localeCompare(b);
+  });
+}
+
+/**
+ * Get the default branch from a list of branches using priority rules
+ * Priority: main > master > development > first alphabetically
+ *
+ * @param branches - Array of branch names
+ * @returns Default branch name or null if array is empty
+ */
+export function getDefaultBranch(branches: string[]): string | null {
+  if (branches.length === 0) return null;
+
+  const sorted = sortBranchesByPriority(branches);
+  return sorted[0];
+}

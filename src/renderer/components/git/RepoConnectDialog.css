@@ -322,6 +322,109 @@
   word-break: break-all;
 }
 
+/* Grouped History */
+.repo-connect-dialog__history-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--bg-secondary, #f5f5f5);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+}
+
+.repo-connect-dialog__history-group-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.repo-connect-dialog__history-branches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.repo-connect-dialog__history-branch-item {
+  padding: 6px 12px;
+  font-size: 13px;
+  background-color: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #cccccc);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  font-family: inherit;
+  color: var(--text-primary, #333333);
+}
+
+.repo-connect-dialog__history-branch-item:hover:not(:disabled) {
+  background-color: var(--hover-bg, #e8f4ff);
+  border-color: var(--primary-color, #0066cc);
+}
+
+.repo-connect-dialog__history-branch-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Branch Selection */
+.repo-connect-dialog__branch-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.repo-connect-dialog__branch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.repo-connect-dialog__branch-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background-color: var(--bg-secondary, #f5f5f5);
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.repo-connect-dialog__branch-option:hover {
+  background-color: var(--hover-bg, #e8f4ff);
+  border-color: var(--primary-color, #0066cc);
+}
+
+.repo-connect-dialog__branch-option.selected {
+  background-color: var(--hover-bg, #e8f4ff);
+  border-color: var(--primary-color, #0066cc);
+}
+
+.repo-connect-dialog__branch-option input[type="radio"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.repo-connect-dialog__branch-name {
+  font-size: 14px;
+  color: var(--text-primary, #333333);
+  font-weight: 500;
+}
+
+.repo-connect-dialog__branch-badge {
+  font-size: 12px;
+  color: var(--text-secondary, #666666);
+  font-weight: normal;
+}
+
 /* Error Display */
 .repo-connect-dialog__error {
   padding: 12px;
@@ -381,6 +484,10 @@
 .repo-connect-dialog__btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.repo-connect-dialog__btn--full-width {
+  width: 100%;
 }
 
 /* Dark mode support */

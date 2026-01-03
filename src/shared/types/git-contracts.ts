@@ -64,6 +64,38 @@ export interface ConnectRepositoryResponse {
 export type ConnectRepositoryIPCResponse = IPCResponse<ConnectRepositoryResponse>;
 
 // ============================================================================
+// Fetch Repository Info (for branch selection before connecting)
+// ============================================================================
+
+/**
+ * Request to fetch repository metadata without creating a connection
+ * Used for branch selection before connecting
+ */
+export interface FetchRepositoryInfoRequest {
+  url: string;
+  authMethod: 'oauth' | 'pat';
+}
+
+export const FetchRepositoryInfoRequestSchema = z.object({
+  url: z.string()
+    .url('Must be a valid URL')
+    .startsWith('https://', 'Only HTTPS URLs are supported'),
+  authMethod: z.enum(['oauth', 'pat']),
+});
+
+/**
+ * Response containing repository metadata
+ */
+export interface FetchRepositoryInfoResponse {
+  displayName: string;
+  defaultBranch: string;
+  branches: BranchInfo[];
+  provider: 'github' | 'azure';
+}
+
+export type FetchRepositoryInfoIPCResponse = IPCResponse<FetchRepositoryInfoResponse>;
+
+// ============================================================================
 // List Branches
 // ============================================================================
 

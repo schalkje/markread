@@ -12,18 +12,21 @@ import { oauthService } from '../services/git/oauth-service';
 import { createSuccessResponse, createErrorResponse } from '../../shared/types/ipc';
 import {
   ConnectRepositoryRequestSchema,
+  FetchRepositoryInfoRequestSchema,
   FetchFileRequestSchema,
   FetchRepositoryTreeRequestSchema,
   CheckConnectivityRequestSchema,
   InitiateDeviceFlowRequestSchema,
   CheckDeviceFlowStatusRequestSchema,
   type ConnectRepositoryRequest,
+  type FetchRepositoryInfoRequest,
   type FetchFileRequest,
   type FetchRepositoryTreeRequest,
   type CheckConnectivityRequest,
   type InitiateDeviceFlowRequest,
   type CheckDeviceFlowStatusRequest,
   type ConnectRepositoryIPCResponse,
+  type FetchRepositoryInfoIPCResponse,
   type FetchFileIPCResponse,
   type FetchRepositoryTreeIPCResponse,
   type CheckConnectivityIPCResponse,
@@ -51,6 +54,32 @@ export function registerGitHandlers(): void {
       return createSuccessResponse(response);
     } catch (error: any) {
       console.error('[IPC] Error connecting to repository:', error);
+      return createErrorResponse({
+        code: error.code || 'UNKNOWN',
+        message: error.message || 'An unexpected error occurred',
+        retryable: error.retryable ?? false,
+        retryAfterSeconds: error.retryAfterSeconds,
+        statusCode: error.statusCode,
+      });
+    }
+  });
+
+  // Fetch repository info (for branch selection)
+  ipcMain.handle('git:fetchRepositoryInfo', async (_event, payload): Promise<FetchRepositoryInfoIPCResponse> => {
+    console.log('[IPC] git:fetchRepositoryInfo received:', payload);
+    try {
+      // Validate request
+      const request = FetchRepositoryInfoRequestSchema.parse(payload) as FetchRepositoryInfoRequest;
+      console.log('[IPC] Request validated:', request);
+
+      // Fetch repository info
+      console.log('[IPC] Calling repositoryService.fetchRepositoryInfo...');
+      const response = await repositoryService.fetchRepositoryInfo(request);
+      console.log('[IPC] Repository info fetched successfully');
+
+      return createSuccessResponse(response);
+    } catch (error: any) {
+      console.error('[IPC] Error fetching repository info:', error);
       return createErrorResponse({
         code: error.code || 'UNKNOWN',
         message: error.message || 'An unexpected error occurred',

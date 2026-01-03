@@ -1470,17 +1470,60 @@ const AppLayout: React.FC = () => {
       setError(null);
 
       try {
-        const result = await window.electronAPI?.file?.read({ filePath: fileToLoad });
+        // Check if active tab belongs to a repository folder
+        const activeFolder = activeTab?.folderId
+          ? folders.find(f => f.id === activeTab.folderId)
+          : null;
+
+        console.log('[AppLayout] loadFile - activeFolder check:', {
+          fileToLoad,
+          hasActiveTab: !!activeTab,
+          activeFolderId: activeTab?.folderId,
+          foundFolder: !!activeFolder,
+          folderType: activeFolder?.type,
+          isRepository: activeFolder?.type === 'repository',
+          hasGitAPI: !!window.git,
+          repositoryId: activeFolder?.repositoryId,
+          currentBranch: activeFolder?.currentBranch,
+        });
+
+        let result;
+        if (activeFolder?.type === 'repository') {
+          // Load file from repository using Git API
+          console.log('[AppLayout] Using Git API to fetch file:', {
+            repositoryId: activeFolder.repositoryId,
+            filePath: fileToLoad,
+            branch: activeFolder.currentBranch,
+          });
+
+          result = await window.git?.repo?.fetchFile({
+            repositoryId: activeFolder.repositoryId!,
+            filePath: fileToLoad,
+            branch: activeFolder.currentBranch!,
+          });
+
+          console.log('[AppLayout] Git API result:', {
+            success: result?.success,
+            hasData: !!result?.data,
+            hasContent: !!(result?.data?.content || result?.content),
+            error: result?.error,
+          });
+        } else {
+          // Load file from local file system
+          console.log('[AppLayout] Using file system API to read file:', fileToLoad);
+          result = await window.electronAPI?.file?.read({ filePath: fileToLoad });
+        }
 
         // Only update content if this is still the current file being displayed
         if (loadingFileRef.current === fileToLoad && currentFile === fileToLoad) {
-          if (result?.success && result.content) {
+          if (result?.success && (result.content || result.data?.content)) {
+            const content = result.content || result.data.content;
             // Cache the content by filePath
-            contentCacheRef.current.set(fileToLoad, result.content);
-            setCurrentContent(result.content);
-            console.log('[AppLayout] Cached content for:', fileToLoad, 'length:', result.content.length);
+            contentCacheRef.current.set(fileToLoad, content);
+            setCurrentContent(content);
+            console.log('[AppLayout] Cached content for:', fileToLoad, 'length:', content.length);
           } else {
-            setError(result?.error || 'Failed to load file');
+            setError(result?.error?.message || result?.error || 'Failed to load file');
           }
         }
       } catch (err) {
@@ -1498,7 +1541,7 @@ const AppLayout: React.FC = () => {
     };
 
     loadFile();
-  }, [currentFile]);
+  }, [currentFile, activeTab, folders]);
 
   // Check if we should show UI elements
   const hasTabs = tabs.size > 0;
@@ -1752,12 +1795,29 @@ const AppLayout: React.FC = () => {
                         const activeFolder = folders.find(f => f.id === activeFolderId);
                         let fileContent: string | null = null;
 
+                        console.log('[AppLayout] onFileSelect called:', {
+                          filePath,
+                          activeFolderId,
+                          hasActiveFolder: !!activeFolder,
+                          folderType: activeFolder?.type,
+                          isRepository: activeFolder?.type === 'repository',
+                          repositoryId: activeFolder?.repositoryId,
+                          currentBranch: activeFolder?.currentBranch,
+                        });
+
                         if (activeFolder?.type === 'repository') {
                           // Load file from repository using Git API
+                          console.log('[AppLayout] onFileSelect - Using Git API');
                           const result = await window.git?.repo?.fetchFile({
                             repositoryId: activeFolder.repositoryId!,
                             filePath: filePath,
                             branch: activeFolder.currentBranch!,
+                          });
+
+                          console.log('[AppLayout] onFileSelect - Git API result:', {
+                            success: result?.success,
+                            hasData: !!result?.data,
+                            error: result?.error,
                           });
 
                           if (result?.success && result.data) {
@@ -1765,6 +1825,7 @@ const AppLayout: React.FC = () => {
                           }
                         } else {
                           // Load file from local file system
+                          console.log('[AppLayout] onFileSelect - Using file system API');
                           const result = await window.electronAPI?.file?.read({ filePath });
                           if (result?.success && result.content) {
                             fileContent = result.content;

@@ -142,8 +142,10 @@ declare global {
     git: {
       repo: {
         connect: (request: any) => Promise<any>;
+        fetchInfo: (request: any) => Promise<any>;
         fetchFile: (request: any) => Promise<any>;
         fetchTree: (request: any) => Promise<any>;
+        getCachedTree: (request: any) => Promise<any>;
       };
       auth: Record<string, any>;
       connectivity: {

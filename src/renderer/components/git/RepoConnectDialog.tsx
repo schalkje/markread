@@ -11,8 +11,9 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useGitRepo } from '../../hooks/useGitRepo';
-import type { ConnectRepositoryRequest } from '../../../shared/types/git-contracts';
-import { getConnectionHistory, type ConnectionHistoryEntry } from '../../utils/connection-history';
+import type { ConnectRepositoryRequest, BranchInfo } from '../../../shared/types/git-contracts';
+import { getConnectionHistory, groupConnectionHistory, type ConnectionHistoryEntry, type GroupedHistoryRepository } from '../../utils/connection-history';
+import { sortBranchesByPriority, getDefaultBranch } from '../../../shared/utils/repository-utils';
 import './RepoConnectDialog.css';
 
 export interface RepoConnectDialogProps {
@@ -59,8 +60,16 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   const [url, setUrl] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
+  // Branch selection state (integrated, not multi-step)
+  const [availableBranches, setAvailableBranches] = useState<BranchInfo[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<string>('');
+  const [isFetchingBranches, setIsFetchingBranches] = useState(false);
+  const [needsAuthentication, setNeedsAuthentication] = useState(false);
+  const [branchToPreselect, setBranchToPreselect] = useState<string | null>(null);
+
   // Connection history state
   const [connectionHistory, setConnectionHistory] = useState<ConnectionHistoryEntry[]>([]);
+  const [groupedHistory, setGroupedHistory] = useState<GroupedHistoryRepository[]>([]);
 
   // Device Flow state
   const [deviceFlowSession, setDeviceFlowSession] = useState<DeviceFlowSessionState | null>(null);
@@ -69,6 +78,139 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   const deviceFlowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const currentIntervalRef = useRef<number>(5); // Track current polling interval
+  const lastFetchedUrlRef = useRef<string | null>(null); // Track last fetched URL to prevent duplicates
+
+  /**
+   * Cleanup Device Flow session and intervals
+   */
+  const cleanupDeviceFlowSession = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    if (deviceFlowTimeoutRef.current) {
+      clearTimeout(deviceFlowTimeoutRef.current);
+      deviceFlowTimeoutRef.current = null;
+    }
+    if (sessionIdRef.current) {
+      window.git.auth.cancelDeviceFlow(sessionIdRef.current).catch(() => {
+        // Ignore cancellation errors
+      });
+      sessionIdRef.current = null;
+    }
+    setDeviceFlowSession(null);
+    currentIntervalRef.current = 5; // Reset interval
+  }, []);
+
+  /**
+   * Validate repository URL
+   */
+  const validateUrl = useCallback((urlValue: string): boolean => {
+    if (!urlValue.trim()) {
+      setValidationError('Repository URL is required');
+      return false;
+    }
+
+    try {
+      const parsedUrl = new URL(urlValue);
+
+      if (parsedUrl.protocol !== 'https:') {
+        setValidationError('Only HTTPS URLs are supported');
+        return false;
+      }
+
+      const hostname = parsedUrl.hostname;
+      if (hostname !== 'github.com' && hostname !== 'dev.azure.com') {
+        setValidationError('Only GitHub and Azure DevOps repositories are supported');
+        return false;
+      }
+
+      setValidationError(null);
+      return true;
+    } catch {
+      setValidationError('Invalid URL format');
+      return false;
+    }
+  }, []);
+
+  /**
+   * Fetch available branches for the repository
+   */
+  const fetchBranches = useCallback(async (): Promise<void> => {
+    try {
+      setIsFetchingBranches(true);
+      setValidationError(null);
+      setNeedsAuthentication(false);
+
+      console.log('[Fetch Branches] Fetching repository info...');
+      const response = await window.git.repo.fetchInfo({
+        url: url.trim(),
+        authMethod: 'oauth',
+      });
+
+      if (!response.success) {
+        throw new Error(response.error?.message || 'Failed to fetch repository information');
+      }
+
+      const { branches, defaultBranch } = response.data;
+      console.log('[Fetch Branches] Got branches:', branches);
+
+      // Sort branches by priority
+      const sortedBranchNames = sortBranchesByPriority(branches.map(b => b.name));
+      const sortedBranches = sortedBranchNames.map(name =>
+        branches.find(b => b.name === name)!
+      );
+
+      setAvailableBranches(sortedBranches);
+
+      // Select default branch or pre-selected branch
+      if (branchToPreselect && sortedBranchNames.includes(branchToPreselect)) {
+        setSelectedBranch(branchToPreselect);
+        setBranchToPreselect(null); // Clear after using
+      } else {
+        const defaultBranchToSelect = getDefaultBranch(sortedBranchNames) || defaultBranch;
+        setSelectedBranch(defaultBranchToSelect);
+      }
+    } catch (err: any) {
+      console.error('[Fetch Branches] Error:', err);
+      // Re-throw auth errors to be handled by caller
+      if (err.code === 'AUTH_FAILED' || err.statusCode === 401) {
+        throw err;
+      }
+      setValidationError(err.message || 'Failed to fetch branches');
+    } finally {
+      setIsFetchingBranches(false);
+    }
+  }, [url, branchToPreselect]);
+
+  /**
+   * Handle fetching branches (auto-triggered or manual)
+   */
+  const handleFetchBranches = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) {
+        e.preventDefault();
+      }
+
+      // Validate URL
+      if (!validateUrl(url)) {
+        return;
+      }
+
+      try {
+        await fetchBranches();
+      } catch (err: any) {
+        // Check if error is due to missing/invalid credentials
+        if (err.code === 'AUTH_FAILED' || err.statusCode === 401) {
+          // Set flag to show "Connect to Repository" button
+          setNeedsAuthentication(true);
+        } else {
+          // Error was already handled in fetchBranches
+        }
+      }
+    },
+    [url, validateUrl, fetchBranches]
+  );
 
   /**
    * Check Device Flow status (used by both automatic polling and manual checks)
@@ -111,26 +253,16 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
         }
 
         if (status.isSuccess) {
-          // Device Flow successful - now connect to repository
+          // Device Flow successful - now fetch branches
           setDeviceFlowSession((prev) =>
-            prev ? { ...prev, statusMessage: 'Authentication successful! Connecting...' } : null
+            prev ? { ...prev, statusMessage: 'Authentication successful! Fetching branches...' } : null
           );
 
-          const request: ConnectRepositoryRequest = {
-            url: url.trim(),
-            authMethod: 'oauth',
-          };
-
-          await connectRepository(request);
-
-          // Success - close dialog and notify parent
-          onConnected?.();
-          onClose();
-
-          // Reset form
-          setUrl('');
+          // Clear Device Flow session
           setDeviceFlowSession(null);
-          setValidationError(null);
+
+          // Fetch branches now that we're authenticated
+          await fetchBranches();
         } else {
           // Device Flow failed
           setDeviceFlowSession(null);
@@ -148,7 +280,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
       console.error('Error polling Device Flow status:', pollError);
       return false;
     }
-  }, [url, connectRepository, onConnected, onClose]);
+  }, [fetchBranches]);
 
   /**
    * Start or restart polling with the current interval
@@ -171,6 +303,52 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   }, [checkDeviceFlowStatus]);
 
   /**
+   * Initiate Device Flow authentication
+   */
+  const initiateDeviceFlow = useCallback(async (): Promise<void> => {
+    console.log('[Device Flow] Initiating...');
+    const deviceFlowResponse = await window.git.auth.initiateDeviceFlow({
+      provider: 'github',
+      scopes: ['repo', 'user:email'],
+    });
+
+    console.log('[Device Flow] Response:', deviceFlowResponse);
+
+    if (!deviceFlowResponse.success) {
+      throw new Error(deviceFlowResponse.error?.message || 'Failed to initiate authentication');
+    }
+
+    const { sessionId, userCode, verificationUri, expiresIn, interval, browserOpened } = deviceFlowResponse.data;
+    console.log('[Device Flow] User code:', userCode);
+
+    // Set initial status message
+    const statusMessage = browserOpened
+      ? 'Opening GitHub in your browser...'
+      : 'Please open GitHub manually to authorize';
+
+    const session = {
+      sessionId,
+      userCode,
+      verificationUri,
+      expiresIn,
+      interval,
+      statusMessage,
+    };
+    console.log('[Device Flow] Setting session state:', session);
+    sessionIdRef.current = sessionId;
+    setDeviceFlowSession(session);
+
+    // Set timeout for Device Flow (uses expiresIn from GitHub)
+    deviceFlowTimeoutRef.current = setTimeout(() => {
+      cleanupDeviceFlowSession();
+      setValidationError('Authentication timed out. Please try again.');
+    }, expiresIn * 1000);
+
+    // Start polling for Device Flow completion (use interval from GitHub)
+    startPolling(sessionId, interval);
+  }, [cleanupDeviceFlowSession, startPolling]);
+
+  /**
    * Manually check Device Flow status
    */
   const handleManualCheck = useCallback(async () => {
@@ -189,33 +367,12 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   }, [checkDeviceFlowStatus, isManuallyChecking]);
 
   /**
-   * Cleanup Device Flow session and intervals
-   */
-  const cleanupDeviceFlowSession = useCallback(() => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
-    if (deviceFlowTimeoutRef.current) {
-      clearTimeout(deviceFlowTimeoutRef.current);
-      deviceFlowTimeoutRef.current = null;
-    }
-    if (sessionIdRef.current) {
-      window.git.auth.cancelDeviceFlow(sessionIdRef.current).catch(() => {
-        // Ignore cancellation errors
-      });
-      sessionIdRef.current = null;
-    }
-    setDeviceFlowSession(null);
-    currentIntervalRef.current = 5; // Reset interval
-  }, []);
-
-  /**
    * Load connection history when dialog opens
    */
   useEffect(() => {
     if (isOpen) {
       setConnectionHistory(getConnectionHistory());
+      setGroupedHistory(groupConnectionHistory());
     }
   }, [isOpen]);
 
@@ -229,133 +386,88 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   }, [cleanupDeviceFlowSession]);
 
   /**
-   * Validate repository URL
+   * Auto-fetch branches when URL changes (with debouncing)
    */
-  const validateUrl = useCallback((urlValue: string): boolean => {
-    if (!urlValue.trim()) {
-      setValidationError('Repository URL is required');
-      return false;
+  useEffect(() => {
+    // Don't auto-fetch if:
+    // - Dialog is not open
+    // - URL is empty
+    // - Already fetching
+    // - Device flow is active
+    if (!isOpen || !url.trim() || isFetchingBranches || deviceFlowSession) {
+      return;
     }
 
-    try {
-      const parsedUrl = new URL(urlValue);
+    const trimmedUrl = url.trim();
 
-      if (parsedUrl.protocol !== 'https:') {
-        setValidationError('Only HTTPS URLs are supported');
-        return false;
-      }
-
-      const hostname = parsedUrl.hostname;
-      if (hostname !== 'github.com' && hostname !== 'dev.azure.com') {
-        setValidationError('Only GitHub and Azure DevOps repositories are supported');
-        return false;
-      }
-
-      setValidationError(null);
-      return true;
-    } catch {
-      setValidationError('Invalid URL format');
-      return false;
+    // Don't fetch again if we already fetched for this URL
+    if (lastFetchedUrlRef.current === trimmedUrl) {
+      return;
     }
-  }, []);
+
+    // Debounce the fetch (wait for user to finish typing)
+    const debounceTimer = setTimeout(() => {
+      // Validate before fetching
+      if (validateUrl(url)) {
+        lastFetchedUrlRef.current = trimmedUrl;
+        handleFetchBranches();
+      }
+    }, 800); // 800ms debounce
+
+    return () => clearTimeout(debounceTimer);
+  }, [url, isOpen, isFetchingBranches, deviceFlowSession, validateUrl, handleFetchBranches]);
 
   /**
-   * Handle form submission
+   * Handle "Connect to Repository" button click (initiates OAuth)
+   */
+  const handleAuthenticateAndFetch = useCallback(async () => {
+    try {
+      await initiateDeviceFlow();
+    } catch (authErr: any) {
+      setValidationError(authErr.message || 'Authentication failed');
+    }
+  }, [initiateDeviceFlow]);
+
+  /**
+   * Handle final connection (open repo branch)
    */
   const handleConnect = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-
-      // Validate URL
-      if (!validateUrl(url)) {
+    async () => {
+      if (!selectedBranch) {
+        setValidationError('Please select a branch');
         return;
       }
 
       try {
         setValidationError(null);
 
-        // Step 1: Try to connect with stored credentials first
-        console.log('[Connect] Attempting connection with stored credentials...');
+        console.log('[Connect] Connecting to repository with branch:', selectedBranch);
         const request: ConnectRepositoryRequest = {
           url: url.trim(),
           authMethod: 'oauth',
+          initialBranch: selectedBranch,
         };
 
-        try {
-          await connectRepository(request);
+        await connectRepository(request);
 
-          console.log('[Connect] Connection successful, calling callbacks...');
-          // Success - close dialog and notify parent
-          console.log('[Connect] Calling onConnected');
-          onConnected?.();
-          console.log('[Connect] Calling onClose');
-          onClose();
-          console.log('[Connect] Dialog should be closing now');
+        console.log('[Connect] Connection successful, calling callbacks...');
+        // Success - close dialog and notify parent
+        onConnected?.();
+        onClose();
 
-          // Reset form
-          setUrl('');
-          setValidationError(null);
-          return;
-        } catch (connectError: any) {
-          // Check if error is due to missing/invalid credentials
-          if (connectError.code === 'AUTH_FAILED' || connectError.code === 'RATE_LIMIT') {
-            console.log('[Connect] No valid credentials found, initiating Device Flow...');
-            // Fall through to Device Flow
-          } else {
-            // Other error - throw it
-            throw connectError;
-          }
-        }
-
-        // Step 2: If connection failed due to auth, initiate Device Flow
-        console.log('[Device Flow] Initiating...');
-        const deviceFlowResponse = await window.git.auth.initiateDeviceFlow({
-          provider: 'github',
-          scopes: ['repo', 'user:email'],
-        });
-
-        console.log('[Device Flow] Response:', deviceFlowResponse);
-
-        if (!deviceFlowResponse.success) {
-          throw new Error(deviceFlowResponse.error?.message || 'Failed to initiate authentication');
-        }
-
-        const { sessionId, userCode, verificationUri, expiresIn, interval, browserOpened } = deviceFlowResponse.data;
-        console.log('[Device Flow] User code:', userCode);
-
-        // Set initial status message
-        const statusMessage = browserOpened
-          ? 'Opening GitHub in your browser...'
-          : 'Please open GitHub manually to authorize';
-
-        const session = {
-          sessionId,
-          userCode,
-          verificationUri,
-          expiresIn,
-          interval,
-          statusMessage,
-        };
-        console.log('[Device Flow] Setting session state:', session);
-        sessionIdRef.current = sessionId;
-        setDeviceFlowSession(session);
-
-        // Set timeout for Device Flow (uses expiresIn from GitHub)
-        deviceFlowTimeoutRef.current = setTimeout(() => {
-          cleanupDeviceFlowSession();
-          setValidationError('Authentication timed out. Please try again.');
-        }, expiresIn * 1000);
-
-        // Start polling for Device Flow completion (use interval from GitHub)
-        startPolling(sessionId, interval);
-
-        return;
+        // Reset form
+        setUrl('');
+        setAvailableBranches([]);
+        setSelectedBranch('');
+        setValidationError(null);
+        setNeedsAuthentication(false);
+        setBranchToPreselect(null);
+        lastFetchedUrlRef.current = null; // Clear last fetched URL
       } catch (err: any) {
-        cleanupDeviceFlowSession();
-        setValidationError(err.message || 'An error occurred during authentication');
+        setValidationError(err.message || 'An error occurred during connection');
       }
     },
-    [url, validateUrl, connectRepository, onConnected, onClose, cleanupDeviceFlowSession, startPolling]
+    [url, selectedBranch, connectRepository, onConnected, onClose]
   );
 
   /**
@@ -364,27 +476,47 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setUrl(e.target.value);
     setValidationError(null);
+    setAvailableBranches([]); // Clear branches when URL changes
+    setSelectedBranch('');
+    setNeedsAuthentication(false);
+    lastFetchedUrlRef.current = null; // Clear last fetched URL to allow new fetch
   }, []);
 
   /**
    * Handle clicking a history entry
    */
-  const handleHistoryEntryClick = useCallback((entry: ConnectionHistoryEntry) => {
-    setUrl(entry.url);
+  const handleHistoryEntryClick = useCallback((historyUrl: string, branch?: string) => {
+    setUrl(historyUrl);
     setValidationError(null);
+    setAvailableBranches([]);
+    setSelectedBranch('');
+    setNeedsAuthentication(false);
+    lastFetchedUrlRef.current = null; // Clear last fetched URL to allow new fetch
+
+    // Pre-select the branch if specified
+    if (branch) {
+      setBranchToPreselect(branch);
+    }
+
+    // Auto-trigger branch fetch (will be handled by useEffect)
   }, []);
 
   /**
    * Handle close
    */
   const handleClose = useCallback(() => {
-    if (!isConnecting && !deviceFlowSession) {
+    if (!isConnecting && !deviceFlowSession && !isFetchingBranches) {
       cleanupDeviceFlowSession();
       setUrl('');
+      setAvailableBranches([]);
+      setSelectedBranch('');
       setValidationError(null);
+      setNeedsAuthentication(false);
+      setBranchToPreselect(null);
+      lastFetchedUrlRef.current = null; // Clear last fetched URL
       onClose();
     }
-  }, [isConnecting, deviceFlowSession, cleanupDeviceFlowSession, onClose]);
+  }, [isConnecting, deviceFlowSession, isFetchingBranches, cleanupDeviceFlowSession, onClose]);
 
   /**
    * Handle escape key
@@ -438,8 +570,8 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
         </div>
 
         {/* Form */}
-        <form className="repo-connect-dialog__form" onSubmit={handleConnect}>
-          {/* URL Input */}
+        <div className="repo-connect-dialog__form">
+          {/* URL Input (always visible) */}
           <div className="repo-connect-dialog__field">
             <label htmlFor="repo-url" className="repo-connect-dialog__label">
               Repository URL
@@ -451,7 +583,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
               placeholder="https://github.com/owner/repository"
               value={url}
               onChange={handleUrlChange}
-              disabled={isConnecting}
+              disabled={isFetchingBranches || isConnecting || !!deviceFlowSession}
               autoFocus
             />
             <span className="repo-connect-dialog__hint">
@@ -460,30 +592,94 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
           </div>
 
           {/* Connection History */}
-          {!deviceFlowSession && connectionHistory.length > 0 && (
+          {!deviceFlowSession && !isFetchingBranches && availableBranches.length === 0 && groupedHistory.length > 0 && (
             <div className="repo-connect-dialog__history">
               <h3 className="repo-connect-dialog__history-title">Recent Connections</h3>
               <div className="repo-connect-dialog__history-list">
-                {connectionHistory.map((entry, index) => (
-                  <button
-                    key={`${entry.url}-${entry.branch}-${index}`}
-                    type="button"
-                    className="repo-connect-dialog__history-item"
-                    onClick={() => handleHistoryEntryClick(entry)}
-                    disabled={isConnecting}
-                  >
-                    <div className="repo-connect-dialog__history-item-name">
-                      {entry.displayName}
+                {groupedHistory.map((repo, repoIndex) => (
+                  <div key={`${repo.url}-${repoIndex}`} className="repo-connect-dialog__history-group">
+                    <div className="repo-connect-dialog__history-group-header">
+                      <div className="repo-connect-dialog__history-item-name">
+                        {repo.displayName}
+                      </div>
+                      <div className="repo-connect-dialog__history-item-url">
+                        {repo.url}
+                      </div>
                     </div>
-                    <div className="repo-connect-dialog__history-item-branch">
-                      Branch: {entry.branch}
+                    <div className="repo-connect-dialog__history-branches">
+                      {repo.branches.map((branchInfo, branchIndex) => (
+                        <button
+                          key={`${repo.url}-${branchInfo.branch}-${branchIndex}`}
+                          type="button"
+                          className="repo-connect-dialog__history-branch-item"
+                          onClick={() => handleHistoryEntryClick(repo.url, branchInfo.branch)}
+                          disabled={isFetchingBranches || isConnecting}
+                        >
+                          🌿 {branchInfo.branch}
+                        </button>
+                      ))}
                     </div>
-                    <div className="repo-connect-dialog__history-item-url">
-                      {entry.url}
-                    </div>
-                  </button>
+                  </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Loading Indicator */}
+          {isFetchingBranches && !deviceFlowSession && (
+            <div className="repo-connect-dialog__field">
+              <div className="repo-connect-dialog__hint">
+                Loading branches...
+              </div>
+            </div>
+          )}
+
+          {/* Branch Selection (shown when branches are available) */}
+          {availableBranches.length > 0 && !deviceFlowSession && (
+            <div className="repo-connect-dialog__branch-selection">
+              <div className="repo-connect-dialog__field">
+                <label className="repo-connect-dialog__label">
+                  Select Branch
+                </label>
+                <div className="repo-connect-dialog__branch-list">
+                  {availableBranches.map((branch) => (
+                    <label
+                      key={branch.name}
+                      className={`repo-connect-dialog__branch-option ${selectedBranch === branch.name ? 'selected' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="branch"
+                        value={branch.name}
+                        checked={selectedBranch === branch.name}
+                        onChange={() => setSelectedBranch(branch.name)}
+                        disabled={isConnecting}
+                      />
+                      <span className="repo-connect-dialog__branch-name">
+                        {branch.name}
+                        {branch.isDefault && <span className="repo-connect-dialog__branch-badge"> (default)</span>}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* "Connect to Repository" button (shown when auth is needed) */}
+          {needsAuthentication && !deviceFlowSession && (
+            <div className="repo-connect-dialog__field">
+              <button
+                type="button"
+                className="repo-connect-dialog__btn repo-connect-dialog__btn--primary repo-connect-dialog__btn--full-width"
+                onClick={handleAuthenticateAndFetch}
+                disabled={isFetchingBranches || isConnecting}
+              >
+                Connect to Repository
+              </button>
+              <span className="repo-connect-dialog__hint">
+                You need to authenticate with GitHub to access this repository
+              </span>
             </div>
           )}
 
@@ -542,19 +738,22 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
               type="button"
               className="repo-connect-dialog__btn repo-connect-dialog__btn--secondary"
               onClick={deviceFlowSession ? cleanupDeviceFlowSession : handleClose}
-              disabled={isConnecting && !deviceFlowSession}
+              disabled={(isFetchingBranches || isConnecting) && !deviceFlowSession}
             >
               {deviceFlowSession ? 'Cancel Authentication' : 'Cancel'}
             </button>
-            <button
-              type="submit"
-              className="repo-connect-dialog__btn repo-connect-dialog__btn--primary"
-              disabled={isConnecting || !url.trim() || !!deviceFlowSession}
-            >
-              {isConnecting ? 'Connecting...' : deviceFlowSession ? 'Waiting...' : 'Connect'}
-            </button>
+            {availableBranches.length > 0 && !deviceFlowSession && (
+              <button
+                type="button"
+                className="repo-connect-dialog__btn repo-connect-dialog__btn--primary"
+                onClick={handleConnect}
+                disabled={isConnecting || !selectedBranch}
+              >
+                {isConnecting ? 'Opening...' : 'Open Repo Branch'}
+              </button>
+            )}
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

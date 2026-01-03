@@ -9,6 +9,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   ConnectRepositoryRequest,
   ConnectRepositoryIPCResponse,
+  FetchRepositoryInfoRequest,
+  FetchRepositoryInfoIPCResponse,
   FetchFileRequest,
   FetchFileIPCResponse,
   FetchRepositoryTreeRequest,
@@ -35,6 +37,14 @@ export const exposeGitAPI = () => {
        */
       connect: (request: ConnectRepositoryRequest): Promise<ConnectRepositoryIPCResponse> => {
         return ipcRenderer.invoke('git:connect', request);
+      },
+
+      /**
+       * Fetch repository information (for branch selection)
+       * Used before connecting to get available branches
+       */
+      fetchInfo: (request: FetchRepositoryInfoRequest): Promise<FetchRepositoryInfoIPCResponse> => {
+        return ipcRenderer.invoke('git:fetchRepositoryInfo', request);
       },
 
       /**

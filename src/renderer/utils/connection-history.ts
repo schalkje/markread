@@ -93,3 +93,66 @@ export function clearConnectionHistory(): void {
     console.error('Error clearing connection history:', error);
   }
 }
+
+/**
+ * Grouped repository in history
+ */
+export interface GroupedHistoryRepository {
+  url: string;
+  displayName: string;
+  branches: Array<{
+    branch: string;
+    timestamp: number;
+  }>;
+  mostRecentTimestamp: number;
+}
+
+/**
+ * Group connection history entries by repository
+ * Multiple branches of the same repo are grouped together
+ * Repositories are sorted by most recent connection
+ */
+export function groupConnectionHistory(): GroupedHistoryRepository[] {
+  const history = getConnectionHistory();
+  const groupedMap = new Map<string, GroupedHistoryRepository>();
+
+  for (const entry of history) {
+    const existing = groupedMap.get(entry.url);
+
+    if (existing) {
+      // Add this branch to existing repository
+      existing.branches.push({
+        branch: entry.branch,
+        timestamp: entry.timestamp,
+      });
+      // Update most recent timestamp if this entry is newer
+      if (entry.timestamp > existing.mostRecentTimestamp) {
+        existing.mostRecentTimestamp = entry.timestamp;
+      }
+    } else {
+      // Create new repository group
+      groupedMap.set(entry.url, {
+        url: entry.url,
+        displayName: entry.displayName,
+        branches: [
+          {
+            branch: entry.branch,
+            timestamp: entry.timestamp,
+          },
+        ],
+        mostRecentTimestamp: entry.timestamp,
+      });
+    }
+  }
+
+  // Convert to array and sort by most recent timestamp
+  const grouped = Array.from(groupedMap.values());
+  grouped.sort((a, b) => b.mostRecentTimestamp - a.mostRecentTimestamp);
+
+  // Sort branches within each repository by timestamp
+  for (const repo of grouped) {
+    repo.branches.sort((a, b) => b.timestamp - a.timestamp);
+  }
+
+  return grouped;
+}
