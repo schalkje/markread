@@ -366,6 +366,7 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
                         } ${hasMultipleBranches ? 'folder-switcher__branch-item--nested' : ''}`}
                         onClick={() => handleFolderSelect(folder.id)}
                         data-testid={`folder-item-${folder.id}`}
+                        title={!hasMultipleBranches ? `Branch: ${folder.currentBranch}` : undefined}
                       >
                         {!hasMultipleBranches && (
                           <span className="folder-switcher__item-icon">🌐</span>

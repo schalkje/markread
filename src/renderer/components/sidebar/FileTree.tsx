@@ -39,6 +39,26 @@ export interface FileTreeNode {
 }
 
 /**
+ * Sort tree nodes: files first (alphabetically), then directories (alphabetically)
+ */
+const sortTreeNodes = (nodes: FileTreeNode[]): FileTreeNode[] => {
+  const sorted = [...nodes].sort((a, b) => {
+    // Files before directories
+    if (a.type === 'file' && b.type === 'directory') return -1;
+    if (a.type === 'directory' && b.type === 'file') return 1;
+
+    // Within same type, sort alphabetically (case-insensitive)
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+
+  // Recursively sort children
+  return sorted.map(node => ({
+    ...node,
+    children: node.children ? sortTreeNodes(node.children) : undefined,
+  }));
+};
+
+/**
  * T101: FileTree component with expand/collapse
  */
 export const FileTree: React.FC<FileTreeProps> = ({
@@ -124,7 +144,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
           ) || [];
         }
 
-        setTreeData(treeWithDepth);
+        // Sort tree: files first, then folders, both alphabetically
+        const sortedTree = sortTreeNodes(treeWithDepth);
+        setTreeData(sortedTree);
       } catch (error) {
         console.error('Error loading file tree:', error);
         setTreeData([]);

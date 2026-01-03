@@ -1,3 +1,6 @@
+
+
+
 # Support multiple folders
 
 # connect to git repositories
@@ -10,6 +13,13 @@ support:
 
 
 List of default repo's
+
+## Connection screen
+When connecting to a repo:
+1. select the repo
+2. select the branch: default is in order of occurence: main, master, development, alphabeticaly first
+
+This means in the stored history, it should include the branch; if more than one branch has been selected for a repo they should be grouped together
 
 # Index
 
@@ -74,3 +84,6 @@ Support split window: 2 documents horizontal / vertical
 # small improvements
 
 - when zoomed in (application), also zoom in mouse over (e.g. file tree, chapters in scroll bar)
+
+
+

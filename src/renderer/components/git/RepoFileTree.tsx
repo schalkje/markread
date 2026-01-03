@@ -15,6 +15,28 @@ import { useGitRepo } from '../../hooks/useGitRepo';
 import type { TreeNode } from '../../../shared/types/repository';
 import './RepoFileTree.css';
 
+/**
+ * Sort tree nodes: files first (alphabetically), then directories (alphabetically)
+ */
+const sortTreeNodes = (nodes: TreeNode[]): TreeNode[] => {
+  const sorted = [...nodes].sort((a, b) => {
+    // Files before directories
+    if (a.type === 'file' && b.type === 'directory') return -1;
+    if (a.type === 'directory' && b.type === 'file') return 1;
+
+    // Within same type, sort alphabetically (case-insensitive)
+    const aName = a.path.split('/').pop() || '';
+    const bName = b.path.split('/').pop() || '';
+    return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+  });
+
+  // Recursively sort children
+  return sorted.map(node => ({
+    ...node,
+    children: node.children ? sortTreeNodes(node.children) : undefined,
+  }));
+};
+
 export interface RepoFileTreeProps {
   /** Callback when file is clicked */
   onFileClick?: (filePath: string) => void;
@@ -160,7 +182,9 @@ export const RepoFileTree: React.FC<RepoFileTreeProps> = ({
       return null;
     }
 
-    return fileTree.map((node) => renderNode(node, 0));
+    // Sort tree: files first, then folders, both alphabetically
+    const sortedTree = sortTreeNodes(fileTree);
+    return sortedTree.map((node) => renderNode(node, 0));
   }, [fileTree, renderNode]);
 
   // No repository connected

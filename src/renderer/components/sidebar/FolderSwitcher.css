@@ -68,14 +68,14 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  right: 0;
+  min-width: 120%;
   max-height: 400px;
   background: var(--dropdown-bg, #ffffff);
   border: 1px solid var(--border-color, #d0d7de);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   overflow-y: auto;
-  z-index: 100;
+  z-index: 9999;
   animation: slideDown 0.15s ease-out;
 }
 
