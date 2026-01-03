@@ -125,6 +125,42 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
+  // Handle repository branch already open event from FolderSwitcher
+  useEffect(() => {
+    const handleBranchAlreadyOpen = (event: CustomEvent) => {
+      const { folderId, displayName } = event.detail;
+
+      console.log('[AppLayout] Branch already open event received:', { folderId, displayName });
+
+      // Find and activate the first tab for this folder
+      const { tabs, setActiveTab } = useTabsStore.getState();
+      const folderTabs = Array.from(tabs.values()).filter(tab => tab.folderId === folderId);
+
+      if (folderTabs.length > 0) {
+        // Activate the first tab
+        setActiveTab(folderTabs[0].id);
+        setCurrentFile(folderTabs[0].filePath);
+        setShowHome(false);
+
+        setToast({
+          message: `${displayName} is already open. Switched to existing tab.`,
+          type: 'info',
+        });
+      } else {
+        // Folder exists but no tabs
+        setToast({
+          message: `${displayName} is already open. Folder activated.`,
+          type: 'info',
+        });
+      }
+    };
+
+    window.addEventListener('repository:branch-already-open', handleBranchAlreadyOpen as EventListener);
+    return () => {
+      window.removeEventListener('repository:branch-already-open', handleBranchAlreadyOpen as EventListener);
+    };
+  }, [setCurrentFile, setShowHome, setToast]);
+
   // Handle repository branch opened event from FolderSwitcher
   useEffect(() => {
     const handleBranchOpened = async (event: CustomEvent) => {
@@ -2229,20 +2265,92 @@ const AppLayout: React.FC = () => {
       <RepoConnectDialog
         isOpen={showRepoConnect}
         onClose={() => setShowRepoConnect(false)}
-        onConnected={async () => {
+        onConnected={async (connectedRepository) => {
           setShowRepoConnect(false);
 
-          // Get the connected repository from git store
-          const { useGitStore } = await import('../stores/git-store');
-          const { connectedRepository } = useGitStore.getState();
-
           if (!connectedRepository) {
-            console.error('[AppLayout] No connected repository in git store');
+            console.error('[AppLayout] No connected repository data received');
             return;
           }
 
-          // Create a folder entry for the repository
-          const { addFolder, setActiveFolder } = useFoldersStore.getState();
+          console.log('[AppLayout] onConnected called with:', {
+            repositoryId: connectedRepository.repositoryId,
+            currentBranch: connectedRepository.currentBranch,
+            displayName: connectedRepository.displayName,
+          });
+
+          // Check if this repository/branch combination is already open
+          const { folders, addFolder, setActiveFolder } = useFoldersStore.getState();
+          const targetFolderId = `repo:${connectedRepository.repositoryId}:${connectedRepository.currentBranch}`;
+
+          const existingFolder = folders.find(f => f.id === targetFolderId);
+
+          if (existingFolder) {
+            // This exact repo/branch is already open
+            console.log('[AppLayout] Repository branch already open:', {
+              folderId: targetFolderId,
+              displayName: existingFolder.displayName,
+            });
+
+            // Activate the existing folder
+            setActiveFolder(targetFolderId);
+
+            // Find and activate the first tab for this folder
+            const { tabs, setActiveTab } = useTabsStore.getState();
+            const folderTabs = Array.from(tabs.values()).filter(tab => tab.folderId === targetFolderId);
+
+            if (folderTabs.length > 0) {
+              // Activate the first tab
+              setActiveTab(folderTabs[0].id);
+              setCurrentFile(folderTabs[0].filePath);
+              setShowHome(false);
+
+              setToast({
+                message: `${existingFolder.displayName} is already open. Switched to existing tab.`,
+                type: 'info',
+              });
+            } else {
+              // Folder exists but no tabs - just activate the folder
+              setToast({
+                message: `${existingFolder.displayName} is already open. Folder activated.`,
+                type: 'info',
+              });
+            }
+
+            return; // Don't create a duplicate folder
+          }
+
+          // Check if same repository but different branch is open
+          const sameRepoFolder = folders.find(
+            f => f.type === 'repository' && f.repositoryId === connectedRepository.repositoryId
+          );
+
+          if (sameRepoFolder) {
+            console.log('[AppLayout] Same repository already open with different branch:', {
+              existingBranch: sameRepoFolder.currentBranch,
+              newBranch: connectedRepository.currentBranch,
+            });
+
+            // Use openRepositoryBranch for consistency with "Open another Branch" flow
+            const { openRepositoryBranch } = useFoldersStore.getState();
+            const newFolder = await openRepositoryBranch(
+              connectedRepository.repositoryId,
+              connectedRepository.currentBranch
+            );
+
+            if (newFolder) {
+              setToast({
+                message: `Opened ${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
+                type: 'success',
+              });
+            } else {
+              console.error('[AppLayout] Failed to open repository branch via openRepositoryBranch');
+            }
+
+            return; // Don't continue with manual folder creation
+          }
+
+          // Create a folder entry for the repository (first branch only)
 
           const repoFolder: Folder = {
             id: `repo:${connectedRepository.repositoryId}:${connectedRepository.currentBranch}`,

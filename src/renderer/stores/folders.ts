@@ -228,6 +228,12 @@ export const useFoldersStore = create<FoldersState>((set, get) => ({
     const existing = folders.find((f) => f.id === folderId);
     if (existing) {
       set({ activeFolderId: folderId });
+
+      // Notify that this branch is already open (for tab activation and user feedback)
+      window.dispatchEvent(new CustomEvent('repository:branch-already-open', {
+        detail: { folderId, repositoryId, branchName, displayName: existing.displayName },
+      }));
+
       return existing;
     }
 

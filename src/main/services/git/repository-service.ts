@@ -132,8 +132,20 @@ export class RepositoryService {
       };
     }
 
-    // Get or create repository ID
-    const repositoryId = uuidv4();
+    // Get or create repository ID - reuse existing ID for same repository
+    let repositoryId: string | undefined;
+    for (const [id, repo] of this.repositories.entries()) {
+      if (repo.url === normalizedUrl) {
+        repositoryId = id;
+        console.log('[RepositoryService] Reusing existing repository ID:', id, 'for URL:', normalizedUrl);
+        break;
+      }
+    }
+
+    if (!repositoryId) {
+      repositoryId = uuidv4();
+      console.log('[RepositoryService] Creating new repository ID:', repositoryId, 'for URL:', normalizedUrl);
+    }
 
     // Fetch repository information
     const defaultBranch = await githubClient.getDefaultBranch(parsed.owner, parsed.name);
