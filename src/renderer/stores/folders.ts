@@ -239,10 +239,15 @@ export const useFoldersStore = create<FoldersState>((set, get) => ({
     }
 
     // Create new folder for this branch
+    // Extract base repo name from the existing displayName (remove branch suffix if present)
+    const baseRepoName = sameRepoFolder.repositoryMetadata?.owner && sameRepoFolder.repositoryMetadata?.name
+      ? `${sameRepoFolder.repositoryMetadata.owner}/${sameRepoFolder.repositoryMetadata.name}`
+      : sameRepoFolder.displayName.replace(/\s*\([^)]+\)\s*$/, '');
+
     const newFolder: Folder = {
       id: folderId,
       path: sameRepoFolder.path,
-      displayName: sameRepoFolder.displayName,
+      displayName: `${baseRepoName} (${branchName})`,
       type: 'repository',
       fileTreeState: {
         expandedDirectories: new Set<string>(),

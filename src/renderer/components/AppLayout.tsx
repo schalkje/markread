@@ -125,6 +125,137 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
+  // Handle repository branch opened event from FolderSwitcher
+  useEffect(() => {
+    const handleBranchOpened = async (event: CustomEvent) => {
+      const { folderId, repositoryId, branchName } = event.detail;
+
+      console.log('[AppLayout] Branch opened event received:', { folderId, repositoryId, branchName });
+
+      // Get fresh folders from store (not stale from component state)
+      const { folders: freshFolders } = useFoldersStore.getState();
+
+      // Find the folder that was just created
+      const folder = freshFolders.find(f => f.id === folderId);
+      if (!folder || folder.type !== 'repository') {
+        console.error('[AppLayout] Folder not found or not a repository:', folderId);
+        console.error('[AppLayout] Available folders:', freshFolders.map(f => ({ id: f.id, type: f.type })));
+        return;
+      }
+
+      console.log('[AppLayout] Found folder:', { id: folder.id, displayName: folder.displayName, currentBranch: folder.currentBranch });
+
+      // Fetch the file tree and open the first markdown file
+      try {
+        console.log('[AppLayout] Fetching tree for new branch:', branchName);
+        const treeResult = await window.git?.repo?.fetchTree({
+          repositoryId: repositoryId,
+          branch: branchName,
+          markdownOnly: true,
+        });
+
+        console.log('[AppLayout] Tree fetch result:', {
+          success: treeResult?.success,
+          hasTree: !!treeResult?.data?.tree,
+          treeLength: treeResult?.data?.tree?.length,
+        });
+
+        if (treeResult?.success && treeResult.data?.tree) {
+          // Find the first markdown file
+          const findFirstMarkdownFile = (nodes: any[]): string | null => {
+            const queue = [...nodes];
+            while (queue.length > 0) {
+              const levelSize = queue.length;
+              for (let i = 0; i < levelSize; i++) {
+                const node = queue.shift()!;
+                if (node.type === 'file' && node.isMarkdown) {
+                  return node.path;
+                }
+                if (node.children) {
+                  queue.push(...node.children);
+                }
+              }
+            }
+            return null;
+          };
+
+          const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+          console.log('[AppLayout] First markdown file:', firstFilePath);
+
+          if (firstFilePath) {
+            // Fetch the first file's content
+            const fileResult = await window.git?.repo?.fetchFile({
+              repositoryId: repositoryId,
+              filePath: firstFilePath,
+              branch: branchName,
+            });
+
+            console.log('[AppLayout] File fetch result:', {
+              success: fileResult?.success,
+              hasData: !!fileResult?.data,
+            });
+
+            if (fileResult?.success && fileResult.data) {
+              const { tabs, addTab, setActiveTab } = useTabsStore.getState();
+
+              console.log('[AppLayout] Creating tab for new branch:', branchName);
+
+              // Create a tab for this file
+              const fileName = firstFilePath.split('/').pop() || 'Untitled';
+              const newTab = {
+                id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+                filePath: firstFilePath,
+                title: fileName,
+                scrollPosition: 0,
+                zoomLevel: 100,
+                searchState: null,
+                modificationTimestamp: Date.now(),
+                isDirty: false,
+                renderCache: null,
+                navigationHistory: [{
+                  filePath: firstFilePath,
+                  scrollPosition: 0,
+                  scrollLeft: 0,
+                  zoomLevel: 100,
+                  timestamp: Date.now(),
+                }],
+                currentHistoryIndex: 0,
+                forwardHistory: [],
+                createdAt: Date.now(),
+                folderId: folderId,
+                isDirectFile: false,
+              };
+
+              addTab(newTab);
+              setActiveTab(newTab.id);
+
+              console.log('[AppLayout] Tab created:', {
+                tabId: newTab.id,
+                folderId: newTab.folderId,
+                filePath: newTab.filePath,
+              });
+
+              // Set the file content
+              setCurrentFile(firstFilePath);
+              contentCacheRef.current.set(firstFilePath, fileResult.data.content);
+              setCurrentContent(fileResult.data.content);
+              setError(null);
+
+              console.log('[AppLayout] File content set for new branch tab');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[AppLayout] Error loading branch file:', err);
+      }
+    };
+
+    window.addEventListener('repository:branch-opened', handleBranchOpened as EventListener);
+    return () => {
+      window.removeEventListener('repository:branch-opened', handleBranchOpened as EventListener);
+    };
+  }, [setCurrentFile, setCurrentContent, setError]);
+
   // Listen for show-files events from TitleBar
   useEffect(() => {
     const handleShowFiles = () => {
@@ -1791,12 +1922,14 @@ const AppLayout: React.FC = () => {
                     revealFilePath={revealFilePath}
                     onFileSelect={async (filePath) => {
                       try {
-                        // Get the active folder to determine if it's a repository
+                        // IMPORTANT: Use the FileTree's folderId, not activeFolderId from store
+                        // This ensures we fetch from the correct branch when multiple branches are open
                         const activeFolder = folders.find(f => f.id === activeFolderId);
                         let fileContent: string | null = null;
 
                         console.log('[AppLayout] onFileSelect called:', {
                           filePath,
+                          fileTreeFolderId: activeFolderId,
                           activeFolderId,
                           hasActiveFolder: !!activeFolder,
                           folderType: activeFolder?.type,
@@ -1889,6 +2022,7 @@ const AppLayout: React.FC = () => {
 
                           // Update active tab to reflect the new file being viewed
                           // IMPORTANT: Get FRESH state after addHistoryEntry to avoid overwriting history!
+                          // IMPORTANT: Update folderId to match the folder from which the file was selected
                           if (activeTabId) {
                             const { tabs: freshTabs } = useTabsStore.getState(); // Get fresh state!
                             const freshTab = freshTabs.get(activeTabId);
@@ -1898,6 +2032,7 @@ const AppLayout: React.FC = () => {
                                 ...freshTab, // Use fresh tab with updated history!
                                 filePath: filePath,
                                 title: fileName,
+                                folderId: activeFolderId, // Update folder ID to match the FileTree's folder
                               };
                               freshTabs.set(activeTabId, updatedTab);
                               useTabsStore.setState({ tabs: new Map(freshTabs) });
@@ -2112,7 +2247,7 @@ const AppLayout: React.FC = () => {
           const repoFolder: Folder = {
             id: `repo:${connectedRepository.repositoryId}:${connectedRepository.currentBranch}`,
             path: connectedRepository.url,
-            displayName: connectedRepository.displayName,
+            displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
             type: 'repository',
             fileTreeState: {
               expandedDirectories: new Set<string>(),
@@ -2157,10 +2292,18 @@ const AppLayout: React.FC = () => {
 
           // Fetch the file tree and open the first markdown file
           try {
+            console.log('[AppLayout] onConnected - Fetching tree for branch:', connectedRepository.currentBranch);
             const treeResult = await window.git?.repo?.fetchTree({
               repositoryId: connectedRepository.repositoryId,
               branch: connectedRepository.currentBranch,
               markdownOnly: true,
+            });
+
+            console.log('[AppLayout] onConnected - Tree fetch result:', {
+              success: treeResult?.success,
+              hasData: !!treeResult?.data,
+              hasTree: !!treeResult?.data?.tree,
+              treeLength: treeResult?.data?.tree?.length,
             });
 
             if (treeResult?.success && treeResult.data?.tree) {
@@ -2192,16 +2335,29 @@ const AppLayout: React.FC = () => {
 
               const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
 
+              console.log('[AppLayout] onConnected - First markdown file:', firstFilePath);
+
               if (firstFilePath) {
                 // Fetch the first file's content
+                console.log('[AppLayout] onConnected - Fetching file content for:', firstFilePath);
                 const fileResult = await window.git?.repo?.fetchFile({
                   repositoryId: connectedRepository.repositoryId,
                   filePath: firstFilePath,
                   branch: connectedRepository.currentBranch,
                 });
 
+                console.log('[AppLayout] onConnected - File fetch result:', {
+                  success: fileResult?.success,
+                  hasData: !!fileResult?.data,
+                  error: fileResult?.error,
+                });
+
                 if (fileResult?.success && fileResult.data) {
                   const { tabs, addTab, setActiveTab } = useTabsStore.getState();
+
+                  console.log('[AppLayout] onConnected - Creating tab for branch:', connectedRepository.currentBranch);
+                  console.log('[AppLayout] onConnected - Folder ID:', repoFolder.id);
+                  console.log('[AppLayout] onConnected - Existing tabs count:', tabs.size);
 
                   // Create a tab for this file
                   const fileName = firstFilePath.split('/').pop() || 'Untitled';
@@ -2232,13 +2388,27 @@ const AppLayout: React.FC = () => {
                   addTab(newTab);
                   setActiveTab(newTab.id);
 
+                  console.log('[AppLayout] onConnected - Tab created and activated:', {
+                    tabId: newTab.id,
+                    folderId: newTab.folderId,
+                    filePath: newTab.filePath,
+                  });
+
                   // Set the file content
                   setCurrentFile(firstFilePath);
                   contentCacheRef.current.set(firstFilePath, fileResult.data.content);
                   setCurrentContent(fileResult.data.content);
                   setError(null);
+
+                  console.log('[AppLayout] onConnected - File content set for tab');
+                } else {
+                  console.warn('[AppLayout] onConnected - Failed to fetch file or no data:', fileResult?.error);
                 }
+              } else {
+                console.warn('[AppLayout] onConnected - No markdown files found in tree');
               }
+            } else {
+              console.warn('[AppLayout] onConnected - Tree fetch failed or no data:', treeResult?.error);
             }
           } catch (err) {
             console.error('[AppLayout] Error loading first repository file:', err);

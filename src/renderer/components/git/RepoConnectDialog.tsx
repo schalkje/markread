@@ -21,8 +21,8 @@ export interface RepoConnectDialogProps {
   isOpen: boolean;
   /** Callback when dialog should close */
   onClose: () => void;
-  /** Callback when successfully connected */
-  onConnected?: () => void;
+  /** Callback when successfully connected - receives the connected repository data */
+  onConnected?: (connectedRepository: import('../../../shared/types/git-contracts').ConnectRepositoryResponse) => void;
 }
 
 /**
@@ -448,11 +448,15 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
           initialBranch: selectedBranch,
         };
 
-        await connectRepository(request);
+        const response = await connectRepository(request);
 
-        console.log('[Connect] Connection successful, calling callbacks...');
-        // Success - close dialog and notify parent
-        onConnected?.();
+        console.log('[Connect] Connection successful, response:', response);
+        console.log('[Connect] Calling onConnected callback with repository data...');
+
+        // Success - notify parent with the connected repository data
+        if (response) {
+          onConnected?.(response);
+        }
         onClose();
 
         // Reset form
