@@ -202,7 +202,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
       } catch (err: any) {
         // Check if error is due to missing/invalid credentials
         if (err.code === 'AUTH_FAILED' || err.statusCode === 401) {
-          // Set flag to show "Connect to Repository" button
+          // Set flag to show "Open Repository" button
           setNeedsAuthentication(true);
         } else {
           // Error was already handled in fetchBranches
@@ -418,7 +418,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   }, [url, isOpen, isFetchingBranches, deviceFlowSession, validateUrl, handleFetchBranches]);
 
   /**
-   * Handle "Connect to Repository" button click (initiates OAuth)
+   * Handle "Open Repository" button click (initiates OAuth)
    */
   const handleAuthenticateAndFetch = useCallback(async () => {
     try {
@@ -489,21 +489,51 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   /**
    * Handle clicking a history entry
    */
-  const handleHistoryEntryClick = useCallback((historyUrl: string, branch?: string) => {
-    setUrl(historyUrl);
+  const handleHistoryEntryClick = useCallback(async (historyUrl: string, branch?: string) => {
     setValidationError(null);
-    setAvailableBranches([]);
-    setSelectedBranch('');
     setNeedsAuthentication(false);
-    lastFetchedUrlRef.current = null; // Clear last fetched URL to allow new fetch
 
-    // Pre-select the branch if specified
     if (branch) {
-      setBranchToPreselect(branch);
-    }
+      // Direct connection: Skip branch fetching and connect immediately
+      setUrl(historyUrl);
+      setSelectedBranch(branch);
+      setAvailableBranches([]);
+      lastFetchedUrlRef.current = historyUrl; // Mark as fetched to prevent auto-fetch
 
-    // Auto-trigger branch fetch (will be handled by useEffect)
-  }, []);
+      // Connect directly without fetching branches
+      const request: ConnectRepositoryRequest = {
+        url: historyUrl.trim(),
+        authMethod: 'oauth',
+        initialBranch: branch,
+      };
+
+      try {
+        const response = await connectRepository(request);
+        if (response) {
+          onConnected?.(response);
+        }
+        onClose();
+
+        // Reset form
+        setUrl('');
+        setAvailableBranches([]);
+        setSelectedBranch('');
+        setValidationError(null);
+        setNeedsAuthentication(false);
+        setBranchToPreselect(null);
+        lastFetchedUrlRef.current = null;
+      } catch (err: any) {
+        setValidationError(err.message || 'An error occurred during connection');
+      }
+    } else {
+      // Show branch selector: Set URL and trigger branch fetch
+      setUrl(historyUrl);
+      setAvailableBranches([]);
+      setSelectedBranch('');
+      setBranchToPreselect(null);
+      lastFetchedUrlRef.current = null; // Allow branch fetch
+    }
+  }, [connectRepository, onConnected, onClose]);
 
   /**
    * Handle close
@@ -561,7 +591,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
       <div className="repo-connect-dialog" data-testid="repo-connect-dialog">
         {/* Header */}
         <div className="repo-connect-dialog__header">
-          <h2 className="repo-connect-dialog__title">Connect to Repository</h2>
+          <h2 className="repo-connect-dialog__title">Open Repository</h2>
           <button
             className="repo-connect-dialog__close-btn"
             onClick={handleClose}
@@ -602,14 +632,19 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
               <div className="repo-connect-dialog__history-list">
                 {groupedHistory.map((repo, repoIndex) => (
                   <div key={`${repo.url}-${repoIndex}`} className="repo-connect-dialog__history-group">
-                    <div className="repo-connect-dialog__history-group-header">
+                    <button
+                      type="button"
+                      className="repo-connect-dialog__history-group-header"
+                      onClick={() => handleHistoryEntryClick(repo.url)}
+                      disabled={isFetchingBranches || isConnecting}
+                    >
                       <div className="repo-connect-dialog__history-item-name">
                         {repo.displayName}
                       </div>
                       <div className="repo-connect-dialog__history-item-url">
                         {repo.url}
                       </div>
-                    </div>
+                    </button>
                     <div className="repo-connect-dialog__history-branches">
                       {repo.branches.map((branchInfo, branchIndex) => (
                         <button
@@ -670,7 +705,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
             </div>
           )}
 
-          {/* "Connect to Repository" button (shown when auth is needed) */}
+          {/* "Open Repository" button (shown when auth is needed) */}
           {needsAuthentication && !deviceFlowSession && (
             <div className="repo-connect-dialog__field">
               <button
@@ -679,7 +714,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
                 onClick={handleAuthenticateAndFetch}
                 disabled={isFetchingBranches || isConnecting}
               >
-                Connect to Repository
+                Open Repository
               </button>
               <span className="repo-connect-dialog__hint">
                 You need to authenticate with GitHub to access this repository

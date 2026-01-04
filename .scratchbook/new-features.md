@@ -96,6 +96,7 @@ On mouse over, see when it was last opened
 ## favorites
 The user can add/remove favorites and even add a description to them. These favorites, stay on top of the last x opened; sort alphabetically
 
+
 # Markdown viewer
 ## split document vertically or horizontally
 A document can be split in two views, both on the same file.
@@ -127,6 +128,10 @@ Support split window: 2 documents horizontal / vertical
 # small improvements
 
 - when zoomed in (application), also zoom in mouse over (e.g. file tree, chapters in scroll bar)
+- mouse buttons for forward and back should work, now they do nothing
+- navigating links in a document, in a s subfolder, takes the folder root as basis, 
+  - should take the active document as basis when startting with a folder and not starting with a /
+  - when starting with a /, it should take the folder root
 
 
 

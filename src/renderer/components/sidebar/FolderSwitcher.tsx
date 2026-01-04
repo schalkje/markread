@@ -23,6 +23,8 @@ export interface FolderSwitcherProps {
   onFolderChange?: (folderId: string) => void;
   /** Callback when folder is closed */
   onFolderClose?: (folderId: string) => void;
+  /** Callback when a new folder is opened */
+  onFolderOpened?: (folderPath: string) => void;
 }
 
 /**
@@ -31,6 +33,7 @@ export interface FolderSwitcherProps {
 export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
   onFolderChange,
   onFolderClose,
+  onFolderOpened,
 }) => {
   const folders = useFoldersStore((state) => state.folders);
   const activeFolderId = useFoldersStore((state) => state.activeFolderId);
@@ -201,6 +204,9 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
 
       addFolder(newFolder);
 
+      // Notify AppLayout that a folder was opened (so it can create the first tab)
+      onFolderOpened?.(folderPath);
+
       // T108: Start watching the folder for file changes
       try {
         const watchResult = await window.electronAPI?.file?.watchFolder({
@@ -290,32 +296,37 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
           )}
 
           {/* Local folders (non-repository) */}
-          {localFolders.map((folder) => (
-            <div
-              key={folder.id}
-              className={`folder-switcher__item ${folder.id === activeFolderId ? 'folder-switcher__item--active' : ''}`}
-              onClick={() => handleFolderSelect(folder.id)}
-              data-testid={`folder-item-${folder.id}`}
-            >
-              <span className="folder-switcher__item-icon">📁</span>
-              <div className="folder-switcher__item-info">
-                <span className="folder-switcher__item-name">
-                  {folder.displayName}
-                </span>
-                <span className="folder-switcher__item-path" title={folder.path}>
-                  {folder.path}
-                </span>
-              </div>
-              <button
-                className="folder-switcher__close"
-                onClick={(e) => handleFolderClose(e, folder.id)}
-                title="Close folder"
-                aria-label={`Close ${folder.displayName}`}
-              >
-                ×
-              </button>
+          {localFolders.length > 0 && (
+            <div className="folder-switcher__local-folders">
+              {localFolders.map((folder) => (
+                <div
+                  key={folder.id}
+                  className={`folder-switcher__item ${folder.id === activeFolderId ? 'folder-switcher__item--active' : ''}`}
+                  onClick={() => handleFolderSelect(folder.id)}
+                  data-testid={`folder-item-${folder.id}`}
+                >
+                  <span className="folder-switcher__item-icon">📁</span>
+                  <div className="folder-switcher__item-info">
+                    <span className="folder-switcher__item-name">
+                      {folder.displayName}
+                    </span>
+                    <span className="folder-switcher__item-path" title={folder.path}>
+                      {folder.path}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="folder-switcher__close"
+                    onClick={(e) => handleFolderClose(e, folder.id)}
+                    title="Close folder"
+                    aria-label={`Close ${folder.displayName}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
 
           {/* Repository groups */}
           {Array.from(repoGroups.entries()).map(([repoId, repoFolders]) => {
@@ -494,7 +505,7 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
             }}
           >
             <span className="folder-switcher__add-icon">🔗</span>
-            <span>Connect to Repository...</span>
+            <span>Open Repository...</span>
           </button>
         </div>
       )}

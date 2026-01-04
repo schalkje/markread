@@ -329,6 +329,18 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
+  // Listen for connect-repository events from File Menu and Folder Switcher
+  useEffect(() => {
+    const handleConnectRepository = () => {
+      setShowRepoConnect(true);
+    };
+
+    window.addEventListener('menu:connect-repository', handleConnectRepository);
+    return () => {
+      window.removeEventListener('menu:connect-repository', handleConnectRepository);
+    };
+  }, []);
+
   // Register all commands for the shortcuts reference
   useEffect(() => {
     // File commands

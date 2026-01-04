@@ -19,7 +19,7 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
         <FolderOpener onFolderOpened={onFolderOpened} />
         {onConnectRepository && (
           <button type="button" className="connect-repo-button" onClick={onConnectRepository}>
-            Connect to Repository
+            Open Repository
           </button>
         )}
       </div>

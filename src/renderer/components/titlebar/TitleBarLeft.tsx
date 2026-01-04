@@ -140,7 +140,7 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       },
     },
     {
-      label: 'Connect to Repository...',
+      label: 'Open Repository...',
       shortcut: 'Ctrl+R',
       action: () => {
         window.dispatchEvent(new CustomEvent('menu:connect-repository'));
