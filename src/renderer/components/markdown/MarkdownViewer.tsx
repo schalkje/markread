@@ -342,7 +342,15 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
                   return null;
                 };
 
-                const currentPageTitle = extractFirstHeading(content) || filePath?.split(/[/\\]/).pop()?.replace(/\.(md|markdown)$/i, '') || 'Previous Page';
+                // Extract current page title - handle directory index paths
+                let currentPageTitle: string;
+                if (filePath?.includes('[Directory Index]')) {
+                  // Extract directory name from path
+                  const parts = filePath.split(/[/\\]/);
+                  currentPageTitle = parts[parts.length - 2] || 'Previous Page';
+                } else {
+                  currentPageTitle = extractFirstHeading(content) || filePath?.split(/[/\\]/).pop()?.replace(/\.(md|markdown)$/i, '') || 'Previous Page';
+                }
 
                 // Generate markdown content for directory listing
                 const dirName = result.absolutePath.split(/[/\\]/).pop() || 'Directory';
@@ -350,7 +358,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
                 // Add "Back to" link at the top
                 if (filePath) {
-                  markdown += `[← Back to: ${currentPageTitle}](${filePath})\n\n---\n\n`;
+                  // Use relative path like folder links do - go up one directory
+                  markdown += `[← Back to: ${currentPageTitle}](../)\n\n---\n\n`;
                 }
 
                 // Add directories
