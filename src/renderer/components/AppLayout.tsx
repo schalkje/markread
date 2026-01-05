@@ -1090,6 +1090,20 @@ const AppLayout: React.FC = () => {
       onNavigateForward: handleNavigateForward,
     });
 
+    // Mouse back/forward button support
+    const handleMouseButtons = (event: MouseEvent) => {
+      // Button 3 = Back, Button 4 = Forward
+      if (event.button === 3) {
+        event.preventDefault();
+        handleNavigateBack();
+      } else if (event.button === 4) {
+        event.preventDefault();
+        handleNavigateForward();
+      }
+    };
+
+    window.addEventListener('mouseup', handleMouseButtons);
+
     // T061, T063n: Register tab navigation shortcuts
     const handleNextTab = () => {
       const { tabOrder, activeTabId, setActiveTab } = useTabsStore.getState();
@@ -1293,6 +1307,7 @@ const AppLayout: React.FC = () => {
       unregisterTabShortcuts();
       unregisterFileShortcuts();
       unregisterHelpShortcuts();
+      window.removeEventListener('mouseup', handleMouseButtons);
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
       window.removeEventListener('open-file-in-new-tab', handleOpenFileInNewTab);
