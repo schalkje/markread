@@ -243,7 +243,17 @@ if ($branchName.Length -gt $maxBranchLength) {
 
 if ($hasGit) {
     try {
-        git checkout -b $branchName | Out-Null
+        if ($env:SPECKIT_USE_WORKTREES -eq "true") {
+            # Use worktree mode
+            $worktreeBase = if ($env:SPECKIT_WORKTREE_BASE) { $env:SPECKIT_WORKTREE_BASE } else { Join-Path (Split-Path $repoRoot -Parent) "$((Get-Item $repoRoot).Name).worktrees" }
+            New-Item -ItemType Directory -Path $worktreeBase -Force | Out-Null
+            $worktreePath = Join-Path $worktreeBase $branchName
+            git worktree add -b $branchName $worktreePath | Out-Null
+            Write-Verbose "Created worktree at: $worktreePath"
+        } else {
+            # Traditional checkout
+            git checkout -b $branchName | Out-Null
+        }
     } catch {
         Write-Warning "Failed to create git branch: $branchName"
     }

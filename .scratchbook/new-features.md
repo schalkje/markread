@@ -37,6 +37,11 @@ in the root there is a markread.json file
 }
 ```
 
+
+---
+
+
+
 # Home page
 ## last x opened
 extend with last x opened, sort by last opened
@@ -49,6 +54,10 @@ On mouse over, see when it was last opened
 
 ## favorites
 The user can add/remove favorites and even add a description to them. These favorites, stay on top of the last x opened; sort alphabetically
+
+
+
+---
 
 
 # Markdown viewer
