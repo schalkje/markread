@@ -1,4 +1,9 @@
 # Changelog
+## [0.5.0] - 2026-1-05
+### Changed
+- reimplement on Elctron
+
+# Changelog
 ## [0.4.1] - 2025-12-09
 ### Fixed
 - fixed release script

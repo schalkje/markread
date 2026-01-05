@@ -1,7 +1,7 @@
 {
   "name": "markread",
-  "version": "0.1.0",
-  "description": "Electron-based markdown viewer with VS Code-like features",
+  "version": "0.5.0",
+  "description": "Electron-based markdown viewer",
   "main": "./out/main/index.js",
   "author": "MarkRead",
   "license": "MIT",
