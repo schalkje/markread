@@ -169,8 +169,8 @@ No deadlock risk; no manual file locking library needed.
 ## Detailed Documentation
 
 For complete analysis, see:
-- **`/docs/cache-strategy-research.md`**: Full investigation of all options, algorithms, and rationale
-- **`/CACHING_DECISION.md`**: Comprehensive implementation guide with schema, testing strategy, and migration path
+- **[Cache Strategy Research](cache-strategy-research.md)**: Full investigation of all options, algorithms, and rationale
+- **[Caching Decision](CACHING_DECISION.md)**: Comprehensive implementation guide with schema, testing strategy, and migration path
 
 ---
 

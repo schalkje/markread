@@ -320,6 +320,13 @@ export class AzureDevOpsClient {
         }
       });
 
+      // Prune empty directories (directories with no markdown files in them or their subdirectories)
+      if (markdownOnly) {
+        const prunedNodes = this.pruneEmptyDirectories(nodes);
+        console.log('[AzureDevOpsClient] After pruning:', prunedNodes.length, 'top-level nodes');
+        return prunedNodes;
+      }
+
       return nodes;
     } catch (error: any) {
       console.error('[AzureDevOpsClient] Error fetching tree:', {
@@ -338,6 +345,30 @@ export class AzureDevOpsClient {
       });
       throw error;
     }
+  }
+
+  /**
+   * Recursively remove directories that don't contain any files (after filtering)
+   * This ensures we only show directories that contain markdown files when markdownOnly=true
+   *
+   * @param nodes - Tree nodes to prune
+   * @returns Pruned tree with empty directories removed
+   */
+  private pruneEmptyDirectories(nodes: TreeNode[]): TreeNode[] {
+    return nodes.filter(node => {
+      if (node.type === 'file') {
+        // Keep all files (already filtered for markdown if markdownOnly=true)
+        return true;
+      }
+
+      // For directories, recursively prune children first
+      if (node.children) {
+        node.children = this.pruneEmptyDirectories(node.children);
+      }
+
+      // Keep directory only if it has children after pruning
+      return node.children && node.children.length > 0;
+    });
   }
 
   /**

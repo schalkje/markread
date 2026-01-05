@@ -16,6 +16,8 @@ Welcome to the MarkRead developer documentation. This guide will help you unders
   - [IPC Quick Reference](architecture/IPC_QUICK_REFERENCE.md) - Quick reference guide
   - [Caching Decision](architecture/CACHING_DECISION.md) - File caching strategy
   - [Cache Recommendation](architecture/CACHE_RECOMMENDATION.md) - Cache implementation guidelines
+  - [Cache Strategy Research](architecture/cache-strategy-research.md) - Detailed research on SQLite vs flat files for Git cache
+  - [Page Transition Flow](architecture/page-transition-flow.md) - MarkdownViewer transition implementation (SOLID/DRY)
   - [Network Connectivity](architecture/NETWORK_CONNECTIVITY_INDEX.md) - Network connectivity research and design
   - [Research Index](architecture/RESEARCH_INDEX.md) - Technical research documents
 

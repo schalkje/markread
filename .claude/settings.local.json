@@ -31,7 +31,8 @@
       "Bash(npx electron-log-viewer)",
       "Bash(nul)",
       "Bash(exit 0)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(git mv:*)"
     ],
     "deny": [],
     "ask": []
