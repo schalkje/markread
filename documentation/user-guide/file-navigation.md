@@ -210,19 +210,28 @@ graph LR
 
 **Go Back**
 ```
-Alt+Left or click ← button
+Alt+Left or click ← button or Mouse Button 4
 ```
 - Returns to previous location
 - Restores scroll position
 - Can traverse many steps
+- Mouse Button 4 (back button) works like a browser
 
 **Go Forward**
 ```
-Alt+Right or click → button
+Alt+Right or click → button or Mouse Button 5
 ```
 - Available after going back
 - Moves forward through history
 - Disabled at end of history
+- Mouse Button 5 (forward button) works like a browser
+
+**Mouse Button Navigation**
+- Most mice have additional side buttons (buttons 4 and 5)
+- Button 4 (typically the rear side button) = Go back
+- Button 5 (typically the front side button) = Go forward
+- Works exactly like browser navigation
+- Natural and intuitive for quick history traversal
 
 **History Per Tab**
 - Each tab has independent history

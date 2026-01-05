@@ -1,0 +1,226 @@
+SECURE IPC PATTERNS FOR GIT REPOSITORY OPERATIONS
+================================================
+
+Date: 2025-12-29
+Focus: Inter-Process Communication security for handling Git repository operations
+       between Electron main and renderer processes.
+
+COMPREHENSIVE RESEARCH COMPLETED
+=================================
+
+Files Generated:
+1. specs/001-git-repo-integration/research.md
+   - 600+ lines of detailed analysis
+   - Covers contextBridge vs direct IPC exposure
+   - Typed IPC patterns with TypeScript
+   - Security best practices (input validation, credential management, rate limiting)
+   - Async operation handling and error propagation
+   - Comparison table of approaches
+   - Testing strategy
+   - References to Electron security documentation
+
+2. IPC_PATTERN_DECISION.md
+   - Executive summary of recommended pattern
+   - Implementation architecture
+   - Security best practices checklist
+   - Integration testing strategy
+   - Key files and structure
+
+3. IPC_IMPLEMENTATION_EXAMPLES.md
+   - Concrete code examples for 5 critical scenarios:
+     * Type-safe repository connection
+     * Secure file fetching with path traversal protection
+     * Rate limiting & exponential backoff
+     * Secure credential storage (OS credential manager)
+     * Comprehensive error handling
+
+RECOMMENDED PATTERN
+===================
+
+Decision: Typed contextBridge + Zod Validation
+
+Why This Pattern:
+- Explicit API whitelist prevents XSS attacks
+- Three-layer validation (TypeScript → Zod → domain logic)
+- Aligns with MarkRead's existing IPC architecture
+- Industry standard for production Electron applications
+- Enables comprehensive security audit
+
+The Pattern:
+1. Define contracts in shared types (git-contracts.ts)
+2. Expose only safe APIs via contextBridge (git-api.ts)
+3. Validate inputs with Zod schemas (ipc-handlers.ts)
+4. Implement business logic in main process services
+
+KEY FINDINGS
+============
+
+1. CONTEXTBRIDGE VS DIRECT IPC
+   RECOMMENDED: contextBridge
+   - Explicit API whitelist
+   - XSS-resistant
+   - Auditable
+
+   NOT RECOMMENDED: Direct IPC
+   - Uncontrolled access
+   - XSS vulnerable
+   - Hard to maintain
+
+2. TYPE SAFETY
+   Use Zod schemas for runtime validation:
+   - Validates at IPC entry point
+   - Prevents malformed requests from reaching business logic
+   - Provides clear error messages for invalid input
+
+3. CREDENTIAL HANDLING (CRITICAL)
+   DO: Store tokens in OS credential manager (keytar)
+   - Windows Credential Manager
+   - macOS Keychain
+   - Linux Secret Service
+
+   DON'T: Send credentials over IPC
+   - Logged everywhere
+   - Visible in DevTools
+   - Exposed in memory dumps
+
+4. INPUT VALIDATION
+   Apply allowlist approach:
+   - GitHub/Azure DevOps URLs only (HTTPS)
+   - File paths: alphanumeric + dots/slashes (no ..)
+   - Tokens: Format validation before use
+   - Path traversal protection mandatory
+
+5. RATE LIMITING
+   Implement in main process:
+   - Exponential backoff on 429 responses
+   - Prevents XSS from exhausting API quota
+   - User-facing retry messages with time estimates
+
+6. ERROR HANDLING
+   Use typed error envelopes:
+
+   interface GitErrorResponse {
+     code: 'INVALID_URL' | 'AUTH_FAILED' | 'RATE_LIMITED' | ...
+     message: string;        // User-facing
+     details?: string;       // Developer-facing
+     retryable: boolean;
+     retryAfterSeconds?: number;
+   }
+
+   Enforces explicit error handling in renderer
+
+7. ASYNC OPERATIONS
+   Pattern for long-running operations:
+   - Simple: Promise-based invoke/handle
+   - Complex: IPC.send() for progress events + AbortController for cancellation
+   - Timeout: 30-second default on all operations
+
+8. CONTENT SAFETY
+   MarkRead already has:
+   - HTML sanitization with DOMPurify
+   - No script execution in markdown
+   - Use Same-Origin Policy for images
+
+IMPLEMENTATION SEQUENCE
+========================
+
+Phase 1: Type definitions (git-contracts.ts, git-errors.ts)
+Phase 2: Preload layer (git-api.ts) - contextBridge exposure
+Phase 3: IPC handlers (ipc-handlers.ts) - Zod validation
+Phase 4: Services (github-client, azure-client, auth-service, credential-store)
+Phase 5: Renderer hooks and components
+Phase 6: Integration tests + security audit
+
+DEPENDENCIES NEEDED
+===================
+
+Already available:
+  zod (3.22.0) - Runtime validation
+  typescript (5.7.0) - Compile-time types
+  dompurify (3.3.1) - HTML sanitization
+
+To add:
+  keytar - OS credential manager access
+  axios or native fetch - HTTP client
+  @octokit/rest - GitHub API (optional)
+
+SECURITY CHECKLIST
+===================
+
+Before shipping Git integration:
+  [ ] Verify contextBridge whitelist is complete
+  [ ] Verify no credentials in IPC messages
+  [ ] Verify ALL inputs validated by Zod
+  [ ] Verify error messages don't leak sensitive info
+  [ ] Verify timeout limits on all operations
+  [ ] Verify rate limiting active
+  [ ] Verify HTTPS-only URL enforcement
+  [ ] Verify HTML sanitization on markdown output
+  [ ] Verify path traversal protection (no ..)
+  [ ] Run security audit with OWASP checklist
+
+PERFORMANCE TARGETS (FROM SPEC)
+================================
+
+Initial connection: < 30 seconds
+Branch switching: < 5 seconds
+Cached file load: < 1 second
+Uncached file load: < 5 seconds
+Recent list load: < 1 second
+Rate limit handling: Exponential backoff with user notification
+
+TESTING STRATEGY
+=================
+
+Unit Tests (Vitest):
+  - Zod schema validation
+  - Error mapping logic
+  - Rate limiter behavior
+  - Path traversal protection
+
+Integration Tests:
+  - GitHub OAuth flow
+  - GitHub PAT authentication
+  - Azure DevOps authentication
+  - Rate limiting with actual API
+  - Credential storage/retrieval
+
+Security Tests:
+  - Path traversal attempts
+  - XSS injection tests
+  - HTTPS enforcement
+  - Token exposure tests
+
+DOCUMENTATION
+===============
+
+Created comprehensive documentation:
+1. research.md - 600+ lines of analysis and recommendations
+2. IPC_PATTERN_DECISION.md - Executive summary and decision
+3. IPC_IMPLEMENTATION_EXAMPLES.md - Concrete code examples
+4. This summary document
+
+All files include:
+  - Rationale for decisions
+  - Code examples
+  - Security considerations
+  - References and further reading
+
+CONCLUSION
+===========
+
+The Typed contextBridge + Zod pattern provides:
+- Maximum security through explicit API whitelisting and validation
+- Type safety at both compile and runtime
+- Clear error handling with typed envelopes
+- Excellent maintainability and auditability
+- Minimal architectural change (extends MarkRead's existing pattern)
+- Production-ready security for handling Git credentials and API operations
+
+This pattern is:
+- Industry-standard in Electron applications
+- Recommended by Electron security team
+- Aligns with MarkRead's constitution principles
+- Zero-risk migration from existing IPC architecture
+
+Ready for implementation.

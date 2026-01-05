@@ -8,6 +8,8 @@
 import React from 'react';
 import { useUIStore } from '../../stores/ui';
 import { useTabsStore } from '../../stores/tabs';
+import { OfflineBadge } from '../git/OfflineBadge';
+import { useGitRepo } from '../../hooks/useGitRepo';
 import './Statusbar.css';
 
 export interface StatusbarProps {
@@ -24,6 +26,7 @@ export const Statusbar: React.FC<StatusbarProps> = ({ className = '' }) => {
     const activeId = state.activeTabId;
     return activeId ? state.tabs.get(activeId) : null;
   });
+  const { connectedRepository } = useGitRepo();
 
   const contentZoom = activeTab?.zoomLevel || 100;
   const showContentZoom = contentZoom !== 100;
@@ -31,7 +34,8 @@ export const Statusbar: React.FC<StatusbarProps> = ({ className = '' }) => {
   return (
     <div className={`statusbar ${className}`} data-testid="statusbar">
       <div className="statusbar__left">
-        {/* Future: Add other status items here */}
+        {/* Show offline badge when repository is connected */}
+        {connectedRepository && <OfflineBadge />}
       </div>
 
       <div className="statusbar__right">

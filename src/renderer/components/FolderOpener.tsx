@@ -57,6 +57,7 @@ export const FolderOpener: React.FC<FolderOpenerProps> = ({ onFolderOpened }) =>
         id: `folder-${Date.now()}`,
         path: folderPath,
         displayName: folderName,
+        type: 'local',
         fileTreeState: {
           expandedDirectories: new Set<string>(),
           scrollPosition: 0,

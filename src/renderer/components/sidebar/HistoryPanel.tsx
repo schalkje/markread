@@ -59,9 +59,16 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
   };
 
   const getEntryTitle = (entry: HistoryEntry): string => {
+    // Handle directory index virtual paths
+    if (entry.filePath.includes('[Directory Index]')) {
+      const parts = entry.filePath.split(/[/\\]/);
+      // Get the second-to-last part (the directory name before [Directory Index])
+      const dirName = parts[parts.length - 2] || 'Directory';
+      return `${dirName}/`;
+    }
+
     const fileName = entry.filePath.split(/[/\\]/).pop() || 'Untitled';
-    // Remove [Directory Index] suffix for display
-    return fileName.replace(/\[Directory Index\]$/, '').trim() || fileName;
+    return fileName.replace(/\.md$/i, '');
   };
 
   if (!activeTab || history.length === 0) {

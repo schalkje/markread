@@ -11,6 +11,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFoldersStore } from '../../stores/folders';
+import { useTabsStore } from '../../stores/tabs';
+import type { TreeNode } from '../../../shared/types/repository';
 import { FileTreeContextMenu } from './FileTreeContextMenu';
 import './FileTree.css';
 
@@ -37,6 +39,26 @@ export interface FileTreeNode {
 }
 
 /**
+ * Sort tree nodes: files first (alphabetically), then directories (alphabetically)
+ */
+const sortTreeNodes = (nodes: FileTreeNode[]): FileTreeNode[] => {
+  const sorted = [...nodes].sort((a, b) => {
+    // Files before directories
+    if (a.type === 'file' && b.type === 'directory') return -1;
+    if (a.type === 'directory' && b.type === 'file') return 1;
+
+    // Within same type, sort alphabetically (case-insensitive)
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+
+  // Recursively sort children
+  return sorted.map(node => ({
+    ...node,
+    children: node.children ? sortTreeNodes(node.children) : undefined,
+  }));
+};
+
+/**
  * T101: FileTree component with expand/collapse
  */
 export const FileTree: React.FC<FileTreeProps> = ({
@@ -52,6 +74,14 @@ export const FileTree: React.FC<FileTreeProps> = ({
     (state) => state.updateFileTreeState
   );
 
+  console.log('[FileTree] Component rendered/mounted:', {
+    folderId,
+    folderExists: !!folder,
+    folderType: folder?.type,
+    folderRepositoryId: folder?.repositoryId,
+    folderCurrentBranch: folder?.currentBranch,
+  });
+
   const [treeData, setTreeData] = useState<FileTreeNode[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -64,37 +94,93 @@ export const FileTree: React.FC<FileTreeProps> = ({
 
   // T102: Load tree data from IPC handler
   useEffect(() => {
+    console.log('[FileTree] useEffect triggered:', {
+      hasFolder: !!folder,
+      folderType: folder?.type,
+      folderRepositoryId: folder?.repositoryId,
+      folderCurrentBranch: folder?.currentBranch,
+    });
+
     if (!folder) return;
 
     const loadFileTree = async () => {
       try {
-        // Call file:getFolderTree IPC handler
-        const result = await window.electronAPI?.file?.getFolderTree({
-          folderPath: folder.path,
-          includeHidden: false,
-          maxDepth: undefined, // No limit
-        });
+        let treeWithDepth: FileTreeNode[] = [];
 
-        if (!result?.success || !result.tree) {
-          console.error('Failed to load file tree:', result?.error);
-          setTreeData([]);
-          return;
+        if (folder.type === 'repository') {
+          // Load repository file tree from Git API
+          console.log('[FileTree] Loading repository tree:', {
+            repositoryId: folder.repositoryId,
+            branch: folder.currentBranch,
+            markdownOnly: true,
+          });
+
+          const result = await window.git?.repo?.fetchTree({
+            repositoryId: folder.repositoryId!,
+            branch: folder.currentBranch!,
+            markdownOnly: true,
+          });
+
+          console.log('[FileTree] fetchTree result:', {
+            success: result?.success,
+            treeLength: result?.data?.tree?.length,
+            fileCount: result?.data?.fileCount,
+            markdownFileCount: result?.data?.markdownFileCount,
+            error: result?.error,
+          });
+
+          if (!result?.success || !result.data) {
+            console.error('Failed to load repository tree:', result?.error?.message || result?.error);
+            setTreeData([]);
+            return;
+          }
+
+          // Convert Git TreeNode to FileTreeNode with depth
+          const convertGitNode = (node: TreeNode, depth: number = 0): FileTreeNode => ({
+            name: node.path.split('/').pop() || node.path,
+            path: node.path,
+            type: node.type === 'directory' ? 'directory' : 'file',
+            depth,
+            children: node.children?.map((child) => convertGitNode(child, depth + 1)),
+          });
+
+          treeWithDepth = result.data.tree.map((node: TreeNode) => convertGitNode(node, 0));
+          console.log('[FileTree] Converted tree:', {
+            length: treeWithDepth.length,
+            tree: treeWithDepth,
+          });
+        } else {
+          // Load local folder tree from file system
+          // Limit depth to prevent hanging on very deep directory structures
+          const result = await window.electronAPI?.file?.getFolderTree({
+            folderPath: folder.path,
+            includeHidden: false,
+            maxDepth: 20,
+          });
+
+          if (!result?.success || !result.tree) {
+            console.error('Failed to load file tree:', result?.error);
+            setTreeData([]);
+            return;
+          }
+
+          // Convert the tree structure to include depth for rendering
+          const addDepth = (node: any, depth: number = 0): FileTreeNode => ({
+            name: node.name,
+            path: node.path,
+            type: node.type,
+            depth,
+            children: node.children?.map((child: any) => addDepth(child, depth + 1)),
+          });
+
+          treeWithDepth = result.tree.children?.map((child: any) =>
+            addDepth(child, 0)
+          ) || [];
         }
 
-        // Convert the tree structure to include depth for rendering
-        const addDepth = (node: any, depth: number = 0): FileTreeNode => ({
-          name: node.name,
-          path: node.path,
-          type: node.type,
-          depth,
-          children: node.children?.map((child: any) => addDepth(child, depth + 1)),
-        });
-
-        const treeWithDepth = result.tree.children?.map((child: any) =>
-          addDepth(child, 0)
-        ) || [];
-
-        setTreeData(treeWithDepth);
+        // Sort tree: files first, then folders, both alphabetically
+        const sortedTree = sortTreeNodes(treeWithDepth);
+        setTreeData(sortedTree);
       } catch (error) {
         console.error('Error loading file tree:', error);
         setTreeData([]);
@@ -248,6 +334,13 @@ export const FileTree: React.FC<FileTreeProps> = ({
     }));
   };
 
+  const handleContextMenuViewFolder = (path: string) => {
+    // Dispatch event to show directory listing for this folder
+    window.dispatchEvent(new CustomEvent('view-folder-directory', {
+      detail: { folderPath: path }
+    }));
+  };
+
   const handleContextMenuOpenAsNewFolder = (path: string) => {
     window.dispatchEvent(new CustomEvent('open-folder', {
       detail: { folderPath: path }
@@ -327,6 +420,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
           onOpen={handleContextMenuOpen}
           onOpenInNewTab={handleContextMenuOpenInNewTab}
           onOpenInNewWindow={handleContextMenuOpenInNewWindow}
+          onViewFolder={handleContextMenuViewFolder}
           onOpenAsNewFolder={handleContextMenuOpenAsNewFolder}
           onHide={() => setContextMenu(null)}
         />

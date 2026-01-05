@@ -1,1 +1,21 @@
 /* Home page styles are defined in AppLayout.css under .welcome */
+
+.connect-repo-button {
+  padding: 0.75rem 1.5rem;
+  background: #0969da;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.connect-repo-button:hover {
+  background: #0860ca;
+}
+
+.connect-repo-button:active {
+  background: #0757ba;
+}

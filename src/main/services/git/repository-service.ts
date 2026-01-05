@@ -1,0 +1,580 @@
+/**
+ * Repository Service
+ *
+ * Orchestrates Git repository operations: connect, fetch files, fetch tree.
+ * Integrates GitHub client, credential store, cache manager, and rate limiter.
+ */
+
+import { v4 as uuidv4 } from 'uuid';
+import { githubClient } from './github-client';
+import { azureDevOpsClient } from './azure-devops-client';
+import { credentialStore } from '../storage/credential-store';
+import { cacheManager } from '../storage/cache-manager';
+import { gitHttpClient } from './http-client';
+import { parseRepositoryUrl } from '../../../shared/utils/url-parser';
+import { normalizeRepositoryUrl } from '../../../shared/utils/url-normalizer';
+import type {
+  ConnectRepositoryRequest,
+  ConnectRepositoryResponse,
+  FetchRepositoryInfoRequest,
+  FetchRepositoryInfoResponse,
+  FetchFileRequest,
+  FetchFileResponse,
+  FetchRepositoryTreeRequest,
+  FetchRepositoryTreeResponse,
+} from '../../../shared/types/git-contracts';
+import type { Repository } from '../../../shared/types/repository';
+
+/**
+ * Repository service
+ *
+ * Features:
+ * - Repository connection with authentication
+ * - File fetching with caching
+ * - Tree fetching with markdown filtering
+ * - OAuth and PAT support
+ */
+export class RepositoryService {
+  private repositories: Map<string, Repository> = new Map();
+  private tokenProviderInitialized = false;
+
+  constructor() {
+    // Initialize token provider for HTTP client
+    this.initializeTokenProvider();
+  }
+
+  /**
+   * Initialize the token provider for the HTTP client
+   * This provides authentication tokens for all GitHub API requests
+   */
+  private initializeTokenProvider(): void {
+    if (this.tokenProviderInitialized) return;
+
+    gitHttpClient.setTokenProvider(async (url: string) => {
+      try {
+        // Determine provider from URL
+        const urlObj = new URL(url);
+        let provider: 'github' | 'azure' | null = null;
+
+        if (urlObj.hostname.includes('github')) {
+          provider = 'github';
+        } else if (urlObj.hostname.includes('azure') || urlObj.hostname.includes('visualstudio')) {
+          provider = 'azure';
+        }
+
+        if (!provider) return null;
+
+        // Get stored token for this provider
+        const token = await credentialStore.getToken(provider);
+        return token;
+      } catch (error) {
+        // If token retrieval fails, proceed without authentication
+        return null;
+      }
+    });
+
+    this.tokenProviderInitialized = true;
+  }
+
+  /**
+   * Fetch repository information without creating a connection
+   * Used for branch selection before connecting
+   *
+   * @param request - Repository info request
+   * @returns Repository metadata including branches
+   */
+  async fetchRepositoryInfo(request: FetchRepositoryInfoRequest): Promise<FetchRepositoryInfoResponse> {
+    // Normalize and parse URL
+    const normalizedUrl = normalizeRepositoryUrl(request.url);
+    const parsed = parseRepositoryUrl(normalizedUrl);
+
+    if (parsed.provider === 'github') {
+      return this.fetchGitHubRepositoryInfo(parsed);
+    } else if (parsed.provider === 'azure') {
+      return this.fetchAzureDevOpsRepositoryInfo(parsed);
+    }
+
+    throw {
+      code: 'INVALID_URL',
+      message: 'Unsupported Git provider',
+      retryable: false,
+    };
+  }
+
+  /**
+   * Fetch GitHub repository information
+   */
+  private async fetchGitHubRepositoryInfo(parsed: { provider: 'github'; owner: string; name: string }): Promise<FetchRepositoryInfoResponse> {
+    // Fetch repository information
+    const defaultBranch = await githubClient.getDefaultBranch(parsed.owner, parsed.name);
+    const allBranches = await githubClient.listBranches(parsed.owner, parsed.name);
+
+    // Mark default branch
+    const branches = allBranches.map(b => ({
+      ...b,
+      isDefault: b.name === defaultBranch,
+    }));
+
+    return {
+      displayName: `${parsed.owner}/${parsed.name}`,
+      defaultBranch,
+      branches,
+      provider: 'github',
+    };
+  }
+
+  /**
+   * Fetch Azure DevOps repository information
+   */
+  private async fetchAzureDevOpsRepositoryInfo(parsed: { provider: 'azure'; organization: string; project: string; repositoryId: string }): Promise<FetchRepositoryInfoResponse> {
+    // Fetch repository information
+    const defaultBranch = await azureDevOpsClient.getDefaultBranch(parsed.organization, parsed.project, parsed.repositoryId);
+    const allBranches = await azureDevOpsClient.listBranches(parsed.organization, parsed.project, parsed.repositoryId);
+
+    // Mark default branch
+    const branches = allBranches.map(b => ({
+      ...b,
+      isDefault: b.name === defaultBranch,
+    }));
+
+    return {
+      displayName: `${parsed.organization}/${parsed.project}/${parsed.repositoryId}`,
+      defaultBranch,
+      branches,
+      provider: 'azure',
+    };
+  }
+
+  /**
+   * Connect to a Git repository
+   *
+   * @param request - Connection request
+   * @returns Repository information with branches
+   */
+  async connect(request: ConnectRepositoryRequest): Promise<ConnectRepositoryResponse> {
+    // Normalize and parse URL
+    const normalizedUrl = normalizeRepositoryUrl(request.url);
+    const parsed = parseRepositoryUrl(normalizedUrl);
+
+    // Get or create repository ID - reuse existing ID for same repository
+    let repositoryId: string | undefined;
+    for (const [id, repo] of this.repositories.entries()) {
+      if (repo.url === normalizedUrl) {
+        repositoryId = id;
+        console.log('[RepositoryService] Reusing existing repository ID:', id, 'for URL:', normalizedUrl);
+        break;
+      }
+    }
+
+    if (!repositoryId) {
+      repositoryId = uuidv4();
+      console.log('[RepositoryService] Creating new repository ID:', repositoryId, 'for URL:', normalizedUrl);
+    }
+
+    if (parsed.provider === 'github') {
+      return this.connectGitHub(repositoryId, normalizedUrl, request, parsed);
+    } else if (parsed.provider === 'azure') {
+      return this.connectAzureDevOps(repositoryId, normalizedUrl, request, parsed);
+    }
+
+    throw {
+      code: 'INVALID_URL',
+      message: 'Unsupported Git provider',
+      retryable: false,
+    };
+  }
+
+  /**
+   * Connect to a GitHub repository
+   */
+  private async connectGitHub(
+    repositoryId: string,
+    normalizedUrl: string,
+    request: ConnectRepositoryRequest,
+    parsed: { provider: 'github'; owner: string; name: string }
+  ): Promise<ConnectRepositoryResponse> {
+    // Fetch repository information
+    const defaultBranch = await githubClient.getDefaultBranch(parsed.owner, parsed.name);
+    const allBranches = await githubClient.listBranches(parsed.owner, parsed.name);
+
+    // Mark default branch
+    const branches = allBranches.map(b => ({
+      ...b,
+      isDefault: b.name === defaultBranch,
+    }));
+
+    const currentBranch = request.initialBranch || defaultBranch;
+
+    // Create repository entity
+    const repository: Repository = {
+      id: repositoryId,
+      provider: 'github',
+      url: normalizedUrl,
+      rawUrl: request.url,
+      displayName: `${parsed.owner}/${parsed.name}`,
+      owner: parsed.owner,
+      name: parsed.name,
+      defaultBranch,
+      currentBranch,
+      authMethod: request.authMethod,
+      lastAccessed: Date.now(),
+      createdAt: Date.now(),
+      isOnline: true,
+    };
+
+    // Store repository
+    this.repositories.set(repositoryId, repository);
+
+    return {
+      repositoryId,
+      url: normalizedUrl,
+      displayName: repository.displayName,
+      defaultBranch,
+      currentBranch,
+      branches,
+      provider: 'github',
+    };
+  }
+
+  /**
+   * Connect to an Azure DevOps repository
+   */
+  private async connectAzureDevOps(
+    repositoryId: string,
+    normalizedUrl: string,
+    request: ConnectRepositoryRequest,
+    parsed: { provider: 'azure'; organization: string; project: string; repositoryId: string }
+  ): Promise<ConnectRepositoryResponse> {
+    // Fetch repository information
+    const defaultBranch = await azureDevOpsClient.getDefaultBranch(parsed.organization, parsed.project, parsed.repositoryId);
+    const allBranches = await azureDevOpsClient.listBranches(parsed.organization, parsed.project, parsed.repositoryId);
+
+    // Mark default branch
+    const branches = allBranches.map(b => ({
+      ...b,
+      isDefault: b.name === defaultBranch,
+    }));
+
+    const currentBranch = request.initialBranch || defaultBranch;
+
+    // Create repository entity
+    const repository: Repository = {
+      id: repositoryId,
+      provider: 'azure',
+      url: normalizedUrl,
+      rawUrl: request.url,
+      displayName: `${parsed.organization}/${parsed.project}/${parsed.repositoryId}`,
+      organization: parsed.organization,
+      project: parsed.project,
+      repositoryId: parsed.repositoryId,
+      defaultBranch,
+      currentBranch,
+      authMethod: request.authMethod,
+      lastAccessed: Date.now(),
+      createdAt: Date.now(),
+      isOnline: true,
+    };
+
+    // Store repository
+    this.repositories.set(repositoryId, repository);
+
+    return {
+      repositoryId,
+      url: normalizedUrl,
+      displayName: repository.displayName,
+      defaultBranch,
+      currentBranch,
+      branches,
+      provider: 'azure',
+    };
+  }
+
+  /**
+   * Fetch a file from repository
+   *
+   * @param request - File fetch request
+   * @returns File content and metadata
+   */
+  async fetchFile(request: FetchFileRequest): Promise<FetchFileResponse> {
+    console.log('[RepositoryService] fetchFile called:', {
+      repositoryId: request.repositoryId,
+      filePath: request.filePath,
+      branch: request.branch,
+    });
+
+    const repository = this.repositories.get(request.repositoryId);
+    if (!repository) {
+      throw {
+        code: 'REPOSITORY_NOT_FOUND',
+        message: 'Repository not found. Please connect first.',
+        retryable: false,
+      };
+    }
+
+    console.log('[RepositoryService] Repository found:', {
+      provider: repository.provider,
+      organization: repository.organization,
+      project: repository.project,
+      repositoryId: repository.repositoryId,
+      currentBranch: repository.currentBranch,
+    });
+
+    const branch = request.branch || repository.currentBranch;
+
+    // Check cache first (unless force refresh)
+    if (!request.forceRefresh) {
+      const cachedContent = await cacheManager.get(
+        request.repositoryId,
+        request.filePath,
+        branch
+      );
+
+      if (cachedContent) {
+        const isMarkdown = request.filePath.match(/\.(md|markdown|mdown)$/i) !== null;
+        return {
+          filePath: request.filePath,
+          content: cachedContent,
+          size: Buffer.byteLength(cachedContent, 'utf-8'),
+          sha: '', // SHA not stored in cache metadata for now
+          isMarkdown,
+          cached: true,
+          fetchedAt: Date.now(),
+          branch,
+        };
+      }
+    }
+
+    // Fetch from provider
+    try {
+      let fileData: { content: string; sha: string; size: number };
+
+      if (repository.provider === 'github') {
+        if (!repository.owner || !repository.name) {
+          throw {
+            code: 'INVALID_URL',
+            message: 'Repository missing owner or name',
+            retryable: false,
+          };
+        }
+        fileData = await githubClient.getFileContent(
+          repository.owner,
+          repository.name,
+          request.filePath,
+          branch
+        );
+      } else if (repository.provider === 'azure') {
+        if (!repository.organization || !repository.project || !repository.repositoryId) {
+          throw {
+            code: 'INVALID_URL',
+            message: 'Repository missing organization, project, or repositoryId',
+            retryable: false,
+          };
+        }
+        console.log('[RepositoryService] Calling Azure DevOps getFileContent:', {
+          organization: repository.organization,
+          project: repository.project,
+          repositoryId: repository.repositoryId,
+          filePath: request.filePath,
+          branch,
+        });
+        fileData = await azureDevOpsClient.getFileContent(
+          repository.organization,
+          repository.project,
+          repository.repositoryId,
+          request.filePath,
+          branch
+        );
+        console.log('[RepositoryService] Azure DevOps returned file data:', {
+          hasContent: !!fileData.content,
+          contentLength: fileData.content?.length,
+          sha: fileData.sha,
+          size: fileData.size,
+        });
+      } else {
+        throw {
+          code: 'INVALID_URL',
+          message: 'Unsupported provider',
+          retryable: false,
+        };
+      }
+
+      const isMarkdown = request.filePath.match(/\.(md|markdown|mdown)$/i) !== null;
+
+      // Store in cache
+      await cacheManager.set(
+        request.repositoryId,
+        request.filePath,
+        branch,
+        fileData.content
+      );
+
+      return {
+        filePath: request.filePath,
+        content: fileData.content,
+        size: fileData.size,
+        sha: fileData.sha,
+        isMarkdown,
+        cached: false,
+        fetchedAt: Date.now(),
+        branch,
+      };
+    } catch (error: any) {
+      // Provide a more specific error message for file 404s
+      if (error.statusCode === 404) {
+        throw {
+          code: 'FILE_NOT_FOUND',
+          message: `File not found: ${request.filePath}`,
+          details: 'This file may have been moved, renamed, or deleted. Please refresh the file tree to see the latest files.',
+          statusCode: 404,
+          retryable: false,
+        };
+      }
+      // Re-throw other errors
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch repository file tree
+   *
+   * @param request - Tree fetch request
+   * @returns File tree structure (from cache if available, then fresh from GitHub)
+   */
+  async fetchTree(request: FetchRepositoryTreeRequest): Promise<FetchRepositoryTreeResponse> {
+    const repository = this.repositories.get(request.repositoryId);
+    if (!repository) {
+      throw {
+        code: 'REPOSITORY_NOT_FOUND',
+        message: 'Repository not found. Please connect first.',
+        retryable: false,
+      };
+    }
+
+    const branch = request.branch || repository.currentBranch;
+
+    // Try to get from cache first
+    const cachedTree = await cacheManager.getTree(request.repositoryId, branch);
+
+    // Fetch fresh tree from provider
+    let tree;
+    if (repository.provider === 'github') {
+      if (!repository.owner || !repository.name) {
+        throw {
+          code: 'INVALID_URL',
+          message: 'Repository missing owner or name',
+          retryable: false,
+        };
+      }
+      tree = await githubClient.getRepositoryTree(
+        repository.owner,
+        repository.name,
+        branch,
+        request.markdownOnly
+      );
+    } else if (repository.provider === 'azure') {
+      if (!repository.organization || !repository.project || !repository.repositoryId) {
+        throw {
+          code: 'INVALID_URL',
+          message: 'Repository missing organization, project, or repositoryId',
+          retryable: false,
+        };
+      }
+      tree = await azureDevOpsClient.getRepositoryTree(
+        repository.organization,
+        repository.project,
+        repository.repositoryId,
+        branch,
+        request.markdownOnly
+      );
+    } else {
+      throw {
+        code: 'INVALID_URL',
+        message: 'Unsupported provider',
+        retryable: false,
+      };
+    }
+
+    // Count files
+    let fileCount = 0;
+    let markdownFileCount = 0;
+
+    const countFiles = (nodes: typeof tree) => {
+      for (const node of nodes) {
+        if (node.type === 'file') {
+          fileCount++;
+          if (node.isMarkdown) {
+            markdownFileCount++;
+          }
+        }
+        if (node.children) {
+          countFiles(node.children);
+        }
+      }
+    };
+
+    countFiles(tree);
+
+    const response: FetchRepositoryTreeResponse = {
+      tree,
+      fileCount,
+      markdownFileCount,
+      branch,
+      fetchedAt: Date.now(),
+      fromCache: false,
+    };
+
+    // Cache the tree for future use (fire and forget)
+    cacheManager.setTree(request.repositoryId, branch, response).catch(() => {
+      // Ignore cache errors
+    });
+
+    return response;
+  }
+
+  /**
+   * Get cached repository file tree if available
+   *
+   * @param request - Tree fetch request
+   * @returns Cached file tree structure, or null if not cached
+   */
+  async getCachedTree(request: FetchRepositoryTreeRequest): Promise<FetchRepositoryTreeResponse | null> {
+    const repository = this.repositories.get(request.repositoryId);
+    if (!repository) {
+      return null;
+    }
+
+    const branch = request.branch || repository.currentBranch;
+    const cachedTree = await cacheManager.getTree(request.repositoryId, branch);
+
+    if (cachedTree) {
+      return {
+        ...cachedTree,
+        fromCache: true,
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Get repository by ID
+   *
+   * @param repositoryId - Repository identifier
+   * @returns Repository or undefined
+   */
+  getRepository(repositoryId: string): Repository | undefined {
+    return this.repositories.get(repositoryId);
+  }
+
+  /**
+   * List all connected repositories
+   *
+   * @returns Array of repositories
+   */
+  listRepositories(): Repository[] {
+    return Array.from(this.repositories.values());
+  }
+}
+
+// Export singleton instance
+export const repositoryService = new RepositoryService();

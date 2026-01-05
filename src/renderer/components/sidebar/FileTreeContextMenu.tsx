@@ -4,7 +4,7 @@
  *
  * Displays context menu for file tree items with:
  * - File context menu: Open, Open in New Tab, Open in New Window
- * - Folder context menu: Open as New Folder, Open in New Window
+ * - Folder context menu: View Folder, Open as New Folder, Open in New Window
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -25,6 +25,8 @@ export interface FileTreeContextMenuProps {
   onOpenInNewTab?: (path: string) => void;
   /** Callback when open in new window is clicked */
   onOpenInNewWindow?: (path: string) => void;
+  /** Callback when view folder is clicked (navigate to directory index) */
+  onViewFolder?: (path: string) => void;
   /** Callback when open as new folder is clicked */
   onOpenAsNewFolder?: (path: string) => void;
   /** Callback when menu should be hidden */
@@ -42,6 +44,7 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
   onOpen,
   onOpenInNewTab,
   onOpenInNewWindow,
+  onViewFolder,
   onOpenAsNewFolder,
   onHide,
 }) => {
@@ -82,6 +85,11 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
 
   const handleOpenInNewWindow = () => {
     onOpenInNewWindow?.(path);
+    onHide();
+  };
+
+  const handleViewFolder = () => {
+    onViewFolder?.(path);
     onHide();
   };
 
@@ -134,6 +142,15 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
       {type === 'folder' && (
         <>
           {/* T163l: Folder context menu options */}
+          <button
+            className="file-tree-context-menu__item"
+            onClick={handleViewFolder}
+            data-testid="folder-context-menu-view-folder"
+          >
+            <span className="file-tree-context-menu__icon">📂</span>
+            <span className="file-tree-context-menu__label">View Folder</span>
+          </button>
+
           <button
             className="file-tree-context-menu__item"
             onClick={handleOpenAsNewFolder}

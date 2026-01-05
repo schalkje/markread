@@ -4,14 +4,18 @@
  *
  * Dropdown to switch between open folders with:
  * - List of all open folders
+ * - Repository grouping with branch hierarchy
  * - Active folder highlighting
  * - Folder close buttons
+ * - Inline branch picker
  */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useFoldersStore } from '../../stores/folders';
 import { useTabsStore } from '../../stores/tabs';
+import { useGitStore } from '../../stores/git-store';
 import type { Folder } from '@shared/types/entities.d.ts';
+import { groupFoldersByRepository, getRepositoryId } from '@shared/utils/repository-utils';
 import './FolderSwitcher.css';
 
 export interface FolderSwitcherProps {
@@ -19,7 +23,7 @@ export interface FolderSwitcherProps {
   onFolderChange?: (folderId: string) => void;
   /** Callback when folder is closed */
   onFolderClose?: (folderId: string) => void;
-  /** Callback when folder is opened */
+  /** Callback when a new folder is opened */
   onFolderOpened?: (folderPath: string) => void;
 }
 
@@ -36,6 +40,7 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
   const setActiveFolder = useFoldersStore((state) => state.setActiveFolder);
   const removeFolder = useFoldersStore((state) => state.removeFolder);
   const addFolder = useFoldersStore((state) => state.addFolder);
+  const openRepositoryBranch = useFoldersStore((state) => state.openRepositoryBranch);
 
   // T063h: Get active tab to check if it's a direct file
   const activeTabId = useTabsStore((state) => state.activeTabId);
@@ -43,12 +48,19 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
   const [isOpen, setIsOpen] = useState(false);
+  const [collapsedRepos, setCollapsedRepos] = useState<Set<string>>(new Set());
+  const [branchPickerOpen, setBranchPickerOpen] = useState<string | null>(null);
+  const [branchSearchQuery, setBranchSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const activeFolder = folders.find((f) => f.id === activeFolderId);
 
   // T063h: Determine if showing direct file indicator
   const isDirectFile = activeTab?.isDirectFile === true;
+
+  // Group folders by repository
+  const repoGroups = groupFoldersByRepository(folders);
+  const localFolders = folders.filter((f) => f.type === 'local');
 
   // Update active folder when active tab changes
   useEffect(() => {
@@ -65,6 +77,8 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setBranchPickerOpen(null);
+        setBranchSearchQuery('');
       }
     };
 
@@ -81,6 +95,7 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
   const handleFolderSelect = (folderId: string) => {
     setActiveFolder(folderId);
     setIsOpen(false);
+    setBranchPickerOpen(null);
     onFolderChange?.(folderId);
 
     // Activate the first tab from this folder
@@ -110,6 +125,39 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
     onFolderClose?.(folderId);
   };
 
+  // Toggle repository group collapsed state
+  const toggleRepoCollapse = (e: React.MouseEvent, repoId: string) => {
+    e.stopPropagation();
+    setCollapsedRepos((prev) => {
+      const next = new Set(prev);
+      if (next.has(repoId)) {
+        next.delete(repoId);
+      } else {
+        next.add(repoId);
+      }
+      return next;
+    });
+  };
+
+  // Open branch picker for a repository
+  const handleOpenBranchPicker = (e: React.MouseEvent, repoId: string) => {
+    e.stopPropagation();
+    setBranchPickerOpen(repoId === branchPickerOpen ? null : repoId);
+    setBranchSearchQuery('');
+  };
+
+  // Handle branch selection from picker
+  const handleBranchSelect = async (repoId: string, branchName: string) => {
+    setBranchPickerOpen(null);
+    setBranchSearchQuery('');
+    setIsOpen(false);
+
+    const result = await openRepositoryBranch(repoId, branchName);
+    if (result) {
+      onFolderChange?.(result.id);
+    }
+  };
+
   // T098: Handle opening a new folder
   const handleOpenFolder = async () => {
     setIsOpen(false);
@@ -129,6 +177,7 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
         id: `folder-${Date.now()}`,
         path: folderPath,
         displayName: folderName,
+        type: 'local',
         fileTreeState: {
           expandedDirectories: new Set<string>(),
           scrollPosition: 0,
@@ -140,7 +189,7 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
         recentFiles: [],
         splitLayout: {
           rootPane: {
-            id: 'pane-root',
+            id: crypto.randomUUID(),
             tabs: [],
             activeTabId: null,
             orientation: 'vertical',
@@ -154,6 +203,9 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
       };
 
       addFolder(newFolder);
+
+      // Notify AppLayout that a folder was opened (so it can create the first tab)
+      onFolderOpened?.(folderPath);
 
       // T108: Start watching the folder for file changes
       try {
@@ -170,9 +222,6 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
       } catch (err) {
         console.error('Failed to start watching folder:', err);
       }
-
-      // Notify parent to handle tab creation
-      onFolderOpened?.(folderPath);
     } catch (err) {
       console.error('Error opening folder:', err);
     }
@@ -196,12 +245,17 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
         aria-haspopup="true"
         type="button"
       >
-        {/* T063h: Show different icon and text for direct files */}
+        {/* Show different icon for direct files, repositories, and local folders */}
         <span className="folder-switcher__icon">
-          {isDirectFile ? '📄' : '📁'}
+          {isDirectFile ? '📄' : (activeFolder?.type === 'repository' ? '🌐' : '📁')}
         </span>
         <span className="folder-switcher__name">
-          {isDirectFile ? 'Direct File' : (activeFolder?.displayName || 'Select folder')}
+          {isDirectFile
+            ? 'Direct File'
+            : activeFolder?.type === 'repository'
+              ? `${activeFolder.displayName} (${activeFolder.currentBranch})`
+              : (activeFolder?.displayName || 'Select folder')
+          }
         </span>
         <span className="folder-switcher__chevron">
           {isOpen ? '▲' : '▼'}
@@ -241,42 +295,217 @@ export const FolderSwitcher: React.FC<FolderSwitcherProps> = ({
             <div className="folder-switcher__divider" />
           )}
 
-          {/* Regular folders */}
-          {folders.map((folder) => (
-            <div
-              key={folder.id}
-              className={`folder-switcher__item ${folder.id === activeFolderId ? 'folder-switcher__item--active' : ''}`}
-              onClick={() => handleFolderSelect(folder.id)}
-              data-testid={`folder-item-${folder.id}`}
-            >
-              <span className="folder-switcher__item-icon">📁</span>
-              <div className="folder-switcher__item-info">
-                <span className="folder-switcher__item-name">
-                  {folder.displayName}
-                </span>
-                <span className="folder-switcher__item-path" title={folder.path}>
-                  {folder.path}
-                </span>
-              </div>
-              <button
-                className="folder-switcher__close"
-                onClick={(e) => handleFolderClose(e, folder.id)}
-                title="Close folder"
-                aria-label={`Close ${folder.displayName}`}
-              >
-                ×
-              </button>
+          {/* Local folders (non-repository) */}
+          {localFolders.length > 0 && (
+            <div className="folder-switcher__local-folders">
+              {localFolders.map((folder) => (
+                <div
+                  key={folder.id}
+                  className={`folder-switcher__item ${folder.id === activeFolderId ? 'folder-switcher__item--active' : ''}`}
+                  onClick={() => handleFolderSelect(folder.id)}
+                  data-testid={`folder-item-${folder.id}`}
+                >
+                  <span className="folder-switcher__item-icon">📁</span>
+                  <div className="folder-switcher__item-info">
+                    <span className="folder-switcher__item-name">
+                      {folder.displayName}
+                    </span>
+                    <span className="folder-switcher__item-path" title={folder.path}>
+                      {folder.path}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="folder-switcher__close"
+                    onClick={(e) => handleFolderClose(e, folder.id)}
+                    title="Close folder"
+                    aria-label={`Close ${folder.displayName}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
 
-          {/* Add folder button */}
+          {/* Repository groups */}
+          {Array.from(repoGroups.entries()).map(([repoId, repoFolders]) => {
+            const isCollapsed = collapsedRepos.has(repoId);
+            const firstFolder = repoFolders[0];
+            const hasMultipleBranches = repoFolders.length > 1;
+            const metadata = firstFolder.repositoryMetadata;
+            const isPickerOpen = branchPickerOpen === repoId;
+
+            // Filter available branches
+            const openBranchNames = new Set(repoFolders.map((f) => f.currentBranch));
+            const availableBranches = metadata?.branches?.filter(
+              (b) => !openBranchNames.has(b.name)
+            ) || [];
+            const filteredBranches = availableBranches.filter((b) =>
+              b.name.toLowerCase().includes(branchSearchQuery.toLowerCase())
+            );
+
+            return (
+              <div key={repoId} className="folder-switcher__repo-group">
+                {/* Repository header (only if multiple branches) */}
+                {hasMultipleBranches && (
+                  <div
+                    className="folder-switcher__repo-header"
+                    onClick={(e) => toggleRepoCollapse(e, repoId)}
+                  >
+                    <span className="folder-switcher__repo-chevron">
+                      {isCollapsed ? '▶' : '▼'}
+                    </span>
+                    <span className="folder-switcher__item-icon">🌐</span>
+                    <span className="folder-switcher__repo-name">
+                      {firstFolder.displayName}
+                    </span>
+                    <span className="folder-switcher__repo-count">
+                      ({repoFolders.length} branch{repoFolders.length !== 1 ? 'es' : ''})
+                    </span>
+                  </div>
+                )}
+
+                {/* Branches */}
+                {(!hasMultipleBranches || !isCollapsed) && (
+                  <div className="folder-switcher__repo-branches">
+                    {repoFolders.map((folder) => (
+                      <div
+                        key={folder.id}
+                        className={`folder-switcher__item folder-switcher__branch-item ${
+                          folder.id === activeFolderId ? 'folder-switcher__item--active' : ''
+                        } ${hasMultipleBranches ? 'folder-switcher__branch-item--nested' : ''}`}
+                        onClick={() => handleFolderSelect(folder.id)}
+                        data-testid={`folder-item-${folder.id}`}
+                        title={!hasMultipleBranches ? `Branch: ${folder.currentBranch}` : undefined}
+                      >
+                        {!hasMultipleBranches && (
+                          <span className="folder-switcher__item-icon">🌐</span>
+                        )}
+                        <span className="folder-switcher__branch-icon">🌿</span>
+                        <div className="folder-switcher__item-info">
+                          <span className="folder-switcher__item-name">
+                            {hasMultipleBranches ? folder.currentBranch : folder.displayName}
+                            {folder.currentBranch === folder.defaultBranch && (
+                              <span className="folder-switcher__default-badge"> (default)</span>
+                            )}
+                            {!hasMultipleBranches && (
+                              <span className="folder-switcher__branch"> ({folder.currentBranch})</span>
+                            )}
+                          </span>
+                          {!hasMultipleBranches && (
+                            <span className="folder-switcher__item-path" title={folder.path}>
+                              {folder.path}
+                            </span>
+                          )}
+                        </div>
+                        {folder.id === activeFolderId && (
+                          <span className="folder-switcher__active-indicator">✓</span>
+                        )}
+                        <button
+                          type="button"
+                          className="folder-switcher__close"
+                          onClick={(e) => handleFolderClose(e, folder.id)}
+                          title="Close branch"
+                          aria-label={`Close ${folder.currentBranch}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Open another branch button/picker */}
+                    {!isCollapsed && (
+                      <div className="folder-switcher__branch-picker">
+                        {!isPickerOpen ? (
+                          <button
+                            type="button"
+                            className="folder-switcher__add-branch"
+                            onClick={(e) => handleOpenBranchPicker(e, repoId)}
+                          >
+                            <span className="folder-switcher__add-icon">+</span>
+                            <span>Open another branch...</span>
+                          </button>
+                        ) : (
+                          <div className="folder-switcher__branch-picker-dropdown">
+                            <input
+                              type="text"
+                              className="folder-switcher__branch-search"
+                              placeholder="🔍 Search branches..."
+                              value={branchSearchQuery}
+                              onChange={(e) => setBranchSearchQuery(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              autoFocus
+                            />
+                            <div className="folder-switcher__branch-list">
+                              {filteredBranches.length === 0 ? (
+                                <div className="folder-switcher__branch-empty">
+                                  {availableBranches.length === 0
+                                    ? 'All branches are already open'
+                                    : 'No matching branches'}
+                                </div>
+                              ) : (
+                                filteredBranches.slice(0, 10).map((branch) => (
+                                  <div
+                                    key={branch.name}
+                                    className="folder-switcher__branch-option"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleBranchSelect(repoId, branch.name);
+                                    }}
+                                  >
+                                    <span className="folder-switcher__branch-name">
+                                      {branch.name}
+                                      {branch.isDefault && (
+                                        <span className="folder-switcher__default-badge"> ⭐</span>
+                                      )}
+                                    </span>
+                                    <span className="folder-switcher__branch-sha">
+                                      {branch.sha.substring(0, 7)}
+                                    </span>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="folder-switcher__branch-cancel"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setBranchPickerOpen(null);
+                                setBranchSearchQuery('');
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Add folder/repository buttons */}
           <div className="folder-switcher__divider" />
           <button
             className="folder-switcher__add"
             onClick={handleOpenFolder}
           >
-            <span className="folder-switcher__add-icon">+</span>
+            <span className="folder-switcher__add-icon">📂</span>
             <span>Open Folder...</span>
+          </button>
+          <button
+            className="folder-switcher__add"
+            onClick={() => {
+              setIsOpen(false);
+              window.dispatchEvent(new CustomEvent('menu:connect-repository'));
+            }}
+          >
+            <span className="folder-switcher__add-icon">🔗</span>
+            <span>Open Repository...</span>
           </button>
         </div>
       )}

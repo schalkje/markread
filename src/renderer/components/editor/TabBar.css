@@ -4,9 +4,6 @@
  */
 
 .tab-bar {
-  /* Light theme variables (default) */
-  --tab-separator: #e8e8e8;
-
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -42,14 +42,19 @@ Complete reference of all keyboard shortcuts in MarkRead. All shortcuts are cust
 
 | Action | Shortcut |
 |--------|----------|
-| Go back | `Alt+Left` or `Backspace` |
-| Go forward | `Alt+Right` or `Shift+Backspace` |
+| Go back | `Alt+Left` or `Backspace` or `Mouse Button 4` |
+| Go forward | `Alt+Right` or `Shift+Backspace` or `Mouse Button 5` |
 | Scroll to top | `Home` or `Ctrl+Home` |
 | Scroll to bottom | `End` or `Ctrl+End` |
 | Page down | `Space` or `Page Down` |
 | Page up | `Shift+Space` or `Page Up` |
 | Next heading | `Ctrl+Down` |
 | Previous heading | `Ctrl+Up` |
+
+**Mouse Navigation:**
+- Mouse Button 4 (typically rear side button) = Go back
+- Mouse Button 5 (typically front side button) = Go forward
+- Works like browser navigation for quick history traversal
 
 ## Search
 

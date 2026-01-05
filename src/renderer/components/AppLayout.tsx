@@ -17,6 +17,7 @@ import { FolderSwitcher } from './sidebar/FolderSwitcher';
 import { TabBar } from './editor/TabBar';
 import { Toast } from './common/Toast';
 import { TitleBar } from './titlebar/TitleBar';
+import { RepoConnectDialog } from './git/RepoConnectDialog';
 import { useFileAutoReload, useFileWatcher } from '../hooks/useFileWatcher';
 import {
   registerHistoryShortcuts,
@@ -74,6 +75,9 @@ const AppLayout: React.FC = () => {
   // About dialog state
   const [showAbout, setShowAbout] = useState(false);
 
+  // Repository connect dialog state
+  const [showRepoConnect, setShowRepoConnect] = useState(false);
+
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
 
@@ -121,6 +125,173 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
+  // Handle repository branch already open event from FolderSwitcher
+  useEffect(() => {
+    const handleBranchAlreadyOpen = (event: CustomEvent) => {
+      const { folderId, displayName } = event.detail;
+
+      console.log('[AppLayout] Branch already open event received:', { folderId, displayName });
+
+      // Find and activate the first tab for this folder
+      const { tabs, setActiveTab } = useTabsStore.getState();
+      const folderTabs = Array.from(tabs.values()).filter(tab => tab.folderId === folderId);
+
+      if (folderTabs.length > 0) {
+        // Activate the first tab
+        setActiveTab(folderTabs[0].id);
+        setCurrentFile(folderTabs[0].filePath);
+        setShowHome(false);
+
+        setToast({
+          message: `${displayName} is already open. Switched to existing tab.`,
+          type: 'info',
+        });
+      } else {
+        // Folder exists but no tabs
+        setToast({
+          message: `${displayName} is already open. Folder activated.`,
+          type: 'info',
+        });
+      }
+    };
+
+    window.addEventListener('repository:branch-already-open', handleBranchAlreadyOpen as EventListener);
+    return () => {
+      window.removeEventListener('repository:branch-already-open', handleBranchAlreadyOpen as EventListener);
+    };
+  }, [setCurrentFile, setShowHome, setToast]);
+
+  // Handle repository branch opened event from FolderSwitcher
+  useEffect(() => {
+    const handleBranchOpened = async (event: CustomEvent) => {
+      const { folderId, repositoryId, branchName } = event.detail;
+
+      console.log('[AppLayout] Branch opened event received:', { folderId, repositoryId, branchName });
+
+      // Get fresh folders from store (not stale from component state)
+      const { folders: freshFolders } = useFoldersStore.getState();
+
+      // Find the folder that was just created
+      const folder = freshFolders.find(f => f.id === folderId);
+      if (!folder || folder.type !== 'repository') {
+        console.error('[AppLayout] Folder not found or not a repository:', folderId);
+        console.error('[AppLayout] Available folders:', freshFolders.map(f => ({ id: f.id, type: f.type })));
+        return;
+      }
+
+      console.log('[AppLayout] Found folder:', { id: folder.id, displayName: folder.displayName, currentBranch: folder.currentBranch });
+
+      // Fetch the file tree and open the first markdown file
+      try {
+        console.log('[AppLayout] Fetching tree for new branch:', branchName);
+        const treeResult = await window.git?.repo?.fetchTree({
+          repositoryId: repositoryId,
+          branch: branchName,
+          markdownOnly: true,
+        });
+
+        console.log('[AppLayout] Tree fetch result:', {
+          success: treeResult?.success,
+          hasTree: !!treeResult?.data?.tree,
+          treeLength: treeResult?.data?.tree?.length,
+        });
+
+        if (treeResult?.success && treeResult.data?.tree) {
+          // Find the first markdown file
+          const findFirstMarkdownFile = (nodes: any[]): string | null => {
+            const queue = [...nodes];
+            while (queue.length > 0) {
+              const levelSize = queue.length;
+              for (let i = 0; i < levelSize; i++) {
+                const node = queue.shift()!;
+                if (node.type === 'file' && node.isMarkdown) {
+                  return node.path;
+                }
+                if (node.children) {
+                  queue.push(...node.children);
+                }
+              }
+            }
+            return null;
+          };
+
+          const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+          console.log('[AppLayout] First markdown file:', firstFilePath);
+
+          if (firstFilePath) {
+            // Fetch the first file's content
+            const fileResult = await window.git?.repo?.fetchFile({
+              repositoryId: repositoryId,
+              filePath: firstFilePath,
+              branch: branchName,
+            });
+
+            console.log('[AppLayout] File fetch result:', {
+              success: fileResult?.success,
+              hasData: !!fileResult?.data,
+            });
+
+            if (fileResult?.success && fileResult.data) {
+              const { tabs, addTab, setActiveTab } = useTabsStore.getState();
+
+              console.log('[AppLayout] Creating tab for new branch:', branchName);
+
+              // Create a tab for this file
+              const fileName = firstFilePath.split('/').pop() || 'Untitled';
+              const newTab = {
+                id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+                filePath: firstFilePath,
+                title: fileName,
+                scrollPosition: 0,
+                zoomLevel: 100,
+                searchState: null,
+                modificationTimestamp: Date.now(),
+                isDirty: false,
+                renderCache: null,
+                navigationHistory: [{
+                  filePath: firstFilePath,
+                  scrollPosition: 0,
+                  scrollLeft: 0,
+                  zoomLevel: 100,
+                  timestamp: Date.now(),
+                }],
+                currentHistoryIndex: 0,
+                forwardHistory: [],
+                createdAt: Date.now(),
+                folderId: folderId,
+                isDirectFile: false,
+              };
+
+              addTab(newTab);
+              setActiveTab(newTab.id);
+
+              console.log('[AppLayout] Tab created:', {
+                tabId: newTab.id,
+                folderId: newTab.folderId,
+                filePath: newTab.filePath,
+              });
+
+              // Set the file content
+              setCurrentFile(firstFilePath);
+              contentCacheRef.current.set(firstFilePath, fileResult.data.content);
+              setCurrentContent(fileResult.data.content);
+              setError(null);
+
+              console.log('[AppLayout] File content set for new branch tab');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[AppLayout] Error loading branch file:', err);
+      }
+    };
+
+    window.addEventListener('repository:branch-opened', handleBranchOpened as EventListener);
+    return () => {
+      window.removeEventListener('repository:branch-opened', handleBranchOpened as EventListener);
+    };
+  }, [setCurrentFile, setCurrentContent, setError]);
+
   // Listen for show-files events from TitleBar
   useEffect(() => {
     const handleShowFiles = () => {
@@ -155,6 +326,18 @@ const AppLayout: React.FC = () => {
     window.addEventListener('menu:about', handleShowAbout);
     return () => {
       window.removeEventListener('menu:about', handleShowAbout);
+    };
+  }, []);
+
+  // Listen for connect-repository events from File Menu and Folder Switcher
+  useEffect(() => {
+    const handleConnectRepository = () => {
+      setShowRepoConnect(true);
+    };
+
+    window.addEventListener('menu:connect-repository', handleConnectRepository);
+    return () => {
+      window.removeEventListener('menu:connect-repository', handleConnectRepository);
     };
   }, []);
 
@@ -889,12 +1072,12 @@ const AppLayout: React.FC = () => {
         const freshTab = freshTabs.get(activeTabId);
         if (freshTab) {
           const dirName = directoryPath.split(/[/\\]/).pop() || 'Directory';
-          const newTitle = `${dirName}\\`;
+          const newTitle = `${dirName}/`;
           console.log('[DirectoryListing] Setting tab title:', { directoryPath, dirName, newTitle, virtualPath });
           const updatedTab = {
             ...freshTab, // Use fresh tab with updated history!
             filePath: virtualPath,
-            title: newTitle, // Add backslash to indicate directory
+            title: newTitle, // Add forward slash to indicate directory
           };
           freshTabs.set(activeTabId, updatedTab);
           useTabsStore.setState({ tabs: new Map(freshTabs) });
@@ -906,6 +1089,20 @@ const AppLayout: React.FC = () => {
       onNavigateBack: handleNavigateBack,
       onNavigateForward: handleNavigateForward,
     });
+
+    // Mouse back/forward button support
+    const handleMouseButtons = (event: MouseEvent) => {
+      // Button 3 = Back, Button 4 = Forward
+      if (event.button === 3) {
+        event.preventDefault();
+        handleNavigateBack();
+      } else if (event.button === 4) {
+        event.preventDefault();
+        handleNavigateForward();
+      }
+    };
+
+    window.addEventListener('mouseup', handleMouseButtons);
 
     // T061, T063n: Register tab navigation shortcuts
     const handleNextTab = () => {
@@ -1042,20 +1239,81 @@ const AppLayout: React.FC = () => {
       setTimeout(() => setRevealFilePath(null), 500);
     };
 
+    // Handle view folder directory from file tree context menu
+    const handleViewFolderDirectory = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ folderPath: string }>;
+      const { folderPath } = customEvent.detail;
+
+      console.log('[AppLayout] Viewing folder directory:', folderPath);
+
+      try {
+        // Get directory listing
+        const listingResult = await window.electronAPI?.file?.getDirectoryListing({
+          directoryPath: folderPath,
+        });
+
+        if (listingResult?.success && listingResult.items) {
+          // Generate markdown content for directory listing
+          const dirName = folderPath.split(/[/\\]/).pop() || 'Directory';
+          let markdown = `# ${dirName}\n\n`;
+
+          // Add directories
+          const directories = listingResult.items.filter((item: any) => item.isDirectory);
+          if (directories.length > 0) {
+            markdown += '## Folders\n\n';
+            directories.forEach((item: any) => {
+              const label = item.title || item.name;
+              markdown += `- [${label}/](${item.name}/)\n`;
+            });
+            markdown += '\n';
+          }
+
+          // Add files
+          const files = listingResult.items.filter((item: any) => !item.isDirectory);
+          if (files.length > 0) {
+            markdown += '## Files\n\n';
+            files.forEach((item: any) => {
+              const label = item.title || item.name;
+              markdown += `- [${label}](${item.name})\n`;
+            });
+          }
+
+          // Create virtual file path for directory index
+          const virtualFilePath = `${folderPath}/[Directory Index]`;
+
+          // Dispatch show-directory-listing event
+          window.dispatchEvent(new CustomEvent('show-directory-listing', {
+            detail: {
+              directoryPath: folderPath,
+              content: markdown,
+              virtualPath: virtualFilePath,
+            }
+          }));
+        } else {
+          console.error('[AppLayout] Failed to get directory listing:', listingResult?.error);
+        }
+      } catch (error) {
+        console.error('[AppLayout] Error viewing folder directory:', error);
+      }
+    };
+
     window.addEventListener('open-file-in-new-tab', handleOpenFileInNewTab);
     window.addEventListener('open-file-in-new-window', handleOpenFileInNewWindow);
     window.addEventListener('reveal-in-sidebar', handleRevealInSidebar);
+    window.addEventListener('view-folder-directory', handleViewFolderDirectory);
 
     return () => {
       unregisterHistoryShortcuts();
       unregisterTabShortcuts();
       unregisterFileShortcuts();
       unregisterHelpShortcuts();
+      window.removeEventListener('mouseup', handleMouseButtons);
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
       window.removeEventListener('open-file-in-new-tab', handleOpenFileInNewTab);
       window.removeEventListener('open-file-in-new-window', handleOpenFileInNewWindow);
       window.removeEventListener('reveal-in-sidebar', handleRevealInSidebar);
+      window.removeEventListener('view-folder-directory', handleViewFolderDirectory);
     };
   }, []);
 
@@ -1277,10 +1535,11 @@ const AppLayout: React.FC = () => {
       }
 
       // Get the folder tree to find the first markdown file
+      // Limit depth to 5 levels to prevent hanging on large directories
       const result = await window.electronAPI?.file?.getFolderTree({
         folderPath,
         includeHidden: false,
-        maxDepth: undefined,
+        maxDepth: 5,
       });
 
       if (result?.success && result.tree) {
@@ -1462,21 +1721,74 @@ const AppLayout: React.FC = () => {
       const fileToLoad = currentFile;
       loadingFileRef.current = fileToLoad;
 
+      // Check if content is already cached (e.g., from directory listing)
+      const cachedContent = contentCacheRef.current.get(fileToLoad);
+      if (cachedContent !== undefined) {
+        console.log('[AppLayout] Using cached content for:', fileToLoad);
+        setCurrentContent(cachedContent);
+        setIsLoading(false);
+        setError(null);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
 
       try {
-        const result = await window.electronAPI?.file?.read({ filePath: fileToLoad });
+        // Check if active tab belongs to a repository folder
+        const activeFolder = activeTab?.folderId
+          ? folders.find(f => f.id === activeTab.folderId)
+          : null;
+
+        console.log('[AppLayout] loadFile - activeFolder check:', {
+          fileToLoad,
+          hasActiveTab: !!activeTab,
+          activeFolderId: activeTab?.folderId,
+          foundFolder: !!activeFolder,
+          folderType: activeFolder?.type,
+          isRepository: activeFolder?.type === 'repository',
+          hasGitAPI: !!window.git,
+          repositoryId: activeFolder?.repositoryId,
+          currentBranch: activeFolder?.currentBranch,
+        });
+
+        let result;
+        if (activeFolder?.type === 'repository') {
+          // Load file from repository using Git API
+          console.log('[AppLayout] Using Git API to fetch file:', {
+            repositoryId: activeFolder.repositoryId,
+            filePath: fileToLoad,
+            branch: activeFolder.currentBranch,
+          });
+
+          result = await window.git?.repo?.fetchFile({
+            repositoryId: activeFolder.repositoryId!,
+            filePath: fileToLoad,
+            branch: activeFolder.currentBranch!,
+          });
+
+          console.log('[AppLayout] Git API result:', {
+            success: result?.success,
+            hasData: !!result?.data,
+            hasContent: !!(result?.data?.content || result?.content),
+            error: result?.error,
+          });
+        } else {
+          // Load file from local file system
+          console.log('[AppLayout] Using file system API to read file:', fileToLoad);
+          result = await window.electronAPI?.file?.read({ filePath: fileToLoad });
+        }
 
         // Only update content if this is still the current file being displayed
         if (loadingFileRef.current === fileToLoad && currentFile === fileToLoad) {
-          if (result?.success && result.content) {
+          if (result?.success && (result.content || result.data?.content)) {
+            const content = result.content || result.data.content;
             // Cache the content by filePath
-            contentCacheRef.current.set(fileToLoad, result.content);
-            setCurrentContent(result.content);
-            console.log('[AppLayout] Cached content for:', fileToLoad, 'length:', result.content.length);
+            contentCacheRef.current.set(fileToLoad, content);
+            setCurrentContent(content);
+            console.log('[AppLayout] Cached content for:', fileToLoad, 'length:', content.length);
           } else {
-            setError(result?.error || 'Failed to load file');
+            setError(result?.error?.message || result?.error || 'Failed to load file');
           }
         }
       } catch (err) {
@@ -1494,7 +1806,7 @@ const AppLayout: React.FC = () => {
     };
 
     loadFile();
-  }, [currentFile]);
+  }, [currentFile, activeTab, folders]);
 
   // Check if we should show UI elements
   const hasTabs = tabs.size > 0;
@@ -1508,6 +1820,9 @@ const AppLayout: React.FC = () => {
     currentContentLength: currentContent.length,
     cachedContentLength: contentForCurrentFile.length,
     isFromCache: currentFile ? contentCacheRef.current.has(currentFile) : false,
+    activeFolderId,
+    foldersCount: folders.length,
+    tabsCount: tabs.size,
   });
 
   return (
@@ -1568,8 +1883,15 @@ const AppLayout: React.FC = () => {
               const activeTab = tabs.size > 0 ? Array.from(tabs.values()).find(t => t.id === activeTabId) : null;
               const isDirectFile = activeTab?.isDirectFile === true;
 
-              // Mode 1: Nothing open
-              if (tabs.size === 0) {
+              console.log('[AppLayout] Sidebar files view - checking modes:', {
+                tabsCount: tabs.size,
+                activeFolderId,
+                isDirectFile,
+                activeTabFolderId: activeTab?.folderId,
+              });
+
+              // Mode 1: Nothing open (no tabs AND no active folder)
+              if (tabs.size === 0 && !activeFolderId) {
                 return (
                   <div className="sidebar-placeholder">
                     <p>No files or folders open</p>
@@ -1736,7 +2058,9 @@ const AppLayout: React.FC = () => {
               }
 
               // Mode 3: Folder mode
+              console.log('[AppLayout] Mode 3 check - activeFolderId:', activeFolderId);
               if (activeFolderId) {
+                console.log('[AppLayout] Rendering FileTree for folder:', activeFolderId);
                 return (
                   <FileTree
                     key={fileTreeKey}
@@ -1744,9 +2068,50 @@ const AppLayout: React.FC = () => {
                     revealFilePath={revealFilePath}
                     onFileSelect={async (filePath) => {
                       try {
-                        // Load file content first
-                        const result = await window.electronAPI?.file?.read({ filePath });
-                        if (result?.success && result.content) {
+                        // IMPORTANT: Use the FileTree's folderId, not activeFolderId from store
+                        // This ensures we fetch from the correct branch when multiple branches are open
+                        const activeFolder = folders.find(f => f.id === activeFolderId);
+                        let fileContent: string | null = null;
+
+                        console.log('[AppLayout] onFileSelect called:', {
+                          filePath,
+                          fileTreeFolderId: activeFolderId,
+                          activeFolderId,
+                          hasActiveFolder: !!activeFolder,
+                          folderType: activeFolder?.type,
+                          isRepository: activeFolder?.type === 'repository',
+                          repositoryId: activeFolder?.repositoryId,
+                          currentBranch: activeFolder?.currentBranch,
+                        });
+
+                        if (activeFolder?.type === 'repository') {
+                          // Load file from repository using Git API
+                          console.log('[AppLayout] onFileSelect - Using Git API');
+                          const result = await window.git?.repo?.fetchFile({
+                            repositoryId: activeFolder.repositoryId!,
+                            filePath: filePath,
+                            branch: activeFolder.currentBranch!,
+                          });
+
+                          console.log('[AppLayout] onFileSelect - Git API result:', {
+                            success: result?.success,
+                            hasData: !!result?.data,
+                            error: result?.error,
+                          });
+
+                          if (result?.success && result.data) {
+                            fileContent = result.data.content;
+                          }
+                        } else {
+                          // Load file from local file system
+                          console.log('[AppLayout] onFileSelect - Using file system API');
+                          const result = await window.electronAPI?.file?.read({ filePath });
+                          if (result?.success && result.content) {
+                            fileContent = result.content;
+                          }
+                        }
+
+                        if (fileContent) {
                           // Mark as manually loaded
                           contentLoadedManually.current = true;
 
@@ -1798,20 +2163,22 @@ const AppLayout: React.FC = () => {
 
                           // Update file and content atomically
                           setCurrentFile(filePath);
-                          contentCacheRef.current.set(filePath, result.content);
-                          setCurrentContent(result.content);
+                          contentCacheRef.current.set(filePath, fileContent);
+                          setCurrentContent(fileContent);
 
                           // Update active tab to reflect the new file being viewed
                           // IMPORTANT: Get FRESH state after addHistoryEntry to avoid overwriting history!
+                          // IMPORTANT: Update folderId to match the folder from which the file was selected
                           if (activeTabId) {
                             const { tabs: freshTabs } = useTabsStore.getState(); // Get fresh state!
                             const freshTab = freshTabs.get(activeTabId);
                             if (freshTab) {
-                              const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
+                              const fileName = filePath.split(/[/\\\/]/).pop() || 'Untitled';
                               const updatedTab = {
                                 ...freshTab, // Use fresh tab with updated history!
                                 filePath: filePath,
                                 title: fileName,
+                                folderId: activeFolderId, // Update folder ID to match the FileTree's folder
                               };
                               freshTabs.set(activeTabId, updatedTab);
                               useTabsStore.setState({ tabs: new Map(freshTabs) });
@@ -1828,9 +2195,31 @@ const AppLayout: React.FC = () => {
                     }}
                     onFileOpen={async (filePath) => {
                       try {
-                        const result = await window.electronAPI?.file?.read({ filePath });
-                        if (result?.success && result.content) {
-                          await handleFileOpened(filePath, result.content);
+                        // Get the active folder to determine if it's a repository
+                        const activeFolder = folders.find(f => f.id === activeFolderId);
+                        let fileContent: string | null = null;
+
+                        if (activeFolder?.type === 'repository') {
+                          // Load file from repository using Git API
+                          const result = await window.git?.repo?.fetchFile({
+                            repositoryId: activeFolder.repositoryId!,
+                            filePath: filePath,
+                            branch: activeFolder.currentBranch!,
+                          });
+
+                          if (result?.success && result.data) {
+                            fileContent = result.data.content;
+                          }
+                        } else {
+                          // Load file from local file system
+                          const result = await window.electronAPI?.file?.read({ filePath });
+                          if (result?.success && result.content) {
+                            fileContent = result.content;
+                          }
+                        }
+
+                        if (fileContent) {
+                          await handleFileOpened(filePath, fileContent);
                         }
                       } catch (err) {
                         console.error('Error opening file:', err);
@@ -1841,6 +2230,7 @@ const AppLayout: React.FC = () => {
               }
 
               // Fallback
+              console.log('[AppLayout] Fallback - no folder selected, showing placeholder');
               return (
                 <div className="sidebar-placeholder">
                   <p>No folder selected</p>
@@ -1889,7 +2279,11 @@ const AppLayout: React.FC = () => {
 
         <div className="editor-area">
           {showHome || !currentFile ? (
-            <Home onFileOpened={handleFileOpened} onFolderOpened={handleFolderOpened} />
+            <Home
+              onFileOpened={handleFileOpened}
+              onFolderOpened={handleFolderOpened}
+              onConnectRepository={() => setShowRepoConnect(true)}
+            />
           ) : (
             <MarkdownViewer
               content={contentForCurrentFile}
@@ -1976,6 +2370,275 @@ const AppLayout: React.FC = () => {
       <About
         isOpen={showAbout}
         onClose={() => setShowAbout(false)}
+      />
+
+      {/* Repository Connect Dialog */}
+      <RepoConnectDialog
+        isOpen={showRepoConnect}
+        onClose={() => setShowRepoConnect(false)}
+        onConnected={async (connectedRepository) => {
+          setShowRepoConnect(false);
+
+          if (!connectedRepository) {
+            console.error('[AppLayout] No connected repository data received');
+            return;
+          }
+
+          console.log('[AppLayout] onConnected called with:', {
+            repositoryId: connectedRepository.repositoryId,
+            currentBranch: connectedRepository.currentBranch,
+            displayName: connectedRepository.displayName,
+          });
+
+          // Check if this repository/branch combination is already open
+          const { folders, addFolder, setActiveFolder } = useFoldersStore.getState();
+          const targetFolderId = `repo:${connectedRepository.repositoryId}:${connectedRepository.currentBranch}`;
+
+          const existingFolder = folders.find(f => f.id === targetFolderId);
+
+          if (existingFolder) {
+            // This exact repo/branch is already open
+            console.log('[AppLayout] Repository branch already open:', {
+              folderId: targetFolderId,
+              displayName: existingFolder.displayName,
+            });
+
+            // Activate the existing folder
+            setActiveFolder(targetFolderId);
+
+            // Find and activate the first tab for this folder
+            const { tabs, setActiveTab } = useTabsStore.getState();
+            const folderTabs = Array.from(tabs.values()).filter(tab => tab.folderId === targetFolderId);
+
+            if (folderTabs.length > 0) {
+              // Activate the first tab
+              setActiveTab(folderTabs[0].id);
+              setCurrentFile(folderTabs[0].filePath);
+              setShowHome(false);
+
+              setToast({
+                message: `${existingFolder.displayName} is already open. Switched to existing tab.`,
+                type: 'info',
+              });
+            } else {
+              // Folder exists but no tabs - just activate the folder
+              setToast({
+                message: `${existingFolder.displayName} is already open. Folder activated.`,
+                type: 'info',
+              });
+            }
+
+            return; // Don't create a duplicate folder
+          }
+
+          // Check if same repository but different branch is open
+          const sameRepoFolder = folders.find(
+            f => f.type === 'repository' && f.repositoryId === connectedRepository.repositoryId
+          );
+
+          if (sameRepoFolder) {
+            console.log('[AppLayout] Same repository already open with different branch:', {
+              existingBranch: sameRepoFolder.currentBranch,
+              newBranch: connectedRepository.currentBranch,
+            });
+
+            // Use openRepositoryBranch for consistency with "Open another Branch" flow
+            const { openRepositoryBranch } = useFoldersStore.getState();
+            const newFolder = await openRepositoryBranch(
+              connectedRepository.repositoryId,
+              connectedRepository.currentBranch
+            );
+
+            if (newFolder) {
+              setToast({
+                message: `Opened ${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
+                type: 'success',
+              });
+            } else {
+              console.error('[AppLayout] Failed to open repository branch via openRepositoryBranch');
+            }
+
+            return; // Don't continue with manual folder creation
+          }
+
+          // Create a folder entry for the repository (first branch only)
+
+          const repoFolder: Folder = {
+            id: `repo:${connectedRepository.repositoryId}:${connectedRepository.currentBranch}`,
+            path: connectedRepository.url,
+            displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
+            type: 'repository',
+            fileTreeState: {
+              expandedDirectories: new Set<string>(),
+              scrollPosition: 0,
+              selectedPath: null,
+            },
+            activeFolderId: null,
+            tabCollection: [],
+            activeTabId: null,
+            recentFiles: [],
+            splitLayout: {
+              rootPane: {
+                id: 'pane-root',
+                tabs: [],
+                activeTabId: null,
+                orientation: 'vertical',
+                sizeRatio: 1.0,
+                splitChildren: null,
+              },
+              layoutType: 'single',
+            },
+            createdAt: Date.now(),
+            lastAccessedAt: Date.now(),
+            // Repository-specific fields
+            repositoryId: connectedRepository.repositoryId,
+            repositoryUrl: connectedRepository.url,
+            currentBranch: connectedRepository.currentBranch,
+            defaultBranch: connectedRepository.defaultBranch,
+            repositoryMetadata: {
+              branches: connectedRepository.branches.map(b => ({
+                name: b.name,
+                isDefault: b.isDefault,
+                sha: b.sha
+              })),
+              owner: connectedRepository.owner,
+              name: connectedRepository.name,
+            },
+          };
+
+          addFolder(repoFolder);
+          setActiveFolder(repoFolder.id);
+
+          // Fetch the file tree and open the first markdown file
+          try {
+            console.log('[AppLayout] onConnected - Fetching tree for branch:', connectedRepository.currentBranch);
+            const treeResult = await window.git?.repo?.fetchTree({
+              repositoryId: connectedRepository.repositoryId,
+              branch: connectedRepository.currentBranch,
+              markdownOnly: true,
+            });
+
+            console.log('[AppLayout] onConnected - Tree fetch result:', {
+              success: treeResult?.success,
+              hasData: !!treeResult?.data,
+              hasTree: !!treeResult?.data?.tree,
+              treeLength: treeResult?.data?.tree?.length,
+            });
+
+            if (treeResult?.success && treeResult.data?.tree) {
+              // Find the first markdown file using breadth-first search
+              const findFirstMarkdownFile = (nodes: any[]): string | null => {
+                const queue = [...nodes];
+
+                while (queue.length > 0) {
+                  const levelSize = queue.length;
+
+                  // Process all nodes at current level before going deeper
+                  for (let i = 0; i < levelSize; i++) {
+                    const node = queue.shift()!;
+
+                    // Check if this node is a markdown file
+                    if (node.type === 'file' && node.isMarkdown) {
+                      return node.path;
+                    }
+
+                    // Add children to queue for next level
+                    if (node.children) {
+                      queue.push(...node.children);
+                    }
+                  }
+                }
+
+                return null;
+              };
+
+              const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+
+              console.log('[AppLayout] onConnected - First markdown file:', firstFilePath);
+
+              if (firstFilePath) {
+                // Fetch the first file's content
+                console.log('[AppLayout] onConnected - Fetching file content for:', firstFilePath);
+                const fileResult = await window.git?.repo?.fetchFile({
+                  repositoryId: connectedRepository.repositoryId,
+                  filePath: firstFilePath,
+                  branch: connectedRepository.currentBranch,
+                });
+
+                console.log('[AppLayout] onConnected - File fetch result:', {
+                  success: fileResult?.success,
+                  hasData: !!fileResult?.data,
+                  error: fileResult?.error,
+                });
+
+                if (fileResult?.success && fileResult.data) {
+                  const { tabs, addTab, setActiveTab } = useTabsStore.getState();
+
+                  console.log('[AppLayout] onConnected - Creating tab for branch:', connectedRepository.currentBranch);
+                  console.log('[AppLayout] onConnected - Folder ID:', repoFolder.id);
+                  console.log('[AppLayout] onConnected - Existing tabs count:', tabs.size);
+
+                  // Create a tab for this file
+                  const fileName = firstFilePath.split('/').pop() || 'Untitled';
+                  const newTab = {
+                    id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+                    filePath: firstFilePath,
+                    title: fileName,
+                    scrollPosition: 0,
+                    zoomLevel: 100,
+                    searchState: null,
+                    modificationTimestamp: Date.now(),
+                    isDirty: false,
+                    renderCache: null,
+                    navigationHistory: [{
+                      filePath: firstFilePath,
+                      scrollPosition: 0,
+                      scrollLeft: 0,
+                      zoomLevel: 100,
+                      timestamp: Date.now(),
+                    }],
+                    currentHistoryIndex: 0,
+                    forwardHistory: [],
+                    createdAt: Date.now(),
+                    folderId: repoFolder.id,
+                    isDirectFile: false,
+                  };
+
+                  addTab(newTab);
+                  setActiveTab(newTab.id);
+
+                  console.log('[AppLayout] onConnected - Tab created and activated:', {
+                    tabId: newTab.id,
+                    folderId: newTab.folderId,
+                    filePath: newTab.filePath,
+                  });
+
+                  // Set the file content
+                  setCurrentFile(firstFilePath);
+                  contentCacheRef.current.set(firstFilePath, fileResult.data.content);
+                  setCurrentContent(fileResult.data.content);
+                  setError(null);
+
+                  console.log('[AppLayout] onConnected - File content set for tab');
+                } else {
+                  console.warn('[AppLayout] onConnected - Failed to fetch file or no data:', fileResult?.error);
+                }
+              } else {
+                console.warn('[AppLayout] onConnected - No markdown files found in tree');
+              }
+            } else {
+              console.warn('[AppLayout] onConnected - Tree fetch failed or no data:', treeResult?.error);
+            }
+          } catch (err) {
+            console.error('[AppLayout] Error loading first repository file:', err);
+          }
+
+          // Show success toast
+          setToast({
+            message: `Connected to ${connectedRepository.displayName}`,
+            type: 'success',
+          });
+        }}
       />
     </div>
   );

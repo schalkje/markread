@@ -194,6 +194,15 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose, onHomeCl
       return 'Untitled';
     }
 
+    // Handle directory index virtual paths
+    if (tab.filePath.includes('[Directory Index]')) {
+      // Extract the parent directory name
+      const parts = tab.filePath.split(/[/\\]/);
+      // Get the second-to-last part (the directory name before [Directory Index])
+      const dirName = parts[parts.length - 2] || 'Directory';
+      return `${dirName}/`;
+    }
+
     // Extract filename from path and remove .md extension
     const fileName = tab.filePath.split(/[/\\]/).pop() || 'Untitled';
     return fileName.replace(/\.md$/i, '');

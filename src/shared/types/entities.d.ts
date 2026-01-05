@@ -14,9 +14,10 @@ export interface FileTreeState {
 }
 
 export interface Folder {
-  id: string;                        // UUID v4
-  path: string;                      // Absolute file system path
+  id: string;                        // UUID v4 for local folders, or deterministic 'repo:${repoId}:${branch}' for repositories
+  path: string;                      // Absolute file system path (or repository URL for repos)
   displayName: string;               // Human-readable folder name
+  type: 'local' | 'repository';      // Folder type discriminator
   fileTreeState: FileTreeState;      // Expansion state of directories
   activeFolderId: string | null;     // Currently active folder ID
   tabCollection: Tab[];              // Array of open tabs (max 50)
@@ -25,6 +26,17 @@ export interface Folder {
   splitLayout: PanelLayout;          // Split pane configuration
   createdAt: number;                 // Unix timestamp (ms)
   lastAccessedAt: number;            // Unix timestamp (ms)
+  // Repository-specific fields
+  repositoryId?: string;             // Repository ID (for type='repository') - e.g., 'github.com/user/repo'
+  repositoryUrl?: string;            // Full repository URL (for type='repository')
+  currentBranch?: string;            // Current branch (for type='repository')
+  defaultBranch?: string;            // Default branch (for type='repository')
+  // Shared repository metadata (populated from first connection, same across all branches)
+  repositoryMetadata?: {
+    branches: Array<{name: string; isDefault: boolean; sha: string}>;  // All available branches
+    owner?: string;                  // Repository owner (GitHub)
+    name?: string;                   // Repository name
+  };
 }
 
 export interface SearchState {

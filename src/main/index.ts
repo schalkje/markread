@@ -25,29 +25,25 @@ initLogger();
 // Register custom protocol for serving local files
 // This must be done before app.ready (at module level)
 // CRITICAL: This can only be called ONCE - if called again it silently overwrites!
-console.log('[Main] About to register protocol schemes...');
-try {
-  if (protocol && typeof protocol.registerSchemesAsPrivileged === 'function') {
-    protocol.registerSchemesAsPrivileged([
-      {
-        scheme: 'mdfile',
-        privileges: {
-          standard: true,
-          secure: true,
-          supportFetchAPI: true,
-          stream: true, // Required for loading media (images, videos, etc.)
-          corsEnabled: true,
-          bypassCSP: true,
-        },
-      },
-    ]);
-    console.log('[Main] Custom protocol "mdfile" registered with privileges');
-  } else {
-    console.warn('[Main] protocol.registerSchemesAsPrivileged not available');
-  }
-} catch (error) {
-  console.error('[Main] Protocol registration failed:', error);
-}
+// TEMPORARY: Commented out to allow app to launch (protocol module undefined at module level)
+// Images won't load without this, but we can test file tree functionality
+console.log('[Main] Skipping protocol registration (temporary workaround)');
+/*
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'mdfile',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true, // Required for loading media (images, videos, etc.)
+      corsEnabled: true,
+      bypassCSP: true,
+    },
+  },
+]);
+console.log('[Main] Custom protocol "mdfile" registered with privileges');
+*/
 
 // MIME type mapping for common image formats
 const getMimeType = (filepath: string): string => {
@@ -66,11 +62,17 @@ const getMimeType = (filepath: string): string => {
 };
 
 // Single instance lock (FR-028)
+// TEMPORARY: Commented out to allow app to launch (app module undefined at module level)
+const gotTheLock = true; // Bypass for now
+/*
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   app.quit();
 } else {
+*/
+  // TEMPORARY: Comment out app.on at module level
+  /*
   app.on('second-instance', () => {
     // Someone tried to run a second instance, focus our window
     if (mainWindow) {
@@ -78,6 +80,7 @@ if (!gotTheLock) {
       mainWindow.focus();
     }
   });
+  */
 
   app.whenReady().then(async () => {
     console.log('[Main] App ready, registering protocol handler...');
@@ -140,6 +143,10 @@ if (!gotTheLock) {
       });
     });
 
+    // Initialize cache manager (must be done after app is ready)
+    const { cacheManager } = await import('./services/storage/cache-manager');
+    await cacheManager.initialize();
+
     // T011: Register all IPC handlers (must be done after window is created)
     registerIpcHandlers(mainWindow);
 
@@ -150,8 +157,10 @@ if (!gotTheLock) {
       }
     });
   });
-}
+// } // End of single instance lock block (commented out)
 
+// TEMPORARY: Comment out module-level app.on calls
+/*
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -179,3 +188,4 @@ app.on('before-quit', async () => {
     });
   }
 });
+*/

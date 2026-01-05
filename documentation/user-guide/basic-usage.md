@@ -36,9 +36,9 @@ markread "C:\path\to\your\documentation"
 
 ```mermaid
 graph TD
-    A[Open Folder] --> B{README.md exists?}
-    B -->|Yes| C[Display README.md]
-    B -->|No| D[Show Folder Overview]
+    A[Open Folder] --> B{README.md or index.md exists?}
+    B -->|Yes| C[Display README.md or index.md]
+    B -->|No| D[Show Folder Listing]
     C --> E[File Tree Sidebar Opens]
     D --> E
     E --> F[Ready to Navigate]
@@ -46,10 +46,31 @@ graph TD
 
 MarkRead will:
 1. Set the folder as your "root" for this session
-2. Display `README.md` if it exists at the root
-3. Show a folder overview if no README exists
+2. Display `README.md` or `index.md` if it exists at the root
+3. Show an auto-generated folder listing if no index file exists
 4. Open the file tree sidebar
 5. Load your theme preference
+
+### Folder Listings
+
+When you navigate to a folder (by clicking a folder link or when no README exists), MarkRead automatically generates a formatted listing of all markdown files:
+
+```markdown
+# Contents of docs/
+
+- [Getting Started](getting-started.md)
+- [Installation](installation.md)
+- [Configuration](configuration.md)
+```
+
+**Features:**
+- Automatically shows all `.md` and `.markdown` files in the folder
+- Links are clickable and work like regular markdown links
+- Updates when files are added or removed
+- Works for root folder and all subfolders
+
+**To create a custom folder index:**
+Create a `README.md` or `index.md` file in the folder with your own content.
 
 ### Opening Individual Files
 

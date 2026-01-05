@@ -139,6 +139,13 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
         window.dispatchEvent(new CustomEvent('menu:open-folder'));
       },
     },
+    {
+      label: 'Open Repository...',
+      shortcut: 'Ctrl+R',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:connect-repository'));
+      },
+    },
     { separator: true, label: '', action: () => {} },
     {
       label: 'Close Current',
