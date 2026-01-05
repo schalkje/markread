@@ -1,10 +1,12 @@
-# MarkRead - Markdown Viewer for Windows
+# MarkRead - Markdown Viewer
 
-[![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![Electron](https://img.shields.io/badge/Electron-33.4-47848F?logo=electron)](https://www.electronjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react)](https://reactjs.org/)
 [![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows)](https://www.microsoft.com/windows)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**MarkRead** is a fast, modern, stand-alone desktop application for viewing and navigating Markdown files on Windows. Designed for developers and technical writers who work with documentation in local project folders, MarkRead provides a clean, professional interface with powerful navigation and rendering capabilities.
+**MarkRead** is a fast, modern, cross-platform desktop application for viewing and navigating Markdown files. Designed for developers and technical writers who work with documentation in local project folders, MarkRead provides a clean, professional interface with powerful navigation and rendering capabilities.
 
 ![MarkRead Screenshot](documentation/images/screenshots/main-window.png)
 
@@ -35,9 +37,9 @@ The installer will:
 ### System Requirements
 
 - **OS:** Windows 10 (1809+) or Windows 11
-- **Runtime:** None required (self-contained)
-- **Disk Space:** ~50 MB
-- **Memory:** Minimal (WPF + WebView2)
+- **Runtime:** None required (bundled with Electron)
+- **Disk Space:** ~150 MB
+- **Memory:** ~100-200 MB (Electron + Chromium)
 
 ## �🚀 Quick Start
 
@@ -94,12 +96,14 @@ See the [complete shortcuts reference](documentation/reference/keyboard-shortcut
 
 MarkRead is built with modern, reliable technologies:
 
-- **.NET 8** - Cross-platform framework with C#
-- **WPF** - Windows Presentation Foundation for native UI
-- **WebView2** - Chromium-based rendering engine
-- **Markdig** - Fast, extensible Markdown processor
-- **Prism/Highlight.js** - Syntax highlighting for code blocks
-- **Mermaid** - Diagram and flowchart rendering
+- **Electron 33.4** - Cross-platform desktop framework
+- **React 18.3** - UI component library with hooks
+- **TypeScript 5.7** - Type-safe JavaScript development
+- **Zustand 4.5** - Lightweight state management
+- **markdown-it 14.1** - Fast, extensible Markdown processor
+- **Highlight.js 11.11** - Syntax highlighting for code blocks
+- **Mermaid 11.12** - Diagram and flowchart rendering
+- **Chokidar 5.0** - File system watching
 
 ## 🤝 Contributing
 
@@ -110,27 +114,32 @@ We welcome contributions! Please see our [Contributing Guide](documentation/deve
 - Coding standards
 - Pull request process
 
-## � Building from Source
+## 🔧 Building from Source
 
 For developers who want to build MarkRead:
 
-```powershell
+```bash
 # Clone the repository
 git clone https://github.com/schalkje/markread.git
 cd markread
 
-# Restore dependencies
-dotnet restore
+# Install dependencies
+npm install
+
+# Run in development mode
+npm run dev
 
 # Build the application
-dotnet build --configuration Release
+npm run build
 
-# Build the MSI installer (requires WiX Toolset v4)
-dotnet tool install --global wix --version 4.0.5
-dotnet build src\Installer\MarkRead.Installer.wixproj --configuration Release
+# Build installer packages (Windows)
+npm run build:win
 
-# Run from source
-.\src\App\bin\Release\net8.0-windows\MarkRead.App.exe
+# Run tests
+npm test
+
+# Run linter
+npm run lint
 ```
 
 See the [Developer Guide](documentation/developer/getting-started.md) for detailed setup instructions.
@@ -141,7 +150,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [Markdig](https://github.com/xoofx/markdig) - Excellent Markdown processor
+- [Electron](https://www.electronjs.org/) - Cross-platform desktop framework
+- [React](https://reactjs.org/) - UI component library
+- [markdown-it](https://github.com/markdown-it/markdown-it) - Excellent Markdown processor
 - [Highlight.js](https://highlightjs.org/) - Code syntax highlighting
 - [Mermaid](https://mermaid.js.org/) - Diagram rendering
 - All our [contributors](CONTRIBUTORS.md)
