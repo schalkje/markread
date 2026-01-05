@@ -37,6 +37,8 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .file-tree__list::-webkit-scrollbar {
@@ -79,6 +81,8 @@
   border-left: 2px solid transparent;
   font-size: 13px;
   white-space: nowrap;
+  position: relative;
+  z-index: 0;
 }
 
 .file-tree-item:hover {

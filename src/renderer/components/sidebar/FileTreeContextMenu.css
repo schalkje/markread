@@ -5,15 +5,16 @@
 
 .file-tree-context-menu {
   position: fixed;
-  z-index: 10000;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
+  z-index: 99999;
+  background: var(--color-surface-2, #ffffff);
+  border: 1px solid var(--color-border, #d0d7de);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   padding: 4px 0;
   min-width: 220px;
   max-width: 320px;
   font-size: 13px;
+  isolation: isolate;
 }
 
 .file-tree-context-menu__item {
@@ -69,6 +70,8 @@
 /* Dark theme adjustments */
 @media (prefers-color-scheme: dark) {
   .file-tree-context-menu {
+    background: var(--color-surface-2, #161b22);
+    border-color: var(--color-border, #30363d);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   }
 }
