@@ -1225,9 +1225,68 @@ const AppLayout: React.FC = () => {
       setTimeout(() => setRevealFilePath(null), 500);
     };
 
+    // Handle view folder directory from file tree context menu
+    const handleViewFolderDirectory = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ folderPath: string }>;
+      const { folderPath } = customEvent.detail;
+
+      console.log('[AppLayout] Viewing folder directory:', folderPath);
+
+      try {
+        // Get directory listing
+        const listingResult = await window.electronAPI?.file?.getDirectoryListing({
+          directoryPath: folderPath,
+        });
+
+        if (listingResult?.success && listingResult.items) {
+          // Generate markdown content for directory listing
+          const dirName = folderPath.split(/[/\\]/).pop() || 'Directory';
+          let markdown = `# ${dirName}\n\n`;
+
+          // Add directories
+          const directories = listingResult.items.filter((item: any) => item.isDirectory);
+          if (directories.length > 0) {
+            markdown += '## Folders\n\n';
+            directories.forEach((item: any) => {
+              const label = item.title || item.name;
+              markdown += `- [${label}/](${item.name}/)\n`;
+            });
+            markdown += '\n';
+          }
+
+          // Add files
+          const files = listingResult.items.filter((item: any) => !item.isDirectory);
+          if (files.length > 0) {
+            markdown += '## Files\n\n';
+            files.forEach((item: any) => {
+              const label = item.title || item.name;
+              markdown += `- [${label}](${item.name})\n`;
+            });
+          }
+
+          // Create virtual file path for directory index
+          const virtualFilePath = `${folderPath}/[Directory Index]`;
+
+          // Dispatch show-directory-listing event
+          window.dispatchEvent(new CustomEvent('show-directory-listing', {
+            detail: {
+              directoryPath: folderPath,
+              content: markdown,
+              virtualPath: virtualFilePath,
+            }
+          }));
+        } else {
+          console.error('[AppLayout] Failed to get directory listing:', listingResult?.error);
+        }
+      } catch (error) {
+        console.error('[AppLayout] Error viewing folder directory:', error);
+      }
+    };
+
     window.addEventListener('open-file-in-new-tab', handleOpenFileInNewTab);
     window.addEventListener('open-file-in-new-window', handleOpenFileInNewWindow);
     window.addEventListener('reveal-in-sidebar', handleRevealInSidebar);
+    window.addEventListener('view-folder-directory', handleViewFolderDirectory);
 
     return () => {
       unregisterHistoryShortcuts();
@@ -1239,6 +1298,7 @@ const AppLayout: React.FC = () => {
       window.removeEventListener('open-file-in-new-tab', handleOpenFileInNewTab);
       window.removeEventListener('open-file-in-new-window', handleOpenFileInNewWindow);
       window.removeEventListener('reveal-in-sidebar', handleRevealInSidebar);
+      window.removeEventListener('view-folder-directory', handleViewFolderDirectory);
     };
   }, []);
 
@@ -1460,10 +1520,11 @@ const AppLayout: React.FC = () => {
       }
 
       // Get the folder tree to find the first markdown file
+      // Limit depth to 5 levels to prevent hanging on large directories
       const result = await window.electronAPI?.file?.getFolderTree({
         folderPath,
         includeHidden: false,
-        maxDepth: undefined,
+        maxDepth: 5,
       });
 
       if (result?.success && result.tree) {
@@ -1644,6 +1705,16 @@ const AppLayout: React.FC = () => {
       // Track which file we're loading to prevent race conditions
       const fileToLoad = currentFile;
       loadingFileRef.current = fileToLoad;
+
+      // Check if content is already cached (e.g., from directory listing)
+      const cachedContent = contentCacheRef.current.get(fileToLoad);
+      if (cachedContent !== undefined) {
+        console.log('[AppLayout] Using cached content for:', fileToLoad);
+        setCurrentContent(cachedContent);
+        setIsLoading(false);
+        setError(null);
+        return;
+      }
 
       setIsLoading(true);
       setError(null);

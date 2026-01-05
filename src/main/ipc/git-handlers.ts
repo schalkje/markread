@@ -6,11 +6,47 @@
  */
 
 import { ipcMain } from 'electron';
-import { repositoryService } from '../services/git/repository-service';
-import { connectivityService } from '../services/git/connectivity-service';
-import { oauthService } from '../services/git/oauth-service';
-import { authService } from '../services/git/auth-service';
 import { createSuccessResponse, createErrorResponse } from '../../shared/types/ipc';
+
+// Lazy-load services only when needed to avoid slowing down app startup
+// This prevents Windows shell extensions (like Git Credential Manager) from being
+// loaded at startup, which can cause the folder picker dialog to hang
+let repositoryService: any = null;
+let connectivityService: any = null;
+let oauthService: any = null;
+let authService: any = null;
+
+async function getRepositoryService() {
+  if (!repositoryService) {
+    const module = await import('../services/git/repository-service');
+    repositoryService = module.repositoryService;
+  }
+  return repositoryService;
+}
+
+async function getConnectivityService() {
+  if (!connectivityService) {
+    const module = await import('../services/git/connectivity-service');
+    connectivityService = module.connectivityService;
+  }
+  return connectivityService;
+}
+
+async function getOAuthService() {
+  if (!oauthService) {
+    const module = await import('../services/git/oauth-service');
+    oauthService = module.oauthService;
+  }
+  return oauthService;
+}
+
+async function getAuthService() {
+  if (!authService) {
+    const module = await import('../services/git/auth-service');
+    authService = module.authService;
+  }
+  return authService;
+}
 import {
   ConnectRepositoryRequestSchema,
   FetchRepositoryInfoRequestSchema,
@@ -52,7 +88,8 @@ export function registerGitHandlers(): void {
 
       // Connect to repository
       console.log('[IPC] Calling repositoryService.connect...');
-      const response = await repositoryService.connect(request);
+      const service = await getRepositoryService();
+      const response = await service.connect(request);
       console.log('[IPC] Repository connected successfully');
 
       return createSuccessResponse(response);
@@ -78,7 +115,8 @@ export function registerGitHandlers(): void {
 
       // Fetch repository info
       console.log('[IPC] Calling repositoryService.fetchRepositoryInfo...');
-      const response = await repositoryService.fetchRepositoryInfo(request);
+      const service = await getRepositoryService();
+      const response = await service.fetchRepositoryInfo(request);
       console.log('[IPC] Repository info fetched successfully');
 
       return createSuccessResponse(response);
@@ -101,7 +139,8 @@ export function registerGitHandlers(): void {
       const request = FetchFileRequestSchema.parse(payload) as FetchFileRequest;
 
       // Fetch file
-      const response = await repositoryService.fetchFile(request);
+      const service = await getRepositoryService();
+      const response = await service.fetchFile(request);
 
       return createSuccessResponse(response);
     } catch (error: any) {
@@ -122,7 +161,8 @@ export function registerGitHandlers(): void {
       const request = FetchRepositoryTreeRequestSchema.parse(payload) as FetchRepositoryTreeRequest;
 
       // Fetch tree
-      const response = await repositoryService.fetchTree(request);
+      const service = await getRepositoryService();
+      const response = await service.fetchTree(request);
 
       return createSuccessResponse(response);
     } catch (error: any) {
@@ -143,7 +183,8 @@ export function registerGitHandlers(): void {
       const request = FetchRepositoryTreeRequestSchema.parse(payload) as FetchRepositoryTreeRequest;
 
       // Get cached tree
-      const response = await repositoryService.getCachedTree(request);
+      const service = await getRepositoryService();
+      const response = await service.getCachedTree(request);
 
       if (response) {
         return createSuccessResponse(response);
@@ -170,9 +211,10 @@ export function registerGitHandlers(): void {
       const request = CheckConnectivityRequestSchema.parse(payload) as CheckConnectivityRequest;
 
       // Check connectivity
+      const service = await getConnectivityService();
       const results = request.provider
-        ? [await connectivityService.check(request.provider)]
-        : await connectivityService.checkAll();
+        ? [await service.check(request.provider)]
+        : await service.checkAll();
 
       const isOnline = results.some(r => r.isReachable);
 
@@ -202,7 +244,8 @@ export function registerGitHandlers(): void {
       const request = AuthenticateWithPATRequestSchema.parse(payload) as AuthenticateWithPATRequest;
 
       // Authenticate with PAT
-      const response = await authService.authenticateWithPAT(request);
+      const service = await getAuthService();
+      const response = await service.authenticateWithPAT(request);
 
       return createSuccessResponse(response);
     } catch (error: any) {
@@ -222,7 +265,8 @@ export function registerGitHandlers(): void {
       const request = InitiateDeviceFlowRequestSchema.parse(payload) as InitiateDeviceFlowRequest;
 
       // Initiate Device Flow
-      const response = await oauthService.initiateDeviceFlow(request);
+      const service = await getOAuthService();
+      const response = await service.initiateDeviceFlow(request);
 
       return createSuccessResponse(response);
     } catch (error: any) {
@@ -242,7 +286,8 @@ export function registerGitHandlers(): void {
       const request = CheckDeviceFlowStatusRequestSchema.parse(payload) as CheckDeviceFlowStatusRequest;
 
       // Check status
-      const response = await oauthService.checkDeviceFlowStatus(request.sessionId);
+      const service = await getOAuthService();
+      const response = await service.checkDeviceFlowStatus(request.sessionId);
 
       return createSuccessResponse(response);
     } catch (error: any) {
@@ -257,7 +302,8 @@ export function registerGitHandlers(): void {
   // Cancel Device Flow
   ipcMain.handle('git:auth:deviceflow:cancel', async (_event, sessionId: string): Promise<any> => {
     try {
-      oauthService.cancelDeviceFlow(sessionId);
+      const service = await getOAuthService();
+      service.cancelDeviceFlow(sessionId);
       return createSuccessResponse({ cancelled: true });
     } catch (error: any) {
       return createErrorResponse({

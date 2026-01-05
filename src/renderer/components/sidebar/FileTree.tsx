@@ -151,10 +151,11 @@ export const FileTree: React.FC<FileTreeProps> = ({
           });
         } else {
           // Load local folder tree from file system
+          // Limit depth to prevent hanging on very deep directory structures
           const result = await window.electronAPI?.file?.getFolderTree({
             folderPath: folder.path,
             includeHidden: false,
-            maxDepth: undefined, // No limit
+            maxDepth: 20,
           });
 
           if (!result?.success || !result.tree) {
@@ -333,6 +334,13 @@ export const FileTree: React.FC<FileTreeProps> = ({
     }));
   };
 
+  const handleContextMenuViewFolder = (path: string) => {
+    // Dispatch event to show directory listing for this folder
+    window.dispatchEvent(new CustomEvent('view-folder-directory', {
+      detail: { folderPath: path }
+    }));
+  };
+
   const handleContextMenuOpenAsNewFolder = (path: string) => {
     window.dispatchEvent(new CustomEvent('open-folder', {
       detail: { folderPath: path }
@@ -412,6 +420,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
           onOpen={handleContextMenuOpen}
           onOpenInNewTab={handleContextMenuOpenInNewTab}
           onOpenInNewWindow={handleContextMenuOpenInNewWindow}
+          onViewFolder={handleContextMenuViewFolder}
           onOpenAsNewFolder={handleContextMenuOpenAsNewFolder}
           onHide={() => setContextMenu(null)}
         />
