@@ -120,7 +120,8 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
       }
 
       const hostname = parsedUrl.hostname;
-      if (hostname !== 'github.com' && hostname !== 'dev.azure.com') {
+      const isAzureVisualStudio = hostname.endsWith('.visualstudio.com');
+      if (hostname !== 'github.com' && hostname !== 'dev.azure.com' && !isAzureVisualStudio) {
         setValidationError('Only GitHub and Azure DevOps repositories are supported');
         return false;
       }
@@ -149,7 +150,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
       });
 
       if (!response.success) {
-        throw new Error(response.error?.message || 'Failed to fetch repository information');
+        throw response.error || new Error('Failed to fetch repository information');
       }
 
       const { branches, defaultBranch } = response.data;
@@ -307,9 +308,23 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
    */
   const initiateDeviceFlow = useCallback(async (): Promise<void> => {
     console.log('[Device Flow] Initiating...');
+
+    // Detect provider from URL
+    const parsedUrl = new URL(url);
+    const isAzureDevOps = parsedUrl.hostname === 'dev.azure.com' ||
+                         parsedUrl.hostname.endsWith('.visualstudio.com');
+
+    const provider = isAzureDevOps ? 'azure' : 'github';
+    const scopes = isAzureDevOps
+      ? ['499b84ac-1321-427f-aa17-267ca6975798/.default'] // Azure DevOps scope
+      : ['repo', 'user:email']; // GitHub scopes
+
+    console.log('[Device Flow] Provider:', provider);
+
     const deviceFlowResponse = await window.git.auth.initiateDeviceFlow({
-      provider: 'github',
-      scopes: ['repo', 'user:email'],
+      provider,
+      scopes,
+      url: url.trim(), // Pass repository URL for Azure DevOps GCM authentication
     });
 
     console.log('[Device Flow] Response:', deviceFlowResponse);
@@ -322,9 +337,10 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
     console.log('[Device Flow] User code:', userCode);
 
     // Set initial status message
+    const providerName = isAzureDevOps ? 'Microsoft' : 'GitHub';
     const statusMessage = browserOpened
-      ? 'Opening GitHub in your browser...'
-      : 'Please open GitHub manually to authorize';
+      ? `Opening ${providerName} in your browser...`
+      : `Please open ${providerName} manually to authorize`;
 
     const session = {
       sessionId,
@@ -344,9 +360,9 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
       setValidationError('Authentication timed out. Please try again.');
     }, expiresIn * 1000);
 
-    // Start polling for Device Flow completion (use interval from GitHub)
+    // Start polling for Device Flow completion (use interval from provider)
     startPolling(sessionId, interval);
-  }, [cleanupDeviceFlowSession, startPolling]);
+  }, [cleanupDeviceFlowSession, startPolling, url]);
 
   /**
    * Manually check Device Flow status
@@ -422,11 +438,35 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
    */
   const handleAuthenticateAndFetch = useCallback(async () => {
     try {
-      await initiateDeviceFlow();
+      // Detect provider from URL
+      const parsedUrl = new URL(url);
+      const isAzureDevOps = parsedUrl.hostname === 'dev.azure.com' ||
+                           parsedUrl.hostname.endsWith('.visualstudio.com');
+
+      if (isAzureDevOps) {
+        // Azure DevOps: Try unauthenticated access first
+        setValidationError(null);
+        try {
+          // Attempt to fetch branches without authentication
+          await fetchBranches();
+        } catch (err: any) {
+          // If it fails with auth error, initiate Device Flow
+          if (err.code === 'AUTH_FAILED' || err.statusCode === 401 || err.statusCode === 203) {
+            // Use Microsoft Entra ID Device Flow (same as GitHub)
+            await initiateDeviceFlow();
+          } else {
+            // Re-throw non-auth errors
+            throw err;
+          }
+        }
+      } else {
+        // GitHub: Use OAuth Device Flow
+        await initiateDeviceFlow();
+      }
     } catch (authErr: any) {
       setValidationError(authErr.message || 'Authentication failed');
     }
-  }, [initiateDeviceFlow]);
+  }, [initiateDeviceFlow, url, fetchBranches]);
 
   /**
    * Handle final connection (open repo branch)
@@ -717,7 +757,18 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
                 Open Repository
               </button>
               <span className="repo-connect-dialog__hint">
-                You need to authenticate with GitHub to access this repository
+                {(() => {
+                  try {
+                    const parsedUrl = new URL(url);
+                    const isAzureDevOps = parsedUrl.hostname === 'dev.azure.com' ||
+                                         parsedUrl.hostname.endsWith('.visualstudio.com');
+                    return isAzureDevOps
+                      ? 'You need to authenticate with Azure DevOps to access this repository'
+                      : 'You need to authenticate with GitHub to access this repository';
+                  } catch {
+                    return 'You need to authenticate to access this repository';
+                  }
+                })()}
               </span>
             </div>
           )}

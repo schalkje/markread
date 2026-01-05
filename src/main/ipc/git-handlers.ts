@@ -9,6 +9,7 @@ import { ipcMain } from 'electron';
 import { repositoryService } from '../services/git/repository-service';
 import { connectivityService } from '../services/git/connectivity-service';
 import { oauthService } from '../services/git/oauth-service';
+import { authService } from '../services/git/auth-service';
 import { createSuccessResponse, createErrorResponse } from '../../shared/types/ipc';
 import {
   ConnectRepositoryRequestSchema,
@@ -18,6 +19,7 @@ import {
   CheckConnectivityRequestSchema,
   InitiateDeviceFlowRequestSchema,
   CheckDeviceFlowStatusRequestSchema,
+  AuthenticateWithPATRequestSchema,
   type ConnectRepositoryRequest,
   type FetchRepositoryInfoRequest,
   type FetchFileRequest,
@@ -25,6 +27,7 @@ import {
   type CheckConnectivityRequest,
   type InitiateDeviceFlowRequest,
   type CheckDeviceFlowStatusRequest,
+  type AuthenticateWithPATRequest,
   type ConnectRepositoryIPCResponse,
   type FetchRepositoryInfoIPCResponse,
   type FetchFileIPCResponse,
@@ -32,6 +35,7 @@ import {
   type CheckConnectivityIPCResponse,
   type InitiateDeviceFlowIPCResponse,
   type CheckDeviceFlowStatusIPCResponse,
+  type AuthenticateWithPATIPCResponse,
 } from '../../shared/types/git-contracts';
 
 /**
@@ -187,6 +191,26 @@ export function registerGitHandlers(): void {
         retryable: error.retryable ?? false,
         retryAfterSeconds: error.retryAfterSeconds,
         statusCode: error.statusCode,
+      });
+    }
+  });
+
+  // Authenticate with Personal Access Token
+  ipcMain.handle('git:auth:pat:authenticate', async (_event, payload): Promise<AuthenticateWithPATIPCResponse> => {
+    try {
+      // Validate request
+      const request = AuthenticateWithPATRequestSchema.parse(payload) as AuthenticateWithPATRequest;
+
+      // Authenticate with PAT
+      const response = await authService.authenticateWithPAT(request);
+
+      return createSuccessResponse(response);
+    } catch (error: any) {
+      return createErrorResponse({
+        code: error.code || 'UNKNOWN',
+        message: error.message || 'An unexpected error occurred',
+        retryable: error.retryable ?? false,
+        details: error.details,
       });
     }
   });

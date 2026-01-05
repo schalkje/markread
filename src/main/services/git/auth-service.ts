@@ -42,43 +42,52 @@ export class AuthService {
       };
     }
 
-    // For now, only GitHub is supported
-    if (provider !== 'github') {
-      throw {
-        code: 'INVALID_URL',
-        message: 'Only GitHub is currently supported for PAT authentication',
-        retryable: false,
-      };
-    }
-
     let validated = false;
     let user: { username: string; email?: string } | undefined;
     let scopes: string[] | undefined;
 
     // Validate token by making a test API call
     try {
-      // Test the token by fetching user info
-      const userInfo = await this.validateGitHubToken(token);
-      validated = true;
-      user = {
-        username: userInfo.login,
-        email: userInfo.email,
-      };
+      if (provider === 'github') {
+        // Test the token by fetching user info
+        const userInfo = await this.validateGitHubToken(token);
+        validated = true;
+        user = {
+          username: userInfo.login,
+          email: userInfo.email,
+        };
 
-      // If a test repository was provided, try to access it
-      if (testRepository) {
-        await this.testRepositoryAccess(token, testRepository);
+        // If a test repository was provided, try to access it
+        if (testRepository) {
+          await this.testGitHubRepositoryAccess(token, testRepository);
+        }
+
+        // Extract scopes from the token (GitHub includes this in response headers)
+        scopes = userInfo.scopes;
+      } else if (provider === 'azure') {
+        // Test the token by fetching user profile
+        const userInfo = await this.validateAzureDevOpsPAT(token);
+        validated = true;
+        user = {
+          username: userInfo.displayName,
+          email: userInfo.emailAddress,
+        };
+      } else {
+        throw {
+          code: 'INVALID_URL',
+          message: 'Unsupported provider for PAT authentication',
+          retryable: false,
+        };
       }
-
-      // Extract scopes from the token (GitHub includes this in response headers)
-      scopes = userInfo.scopes;
     } catch (error: any) {
       // Token validation failed
       throw {
         code: error.code || 'AUTH_FAILED',
         message: error.message || 'Failed to validate Personal Access Token',
         retryable: false,
-        details: 'Please check that your token is valid and has the required permissions (repo scope for private repositories).',
+        details: provider === 'github'
+          ? 'Please check that your token is valid and has the required permissions (repo scope for private repositories).'
+          : 'Please check that your token is valid and has the required permissions (Code: Read for repositories).',
       };
     }
 
@@ -152,12 +161,61 @@ export class AuthService {
   }
 
   /**
+   * Validate an Azure DevOps Personal Access Token
+   *
+   * @param token - Azure DevOps PAT
+   * @returns User information
+   */
+  private async validateAzureDevOpsPAT(token: string): Promise<{
+    displayName: string;
+    emailAddress?: string;
+  }> {
+    try {
+      // Make authenticated request to Azure DevOps profile API
+      // This endpoint works across all organizations
+      const authHeader = `Basic ${Buffer.from(`:${token}`).toString('base64')}`;
+
+      const response = await gitHttpClient.getAxiosInstance().get(
+        'https://app.vssps.visualstudio.com/_apis/profile/profiles/me',
+        {
+          params: {
+            'api-version': '7.0',
+          },
+          headers: {
+            'Authorization': authHeader,
+            'Accept': 'application/json',
+          },
+        }
+      );
+
+      return {
+        displayName: response.data.displayName || response.data.publicAlias || 'Azure DevOps User',
+        emailAddress: response.data.emailAddress,
+      };
+    } catch (error: any) {
+      // Azure DevOps API will return 401 for invalid tokens
+      if (error.response?.status === 401 || error.response?.status === 203) {
+        throw {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid Personal Access Token. Please check your token and try again.',
+        };
+      }
+
+      // Other errors
+      throw {
+        code: 'AUTH_FAILED',
+        message: error.message || 'Failed to validate token with Azure DevOps',
+      };
+    }
+  }
+
+  /**
    * Test repository access with a token
    *
    * @param token - GitHub PAT
    * @param repositoryUrl - Repository URL to test
    */
-  private async testRepositoryAccess(token: string, repositoryUrl: string): Promise<void> {
+  private async testGitHubRepositoryAccess(token: string, repositoryUrl: string): Promise<void> {
     try {
       // Extract owner and repo from URL
       const url = new URL(repositoryUrl);

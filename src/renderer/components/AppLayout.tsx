@@ -1734,6 +1734,9 @@ const AppLayout: React.FC = () => {
     currentContentLength: currentContent.length,
     cachedContentLength: contentForCurrentFile.length,
     isFromCache: currentFile ? contentCacheRef.current.has(currentFile) : false,
+    activeFolderId,
+    foldersCount: folders.length,
+    tabsCount: tabs.size,
   });
 
   return (
@@ -1794,8 +1797,15 @@ const AppLayout: React.FC = () => {
               const activeTab = tabs.size > 0 ? Array.from(tabs.values()).find(t => t.id === activeTabId) : null;
               const isDirectFile = activeTab?.isDirectFile === true;
 
-              // Mode 1: Nothing open
-              if (tabs.size === 0) {
+              console.log('[AppLayout] Sidebar files view - checking modes:', {
+                tabsCount: tabs.size,
+                activeFolderId,
+                isDirectFile,
+                activeTabFolderId: activeTab?.folderId,
+              });
+
+              // Mode 1: Nothing open (no tabs AND no active folder)
+              if (tabs.size === 0 && !activeFolderId) {
                 return (
                   <div className="sidebar-placeholder">
                     <p>No files or folders open</p>
@@ -1962,7 +1972,9 @@ const AppLayout: React.FC = () => {
               }
 
               // Mode 3: Folder mode
+              console.log('[AppLayout] Mode 3 check - activeFolderId:', activeFolderId);
               if (activeFolderId) {
+                console.log('[AppLayout] Rendering FileTree for folder:', activeFolderId);
                 return (
                   <FileTree
                     key={fileTreeKey}
@@ -2132,6 +2144,7 @@ const AppLayout: React.FC = () => {
               }
 
               // Fallback
+              console.log('[AppLayout] Fallback - no folder selected, showing placeholder');
               return (
                 <div className="sidebar-placeholder">
                   <p>No folder selected</p>

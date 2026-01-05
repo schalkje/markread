@@ -74,6 +74,14 @@ export const FileTree: React.FC<FileTreeProps> = ({
     (state) => state.updateFileTreeState
   );
 
+  console.log('[FileTree] Component rendered/mounted:', {
+    folderId,
+    folderExists: !!folder,
+    folderType: folder?.type,
+    folderRepositoryId: folder?.repositoryId,
+    folderCurrentBranch: folder?.currentBranch,
+  });
+
   const [treeData, setTreeData] = useState<FileTreeNode[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -86,6 +94,13 @@ export const FileTree: React.FC<FileTreeProps> = ({
 
   // T102: Load tree data from IPC handler
   useEffect(() => {
+    console.log('[FileTree] useEffect triggered:', {
+      hasFolder: !!folder,
+      folderType: folder?.type,
+      folderRepositoryId: folder?.repositoryId,
+      folderCurrentBranch: folder?.currentBranch,
+    });
+
     if (!folder) return;
 
     const loadFileTree = async () => {
@@ -94,10 +109,24 @@ export const FileTree: React.FC<FileTreeProps> = ({
 
         if (folder.type === 'repository') {
           // Load repository file tree from Git API
+          console.log('[FileTree] Loading repository tree:', {
+            repositoryId: folder.repositoryId,
+            branch: folder.currentBranch,
+            markdownOnly: true,
+          });
+
           const result = await window.git?.repo?.fetchTree({
             repositoryId: folder.repositoryId!,
             branch: folder.currentBranch!,
             markdownOnly: true,
+          });
+
+          console.log('[FileTree] fetchTree result:', {
+            success: result?.success,
+            treeLength: result?.data?.tree?.length,
+            fileCount: result?.data?.fileCount,
+            markdownFileCount: result?.data?.markdownFileCount,
+            error: result?.error,
           });
 
           if (!result?.success || !result.data) {
@@ -116,6 +145,10 @@ export const FileTree: React.FC<FileTreeProps> = ({
           });
 
           treeWithDepth = result.data.tree.map((node: TreeNode) => convertGitNode(node, 0));
+          console.log('[FileTree] Converted tree:', {
+            length: treeWithDepth.length,
+            tree: treeWithDepth,
+          });
         } else {
           // Load local folder tree from file system
           const result = await window.electronAPI?.file?.getFolderTree({

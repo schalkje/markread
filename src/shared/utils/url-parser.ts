@@ -65,7 +65,7 @@ export function parseRepositoryUrl(url: string): ParsedRepositoryUrl {
     };
   }
 
-  // Azure DevOps
+  // Azure DevOps (dev.azure.com)
   if (urlObj.hostname === 'dev.azure.com') {
     // Format: https://dev.azure.com/{organization}/{project}/_git/{repositoryId}
     const parts = urlObj.pathname.split('/').filter(Boolean);
@@ -77,6 +77,45 @@ export function parseRepositoryUrl(url: string): ParsedRepositoryUrl {
       organization: parts[0],
       project: parts[1],
       repositoryId: parts[3],
+    };
+  }
+
+  // Azure DevOps (visualstudio.com)
+  if (urlObj.hostname.endsWith('.visualstudio.com')) {
+    // Extract organization from subdomain
+    const organization = urlObj.hostname.split('.')[0];
+    const parts = urlObj.pathname.split('/').filter(Boolean);
+
+    // Find _git in the path
+    const gitIndex = parts.indexOf('_git');
+    if (gitIndex === -1 || gitIndex === parts.length - 1) {
+      throw new Error('Invalid Azure DevOps URL');
+    }
+
+    // Repository ID is always after _git
+    const repositoryId = decodeURIComponent(parts[gitIndex + 1]);
+
+    // Determine project based on path structure
+    let project: string;
+    if (gitIndex === 0) {
+      // Format: https://{org}.visualstudio.com/_git/{repo}
+      // No explicit project, use repository name as project
+      project = repositoryId;
+    } else if (gitIndex === 2 && parts[0] === 'DefaultCollection') {
+      // Format: https://{org}.visualstudio.com/DefaultCollection/{project}/_git/{repo}
+      project = decodeURIComponent(parts[1]);
+    } else if (gitIndex === 1) {
+      // Format: https://{org}.visualstudio.com/{project}/_git/{repo}
+      project = decodeURIComponent(parts[0]);
+    } else {
+      throw new Error('Invalid Azure DevOps URL format');
+    }
+
+    return {
+      provider: 'azure',
+      organization,
+      project,
+      repositoryId,
     };
   }
 

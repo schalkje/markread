@@ -207,6 +207,13 @@ export const useGitRepo = () => {
         }
 
         // Update with fresh tree
+        console.log('[useGitRepo] Setting file tree with data:', {
+          treeLength: response.data.tree?.length,
+          tree: response.data.tree,
+          fileCount: response.data.fileCount,
+          markdownFileCount: response.data.markdownFileCount,
+        });
+
         setFileTree(
           response.data.tree,
           false, // not from cache

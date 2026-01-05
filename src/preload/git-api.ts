@@ -78,6 +78,14 @@ export const exposeGitAPI = () => {
     // Authentication operations (Phase 4 - US2)
     auth: {
       /**
+       * Authenticate with Personal Access Token
+       * Validates and stores PAT for GitHub or Azure DevOps
+       */
+      authenticateWithPAT: (request: import('../shared/types/git-contracts').AuthenticateWithPATRequest): Promise<import('../shared/types/git-contracts').AuthenticateWithPATIPCResponse> => {
+        return ipcRenderer.invoke('git:auth:pat:authenticate', request);
+      },
+
+      /**
        * Initiate Device Flow authentication
        * Opens browser for GitHub authorization using Device Flow (no client secret required)
        */

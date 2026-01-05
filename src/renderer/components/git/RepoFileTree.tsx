@@ -80,6 +80,15 @@ export const RepoFileTree: React.FC<RepoFileTreeProps> = ({
    * Load file tree when repository or branch changes
    */
   useEffect(() => {
+    console.log('[RepoFileTree] Component state:', {
+      repositoryId,
+      currentBranch,
+      fileTreeLength: fileTree?.length,
+      treeFromCache,
+      isFetchingTree,
+      error,
+    });
+
     if (repositoryId && currentBranch) {
       fetchTree({
         repositoryId,
@@ -89,7 +98,7 @@ export const RepoFileTree: React.FC<RepoFileTreeProps> = ({
         console.error('Failed to fetch file tree:', err);
       });
     }
-  }, [repositoryId, currentBranch, markdownOnly, fetchTree]);
+  }, [repositoryId, currentBranch, markdownOnly, fetchTree, fileTree, treeFromCache, isFetchingTree, error]);
 
   /**
    * Toggle directory expansion

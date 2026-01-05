@@ -30,7 +30,9 @@ export const ConnectRepositoryRequestSchema = z.object({
     .refine(
       (url) => {
         const hostname = new URL(url).hostname;
-        return hostname === 'github.com' || hostname === 'dev.azure.com';
+        return hostname === 'github.com' ||
+               hostname === 'dev.azure.com' ||
+               hostname.endsWith('.visualstudio.com');
       },
       { message: 'Only GitHub and Azure DevOps repositories are supported' }
     ),
@@ -370,11 +372,15 @@ export interface InitiateDeviceFlowRequest {
 
   /** OAuth scopes to request (optional, uses defaults if not provided) */
   scopes?: string[];
+
+  /** Repository URL (required for Azure DevOps GCM authentication) */
+  url?: string;
 }
 
 export const InitiateDeviceFlowRequestSchema = z.object({
   provider: z.enum(['github', 'azure']),
   scopes: z.array(z.string()).optional(),
+  url: z.string().optional(),
 });
 
 /**

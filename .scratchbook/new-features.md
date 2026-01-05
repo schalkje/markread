@@ -32,6 +32,8 @@ The user should be able to copy and paste the full repo url to the repo url box;
 - https://schalken.visualstudio.com/DefaultCollection/Personal%20Assistant/_git/agent-function
 NB. give the possibility to building or changing the url step by step organzation, project, repo
 
+### Organization Browser - UI to browse Azure DevOps organizations/projects
+
 
 ## Connection screen
 When connecting to a repo:

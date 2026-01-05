@@ -38,7 +38,28 @@ export class GitHttpClient {
       if (this.tokenProvider && config.url) {
         const token = await this.tokenProvider(config.url);
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+          // Detect provider from URL to use correct auth format
+          const isAzureDevOps = config.url.includes('dev.azure.com') ||
+                                config.url.includes('visualstudio.com') ||
+                                config.url.includes('vssps.visualstudio.com');
+
+          if (isAzureDevOps) {
+            // Distinguish between PAT and Entra token
+            // PATs are short (40-52 chars), Entra tokens are JWT (1000+ chars)
+            const isPAT = token.length < 200;
+
+            if (isPAT) {
+              // Azure DevOps PAT uses Basic Auth with empty username
+              const base64Credentials = Buffer.from(`:${token}`).toString('base64');
+              config.headers.Authorization = `Basic ${base64Credentials}`;
+            } else {
+              // Azure DevOps Entra token uses Bearer
+              config.headers.Authorization = `Bearer ${token}`;
+            }
+          } else {
+            // GitHub uses Bearer token
+            config.headers.Authorization = `Bearer ${token}`;
+          }
         }
       }
       return config;
@@ -137,11 +158,26 @@ export class GitHttpClient {
           };
         }
 
-        // Generic error
+        // Handle 500 Internal Server Error
+        if (error.response?.status === 500) {
+          throw {
+            code: 'SERVER_ERROR',
+            message: 'Server error occurred. Please try again later.',
+            statusCode: 500,
+            retryable: true,
+            details: error.response?.data,
+            _originalError: error, // Preserve original error for debugging
+          };
+        }
+
+        // Generic error - preserve as much info as possible for debugging
         throw {
           code: 'UNKNOWN',
           message: error.message || 'An unexpected error occurred. Please try again.',
+          statusCode: error.response?.status,
           retryable: false,
+          details: error.response?.data,
+          _originalError: error, // Preserve original error for debugging
         };
       }
     );

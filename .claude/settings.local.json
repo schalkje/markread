@@ -28,7 +28,9 @@
       "Bash(taskkill:*)",
       "Bash(npm run:*)",
       "Bash(npx electron-vite dev)",
-      "Bash(npx electron-log-viewer)"
+      "Bash(npx electron-log-viewer)",
+      "Bash(nul)",
+      "Bash(exit 0)"
     ],
     "deny": [],
     "ask": []

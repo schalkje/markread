@@ -1,8 +1,12 @@
 /**
  * Device Flow Authentication Service
  *
- * Handles GitHub Device Flow authentication - perfect for desktop applications.
+ * Handles Device Flow authentication for both GitHub and Azure DevOps.
  * No client secret required, no local server needed.
+ *
+ * Routes to provider-specific services:
+ * - GitHub: Direct OAuth Device Flow
+ * - Azure DevOps: Microsoft Entra ID via MSAL
  *
  * Phase 4 - User Story 2 (Device Flow Implementation)
  */
@@ -11,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { shell } from 'electron';
 import axios from 'axios';
 import { credentialStore } from '../storage/credential-store';
+import { azureOAuthService } from './azure-oauth-service';
 import type {
   InitiateDeviceFlowRequest,
   InitiateDeviceFlowResponse,
@@ -82,11 +87,15 @@ export class OAuthService {
   async initiateDeviceFlow(request: InitiateDeviceFlowRequest): Promise<InitiateDeviceFlowResponse> {
     const { provider, scopes } = request;
 
-    // Only GitHub is supported for now
+    // Route to provider-specific service
+    if (provider === 'azure') {
+      return azureOAuthService.initiateDeviceFlow(request);
+    }
+
     if (provider !== 'github') {
       throw {
         code: 'INVALID_URL',
-        message: 'Only GitHub authentication is currently supported',
+        message: 'Unsupported authentication provider',
         retryable: false,
       };
     }
@@ -178,6 +187,13 @@ export class OAuthService {
    * @returns Session status
    */
   async checkDeviceFlowStatus(sessionId: string): Promise<CheckDeviceFlowStatusResponse> {
+    // Check if this is an Azure session first
+    const azureStatus = await azureOAuthService.checkDeviceFlowStatus(sessionId);
+    if (azureStatus.isComplete || azureStatus.isSuccess) {
+      return azureStatus;
+    }
+
+    // Otherwise check GitHub sessions
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -362,6 +378,10 @@ export class OAuthService {
    * @param sessionId - Session identifier
    */
   cancelDeviceFlow(sessionId: string): void {
+    // Try to cancel Azure session first
+    azureOAuthService.cancelDeviceFlow(sessionId);
+
+    // Also try GitHub session
     const session = this.sessions.get(sessionId);
     if (session) {
       this.completeSession(session, false, 'Cancelled by user');
