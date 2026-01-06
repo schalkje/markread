@@ -33,7 +33,8 @@
       "Bash(exit 0)",
       "Bash(mkdir:*)",
       "Bash(git mv:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(git rev-parse:*)"
     ],
     "deny": [],
     "ask": []

@@ -8,6 +8,7 @@
 
 import React, { useState } from 'react';
 import { useTabsStore } from '../stores/tabs';
+import { generateDirectFileTabId } from '../utils/tab-id';
 import type { Tab } from '@shared/types/entities.d.ts';
 import './FileOpener.css';
 
@@ -66,25 +67,40 @@ export const FileOpener: React.FC<FileOpenerProps> = ({ onFileOpened }) => {
       // Step 3: Create tab for the file (T039, T063 - integration with tabs store)
       const fileName = filePath.split(/[\\/]/).pop() || 'Untitled';
 
-      const newTab: Tab = {
-        id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-        filePath,
-        title: fileName,
-        scrollPosition: 0,
-        zoomLevel: 100,
-        searchState: null,
-        modificationTimestamp: Date.now(),
-        isDirty: false,
-        renderCache: null,
-        navigationHistory: [],
-        forwardHistory: [],
-        createdAt: Date.now(),
-        folderId: null, // No folder for directly opened files
-        isDirectFile: true, // T063g - Mark as direct file
-      };
+      // Generate deterministic tab ID for direct file
+      const tabId = generateDirectFileTabId(filePath);
 
-      // Add tab to store
-      addTab(newTab);
+      // Check if tab already exists
+      const { tabs, setActiveTab } = useTabsStore.getState();
+      const existingTab = tabs.get(tabId);
+
+      if (existingTab) {
+        // Tab already exists, just switch to it
+        setActiveTab(tabId);
+      } else {
+        // Create new tab with deterministic ID
+        const newTab: Tab = {
+          id: tabId,
+          filePath,
+          title: fileName,
+          scrollPosition: 0,
+          zoomLevel: 100,
+          searchState: null,
+          modificationTimestamp: Date.now(),
+          isDirty: false,
+          renderCache: null,
+          navigationHistory: [],
+          forwardHistory: [],
+          createdAt: Date.now(),
+          folderId: null, // No folder for directly opened files
+          isDirectFile: true, // T063g - Mark as direct file
+        };
+
+        // Add tab to store
+        addTab(newTab);
+        // Activate the newly created tab
+        setActiveTab(tabId);
+      }
 
       // Notify parent
       onFileOpened?.(filePath, content);

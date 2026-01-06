@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { useFoldersStore } from '../stores/folders';
+import { recentsFavoritesService } from '../services/recents-favorites-service';
 import { MarkdownViewer } from './markdown/MarkdownViewer';
 import { Home } from './Home';
 import { FileTree } from './sidebar/FileTree';
@@ -42,6 +43,7 @@ import {
   registerSearchCommands,
   registerApplicationCommands,
 } from '../services/command-service';
+import { generateDirectFileTabId, generateFolderFileTabId, generateRepoFileTabId } from '../utils/tab-id';
 import type { Folder } from '@shared/types/entities.d.ts';
 import './AppLayout.css';
 
@@ -236,40 +238,59 @@ const AppLayout: React.FC = () => {
 
               console.log('[AppLayout] Creating tab for new branch:', branchName);
 
-              // Create a tab for this file
-              const fileName = firstFilePath.split('/').pop() || 'Untitled';
-              const newTab = {
-                id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-                filePath: firstFilePath,
-                title: fileName,
-                scrollPosition: 0,
-                zoomLevel: 100,
-                searchState: null,
-                modificationTimestamp: Date.now(),
-                isDirty: false,
-                renderCache: null,
-                navigationHistory: [{
+              // Check ALL tabs for one matching this file in this repository folder context
+              const existingTab = Array.from(tabs.values()).find(t =>
+                t.filePath === firstFilePath && t.folderId === folderId
+              );
+
+              if (existingTab) {
+                // Tab already exists, just set it as active
+                setActiveTab(existingTab.id);
+                console.log('[AppLayout] Reusing existing tab:', {
+                  tabId: existingTab.id,
+                  folderId: existingTab.folderId,
+                  filePath: existingTab.filePath,
+                });
+              } else {
+                // Generate deterministic tab ID for repo file
+                const tabId = generateRepoFileTabId(repositoryId, branchName, firstFilePath);
+
+                // Create a tab for this file
+                const fileName = firstFilePath.split('/').pop() || 'Untitled';
+                const newTab = {
+                  id: tabId,
                   filePath: firstFilePath,
+                  title: fileName,
                   scrollPosition: 0,
-                  scrollLeft: 0,
                   zoomLevel: 100,
-                  timestamp: Date.now(),
-                }],
-                currentHistoryIndex: 0,
-                forwardHistory: [],
-                createdAt: Date.now(),
-                folderId: folderId,
-                isDirectFile: false,
-              };
+                  searchState: null,
+                  modificationTimestamp: Date.now(),
+                  isDirty: false,
+                  renderCache: null,
+                  navigationHistory: [{
+                    filePath: firstFilePath,
+                    scrollPosition: 0,
+                    scrollLeft: 0,
+                    zoomLevel: 100,
+                    timestamp: Date.now(),
+                  }],
+                  currentHistoryIndex: 0,
+                  forwardHistory: [],
+                  createdAt: Date.now(),
+                  folderId: folderId,
+                  isDirectFile: false,
+                };
 
-              addTab(newTab);
-              setActiveTab(newTab.id);
+                addTab(newTab);
+                setActiveTab(newTab.id);
+                setShowHome(false); // Hide home page and show file viewer
 
-              console.log('[AppLayout] Tab created:', {
-                tabId: newTab.id,
-                folderId: newTab.folderId,
-                filePath: newTab.filePath,
-              });
+                console.log('[AppLayout] Tab created:', {
+                  tabId: newTab.id,
+                  folderId: newTab.folderId,
+                  filePath: newTab.filePath,
+                });
+              }
 
               // Set the file content
               setCurrentFile(firstFilePath);
@@ -1378,43 +1399,82 @@ const AppLayout: React.FC = () => {
    * T039: Handle file opened from FileOpener component
    * Updates current file state and loads content
    * T063: Also creates a tab for the opened file
+   *
+   * @param filePath - Path to the file
+   * @param content - File content
+   * @param forceContext - Force a specific context ('direct' or 'folder'), useful when opening from home page
    */
-  const handleFileOpened = async (filePath: string, content: string) => {
+  const handleFileOpened = async (filePath: string, content: string, forceContext?: 'direct' | 'folder') => {
     setCurrentFile(filePath);
     contentCacheRef.current.set(filePath, content);
     setCurrentContent(content);
     setError(null);
 
-    // T063: Create a tab for this file if it doesn't exist
-    const { tabs, addTab } = useTabsStore.getState();
-    const existingTab = Array.from(tabs.values()).find(t => t.filePath === filePath);
+    // T063: Create a tab for this file with deterministic ID based on context
+    const { tabs, addTab, setActiveTab } = useTabsStore.getState();
+    const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
 
-    if (!existingTab) {
-      const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
-      const newTab = {
-        id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+    // Determine the context for this file
+    const shouldUseFolderContext = forceContext === 'folder' || (forceContext !== 'direct' && activeFolderId);
+    const contextFolderId = shouldUseFolderContext && activeFolderId ? activeFolderId : null;
+
+    // Check ALL tabs to find one that matches BOTH file path AND context
+    // This allows the same file to exist in different contexts (direct vs folder)
+    const existingTab = Array.from(tabs.values()).find(t =>
+      t.filePath === filePath && t.folderId === contextFolderId
+    );
+
+    if (existingTab) {
+      // Tab already exists for this file in this context, just switch to it
+      setActiveTab(existingTab.id);
+      setShowHome(false); // Hide home page and show file viewer
+      return;
+    }
+
+    // No existing tab found, create new one with appropriate context
+    const tabId = contextFolderId
+      ? generateFolderFileTabId(contextFolderId, filePath)
+      : generateDirectFileTabId(filePath);
+
+    // Create new tab with deterministic ID
+    const newTab = {
+      id: tabId,
+      filePath,
+      title: fileName,
+      scrollPosition: 0,
+      zoomLevel: 100,
+      searchState: null,
+      modificationTimestamp: Date.now(),
+      isDirty: false,
+      renderCache: null,
+      navigationHistory: [{
         filePath,
-        title: fileName,
         scrollPosition: 0,
+        scrollLeft: 0,
         zoomLevel: 100,
-        searchState: null,
-        modificationTimestamp: Date.now(),
-        isDirty: false,
-        renderCache: null,
-        navigationHistory: [{
-          filePath,
-          scrollPosition: 0,
-          scrollLeft: 0,
-          zoomLevel: 100,
-          timestamp: Date.now(),
-        }],
-        currentHistoryIndex: 0, // Start at position 0 (home)
-        forwardHistory: [],
-        createdAt: Date.now(),
-        folderId: activeFolderId, // Connect to active folder if available
-        isDirectFile: !activeFolderId, // Mark as direct file if no active folder
-      };
-      addTab(newTab);
+        timestamp: Date.now(),
+      }],
+      currentHistoryIndex: 0, // Start at position 0 (home)
+      forwardHistory: [],
+      createdAt: Date.now(),
+      folderId: shouldUseFolderContext && activeFolderId ? activeFolderId : null,
+      isDirectFile: !shouldUseFolderContext, // Mark as direct file based on context
+    };
+    addTab(newTab);
+    setActiveTab(newTab.id); // Activate the newly created tab
+    setShowHome(false); // Hide home page and show file viewer
+
+    // T017: Track file in recents
+    try {
+      const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
+      await recentsFavoritesService.addRecent({
+        path: filePath,
+        type: 'file',
+        lastOpened: Date.now(),
+        displayName: fileName
+      });
+    } catch (error) {
+      console.error('[AppLayout] Failed to track file in recents:', error);
     }
   };
 
@@ -1583,17 +1643,23 @@ const AppLayout: React.FC = () => {
             setError(null);
 
             // Create a tab for this file with the correct folder ID
-            const existingTab = Array.from(tabs.values()).find(t => t.filePath === firstFilePath);
+            // Check ALL tabs for one matching this file in this folder context
+            const existingTab = Array.from(tabs.values()).find(t =>
+              t.filePath === firstFilePath && t.folderId === folderId
+            );
 
             if (existingTab) {
               // Tab already exists, just set it as active
               const { setActiveTab } = useTabsStore.getState();
               setActiveTab(existingTab.id);
+              setShowHome(false); // Hide home page and show file viewer
             } else {
+              // Generate deterministic tab ID for this folder file
+              const tabId = generateFolderFileTabId(folderId, firstFilePath);
               // Create new tab
               const fileName = firstFilePath.split(/[/\\]/).pop() || 'Untitled';
               const newTab = {
-                id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+                id: tabId,
                 filePath: firstFilePath,
                 title: fileName,
                 scrollPosition: 0,
@@ -1620,6 +1686,7 @@ const AppLayout: React.FC = () => {
               // Set the new tab as active so it's visible
               const { setActiveTab } = useTabsStore.getState();
               setActiveTab(newTab.id);
+              setShowHome(false); // Hide home page and show file viewer
             }
           }
         } else {
@@ -1629,14 +1696,16 @@ const AppLayout: React.FC = () => {
           const folderName = folderPath.split(/[/\\]/).pop() || 'Folder';
           const overviewPath = `${folderPath}/[Folder Overview]`;
 
-          // Check if tab already exists for this folder
+          // Check ALL tabs for folder overview in this folder context
           const existingTab = Array.from(tabs.values()).find(t =>
-            t.folderId === folderId && t.filePath.includes('[Folder Overview]')
+            t.filePath === overviewPath && t.folderId === folderId
           );
 
           if (!existingTab) {
+            // Generate deterministic tab ID for folder overview
+            const tabId = generateFolderFileTabId(folderId, overviewPath);
             const newTab = {
-              id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+              id: tabId,
               filePath: overviewPath,
               title: `${folderName}/`,
               scrollPosition: 0,
@@ -1663,6 +1732,10 @@ const AppLayout: React.FC = () => {
             // Set the new tab as active so it's visible
             const { setActiveTab } = useTabsStore.getState();
             setActiveTab(newTab.id);
+          } else {
+            // Tab already exists, just set it as active
+            const { setActiveTab } = useTabsStore.getState();
+            setActiveTab(existingTab.id);
           }
 
           // Set empty content with a message
@@ -1670,6 +1743,19 @@ const AppLayout: React.FC = () => {
           setCurrentContent(`# ${folderName}\n\n*This folder contains no markdown files.*\n\nCreate a markdown file to get started.`);
           setError(null);
         }
+      }
+
+      // T018: Track folder in recents
+      try {
+        const folderName = folderPath.split(/[/\\]/).pop() || 'Folder';
+        await recentsFavoritesService.addRecent({
+          path: folderPath,
+          type: 'folder',
+          lastOpened: Date.now(),
+          displayName: folderName
+        });
+      } catch (error) {
+        console.error('[AppLayout] Failed to track folder in recents:', error);
       }
     } catch (err) {
       console.error('Error auto-opening first file:', err);
@@ -2068,35 +2154,18 @@ const AppLayout: React.FC = () => {
                     revealFilePath={revealFilePath}
                     onFileSelect={async (filePath) => {
                       try {
-                        // IMPORTANT: Use the FileTree's folderId, not activeFolderId from store
-                        // This ensures we fetch from the correct branch when multiple branches are open
+                        // Single click: Navigate within current tab, add to history
                         const activeFolder = folders.find(f => f.id === activeFolderId);
                         let fileContent: string | null = null;
 
-                        console.log('[AppLayout] onFileSelect called:', {
-                          filePath,
-                          fileTreeFolderId: activeFolderId,
-                          activeFolderId,
-                          hasActiveFolder: !!activeFolder,
-                          folderType: activeFolder?.type,
-                          isRepository: activeFolder?.type === 'repository',
-                          repositoryId: activeFolder?.repositoryId,
-                          currentBranch: activeFolder?.currentBranch,
-                        });
+                        console.log('[AppLayout] onFileSelect - navigating to:', filePath);
 
                         if (activeFolder?.type === 'repository') {
                           // Load file from repository using Git API
-                          console.log('[AppLayout] onFileSelect - Using Git API');
                           const result = await window.git?.repo?.fetchFile({
                             repositoryId: activeFolder.repositoryId!,
                             filePath: filePath,
                             branch: activeFolder.currentBranch!,
-                          });
-
-                          console.log('[AppLayout] onFileSelect - Git API result:', {
-                            success: result?.success,
-                            hasData: !!result?.data,
-                            error: result?.error,
                           });
 
                           if (result?.success && result.data) {
@@ -2104,7 +2173,6 @@ const AppLayout: React.FC = () => {
                           }
                         } else {
                           // Load file from local file system
-                          console.log('[AppLayout] onFileSelect - Using file system API');
                           const result = await window.electronAPI?.file?.read({ filePath });
                           if (result?.success && result.content) {
                             fileContent = result.content;
@@ -2112,14 +2180,11 @@ const AppLayout: React.FC = () => {
                         }
 
                         if (fileContent) {
-                          // Mark as manually loaded
                           contentLoadedManually.current = true;
-
-                          // Clear loading and error states
                           setIsLoading(false);
                           setError(null);
 
-                          // T065: Add NEW location to navigation history
+                          // Add to current tab's history
                           const { activeTabId, tabs, addHistoryEntry, updateTabZoomLevel } = useTabsStore.getState();
 
                           if (activeTabId) {
@@ -2127,7 +2192,7 @@ const AppLayout: React.FC = () => {
 
                             // Add the NEW file to history if navigating to a different file
                             if (currentTab && currentTab.filePath && currentTab.filePath !== filePath) {
-                              // First, update CURRENT file's history entry with current scroll/zoom
+                              // Save current file's state to history
                               const viewer = document.querySelector('.markdown-viewer') as HTMLElement;
                               const currentScrollTop = viewer?.scrollTop || currentTab.scrollPosition || 0;
                               const currentScrollLeft = viewer?.scrollLeft || currentTab.scrollLeft || 0;
@@ -2139,46 +2204,36 @@ const AppLayout: React.FC = () => {
                                 timestamp: Date.now(),
                               });
 
-                              console.log('[FileTree] Adding history entry for new file:', filePath);
-                              // Then add NEW file to history with reset zoom
+                              // Add new file to history
                               addHistoryEntry(activeTabId, {
-                                filePath: filePath, // Add the NEW file, not the current one!
-                                scrollPosition: 0,  // New file starts at top
-                                scrollLeft: 0,      // New file starts at left
-                                zoomLevel: 100,     // Reset zoom to 100%
+                                filePath: filePath,
+                                scrollPosition: 0,
+                                scrollLeft: 0,
+                                zoomLevel: 100,
                                 timestamp: Date.now(),
                               });
 
                               // Reset zoom for new file
                               updateTabZoomLevel(activeTabId, 100);
-                            } else {
-                              console.log('[FileTree] Skipped history:', {
-                                hasTab: !!currentTab,
-                                currentFilePath: currentTab?.filePath,
-                                newFilePath: filePath,
-                                sameFile: currentTab?.filePath === filePath
-                              });
                             }
                           }
 
-                          // Update file and content atomically
+                          // Update file and content
                           setCurrentFile(filePath);
                           contentCacheRef.current.set(filePath, fileContent);
                           setCurrentContent(fileContent);
 
-                          // Update active tab to reflect the new file being viewed
-                          // IMPORTANT: Get FRESH state after addHistoryEntry to avoid overwriting history!
-                          // IMPORTANT: Update folderId to match the folder from which the file was selected
+                          // Update active tab's file path
                           if (activeTabId) {
-                            const { tabs: freshTabs } = useTabsStore.getState(); // Get fresh state!
+                            const { tabs: freshTabs } = useTabsStore.getState();
                             const freshTab = freshTabs.get(activeTabId);
                             if (freshTab) {
                               const fileName = filePath.split(/[/\\\/]/).pop() || 'Untitled';
                               const updatedTab = {
-                                ...freshTab, // Use fresh tab with updated history!
+                                ...freshTab,
                                 filePath: filePath,
                                 title: fileName,
-                                folderId: activeFolderId, // Update folder ID to match the FileTree's folder
+                                folderId: activeFolderId,
                               };
                               freshTabs.set(activeTabId, updatedTab);
                               useTabsStore.setState({ tabs: new Map(freshTabs) });
@@ -2187,42 +2242,18 @@ const AppLayout: React.FC = () => {
                         } else {
                           setError('Failed to load file');
                         }
-                      } catch (err) {
-                        console.error('Error loading file from tree:', err);
+                      } catch (error) {
+                        console.error('[AppLayout] Error in onFileSelect:', error);
                         setError('Failed to load file');
                         setIsLoading(false);
                       }
                     }}
                     onFileOpen={async (filePath) => {
-                      try {
-                        // Get the active folder to determine if it's a repository
-                        const activeFolder = folders.find(f => f.id === activeFolderId);
-                        let fileContent: string | null = null;
-
-                        if (activeFolder?.type === 'repository') {
-                          // Load file from repository using Git API
-                          const result = await window.git?.repo?.fetchFile({
-                            repositoryId: activeFolder.repositoryId!,
-                            filePath: filePath,
-                            branch: activeFolder.currentBranch!,
-                          });
-
-                          if (result?.success && result.data) {
-                            fileContent = result.data.content;
-                          }
-                        } else {
-                          // Load file from local file system
-                          const result = await window.electronAPI?.file?.read({ filePath });
-                          if (result?.success && result.content) {
-                            fileContent = result.content;
-                          }
-                        }
-
-                        if (fileContent) {
-                          await handleFileOpened(filePath, fileContent);
-                        }
-                      } catch (err) {
-                        console.error('Error opening file:', err);
+                      // Double-click: Same as single click (navigate within current tab)
+                      // Trigger the same handler
+                      const fileTree = document.querySelector('.file-tree');
+                      if (fileTree) {
+                        fileTree.dispatchEvent(new CustomEvent('file-select', { detail: { filePath } }));
                       }
                     }}
                   />
@@ -2578,40 +2609,62 @@ const AppLayout: React.FC = () => {
                   console.log('[AppLayout] onConnected - Folder ID:', repoFolder.id);
                   console.log('[AppLayout] onConnected - Existing tabs count:', tabs.size);
 
-                  // Create a tab for this file
-                  const fileName = firstFilePath.split('/').pop() || 'Untitled';
-                  const newTab = {
-                    id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-                    filePath: firstFilePath,
-                    title: fileName,
-                    scrollPosition: 0,
-                    zoomLevel: 100,
-                    searchState: null,
-                    modificationTimestamp: Date.now(),
-                    isDirty: false,
-                    renderCache: null,
-                    navigationHistory: [{
+                  // Check ALL tabs for one matching this file in this repository folder context
+                  const existingTab = Array.from(tabs.values()).find(t =>
+                    t.filePath === firstFilePath && t.folderId === repoFolder.id
+                  );
+
+                  if (existingTab) {
+                    // Tab already exists, just set it as active
+                    setActiveTab(existingTab.id);
+                    console.log('[AppLayout] onConnected - Reusing existing tab:', {
+                      tabId: existingTab.id,
+                      folderId: existingTab.folderId,
+                      filePath: existingTab.filePath,
+                    });
+                  } else {
+                    // Generate deterministic tab ID for repo file
+                    const tabId = generateRepoFileTabId(
+                      connectedRepository.repositoryId,
+                      connectedRepository.currentBranch,
+                      firstFilePath
+                    );
+                    // Create a tab for this file
+                    const fileName = firstFilePath.split('/').pop() || 'Untitled';
+                    const newTab = {
+                      id: tabId,
                       filePath: firstFilePath,
+                      title: fileName,
                       scrollPosition: 0,
-                      scrollLeft: 0,
                       zoomLevel: 100,
-                      timestamp: Date.now(),
-                    }],
-                    currentHistoryIndex: 0,
-                    forwardHistory: [],
-                    createdAt: Date.now(),
-                    folderId: repoFolder.id,
-                    isDirectFile: false,
-                  };
+                      searchState: null,
+                      modificationTimestamp: Date.now(),
+                      isDirty: false,
+                      renderCache: null,
+                      navigationHistory: [{
+                        filePath: firstFilePath,
+                        scrollPosition: 0,
+                        scrollLeft: 0,
+                        zoomLevel: 100,
+                        timestamp: Date.now(),
+                      }],
+                      currentHistoryIndex: 0,
+                      forwardHistory: [],
+                      createdAt: Date.now(),
+                      folderId: repoFolder.id,
+                      isDirectFile: false,
+                    };
 
-                  addTab(newTab);
-                  setActiveTab(newTab.id);
+                    addTab(newTab);
+                    setActiveTab(newTab.id);
+                    setShowHome(false); // Hide home page and show file viewer
 
-                  console.log('[AppLayout] onConnected - Tab created and activated:', {
-                    tabId: newTab.id,
-                    folderId: newTab.folderId,
-                    filePath: newTab.filePath,
-                  });
+                    console.log('[AppLayout] onConnected - Tab created and activated:', {
+                      tabId: newTab.id,
+                      folderId: newTab.folderId,
+                      filePath: newTab.filePath,
+                    });
+                  }
 
                   // Set the file content
                   setCurrentFile(firstFilePath);
@@ -2620,6 +2673,18 @@ const AppLayout: React.FC = () => {
                   setError(null);
 
                   console.log('[AppLayout] onConnected - File content set for tab');
+
+                  // Track repository in recents
+                  try {
+                    await recentsFavoritesService.addRecent({
+                      path: `${connectedRepository.repositoryId}/${connectedRepository.currentBranch}`,
+                      type: 'repo',
+                      displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
+                      lastOpened: Date.now()
+                    });
+                  } catch (error) {
+                    console.error('[AppLayout] Failed to track repository in recents:', error);
+                  }
                 } else {
                   console.warn('[AppLayout] onConnected - Failed to fetch file or no data:', fileResult?.error);
                 }

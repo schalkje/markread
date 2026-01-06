@@ -11,6 +11,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useGitRepo } from '../../hooks/useGitRepo';
+import { recentsFavoritesService } from '../../services/recents-favorites-service';
 import type { ConnectRepositoryRequest, BranchInfo } from '../../../shared/types/git-contracts';
 import { getConnectionHistory, groupConnectionHistory, type ConnectionHistoryEntry, type GroupedHistoryRepository } from '../../utils/connection-history';
 import { sortBranchesByPriority, getDefaultBranch } from '../../../shared/utils/repository-utils';
@@ -496,6 +497,20 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
         // Success - notify parent with the connected repository data
         if (response) {
           onConnected?.(response);
+
+          // T019: Track repository in recents
+          try {
+            const repoName = response.repositoryName || url.split('/').pop() || 'Repository';
+            const displayName = `${repoName} (${selectedBranch})`;
+            await recentsFavoritesService.addRecent({
+              path: url,
+              type: 'repo',
+              lastOpened: Date.now(),
+              displayName
+            });
+          } catch (error) {
+            console.error('[RepoConnectDialog] Failed to track repository in recents:', error);
+          }
         }
         onClose();
 
