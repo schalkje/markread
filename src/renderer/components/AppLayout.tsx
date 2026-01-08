@@ -10,6 +10,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { useFoldersStore } from '../stores/folders';
 import { recentsFavoritesService } from '../services/recents-favorites-service';
+import { useRecentsFavorites } from '../hooks/useRecentsFavorites';
 import { MarkdownViewer } from './markdown/MarkdownViewer';
 import { Home } from './Home';
 import { FileTree } from './sidebar/FileTree';
@@ -59,6 +60,7 @@ const AppLayout: React.FC = () => {
   const { tabs, activeTabId } = useTabsStore();
   const activeTab = activeTabId ? tabs.get(activeTabId) : null;
   const { folders, activeFolderId } = useFoldersStore();
+  const { addRecent } = useRecentsFavorites();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
   const [revealFilePath, setRevealFilePath] = useState<string | null>(null); // File to reveal in sidebar
 
@@ -912,8 +914,9 @@ const AppLayout: React.FC = () => {
       initializingFoldersRef.current.add(activeFolderId);
 
       // Call handleFolderOpened to create a tab for this folder
+      // Skip repositories - they handle tab creation differently
       const activeFolder = folders.find(f => f.id === activeFolderId);
-      if (activeFolder) {
+      if (activeFolder && activeFolder.type !== 'repository') {
         handleFolderOpened(activeFolder.path).finally(() => {
           // Remove from initializing set after tab is created
           initializingFoldersRef.current.delete(activeFolderId);
@@ -1746,16 +1749,22 @@ const AppLayout: React.FC = () => {
       }
 
       // T018: Track folder in recents
-      try {
-        const folderName = folderPath.split(/[/\\]/).pop() || 'Folder';
-        await recentsFavoritesService.addRecent({
-          path: folderPath,
-          type: 'folder',
-          lastOpened: Date.now(),
-          displayName: folderName
-        });
-      } catch (error) {
-        console.error('[AppLayout] Failed to track folder in recents:', error);
+      // Skip repositories - they should be tracked separately as 'repo' type
+      const { folders: allFolders } = useFoldersStore.getState();
+      const isRepository = allFolders.find(f => f.path === folderPath && f.type === 'repository');
+
+      if (!isRepository) {
+        try {
+          const folderName = folderPath.split(/[/\\]/).pop() || 'Folder';
+          await recentsFavoritesService.addRecent({
+            path: folderPath,
+            type: 'folder',
+            lastOpened: Date.now(),
+            displayName: folderName
+          });
+        } catch (error) {
+          console.error('[AppLayout] Failed to track folder in recents:', error);
+        }
       }
     } catch (err) {
       console.error('Error auto-opening first file:', err);
@@ -2314,6 +2323,128 @@ const AppLayout: React.FC = () => {
               onFileOpened={handleFileOpened}
               onFolderOpened={handleFolderOpened}
               onConnectRepository={() => setShowRepoConnect(true)}
+              onRepositoryConnected={async (connectedRepository) => {
+                // Same logic as RepoConnectDialog's onConnected
+                if (!connectedRepository) {
+                  console.error('[AppLayout] No connected repository data received');
+                  return;
+                }
+
+                console.log('[AppLayout] Repository connected from Home:', {
+                  repositoryId: connectedRepository.repositoryId,
+                  currentBranch: connectedRepository.currentBranch,
+                  displayName: connectedRepository.displayName,
+                });
+
+                // Check if this repository/branch combination is already open
+                const { folders, addFolder, setActiveFolder } = useFoldersStore.getState();
+                const targetFolderId = `repo:${connectedRepository.repositoryId}:${connectedRepository.currentBranch}`;
+
+                const existingFolder = folders.find(f => f.id === targetFolderId);
+
+                if (existingFolder) {
+                  // This exact repo/branch is already open - activate it
+                  setActiveFolder(targetFolderId);
+
+                  // Find and activate the first tab for this folder
+                  const { tabs, setActiveTab } = useTabsStore.getState();
+                  const folderTabs = Array.from(tabs.values()).filter(tab => tab.folderId === targetFolderId);
+
+                  if (folderTabs.length > 0) {
+                    setActiveTab(folderTabs[0].id);
+                    setCurrentFile(folderTabs[0].filePath);
+                    setShowHome(false);
+
+                    setToast({
+                      message: `${existingFolder.displayName} is already open. Switched to existing tab.`,
+                      type: 'info',
+                    });
+                  } else {
+                    setToast({
+                      message: `${existingFolder.displayName} is already open. Folder activated.`,
+                      type: 'info',
+                    });
+                  }
+
+                  return;
+                }
+
+                // Check if same repository but different branch is open
+                const sameRepoFolder = folders.find(
+                  f => f.type === 'repository' && f.repositoryId === connectedRepository.repositoryId
+                );
+
+                if (sameRepoFolder) {
+                  // Use openRepositoryBranch for consistency
+                  const { openRepositoryBranch } = useFoldersStore.getState();
+                  const newFolder = await openRepositoryBranch(
+                    connectedRepository.repositoryId,
+                    connectedRepository.currentBranch
+                  );
+
+                  if (newFolder) {
+                    setToast({
+                      message: `Opened ${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
+                      type: 'success',
+                    });
+                  }
+
+                  // Track this branch in recents
+                  try {
+                    const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                    await addRecent({
+                      path: pathWithBranch,
+                      type: 'repo',
+                      displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
+                    });
+                  } catch (error) {
+                    console.error('[AppLayout] Failed to track repository branch in recents:', error);
+                  }
+
+                  return;
+                }
+
+                // Create a folder entry for the repository (first branch only)
+                const repoFolder: Folder = {
+                  id: `repo:${connectedRepository.repositoryId}:${connectedRepository.currentBranch}`,
+                  path: connectedRepository.url,
+                  displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
+                  type: 'repository',
+                  fileTreeState: {
+                    expandedDirectories: new Set<string>(),
+                    scrollPosition: 0,
+                    selectedPath: null,
+                  },
+                  activeFolderId: null,
+                  tabCollection: [],
+                  activeTabId: null,
+                  recentFiles: [],
+                  splitLayout: {
+                    rootPane: {
+                      id: 'pane-root',
+                      tabs: [],
+                      activeTabId: null,
+                      orientation: 'vertical',
+                      sizeRatio: 1.0,
+                      splitChildren: null,
+                    },
+                    layoutType: 'single',
+                  },
+                  createdAt: Date.now(),
+                  lastAccessedAt: Date.now(),
+                  repositoryId: connectedRepository.repositoryId,
+                  currentBranch: connectedRepository.currentBranch,
+                  url: connectedRepository.url,
+                };
+
+                addFolder(repoFolder);
+                setActiveFolder(repoFolder.id);
+
+                setToast({
+                  message: `Connected to ${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
+                  type: 'success',
+                });
+              }}
             />
           ) : (
             <MarkdownViewer
@@ -2487,6 +2618,19 @@ const AppLayout: React.FC = () => {
               });
             } else {
               console.error('[AppLayout] Failed to open repository branch via openRepositoryBranch');
+            }
+
+            // Track this branch in recents
+            try {
+              const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+              await addRecent({
+                path: pathWithBranch,
+                type: 'repo',
+                displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
+              });
+              console.log('[AppLayout] Repository branch tracked in recents:', { path: pathWithBranch });
+            } catch (error) {
+              console.error('[AppLayout] Failed to track repository branch in recents:', error);
             }
 
             return; // Don't continue with manual folder creation
@@ -2676,11 +2820,12 @@ const AppLayout: React.FC = () => {
 
                   // Track repository in recents
                   try {
-                    await recentsFavoritesService.addRecent({
-                      path: `${connectedRepository.repositoryId}/${connectedRepository.currentBranch}`,
+                    // Include branch in path so each branch is tracked separately
+                    const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                    await addRecent({
+                      path: pathWithBranch,
                       type: 'repo',
-                      displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
-                      lastOpened: Date.now()
+                      displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
                     });
                   } catch (error) {
                     console.error('[AppLayout] Failed to track repository in recents:', error);

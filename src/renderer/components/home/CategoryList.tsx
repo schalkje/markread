@@ -8,6 +8,8 @@
 
 import React from 'react';
 import { ItemCard } from './ItemCard';
+import { RepositoryGroup } from './RepositoryGroup';
+import { groupRepositories } from '../../utils/group-repositories';
 import type { RecentItem, Favorite } from '@shared/types/recents-favorites';
 
 interface CategoryListProps {
@@ -22,6 +24,8 @@ interface CategoryListProps {
   onItemRemove: (item: RecentItem | Favorite) => void;
   onAddToFavorites?: (item: RecentItem) => void;
   onRemoveFromFavorites?: (item: Favorite) => void;
+  // Optional: specify if this is a repository list
+  isRepositoryList?: boolean;
 }
 
 /**
@@ -34,12 +38,55 @@ export const CategoryList: React.FC<CategoryListProps> = ({
   onItemClick,
   onItemRemove,
   onAddToFavorites,
-  onRemoveFromFavorites
+  onRemoveFromFavorites,
+  isRepositoryList = false
 }) => {
+  // Filter out items that are already in favorites (duplicate prevention)
+  const favoritePaths = new Set(favorites.map(fav => fav.path));
+  const filteredRecents = recents.filter(item => !favoritePaths.has(item.path));
+
   const hasFavorites = favorites.length > 0;
-  const hasRecents = recents.length > 0;
+  const hasRecents = filteredRecents.length > 0;
   const hasItems = hasFavorites || hasRecents;
 
+  // For repository lists, group items by repository
+  if (isRepositoryList) {
+    const allRepos = [...favorites, ...filteredRecents];
+    const groupedRepos = groupRepositories(allRepos);
+
+    return (
+      <div className="category-list">
+        {/* Opener button acts as the header */}
+        <div className="category-list-header">
+          {openerButton}
+        </div>
+
+        {/* Repository groups */}
+        <div className="category-list-items">
+          {groupedRepos.map((repo) => (
+            <RepositoryGroup
+              key={repo.url}
+              url={repo.url}
+              displayName={repo.displayName}
+              branches={repo.branches}
+              onBranchClick={onItemClick}
+              onRemoveBranch={onItemRemove}
+              onToggleFavorite={(item) => {
+                const isFavorited = 'dateAdded' in item;
+                if (isFavorited && onRemoveFromFavorites) {
+                  onRemoveFromFavorites(item as Favorite);
+                } else if (!isFavorited && onAddToFavorites) {
+                  onAddToFavorites(item as RecentItem);
+                }
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Regular item list (for files and folders)
   return (
     <div className="category-list">
       {/* Opener button acts as the header */}
@@ -74,7 +121,7 @@ export const CategoryList: React.FC<CategoryListProps> = ({
         {/* Recents section */}
         {hasRecents && (
           <div className="recents-list">
-            {recents.map((item) => (
+            {filteredRecents.map((item) => (
               <ItemCard
                 key={item.path}
                 item={item}

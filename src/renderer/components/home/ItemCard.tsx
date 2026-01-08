@@ -20,6 +20,41 @@ interface ItemCardProps {
 }
 
 /**
+ * Abbreviate a path to fit within a constrained width
+ * Shows start and end with "..." in the middle
+ */
+function abbreviatePath(path: string, maxLength: number = 40): string {
+  if (path.length <= maxLength) {
+    return path;
+  }
+
+  // Split by path separator (works for both Windows and Unix)
+  const separator = path.includes('\\') ? '\\' : '/';
+  const parts = path.split(separator);
+
+  // If it's a simple path with few parts, just truncate
+  if (parts.length <= 3) {
+    const start = path.substring(0, maxLength / 2);
+    const end = path.substring(path.length - maxLength / 2);
+    return `${start}...${end}`;
+  }
+
+  // Build abbreviated path: show first part, ellipsis, and last 2-3 parts
+  const firstPart = parts[0] || parts[1]; // Handle absolute paths starting with /
+  const lastParts = parts.slice(-2).join(separator);
+  const abbreviated = `${firstPart}${separator}...${separator}${lastParts}`;
+
+  // If still too long, truncate further
+  if (abbreviated.length > maxLength) {
+    const start = abbreviated.substring(0, maxLength / 2);
+    const end = abbreviated.substring(abbreviated.length - maxLength / 2);
+    return `${start}...${end}`;
+  }
+
+  return abbreviated;
+}
+
+/**
  * Card component for displaying a single item
  *
  * Features:
@@ -66,6 +101,9 @@ export const ItemCard: React.FC<ItemCardProps> = ({
     }
   };
 
+  // Abbreviate the path for display
+  const displayPath = abbreviatePath(item.path, 35);
+
   return (
     <div
       className="item-card"
@@ -79,7 +117,10 @@ export const ItemCard: React.FC<ItemCardProps> = ({
         }
       }}
     >
-      <span className="item-name">{item.displayName}</span>
+      <div className="item-content">
+        <div className="item-name">{item.displayName}</div>
+        <div className="item-path">{displayPath}</div>
+      </div>
       <div className="item-actions">
         {/* Star button: filled for favorites, hollow for non-favorites */}
         {onToggleFavorite && (

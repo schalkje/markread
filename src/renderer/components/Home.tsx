@@ -4,9 +4,11 @@ import { FolderOpener } from './FolderOpener';
 import { CategoryList } from './home/CategoryList';
 import { Toast } from './common/Toast';
 import { useRecentsFavorites } from '../hooks/useRecentsFavorites';
+import { useGitRepo } from '../hooks/useGitRepo';
 import { useFoldersStore } from '../stores/folders';
 import type { RecentItem, Favorite } from '@shared/types/recents-favorites';
 import type { Folder } from '@shared/types/entities.d.ts';
+import type { ConnectRepositoryRequest, ConnectRepositoryResponse } from '@shared/types/git-contracts';
 import './Home.css';
 import './home/styles.css';
 
@@ -14,10 +16,12 @@ interface HomeProps {
   onFileOpened: (filePath: string, content: string) => void;
   onFolderOpened: (folderPath: string) => void;
   onConnectRepository?: () => void;
+  onRepositoryConnected?: (response: ConnectRepositoryResponse) => void;
 }
 
-export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConnectRepository }) => {
+export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConnectRepository, onRepositoryConnected }) => {
   const { recents, favorites, removeRecent, removeFavorite, addFavorite, addRecent, isFavorite, loading, loadAll } = useRecentsFavorites();
+  const { connectRepository } = useGitRepo();
   const { addFolder } = useFoldersStore();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -135,9 +139,55 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
         // Call parent handler to open first file
         onFolderOpened(folderPath);
       } else if (item.type === 'repo') {
-        // Open repository connect dialog (user will need to reconnect)
-        if (onConnectRepository) {
-          onConnectRepository();
+        // Extract URL and branch from path (format: url#branch)
+        const [repoUrl, branchFromPath] = item.path.split('#');
+
+        // Also parse branch from display name as fallback (format: "repoName (branchName)")
+        const match = item.displayName.match(/^(.+?)\s*\((.+?)\)$/);
+        const branch = branchFromPath || (match ? match[2] : 'main');
+
+        // Validate that it's a URL, not a local path
+        if (repoUrl.includes('\\') || repoUrl.startsWith('/') || repoUrl.match(/^[A-Za-z]:/)) {
+          // This is a local path, not a URL - we can't use it
+          setErrorMessage('Invalid repository URL in history. Please use "Open Repository" to reconnect.');
+          setTimeout(() => setErrorMessage(null), 5000);
+          return;
+        }
+
+        // Connect directly to repository with the specific branch
+        const request: ConnectRepositoryRequest = {
+          url: repoUrl,
+          authMethod: 'oauth',
+          initialBranch: branch,
+        };
+
+        try {
+          const response = await connectRepository(request);
+          console.log('[Home] Repository connected:', response);
+
+          if (response && onRepositoryConnected) {
+            onRepositoryConnected(response);
+
+            // Update recents with the correct repository URL from the response
+            const repoName = response.displayName || response.url.split('/').pop() || 'Repository';
+            // Include branch in path so each branch is tracked separately
+            const pathWithBranch = `${response.url}#${branch}`;
+            console.log('[Home] Adding repository to recents:', { path: pathWithBranch, displayName: `${repoName} (${branch})` });
+
+            await addRecent({
+              path: pathWithBranch, // Include branch in path for separate tracking
+              type: 'repo',
+              displayName: `${repoName} (${branch})`
+            });
+
+            console.log('[Home] Repository added to recents successfully');
+          }
+        } catch (repoError) {
+          // If connection fails, show error
+          console.error('[Home] Error connecting to repository:', repoError);
+          const errMsg = repoError instanceof Error ? repoError.message : 'Failed to connect to repository';
+          setErrorMessage(errMsg);
+          setTimeout(() => setErrorMessage(null), 5000);
         }
       }
     } catch (err) {
@@ -268,6 +318,7 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
             onItemRemove={handleItemRemove}
             onAddToFavorites={handleAddToFavorites}
             onRemoveFromFavorites={handleRemoveFromFavorites}
+            isRepositoryList={true}
           />
         )}
       </div>

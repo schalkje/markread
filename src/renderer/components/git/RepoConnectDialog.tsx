@@ -11,7 +11,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useGitRepo } from '../../hooks/useGitRepo';
-import { recentsFavoritesService } from '../../services/recents-favorites-service';
+import { useRecentsFavorites } from '../../hooks/useRecentsFavorites';
 import type { ConnectRepositoryRequest, BranchInfo } from '../../../shared/types/git-contracts';
 import { getConnectionHistory, groupConnectionHistory, type ConnectionHistoryEntry, type GroupedHistoryRepository } from '../../utils/connection-history';
 import { sortBranchesByPriority, getDefaultBranch } from '../../../shared/utils/repository-utils';
@@ -56,6 +56,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   onConnected,
 }) => {
   const { connectRepository, isConnecting, error } = useGitRepo();
+  const { addRecent } = useRecentsFavorites();
 
   // Form state
   const [url, setUrl] = useState('');
@@ -498,16 +499,19 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
         if (response) {
           onConnected?.(response);
 
-          // T019: Track repository in recents
+          // T019: Track repository in recents using Zustand store
           try {
-            const repoName = response.repositoryName || url.split('/').pop() || 'Repository';
+            const repoName = response.displayName || url.split('/').pop() || 'Repository';
             const displayName = `${repoName} (${selectedBranch})`;
-            await recentsFavoritesService.addRecent({
-              path: url,
+            // Include branch in path so each branch is tracked separately
+            const pathWithBranch = `${url}#${selectedBranch}`;
+            console.log('[RepoConnectDialog] Adding repository to recents:', { path: pathWithBranch, displayName });
+            await addRecent({
+              path: pathWithBranch,
               type: 'repo',
-              lastOpened: Date.now(),
               displayName
             });
+            console.log('[RepoConnectDialog] Repository added to recents successfully');
           } catch (error) {
             console.error('[RepoConnectDialog] Failed to track repository in recents:', error);
           }

@@ -91,8 +91,13 @@ export class RecentsManager {
 
   /**
    * Normalize path for cross-platform consistency
+   * Skips normalization for URLs (repository paths)
    */
   private normalizePath(itemPath: string): string {
+    // Don't normalize URLs - they should be kept as-is
+    if (itemPath.startsWith('http://') || itemPath.startsWith('https://')) {
+      return itemPath;
+    }
     return path.normalize(path.resolve(itemPath));
   }
 
