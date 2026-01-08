@@ -45,6 +45,7 @@ import {
   registerApplicationCommands,
 } from '../services/command-service';
 import { generateDirectFileTabId, generateFolderFileTabId, generateRepoFileTabId } from '../utils/tab-id';
+import { removeFromConnectionHistory } from '../utils/connection-history';
 import type { Folder } from '@shared/types/entities.d.ts';
 import './AppLayout.css';
 
@@ -60,7 +61,7 @@ const AppLayout: React.FC = () => {
   const { tabs, activeTabId } = useTabsStore();
   const activeTab = activeTabId ? tabs.get(activeTabId) : null;
   const { folders, activeFolderId } = useFoldersStore();
-  const { addRecent } = useRecentsFavorites();
+  const { addRecent, removeRecent, removeFavorite } = useRecentsFavorites();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
   const [revealFilePath, setRevealFilePath] = useState<string | null>(null); // File to reveal in sidebar
 
@@ -2387,18 +2388,35 @@ const AppLayout: React.FC = () => {
                       message: `Opened ${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
                       type: 'success',
                     });
-                  }
 
-                  // Track this branch in recents
-                  try {
-                    const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                    await addRecent({
-                      path: pathWithBranch,
-                      type: 'repo',
-                      displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
+                    // Track this branch in recents
+                    try {
+                      const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                      await addRecent({
+                        path: pathWithBranch,
+                        type: 'repo',
+                        displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
+                      });
+                    } catch (error) {
+                      console.error('[AppLayout] Failed to track repository branch in recents:', error);
+                    }
+                  } else {
+                    // Branch opening failed - remove from recents, favorites, and connection history
+                    try {
+                      const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                      await removeRecent(pathWithBranch, 'repo');
+                      await removeFavorite(pathWithBranch, 'repo');
+                      removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+                      console.log('[AppLayout] Removed unavailable repository branch from recents/favorites/history');
+                    } catch (removeError) {
+                      console.error('[AppLayout] Failed to remove unavailable repository branch:', removeError);
+                    }
+
+                    // Show error toast
+                    setToast({
+                      message: `This branch has been removed. Failed to load repository branch.`,
+                      type: 'error',
                     });
-                  } catch (error) {
-                    console.error('[AppLayout] Failed to track repository branch in recents:', error);
                   }
 
                   return;
@@ -2616,21 +2634,38 @@ const AppLayout: React.FC = () => {
                 message: `Opened ${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
                 type: 'success',
               });
+
+              // Track this branch in recents
+              try {
+                const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                await addRecent({
+                  path: pathWithBranch,
+                  type: 'repo',
+                  displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
+                });
+                console.log('[AppLayout] Repository branch tracked in recents:', { path: pathWithBranch });
+              } catch (error) {
+                console.error('[AppLayout] Failed to track repository branch in recents:', error);
+              }
             } else {
               console.error('[AppLayout] Failed to open repository branch via openRepositoryBranch');
-            }
 
-            // Track this branch in recents
-            try {
-              const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-              await addRecent({
-                path: pathWithBranch,
-                type: 'repo',
-                displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
+              // Branch opening failed - remove from recents, favorites, and connection history
+              try {
+                const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                await removeRecent(pathWithBranch, 'repo');
+                await removeFavorite(pathWithBranch, 'repo');
+                removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+                console.log('[AppLayout] Removed unavailable repository branch from recents/favorites/history');
+              } catch (removeError) {
+                console.error('[AppLayout] Failed to remove unavailable repository branch:', removeError);
+              }
+
+              // Show error toast
+              setToast({
+                message: `This branch has been removed. Failed to load repository branch.`,
+                type: 'error',
               });
-              console.log('[AppLayout] Repository branch tracked in recents:', { path: pathWithBranch });
-            } catch (error) {
-              console.error('[AppLayout] Failed to track repository branch in recents:', error);
             }
 
             return; // Don't continue with manual folder creation
@@ -2838,9 +2873,56 @@ const AppLayout: React.FC = () => {
               }
             } else {
               console.warn('[AppLayout] onConnected - Tree fetch failed or no data:', treeResult?.error);
+
+              // Tree fetch failed - clean up the failed connection
+              const { removeFolder } = useFoldersStore.getState();
+              removeFolder(repoFolder.id);
+
+              // Remove from recents, favorites, and connection history
+              try {
+                const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                await removeRecent(pathWithBranch, 'repo');
+                await removeFavorite(pathWithBranch, 'repo');
+                removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+                console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
+              } catch (removeError) {
+                console.error('[AppLayout] Failed to remove unavailable repository:', removeError);
+              }
+
+              // Show error toast
+              const errorMsg = treeResult?.error?.message || 'Failed to load repository';
+              setToast({
+                message: `This branch has been removed. ${errorMsg}`,
+                type: 'error',
+              });
+
+              return; // Don't show success toast
             }
           } catch (err) {
             console.error('[AppLayout] Error loading first repository file:', err);
+
+            // Clean up on error
+            const { removeFolder } = useFoldersStore.getState();
+            removeFolder(repoFolder.id);
+
+            // Remove from recents, favorites, and connection history
+            try {
+              const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+              await removeRecent(pathWithBranch, 'repo');
+              await removeFavorite(pathWithBranch, 'repo');
+              removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+              console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
+            } catch (removeError) {
+              console.error('[AppLayout] Failed to remove unavailable repository:', removeError);
+            }
+
+            // Show error toast
+            setToast({
+              message: `This branch has been removed. ${err instanceof Error ? err.message : 'Unknown error'}`,
+              type: 'error',
+            });
+
+            return; // Don't show success toast
           }
 
           // Show success toast

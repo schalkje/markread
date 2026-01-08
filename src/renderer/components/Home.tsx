@@ -183,10 +183,23 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
             console.log('[Home] Repository added to recents successfully');
           }
         } catch (repoError) {
-          // If connection fails, show error
+          // If connection fails, show error and remove from recents/favorites
           console.error('[Home] Error connecting to repository:', repoError);
           const errMsg = repoError instanceof Error ? repoError.message : 'Failed to connect to repository';
-          setErrorMessage(errMsg);
+          setErrorMessage(`This branch has been removed. ${errMsg}`);
+
+          // Auto-remove item from both recents and favorites
+          try {
+            await removeRecent(item.path, item.type);
+            // Also check if it's a favorite and remove it
+            if ('dateAdded' in item) {
+              await removeFavorite(item.path, item.type);
+            }
+            console.log('[Home] Removed unavailable repository from recents/favorites');
+          } catch (removeError) {
+            console.error('[Home] Failed to remove unavailable repository:', removeError);
+          }
+
           setTimeout(() => setErrorMessage(null), 5000);
         }
       }
