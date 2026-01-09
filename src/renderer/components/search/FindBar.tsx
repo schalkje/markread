@@ -68,25 +68,37 @@ export const FindBar: React.FC<FindBarProps> = ({
     }
   }, [isVisible]);
 
-  // Perform search when query or options change
+  // Perform search when query or options change (with debouncing)
   useEffect(() => {
+    // Clear old results immediately when query changes
+    setFindInPageQuery('');
+    setFindInPageResults(0, 0);
+
     if (!localQuery || !isVisible) {
-      setFindInPageResults(0, 0);
       return;
     }
 
-    const result = onFind(localQuery, findInPageOptions);
-    setFindInPageResults(result.currentIndex, result.totalMatches);
+    // Debounce search: wait 300ms after user stops typing
+    const debounceTimer = setTimeout(() => {
+      // Update global store with the final query (triggers highlighting)
+      setFindInPageQuery(localQuery);
 
-    // Add to history if there are results
-    if (result.totalMatches > 0) {
-      addToHistory({
-        query: localQuery,
-        type: 'inPage',
-        resultsCount: result.totalMatches,
-      });
-    }
-  }, [localQuery, findInPageOptions, isVisible]);
+      const result = onFind(localQuery, findInPageOptions);
+      setFindInPageResults(result.currentIndex, result.totalMatches);
+
+      // Add to history if there are results
+      if (result.totalMatches > 0) {
+        addToHistory({
+          query: localQuery,
+          type: 'inPage',
+          resultsCount: result.totalMatches,
+        });
+      }
+    }, 300);
+
+    // Clear timer if user types again before 300ms
+    return () => clearTimeout(debounceTimer);
+  }, [localQuery, findInPageOptions, isVisible, onFind, setFindInPageQuery, setFindInPageResults, addToHistory]);
 
   const handleClose = () => {
     clearFindInPage();
@@ -97,7 +109,7 @@ export const FindBar: React.FC<FindBarProps> = ({
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setLocalQuery(query);
-    setFindInPageQuery(query);
+    // Don't update global store immediately - let the debounced search do it
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

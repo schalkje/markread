@@ -33,10 +33,14 @@ import {
   registerFileShortcuts,
   unregisterFileShortcuts,
   registerHelpShortcuts,
-  unregisterHelpShortcuts
+  unregisterHelpShortcuts,
+  registerSearchShortcuts,
+  unregisterSearchShortcuts
 } from '../services/keyboard-handler';
 import { ShortcutsReference } from './help/ShortcutsReference';
 import { About } from './help/About';
+import { FindBar } from './search/FindBar'; // T008: Import FindBar component
+import { useSearchStore } from '../stores/search'; // T009: Import search store
 import {
   registerFileCommands,
   registerNavigationCommands,
@@ -83,6 +87,12 @@ const AppLayout: React.FC = () => {
   // Repository connect dialog state
   const [showRepoConnect, setShowRepoConnect] = useState(false);
 
+  // T009: Search bar visibility state
+  const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
+
+  // T009: Access search store for find-in-page functionality
+  const searchStore = useSearchStore();
+
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
 
@@ -104,6 +114,75 @@ const AppLayout: React.FC = () => {
   const toggleSidebar = useCallback(() => {
     setShowSidebar(!showSidebar);
   }, [showSidebar]);
+
+  // T011: Implement handleSearch callback for FindBar
+  const handleSearch = useCallback((query: string, options: { caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }) => {
+    console.log('[AppLayout] handleSearch called:', { query, options, currentContent: currentContent?.length });
+
+    if (!query || !currentContent) {
+      return { currentIndex: 0, totalMatches: 0 };
+    }
+
+    try {
+      let searchPattern: RegExp;
+
+      if (options.useRegex) {
+        // User provided regex pattern
+        const flags = options.caseSensitive ? 'g' : 'gi';
+        searchPattern = new RegExp(query, flags);
+      } else {
+        // Escape special regex characters for literal search
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = options.wholeWord ? `\\b${escapedQuery}\\b` : escapedQuery;
+        const flags = options.caseSensitive ? 'g' : 'gi';
+        searchPattern = new RegExp(pattern, flags);
+      }
+
+      // Find all matches
+      const matches = Array.from(currentContent.matchAll(searchPattern));
+
+      console.log('[AppLayout] Search found matches:', matches.length);
+
+      return {
+        currentIndex: matches.length > 0 ? 0 : -1,
+        totalMatches: matches.length
+      };
+    } catch (error) {
+      console.error('[AppLayout] Search error:', error);
+      return { currentIndex: 0, totalMatches: 0 };
+    }
+  }, [currentContent]);
+
+  // T016: Handle find next match
+  const handleFindNext = useCallback(() => {
+    console.log('[AppLayout] handleFindNext called');
+    const { findInPageCurrentIndex, findInPageTotalMatches } = searchStore;
+
+    if (findInPageTotalMatches > 0) {
+      const nextIndex = (findInPageCurrentIndex + 1) % findInPageTotalMatches;
+      searchStore.setFindInPageResults(nextIndex, findInPageTotalMatches);
+    }
+  }, [searchStore]);
+
+  // T016: Handle find previous match
+  const handleFindPrevious = useCallback(() => {
+    console.log('[AppLayout] handleFindPrevious called');
+    const { findInPageCurrentIndex, findInPageTotalMatches } = searchStore;
+
+    if (findInPageTotalMatches > 0) {
+      const prevIndex = findInPageCurrentIndex === 0
+        ? findInPageTotalMatches - 1
+        : findInPageCurrentIndex - 1;
+      searchStore.setFindInPageResults(prevIndex, findInPageTotalMatches);
+    }
+  }, [searchStore]);
+
+  // T013: Handle closing FindBar
+  const handleCloseFindBar = useCallback(() => {
+    console.log('[AppLayout] handleCloseFindBar called');
+    setIsSearchBarVisible(false);
+    searchStore.clearFindInPage();
+  }, [searchStore]);
 
   // Listen for toggle-sidebar events from TitleBar
   useEffect(() => {
@@ -365,6 +444,19 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
+  // T010: Register CTRL+F event listener for find-in-page
+  useEffect(() => {
+    const handleFindInPage = () => {
+      console.log('[AppLayout] Find in page triggered (CTRL+F)');
+      setIsSearchBarVisible(true);
+    };
+
+    window.addEventListener('menu:find', handleFindInPage);
+    return () => {
+      window.removeEventListener('menu:find', handleFindInPage);
+    };
+  }, []);
+
   // Register all commands for the shortcuts reference
   useEffect(() => {
     // File commands
@@ -515,12 +607,8 @@ const AppLayout: React.FC = () => {
       onFindInPage: () => {
         window.dispatchEvent(new CustomEvent('menu:find'));
       },
-      onFindNext: () => {
-        console.log('Find next not implemented yet');
-      },
-      onFindPrevious: () => {
-        console.log('Find previous not implemented yet');
-      },
+      onFindNext: handleFindNext,
+      onFindPrevious: handleFindPrevious,
       onReplace: () => {
         console.log('Replace not implemented yet');
       },
@@ -553,7 +641,7 @@ const AppLayout: React.FC = () => {
         window.close();
       },
     });
-  }, []);
+  }, [handleFindNext, handleFindPrevious]);
 
   // Memoize callback to prevent unnecessary re-renders
   const handleRenderComplete = useCallback(() => {
@@ -1214,6 +1302,18 @@ const AppLayout: React.FC = () => {
       },
     });
 
+    // Register search shortcuts (Ctrl+F, F3, Shift+F3, Ctrl+Shift+F)
+    registerSearchShortcuts({
+      onFindInPage: () => {
+        setIsSearchBarVisible(true);
+      },
+      onFindNext: handleFindNext,
+      onFindPrevious: handleFindPrevious,
+      onFindInFiles: () => {
+        window.dispatchEvent(new CustomEvent('menu:find-in-files'));
+      },
+    });
+
     // Listen for navigate-to-history events (for Home navigation)
     window.addEventListener('navigate-to-history', handleNavigateToHistory);
     // Listen for directory listing events
@@ -1332,6 +1432,7 @@ const AppLayout: React.FC = () => {
       unregisterTabShortcuts();
       unregisterFileShortcuts();
       unregisterHelpShortcuts();
+      unregisterSearchShortcuts();
       window.removeEventListener('mouseup', handleMouseButtons);
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
@@ -1340,7 +1441,7 @@ const AppLayout: React.FC = () => {
       window.removeEventListener('reveal-in-sidebar', handleRevealInSidebar);
       window.removeEventListener('view-folder-directory', handleViewFolderDirectory);
     };
-  }, []);
+  }, [handleFindNext, handleFindPrevious]);
 
   // Register zoom keyboard shortcuts (Ctrl+=/-/0 for document, Ctrl+Alt+=/-/0 for application)
   useEffect(() => {
@@ -2539,6 +2640,15 @@ const AppLayout: React.FC = () => {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* T012: FindBar for in-page search (CTRL+F) */}
+      <FindBar
+        isVisible={isSearchBarVisible}
+        onClose={handleCloseFindBar}
+        onFind={handleSearch}
+        onFindNext={handleFindNext}
+        onFindPrevious={handleFindPrevious}
+      />
 
       {/* Keyboard Shortcuts Reference */}
       <ShortcutsReference

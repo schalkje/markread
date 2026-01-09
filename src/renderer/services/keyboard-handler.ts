@@ -656,4 +656,80 @@ export function unregisterHelpShortcuts(): void {
   keyboardHandler.unregister('help.showShortcuts');
 }
 
+/**
+ * Register search keyboard shortcuts
+ * - Ctrl+F: Find in page
+ * - F3: Find next
+ * - Shift+F3: Find previous
+ * - Ctrl+Shift+F: Find in files
+ */
+export function registerSearchShortcuts(callbacks: {
+  onFindInPage: () => void;
+  onFindNext?: () => void;
+  onFindPrevious?: () => void;
+  onFindInFiles?: () => void;
+}): void {
+  // Find in page: Ctrl+F
+  keyboardHandler.register({
+    id: 'search.findInPage',
+    keys: ['f', 'F'],
+    ctrlKey: true,
+    shiftKey: false,
+    handler: () => {
+      callbacks.onFindInPage();
+    },
+    description: 'Find in page',
+  });
+
+  // Find next: F3
+  if (callbacks.onFindNext) {
+    keyboardHandler.register({
+      id: 'search.findNext',
+      keys: ['F3'],
+      shiftKey: false,
+      handler: () => {
+        callbacks.onFindNext?.();
+      },
+      description: 'Find next',
+    });
+  }
+
+  // Find previous: Shift+F3
+  if (callbacks.onFindPrevious) {
+    keyboardHandler.register({
+      id: 'search.findPrevious',
+      keys: ['F3'],
+      shiftKey: true,
+      handler: () => {
+        callbacks.onFindPrevious?.();
+      },
+      description: 'Find previous',
+    });
+  }
+
+  // Find in files: Ctrl+Shift+F
+  if (callbacks.onFindInFiles) {
+    keyboardHandler.register({
+      id: 'search.findInFiles',
+      keys: ['f', 'F'],
+      ctrlKey: true,
+      shiftKey: true,
+      handler: () => {
+        callbacks.onFindInFiles?.();
+      },
+      description: 'Find in files',
+    });
+  }
+}
+
+/**
+ * Unregister search shortcuts
+ */
+export function unregisterSearchShortcuts(): void {
+  keyboardHandler.unregister('search.findInPage');
+  keyboardHandler.unregister('search.findNext');
+  keyboardHandler.unregister('search.findPrevious');
+  keyboardHandler.unregister('search.findInFiles');
+}
+
 export default keyboardHandler;
