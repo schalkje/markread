@@ -98,3 +98,38 @@ Support split window: 2 documents horizontal / vertical
 
 
 
+# Find
+Implement search and find, to locate specific text.
+
+## find in document
+CTRL+F
+Connect the option in the Edit menu
+
+- show a search bar above the text: search string, toggles, result hit nr of total; next, previous hit buttons; close search button
+- search a text in the current document
+- toggle to switch on/off case sensitivity (default off)
+- add the option to search using regexp
+
+Output:
+- mark the vertical scroll bar, make the results visible and clickable
+- give all found results a yellow background
+- navigate through the finds (use default shortcuts like vcode)
+
+## find in files
+SHIFT+CTRL+F
+Connect the option in the Edit menu
+
+Search in all files
+- ability to define the scope:
+  - current folder/repo-branch
+  - current folder/repo all branches
+  - all folders/repo's in the folder selector
+
+- toggle to switch on/off case sensitivity (default off)
+- add the option to search using regexp
+
+Output:
+- in the place of the filetree/history, add a pane for search results
+- show the results per folder / file
+- show stats at the folder level and at the file level of how many hits
+- take inspiration from the find in files of vscode
