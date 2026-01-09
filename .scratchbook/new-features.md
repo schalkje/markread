@@ -42,21 +42,6 @@ in the root there is a markread.json file
 
 
 
-# Home page
-## last x opened
-extend with last x opened, sort by last opened
-Make columns; just like the buttons:
-- Files
-- Folders
-- Repo's and branches
-
-On mouse over, see when it was last opened
-
-## favorites
-The user can add/remove favorites and even add a description to them. These favorites, stay on top of the last x opened; sort alphabetically
-
-
-
 ---
 
 
@@ -97,4 +82,10 @@ Support split window: 2 documents horizontal / vertical
   - when starting with a /, it should take the folder root
 
 
+
+---
+
+# Packaging
+Can you analyze the packaging and distribution code that is still there from the wpf implementation; and create a proposition how to change this to a best practice way of working for the new Electron setup.
+The goal is that users can download and install the application on windows machines; Think about installing on other Mac in the future and maybe even mobile devices; but the first mvp should be about installing on windows
 
