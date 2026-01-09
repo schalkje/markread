@@ -6,6 +6,8 @@
 
 import { create } from 'zustand';
 import type { Tab, HistoryEntry } from '@shared/types/entities.d.ts';
+import { generateDirectFileTabId, generateFolderFileTabId, generateRepoFileTabId } from '../utils/tab-id';
+import { useFoldersStore } from './folders';
 
 interface TabsState {
   tabs: Map<string, Tab>;
@@ -533,7 +535,34 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
   // T163i: Open file in new tab
   openFileInNewTab: async (filePath, folderId) => {
-    const { addTab } = get();
+    const { addTab, tabs } = get();
+
+    // Generate deterministic tab ID based on context
+    let tabId: string;
+
+    if (folderId) {
+      // Check if this is a repository folder
+      const { folders } = useFoldersStore.getState();
+      const folder = folders.find(f => f.id === folderId);
+
+      if (folder && folder.type === 'repo' && folder.repositoryId && folder.currentBranch) {
+        // Repository file
+        tabId = generateRepoFileTabId(folder.repositoryId, folder.currentBranch, filePath);
+      } else {
+        // Regular folder file
+        tabId = generateFolderFileTabId(folderId, filePath);
+      }
+    } else {
+      // Direct file
+      tabId = generateDirectFileTabId(filePath);
+    }
+
+    // Check if tab already exists
+    const existingTab = tabs.get(tabId);
+    if (existingTab) {
+      // Tab already exists, just return it
+      return existingTab;
+    }
 
     // Get file name from path
     const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
@@ -541,7 +570,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
     // Create new tab
     const newTab: Tab = {
-      id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      id: tabId,
       filePath,
       title,
       scrollPosition: 0,

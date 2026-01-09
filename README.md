@@ -15,6 +15,7 @@
 - 📄 **Powerful Markdown Rendering** - Full GitHub Flavored Markdown support with syntax highlighting, tables, task lists, and more
 - 🎨 **Beautiful UI** - Modern, professional interface with light and dark themes
 - 🗂️ **Smart Navigation** - File tree sidebar, tabbed interface, and intelligent link resolution
+- ⭐ **Recents & Favorites** - Quick access to recently opened items and bookmark important files, folders, and repositories
 - 🔍 **Advanced Search** - In-page search and global cross-file search capabilities
 - 📊 **Mermaid Diagrams** - Native support for flowcharts, sequence diagrams, and more
 - ⚡ **Fast & Offline** - Instant startup, no internet required, fully local operation
@@ -57,6 +58,37 @@ MarkRead.exe "C:\path\to\your\docs\README.md"
 ```
 
 For detailed usage instructions, see the [Getting Started Guide](documentation/user-guide/getting-started.md).
+
+## ⭐ Recents & Favorites
+
+MarkRead makes it easy to access your frequently used files, folders, and repositories with the Recents and Favorites feature:
+
+### Recent Items
+
+- **Automatic Tracking** - MarkRead automatically remembers the last 10 files, folders, and repositories you opened
+- **Quick Access** - Click any recent item on the Home page to instantly reopen it
+- **Smart Organization** - Recent items are organized by type (Files, Folders, Repos & Branches) and sorted by most recent first
+- **Manual Removal** - Remove items from recents with the × button if they're no longer relevant
+
+### Favorites
+
+- **Bookmark Important Items** - Click the ☆ button on any recent item to add it to your favorites
+- **Persistent Quick Access** - Favorites remain available even after you restart MarkRead
+- **Organized Display** - Favorites appear above recents, sorted alphabetically for easy scanning
+- **Limited Collection** - Keep up to 10 favorites per category to maintain a focused workspace
+
+### Features
+
+- **Duplicate Prevention** - Items in favorites don't appear in recents, keeping your lists clean
+- **Error Handling** - Unavailable items (deleted or moved files) are automatically removed when you try to access them
+- **Tooltips** - Hover over any item to see its full path and timestamp
+- **Fast Performance** - Home page loads in under 500ms for instant access to your workspace
+
+The Recents & Favorites feature is perfect for:
+- Quickly accessing documentation you're currently working on
+- Bookmarking important reference files
+- Switching between multiple project repositories
+- Maintaining a curated list of frequently used resources
 
 ## 📚 Documentation
 
