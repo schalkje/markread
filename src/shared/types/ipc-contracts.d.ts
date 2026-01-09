@@ -436,6 +436,9 @@ export namespace UIStateOperations {
 // Electron API (exposed via preload)
 // ============================================================================
 
+// Import RecentsFavoritesAPI for type safety
+import type { RecentsFavoritesAPI } from './recents-favorites';
+
 export interface ElectronAPI {
   file: {
     openFolderDialog: (payload: FileOperations.OpenFolderRequest) => Promise<FileOperations.OpenFolderResponse>;
@@ -474,6 +477,7 @@ export interface ElectronAPI {
     load: (payload: UIStateOperations.LoadUIStateRequest) => Promise<UIStateOperations.LoadUIStateResponse>;
     save: (payload: UIStateOperations.SaveUIStateRequest) => Promise<UIStateOperations.SaveUIStateResponse>;
   };
+  recentsFavorites: RecentsFavoritesAPI;
   on: (channel: string, callback: (event: any) => void) => void;
 }
 

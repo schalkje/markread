@@ -1,5 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { exposeGitAPI } from './git-api';
+import { IPC_CHANNELS } from '@shared/types/recents-favorites';
+import type {
+  RecentItem,
+  Favorite,
+  ItemType,
+  AddFavoriteResponse,
+  RecentsUpdatedEvent,
+  FavoritesUpdatedEvent
+} from '@shared/types/recents-favorites';
 
 console.log('[Preload] Script starting...');
 
@@ -56,6 +65,20 @@ export interface ElectronAPI {
     load: () => Promise<any>;
     save: (payload: { uiState: any }) => Promise<any>;
   };
+  recentsFavorites: {
+    getRecents: (type: ItemType) => Promise<RecentItem[]>;
+    addRecent: (item: RecentItem) => Promise<void>;
+    removeRecent: (path: string, type: ItemType) => Promise<void>;
+    clearRecents: (type: ItemType) => Promise<void>;
+    hasRecent: (path: string, type: ItemType) => Promise<boolean>;
+    getFavorites: (type: ItemType) => Promise<Favorite[]>;
+    addFavorite: (item: Favorite) => Promise<AddFavoriteResponse>;
+    removeFavorite: (path: string, type: ItemType) => Promise<void>;
+    isFavorite: (path: string, type: ItemType) => Promise<boolean>;
+    getFavoritesCount: (type: ItemType) => Promise<number>;
+    onRecentsUpdated: (callback: (event: RecentsUpdatedEvent) => void) => () => void;
+    onFavoritesUpdated: (callback: (event: FavoritesUpdatedEvent) => void) => () => void;
+  };
   on: (channel: string, callback: (event: any, ...args: any[]) => void) => void;
   // More APIs will be added in later phases
 }
@@ -93,6 +116,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
   uiState: {
     load: () => ipcRenderer.invoke('uiState:load'),
     save: (payload: any) => ipcRenderer.invoke('uiState:save', payload),
+  },
+  recentsFavorites: {
+    getRecents: (type: ItemType) => ipcRenderer.invoke(IPC_CHANNELS.GET_RECENTS, type),
+    addRecent: (item: RecentItem) => ipcRenderer.invoke(IPC_CHANNELS.ADD_RECENT, item),
+    removeRecent: (path: string, type: ItemType) => ipcRenderer.invoke(IPC_CHANNELS.REMOVE_RECENT, path, type),
+    clearRecents: (type: ItemType) => ipcRenderer.invoke(IPC_CHANNELS.CLEAR_RECENTS, type),
+    hasRecent: (path: string, type: ItemType) => ipcRenderer.invoke(IPC_CHANNELS.HAS_RECENT, path, type),
+    getFavorites: (type: ItemType) => ipcRenderer.invoke(IPC_CHANNELS.GET_FAVORITES, type),
+    addFavorite: (item: Favorite) => ipcRenderer.invoke(IPC_CHANNELS.ADD_FAVORITE, item),
+    removeFavorite: (path: string, type: ItemType) => ipcRenderer.invoke(IPC_CHANNELS.REMOVE_FAVORITE, path, type),
+    isFavorite: (path: string, type: ItemType) => ipcRenderer.invoke(IPC_CHANNELS.IS_FAVORITE, path, type),
+    getFavoritesCount: (type: ItemType) => ipcRenderer.invoke(IPC_CHANNELS.GET_FAVORITES_COUNT, type),
+    onRecentsUpdated: (callback: (event: RecentsUpdatedEvent) => void) => {
+      const listener = (_: any, event: RecentsUpdatedEvent) => callback(event);
+      ipcRenderer.on(IPC_CHANNELS.RECENTS_UPDATED, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.RECENTS_UPDATED, listener);
+    },
+    onFavoritesUpdated: (callback: (event: FavoritesUpdatedEvent) => void) => {
+      const listener = (_: any, event: FavoritesUpdatedEvent) => callback(event);
+      ipcRenderer.on(IPC_CHANNELS.FAVORITES_UPDATED, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.FAVORITES_UPDATED, listener);
+    },
   },
   on: (channel: string, callback: (event: any, ...args: any[]) => void) => {
     // T109: Allow renderer to listen for file:changed events and menu commands

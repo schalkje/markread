@@ -50,10 +50,13 @@ Make columns; just like the buttons:
 - Folders
 - Repo's and branches
 
+Take some inspiratin for the ui from the folder selector
+
 On mouse over, see when it was last opened
 
 ## favorites
 The user can add/remove favorites and even add a description to them. These favorites, stay on top of the last x opened; sort alphabetically
+
 
 
 
