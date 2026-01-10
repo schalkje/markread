@@ -433,17 +433,21 @@ const AppLayout: React.FC = () => {
             updateTabZoomLevel(activeTabId, 100);
           }
 
+          // Get fresh tabs after history updates
+          const { tabs: freshTabs } = useTabsStore.getState();
+          const freshTab = freshTabs.get(activeTabId);
+
           // Update tab's file path and title
-          if (currentTab) {
+          if (freshTab) {
             const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
             const updatedTab: Tab = {
-              ...currentTab,
+              ...freshTab,
               filePath: filePath,
               title: fileName,
-              folderId: activeFolderId || currentTab.folderId,
+              folderId: activeFolderId || freshTab.folderId,
             };
-            tabs.set(activeTabId, updatedTab);
-            useTabsStore.setState({ tabs: new Map(tabs) });
+            freshTabs.set(activeTabId, updatedTab);
+            useTabsStore.setState({ tabs: new Map(freshTabs) });
           }
         }
 
