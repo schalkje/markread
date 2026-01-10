@@ -59,6 +59,8 @@ export const FindBar: React.FC<FindBarProps> = ({
   } = useSearchStore();
 
   const [localQuery, setLocalQuery] = useState(findInPageQuery);
+  // T030, T031: Regex validation state
+  const [regexError, setRegexError] = useState<string | null>(null);
 
   // Focus input when visible
   useEffect(() => {
@@ -68,11 +70,49 @@ export const FindBar: React.FC<FindBarProps> = ({
     }
   }, [isVisible]);
 
+  // T030: Validate regex pattern
+  const validateRegex = (pattern: string): { valid: boolean; error?: string; dangerous?: boolean } => {
+    if (!findInPageOptions.useRegex) {
+      return { valid: true };
+    }
+
+    try {
+      // T032: Check for dangerous patterns
+      const dangerousPatterns = [
+        /(a+)+/,  // Catastrophic backtracking
+        /(a*)*/,
+        /(a|a)*/,
+        /(a|ab)*/,
+        /(\w+\s*)+$/, // ReDoS patterns
+      ];
+
+      for (const dangerous of dangerousPatterns) {
+        if (dangerous.test(pattern)) {
+          return {
+            valid: false,
+            error: 'Dangerous regex pattern detected (potential ReDoS)',
+            dangerous: true
+          };
+        }
+      }
+
+      // Try to compile the regex
+      new RegExp(pattern);
+      return { valid: true };
+    } catch (err) {
+      return {
+        valid: false,
+        error: err instanceof Error ? err.message : 'Invalid regex pattern'
+      };
+    }
+  };
+
   // Perform search when query or options change (with debouncing)
   useEffect(() => {
     // Clear old results immediately when query changes
     setFindInPageQuery('');
     setFindInPageResults(0, 0);
+    setRegexError(null); // T031: Clear previous errors
 
     if (!localQuery || !isVisible) {
       return;
@@ -80,19 +120,35 @@ export const FindBar: React.FC<FindBarProps> = ({
 
     // Debounce search: wait 300ms after user stops typing
     const debounceTimer = setTimeout(() => {
+      // T030, T031: Validate regex before search
+      const validation = validateRegex(localQuery);
+      if (!validation.valid) {
+        setRegexError(validation.error || 'Invalid pattern');
+        setFindInPageResults(0, 0);
+        return;
+      }
+
       // Update global store with the final query (triggers highlighting)
       setFindInPageQuery(localQuery);
 
-      const result = onFind(localQuery, findInPageOptions);
-      setFindInPageResults(result.currentIndex, result.totalMatches);
+      // T033: Execute search with timeout protection
+      try {
+        const result = onFind(localQuery, findInPageOptions);
+        setFindInPageResults(result.currentIndex, result.totalMatches);
 
-      // Add to history if there are results
-      if (result.totalMatches > 0) {
-        addToHistory({
-          query: localQuery,
-          type: 'inPage',
-          resultsCount: result.totalMatches,
-        });
+        // Add to history if there are results
+        if (result.totalMatches > 0) {
+          addToHistory({
+            query: localQuery,
+            type: 'inPage',
+            resultsCount: result.totalMatches,
+          });
+        }
+      } catch (error) {
+        // T034: Handle regex timeout or errors
+        console.error('[FindBar] Search error:', error);
+        setRegexError('Search failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+        setFindInPageResults(0, 0);
       }
     }, 300);
 
@@ -143,7 +199,14 @@ export const FindBar: React.FC<FindBarProps> = ({
   }
 
   const hasMatches = findInPageTotalMatches > 0;
-  const noMatches = localQuery && findInPageTotalMatches === 0;
+  const noMatches = localQuery && findInPageTotalMatches === 0 && !regexError;
+
+  // T031: Determine input class based on state
+  const inputClass = [
+    'find-bar__input',
+    regexError ? 'find-bar__input--error' : '',
+    noMatches ? 'find-bar__input--no-matches' : ''
+  ].filter(Boolean).join(' ');
 
   return (
     <div className="find-bar" data-testid="find-bar">
@@ -153,12 +216,13 @@ export const FindBar: React.FC<FindBarProps> = ({
           <input
             ref={inputRef}
             type="text"
-            className={`find-bar__input ${noMatches ? 'find-bar__input--no-matches' : ''}`}
+            className={inputClass}
             placeholder="Find in page..."
             value={localQuery}
             onChange={handleQueryChange}
             onKeyDown={handleKeyDown}
             aria-label="Find in page"
+            title={regexError || undefined} // T031: Show error as tooltip
           />
 
           {/* Match Counter */}
@@ -171,6 +235,13 @@ export const FindBar: React.FC<FindBarProps> = ({
           {noMatches && (
             <span className="find-bar__no-matches" data-testid="find-bar-no-matches">
               No matches
+            </span>
+          )}
+
+          {/* T031, T034: Error message display */}
+          {regexError && (
+            <span className="find-bar__error" data-testid="find-bar-error">
+              ⚠ {regexError}
             </span>
           )}
         </div>

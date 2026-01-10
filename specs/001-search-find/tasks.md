@@ -51,10 +51,10 @@
 
 **⚠️ CRITICAL**: Phase 2 must be complete before US4 (Multi-File Search) can start. US1-US3 can proceed independently.
 
-- [ ] T004 Create IPC preload bridge in src/preload/search-api.ts per contracts/search-ipc.md
-- [ ] T005 [P] Create IPC handlers in src/main/ipc/search-handlers.ts per contracts/search-ipc.md
-- [ ] T006 [P] Add TypeScript global declarations for window.api.search in src/renderer/global.d.ts
-- [ ] T007 Register IPC handlers in src/main/index.ts startup sequence
+- [X] T004 Create IPC preload bridge in src/preload/search-api.ts per contracts/search-ipc.md
+- [X] T005 [P] Create IPC handlers in src/main/ipc/search-handlers.ts per contracts/search-ipc.md
+- [X] T006 [P] Add TypeScript global declarations for window.api.search in src/renderer/global.d.ts
+- [X] T007 Register IPC handlers in src/main/index.ts startup sequence
 
 **Checkpoint**: IPC infrastructure ready - US4 can now be implemented
 
@@ -136,15 +136,15 @@
 
 ### Integration Tasks for US3
 
-- [ ] T026 [US3] Wire FindBar case sensitivity toggle to update searchOptions.caseSensitive in search store
-- [ ] T027 [US3] Wire FindBar regex mode toggle to update searchOptions.useRegex in search store
-- [ ] T028 [US3] Update search execution logic in MarkdownViewer.tsx to respect caseSensitive flag
-- [ ] T029 [US3] Update search execution logic in MarkdownViewer.tsx to treat query as regex when useRegex=true
-- [ ] T030 [US3] Add regex validation in FindBar.tsx to detect invalid patterns before search execution
-- [ ] T031 [US3] Display error indicator in FindBar.tsx when regex pattern is invalid (red border + tooltip)
-- [ ] T032 [US3] Implement dangerous regex detection in src/main/search-service.ts per research.md patterns
-- [ ] T033 [US3] Add 5-second timeout protection for regex execution per contracts/search-ipc.md
-- [ ] T034 [US3] Display error message in FindBar.tsx when regex is blocked or times out
+- [X] T026 [US3] Wire FindBar case sensitivity toggle to update searchOptions.caseSensitive in search store
+- [X] T027 [US3] Wire FindBar regex mode toggle to update searchOptions.useRegex in search store
+- [X] T028 [US3] Update search execution logic in MarkdownViewer.tsx to respect caseSensitive flag
+- [X] T029 [US3] Update search execution logic in MarkdownViewer.tsx to treat query as regex when useRegex=true
+- [X] T030 [US3] Add regex validation in FindBar.tsx to detect invalid patterns before search execution
+- [X] T031 [US3] Display error indicator in FindBar.tsx when regex pattern is invalid (red border + tooltip)
+- [X] T032 [US3] Implement dangerous regex detection in src/main/search-service.ts per research.md patterns
+- [X] T033 [US3] Add 5-second timeout protection for regex execution per contracts/search-ipc.md
+- [X] T034 [US3] Display error message in FindBar.tsx when regex is blocked or times out
 
 **Checkpoint**: User Story 3 complete - advanced search options work with validation
 
@@ -169,22 +169,22 @@
 
 ### Integration Tasks for US4
 
-- [ ] T035 [US4] Import SearchResults component into src/renderer/components/AppLayout.tsx
-- [ ] T036 [US4] Add find-in-files visibility state (isFindInFilesVisible, activeSearch) to AppLayout.tsx
-- [ ] T037 [US4] Register SHIFT+CTRL+F and menu:find-in-files event listeners in AppLayout.tsx
-- [ ] T038 [US4] Implement sidebar panel toggle logic in AppLayout.tsx: when isFindInFilesVisible=true, render SearchResults instead of FileTree
-- [ ] T039 [US4] Render SearchResults component conditionally in left sidebar of AppLayout.tsx
-- [ ] T040 [US4] Implement handleSearchInFiles callback in AppLayout.tsx that calls window.api.search.inFiles per IPC contracts
-- [ ] T041 [US4] Connect SearchResults onSearch callback to handleSearchInFiles in AppLayout.tsx
-- [ ] T042 [US4] Wire IPC progress events to update SearchResults component with filesSearched/totalFiles counters
-- [ ] T043 [US4] Wire IPC complete event to display final results in SearchResults component
-- [ ] T044 [US4] Wire IPC error event to display error message in SearchResults component
-- [ ] T045 [US4] Implement result click handler in SearchResults.tsx to open file via existing file opening mechanism
-- [ ] T046 [US4] Pass search query to opened file to trigger highlighting (reuse US1 highlighting logic)
-- [ ] T047 [US4] Implement "Back to File Tree" button in SearchResults.tsx header that sets isFindInFilesVisible=false
-- [ ] T048 [US4] Add cancellation button to SearchResults.tsx that calls window.api.search.cancel
-- [ ] T049 [US4] Implement file type filter toggle (Markdown / All Text Files) in SearchResults.tsx
-- [ ] T050 [US4] Update search request to include fileTypeFilter from SearchResults UI state
+- [X] T035 [US4] Import SearchResults component into src/renderer/components/AppLayout.tsx
+- [X] T036 [US4] Add find-in-files visibility state (isFindInFilesVisible, activeSearch) to AppLayout.tsx
+- [X] T037 [US4] Register SHIFT+CTRL+F and menu:find-in-files event listeners in AppLayout.tsx
+- [X] T038 [US4] Implement sidebar panel toggle logic in AppLayout.tsx: when isFindInFilesVisible=true, render SearchResults instead of FileTree
+- [X] T039 [US4] Render SearchResults component conditionally in left sidebar of AppLayout.tsx
+- [X] T040 [US4] Implement handleSearchInFiles callback in AppLayout.tsx that calls window.api.search.inFiles per IPC contracts
+- [X] T041 [US4] Connect SearchResults onSearch callback to handleSearchInFiles in AppLayout.tsx
+- [X] T042 [US4] Wire IPC progress events to update SearchResults component with filesSearched/totalFiles counters
+- [X] T043 [US4] Wire IPC complete event to display final results in SearchResults component
+- [X] T044 [US4] Wire IPC error event to display error message in SearchResults component
+- [X] T045 [US4] Implement result click handler in SearchResults.tsx to open file via existing file opening mechanism
+- [X] T046 [US4] Pass search query to opened file to trigger highlighting (reuse US1 highlighting logic)
+- [X] T047 [US4] Implement "Back to File Tree" button in SearchResults.tsx header that sets isFindInFilesVisible=false
+- [X] T048 [US4] Add cancellation button to SearchResults.tsx that calls window.api.search.cancel
+- [X] T049 [US4] Implement file type filter toggle (Markdown / All Text Files) in SearchResults.tsx
+- [X] T050 [US4] Update search request to include fileTypeFilter from SearchResults UI state
 
 **Checkpoint**: User Story 4 complete - multi-file search works with progress and cancellation
 

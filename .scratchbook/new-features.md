@@ -136,3 +136,7 @@ Output:
 - show the results per folder / file
 - show stats at the folder level and at the file level of how many hits
 - take inspiration from the find in files of vscode
+
+
+the search in files seams to need the search in file box. What's the idea here?
+Currently the Find in page text is not filled; so it is not working. Shouldn't it be separate functionality, or do they need to use each other?

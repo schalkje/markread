@@ -19,7 +19,7 @@ export interface SearchResultsProps {
   /** Callback when search panel should close */
   onClose: () => void;
   /** Callback when a search result is clicked */
-  onResultClick?: (filePath: string, lineNumber: number) => void;
+  onResultClick?: (filePath: string, lineNumber: number, event: React.MouseEvent) => void;
   /** Callback to start a new search */
   onSearch?: (query: string) => void;
   /** Callback to cancel active search */
@@ -46,8 +46,17 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
   const [showOptions, setShowOptions] = useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
   const recentSearches = getRecentSearches(5);
+
+  // Focus input when visible
+  useEffect(() => {
+    if (isVisible && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isVisible]);
 
   // Auto-expand files with results
   useEffect(() => {
@@ -81,8 +90,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
     });
   };
 
-  const handleResultClick = (filePath: string, lineNumber: number) => {
-    onResultClick?.(filePath, lineNumber);
+  const handleResultClick = (filePath: string, lineNumber: number, event: React.MouseEvent) => {
+    onResultClick?.(filePath, lineNumber, event);
   };
 
   const handleRecentSearchClick = (query: string) => {
@@ -124,6 +133,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
       <div className="search-results__search">
         <div className="search-results__input-container">
           <input
+            ref={inputRef}
             type="text"
             className="search-results__input"
             placeholder="Search across all files..."
@@ -273,8 +283,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
               result={result}
               isExpanded={expandedFiles.has(result.filePath)}
               onToggle={() => toggleFile(result.filePath)}
-              onMatchClick={(lineNumber) =>
-                handleResultClick(result.filePath, lineNumber)
+              onMatchClick={(lineNumber, event) =>
+                handleResultClick(result.filePath, lineNumber, event)
               }
             />
           ))}
@@ -298,7 +308,7 @@ interface SearchResultFileProps {
   result: SearchResult;
   isExpanded: boolean;
   onToggle: () => void;
-  onMatchClick: (lineNumber: number) => void;
+  onMatchClick: (lineNumber: number, event: React.MouseEvent) => void;
 }
 
 const SearchResultFile: React.FC<SearchResultFileProps> = ({
@@ -332,7 +342,7 @@ const SearchResultFile: React.FC<SearchResultFileProps> = ({
             <SearchResultMatch
               key={`${match.lineNumber}-${index}`}
               match={match}
-              onClick={() => onMatchClick(match.lineNumber)}
+              onClick={(event) => onMatchClick(match.lineNumber, event)}
             />
           ))}
         </div>
@@ -346,7 +356,7 @@ const SearchResultFile: React.FC<SearchResultFileProps> = ({
  */
 interface SearchResultMatchProps {
   match: SearchMatch;
-  onClick: () => void;
+  onClick: (event: React.MouseEvent) => void;
 }
 
 const SearchResultMatch: React.FC<SearchResultMatchProps> = ({ match, onClick }) => {

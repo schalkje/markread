@@ -10,7 +10,6 @@ export interface SearchQuery {
   caseSensitive: boolean;
   wholeWord: boolean;
   useRegex: boolean;
-  fileTypeFilter?: 'markdown' | 'allText';
   repositoryScope?: 'current' | 'allBranches' | 'allRepos';
   excludePatterns?: string[];
   includeHiddenFiles?: boolean;
@@ -85,7 +84,6 @@ export interface SearchOptions {
   caseSensitive: boolean;
   wholeWord: boolean;
   useRegex: boolean;
-  fileTypeFilter: 'markdown' | 'allText';
   repositoryScope: 'current' | 'allBranches' | 'allRepos';
   excludePatterns: string[];
   includeHiddenFiles: boolean;
@@ -97,22 +95,16 @@ export interface SearchOptions {
  * Search request from renderer to main process
  */
 export interface SearchRequest {
-  searchId: string;
   query: string;
-  options: {
-    caseSensitive: boolean;
-    wholeWord: boolean;
-    useRegex: boolean;
-    excludePatterns: string[];
-    includeHiddenFiles: boolean;
+  folderPath: string; // root path for inFiles search
+  options?: {
+    caseSensitive?: boolean;
+    wholeWord?: boolean;
+    useRegex?: boolean;
+    excludePatterns?: string[];
+    includeHiddenFiles?: boolean;
   };
-  scope: {
-    type: 'inPage' | 'inFiles';
-    fileTypeFilter?: 'markdown' | 'allText';
-    repositoryScope?: 'current' | 'allBranches' | 'allRepos';
-    currentFilePath?: string; // for inPage search
-    searchPath?: string; // root path for inFiles search
-  };
+  maxResults?: number; // max number of results (default: 1000)
 }
 
 /**
@@ -147,10 +139,27 @@ export interface SearchErrorEvent {
 }
 
 /**
+ * Search response (IPC return value)
+ */
+export interface SearchResponse {
+  success: boolean;
+  searchId: string;
+  error?: string;
+}
+
+/**
  * Cancel search request
  */
-export interface CancelSearchRequest {
+export interface SearchCancelRequest {
   searchId: string;
+}
+
+/**
+ * Cancel search response
+ */
+export interface SearchCancelResponse {
+  success: boolean;
+  error?: string;
 }
 
 /**
