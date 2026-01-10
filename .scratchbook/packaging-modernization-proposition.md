@@ -8,7 +8,9 @@
 
 ## Executive Summary
 
-MarkRead has successfully migrated from .NET WPF to Electron (v0.5.0), but the packaging and distribution infrastructure remains locked in the legacy WPF paradigm. This document proposes a comprehensive modernization to Electron best practices, focusing on Windows MVP while planning for future Mac and mobile distribution.
+MarkRead has successfully migrated from .NET WPF to Electron (v0.5.0), but the packaging and distribution infrastructure remains locked in the legacy WPF paradigm. 
+1. Remove the old packaging
+2. Implement a packaging and distribution infrastructure following  Electron best practices, focusing on Windows while planning for future Mac and mobile distribution.
 
 **Key Issues:**
 - CI/CD pipelines still build WPF MSI installers (non-functional)
@@ -1367,8 +1369,3 @@ require('electron').ipcRenderer.invoke('check-for-updates')
 - [Windows App Certification Kit](https://developer.microsoft.com/en-us/windows/develop/app-certification-kit)
 
 ---
-
-**Document Version:** 1.0
-**Last Updated:** 2026-01-09
-**Author:** Claude (Anthropic)
-**Status:** READY FOR REVIEW
