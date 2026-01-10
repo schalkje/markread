@@ -381,14 +381,14 @@ export class SearchService {
    * Send completion event to renderer
    */
   private sendCompletion(window: BrowserWindow, search: ActiveSearch): void {
-    const durationMs = Date.now() - search.startTime;
+    const executionTime = Date.now() - search.startTime;
 
-    window.webContents.send('search:completed', {
+    window.webContents.send('search:complete', {
       searchId: search.id,
-      totalResults: search.resultsFound,
-      filesWithMatches: 0, // Could track this separately if needed
-      durationMs,
-      cancelled: search.cancelled,
+      results: [], // Results already sent incrementally via search:result
+      totalMatches: search.resultsFound,
+      filesSearched: search.filesSearched,
+      executionTime: executionTime,
     });
   }
 

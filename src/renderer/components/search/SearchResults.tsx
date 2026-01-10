@@ -50,13 +50,21 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
   const recentSearches = getRecentSearches(5);
 
-  // Focus input when visible
+  // Restore search query from active search when becoming visible
   useEffect(() => {
-    if (isVisible && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+    if (isVisible) {
+      // Restore query from active search if available
+      if (activeSearch && activeSearch.query && !searchQuery) {
+        setSearchQuery(activeSearch.query);
+      }
+
+      // Focus input
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
     }
-  }, [isVisible]);
+  }, [isVisible, activeSearch]);
 
   // Auto-expand files with results
   useEffect(() => {
@@ -116,19 +124,6 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
   return (
     <div className="search-results" data-testid="search-results">
-      {/* Header */}
-      <div className="search-results__header">
-        <h2 className="search-results__title">Search in Files</h2>
-        <button
-          className="search-results__close"
-          onClick={onClose}
-          title="Close search panel"
-          aria-label="Close search panel"
-        >
-          ×
-        </button>
-      </div>
-
       {/* Search Input */}
       <div className="search-results__search">
         <div className="search-results__input-container">
