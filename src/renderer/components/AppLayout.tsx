@@ -71,8 +71,13 @@ const AppLayout: React.FC = () => {
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
   const [revealFilePath, setRevealFilePath] = useState<string | null>(null); // File to reveal in sidebar
 
-  // Sidebar view state: 'files' or 'history'
-  const [sidebarView, setSidebarView] = useState<'files' | 'history'>('files');
+  // Sidebar view state: 'files', 'history', or 'search'
+  const [sidebarView, setSidebarView] = useState<'files' | 'history' | 'search'>('files');
+
+  // Sidebar width state (resizable)
+  const [sidebarWidth, setSidebarWidth] = useState(250);
+  const minSidebarWidth = 150;
+  const maxSidebarWidth = 600;
 
   // Home view state - tracks if home page is active
   const [showHome, setShowHome] = useState(false);
@@ -91,9 +96,6 @@ const AppLayout: React.FC = () => {
 
   // T009: Search bar visibility state
   const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
-
-  // T036: Find-in-files panel visibility state
-  const [isFindInFilesVisible, setIsFindInFilesVisible] = useState(false);
 
   // T009: Access search store for find-in-page functionality
   const searchStore = useSearchStore();
@@ -277,12 +279,33 @@ const AppLayout: React.FC = () => {
 
   // T038: Handle search panel close
   const handleCloseSearchPanel = useCallback(() => {
-    setIsFindInFilesVisible(false);
+    setSidebarView('files'); // Switch back to files view
     // Cancel search if active
     if (searchStore.activeSearch?.isActive) {
       handleCancelSearch();
     }
   }, [searchStore.activeSearch, handleCancelSearch]);
+
+  // Handle sidebar resize
+  const handleSidebarResize = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = sidebarWidth;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - startX;
+      const newWidth = Math.min(maxSidebarWidth, Math.max(minSidebarWidth, startWidth + deltaX));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [sidebarWidth, minSidebarWidth, maxSidebarWidth]);
 
   // T045, T046: Handle search result click with highlighting
   const handleSearchResultClick = useCallback(async (filePath: string, lineNumber: number, event: React.MouseEvent) => {
@@ -748,9 +771,8 @@ const AppLayout: React.FC = () => {
   useEffect(() => {
     const handleFindInFiles = () => {
       console.log('[AppLayout] Find in files triggered (CTRL+SHIFT+F)');
-      setIsFindInFilesVisible(true);
       setShowSidebar(true); // Ensure sidebar is visible
-      setSidebarView('files'); // Switch to files view
+      setSidebarView('search'); // Switch to search view
     };
 
     window.addEventListener('menu:find-in-files', handleFindInFiles);
@@ -2383,12 +2405,15 @@ const AppLayout: React.FC = () => {
       <div className="app-layout__content">
         {/* Only show sidebar if there are tabs or folders */}
         {showSidebar && hasContent && (
-          <div className="sidebar">
+          <div
+            className={`sidebar ${sidebarWidth < 200 ? 'sidebar--narrow' : ''}`}
+            style={{ width: `${sidebarWidth}px` }}
+          >
             <div className="sidebar-header">
             {/* T111-T113: Folder Switcher */}
             {folders.length > 0 && <FolderSwitcher onFolderOpened={handleFolderOpened} />}
 
-            {/* Sidebar view toggle: Files / History */}
+            {/* Sidebar view toggle: Files / History / Search */}
             {tabs.size > 0 && (
               <div className="sidebar-view-toggle">
                 <button
@@ -2396,34 +2421,48 @@ const AppLayout: React.FC = () => {
                   onClick={() => setSidebarView('files')}
                   title="Show File Tree"
                   type="button"
+                  data-sidebar-width={sidebarWidth}
                 >
-                  📁 Files
+                  <span className="sidebar-view-toggle__icon">📁</span>
+                  <span className="sidebar-view-toggle__text">Files</span>
                 </button>
                 <button
                   className={`sidebar-view-toggle__button ${sidebarView === 'history' ? 'sidebar-view-toggle__button--active' : ''}`}
                   onClick={() => setSidebarView('history')}
                   title="Show Navigation History"
                   type="button"
+                  data-sidebar-width={sidebarWidth}
                 >
-                  🕐 History
+                  <span className="sidebar-view-toggle__icon">🕐</span>
+                  <span className="sidebar-view-toggle__text">History</span>
+                </button>
+                <button
+                  className={`sidebar-view-toggle__button ${sidebarView === 'search' ? 'sidebar-view-toggle__button--active' : ''}`}
+                  onClick={() => setSidebarView('search')}
+                  title="Search in Files"
+                  type="button"
+                  data-sidebar-width={sidebarWidth}
+                >
+                  <span className="sidebar-view-toggle__icon">🔍</span>
+                  <span className="sidebar-view-toggle__text">Search</span>
                 </button>
               </div>
             )}
           </div>
           <div className="sidebar-content">
-            {/* T039: Show SearchResults when find-in-files is active */}
-            {isFindInFilesVisible ? (
+            {/* Show Search Panel when search view is active */}
+            {sidebarView === 'search' && (
               <SearchResults
-                isVisible={isFindInFilesVisible}
+                isVisible={true}
                 onClose={handleCloseSearchPanel}
                 onSearch={handleSearchInFiles}
                 onCancel={handleCancelSearch}
                 onResultClick={handleSearchResultClick}
               />
-            ) : (
-              <>
-                {/* Show History Panel when history view is active */}
-                {sidebarView === 'history' && tabs.size > 0 && (
+            )}
+
+            {/* Show History Panel when history view is active */}
+            {sidebarView === 'history' && tabs.size > 0 && (
               <HistoryPanel
                 onHistoryEntryClick={(index) => {
                   // Navigate to the selected history entry
@@ -2744,9 +2783,8 @@ const AppLayout: React.FC = () => {
                 </div>
               );
             })()}
-              </>
-            )}
           </div>
+          <div className="sidebar-resize-handle" onMouseDown={handleSidebarResize}></div>
           </div>
         )}
 
