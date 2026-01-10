@@ -483,19 +483,20 @@ const AppLayout: React.FC = () => {
           }
         }
 
-        // Set the search query in FindBar store
-        searchStore.setFindInPageQuery(activeSearch.query);
-
-        // Copy search options from multi-file search to in-page search
-        searchStore.setFindInPageOptions({
-          caseSensitive: searchStore.searchInFilesOptions.caseSensitive,
-          wholeWord: searchStore.searchInFilesOptions.wholeWord,
-          useRegex: searchStore.searchInFilesOptions.useRegex,
-        });
-
-        // Set the match index and total matches
-        // Use setTimeout to ensure the query is set first and content is rendered
+        // Set all search state together after content is rendered
+        // This prevents the effect from running with default currentIndex=0 before the correct index is set
         setTimeout(() => {
+          // Set the search query in FindBar store
+          searchStore.setFindInPageQuery(activeSearch.query);
+
+          // Copy search options from multi-file search to in-page search
+          searchStore.setFindInPageOptions({
+            caseSensitive: searchStore.searchInFilesOptions.caseSensitive,
+            wholeWord: searchStore.searchInFilesOptions.wholeWord,
+            useRegex: searchStore.searchInFilesOptions.useRegex,
+          });
+
+          // Set the match index and total matches
           const totalMatches = fileResult?.matches.length || 0;
           searchStore.setFindInPageResults(matchIndex, totalMatches);
 

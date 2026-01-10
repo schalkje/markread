@@ -141,6 +141,12 @@ export const FindBar: React.FC<FindBarProps> = ({
       return;
     }
 
+    // Skip search if query already matches and we have results (state already set externally)
+    if (localQuery === findInPageQuery && findInPageTotalMatches > 0) {
+      setIsSearchPending(false);
+      return;
+    }
+
     // Mark search as pending to prevent "no matches" flash
     setIsSearchPending(true);
 
