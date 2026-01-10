@@ -9,6 +9,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { useFoldersStore } from '../stores/folders';
+import { recentsFavoritesService } from '../services/recents-favorites-service';
+import { useRecentsFavorites } from '../hooks/useRecentsFavorites';
 import { MarkdownViewer } from './markdown/MarkdownViewer';
 import { Home } from './Home';
 import { FileTree } from './sidebar/FileTree';
@@ -42,6 +44,8 @@ import {
   registerSearchCommands,
   registerApplicationCommands,
 } from '../services/command-service';
+import { generateDirectFileTabId, generateFolderFileTabId, generateRepoFileTabId } from '../utils/tab-id';
+import { removeFromConnectionHistory } from '../utils/connection-history';
 import type { Folder } from '@shared/types/entities.d.ts';
 import './AppLayout.css';
 
@@ -57,6 +61,7 @@ const AppLayout: React.FC = () => {
   const { tabs, activeTabId } = useTabsStore();
   const activeTab = activeTabId ? tabs.get(activeTabId) : null;
   const { folders, activeFolderId } = useFoldersStore();
+  const { addRecent, removeRecent, removeFavorite } = useRecentsFavorites();
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
   const [revealFilePath, setRevealFilePath] = useState<string | null>(null); // File to reveal in sidebar
 
@@ -236,40 +241,59 @@ const AppLayout: React.FC = () => {
 
               console.log('[AppLayout] Creating tab for new branch:', branchName);
 
-              // Create a tab for this file
-              const fileName = firstFilePath.split('/').pop() || 'Untitled';
-              const newTab = {
-                id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-                filePath: firstFilePath,
-                title: fileName,
-                scrollPosition: 0,
-                zoomLevel: 100,
-                searchState: null,
-                modificationTimestamp: Date.now(),
-                isDirty: false,
-                renderCache: null,
-                navigationHistory: [{
+              // Check ALL tabs for one matching this file in this repository folder context
+              const existingTab = Array.from(tabs.values()).find(t =>
+                t.filePath === firstFilePath && t.folderId === folderId
+              );
+
+              if (existingTab) {
+                // Tab already exists, just set it as active
+                setActiveTab(existingTab.id);
+                console.log('[AppLayout] Reusing existing tab:', {
+                  tabId: existingTab.id,
+                  folderId: existingTab.folderId,
+                  filePath: existingTab.filePath,
+                });
+              } else {
+                // Generate deterministic tab ID for repo file
+                const tabId = generateRepoFileTabId(repositoryId, branchName, firstFilePath);
+
+                // Create a tab for this file
+                const fileName = firstFilePath.split('/').pop() || 'Untitled';
+                const newTab = {
+                  id: tabId,
                   filePath: firstFilePath,
+                  title: fileName,
                   scrollPosition: 0,
-                  scrollLeft: 0,
                   zoomLevel: 100,
-                  timestamp: Date.now(),
-                }],
-                currentHistoryIndex: 0,
-                forwardHistory: [],
-                createdAt: Date.now(),
-                folderId: folderId,
-                isDirectFile: false,
-              };
+                  searchState: null,
+                  modificationTimestamp: Date.now(),
+                  isDirty: false,
+                  renderCache: null,
+                  navigationHistory: [{
+                    filePath: firstFilePath,
+                    scrollPosition: 0,
+                    scrollLeft: 0,
+                    zoomLevel: 100,
+                    timestamp: Date.now(),
+                  }],
+                  currentHistoryIndex: 0,
+                  forwardHistory: [],
+                  createdAt: Date.now(),
+                  folderId: folderId,
+                  isDirectFile: false,
+                };
 
-              addTab(newTab);
-              setActiveTab(newTab.id);
+                addTab(newTab);
+                setActiveTab(newTab.id);
+                setShowHome(false); // Hide home page and show file viewer
 
-              console.log('[AppLayout] Tab created:', {
-                tabId: newTab.id,
-                folderId: newTab.folderId,
-                filePath: newTab.filePath,
-              });
+                console.log('[AppLayout] Tab created:', {
+                  tabId: newTab.id,
+                  folderId: newTab.folderId,
+                  filePath: newTab.filePath,
+                });
+              }
 
               // Set the file content
               setCurrentFile(firstFilePath);
@@ -891,8 +915,9 @@ const AppLayout: React.FC = () => {
       initializingFoldersRef.current.add(activeFolderId);
 
       // Call handleFolderOpened to create a tab for this folder
+      // Skip repositories - they handle tab creation differently
       const activeFolder = folders.find(f => f.id === activeFolderId);
-      if (activeFolder) {
+      if (activeFolder && activeFolder.type !== 'repository') {
         handleFolderOpened(activeFolder.path).finally(() => {
           // Remove from initializing set after tab is created
           initializingFoldersRef.current.delete(activeFolderId);
@@ -1378,43 +1403,82 @@ const AppLayout: React.FC = () => {
    * T039: Handle file opened from FileOpener component
    * Updates current file state and loads content
    * T063: Also creates a tab for the opened file
+   *
+   * @param filePath - Path to the file
+   * @param content - File content
+   * @param forceContext - Force a specific context ('direct' or 'folder'), useful when opening from home page
    */
-  const handleFileOpened = async (filePath: string, content: string) => {
+  const handleFileOpened = async (filePath: string, content: string, forceContext?: 'direct' | 'folder') => {
     setCurrentFile(filePath);
     contentCacheRef.current.set(filePath, content);
     setCurrentContent(content);
     setError(null);
 
-    // T063: Create a tab for this file if it doesn't exist
-    const { tabs, addTab } = useTabsStore.getState();
-    const existingTab = Array.from(tabs.values()).find(t => t.filePath === filePath);
+    // T063: Create a tab for this file with deterministic ID based on context
+    const { tabs, addTab, setActiveTab } = useTabsStore.getState();
+    const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
 
-    if (!existingTab) {
-      const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
-      const newTab = {
-        id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+    // Determine the context for this file
+    const shouldUseFolderContext = forceContext === 'folder' || (forceContext !== 'direct' && activeFolderId);
+    const contextFolderId = shouldUseFolderContext && activeFolderId ? activeFolderId : null;
+
+    // Check ALL tabs to find one that matches BOTH file path AND context
+    // This allows the same file to exist in different contexts (direct vs folder)
+    const existingTab = Array.from(tabs.values()).find(t =>
+      t.filePath === filePath && t.folderId === contextFolderId
+    );
+
+    if (existingTab) {
+      // Tab already exists for this file in this context, just switch to it
+      setActiveTab(existingTab.id);
+      setShowHome(false); // Hide home page and show file viewer
+      return;
+    }
+
+    // No existing tab found, create new one with appropriate context
+    const tabId = contextFolderId
+      ? generateFolderFileTabId(contextFolderId, filePath)
+      : generateDirectFileTabId(filePath);
+
+    // Create new tab with deterministic ID
+    const newTab = {
+      id: tabId,
+      filePath,
+      title: fileName,
+      scrollPosition: 0,
+      zoomLevel: 100,
+      searchState: null,
+      modificationTimestamp: Date.now(),
+      isDirty: false,
+      renderCache: null,
+      navigationHistory: [{
         filePath,
-        title: fileName,
         scrollPosition: 0,
+        scrollLeft: 0,
         zoomLevel: 100,
-        searchState: null,
-        modificationTimestamp: Date.now(),
-        isDirty: false,
-        renderCache: null,
-        navigationHistory: [{
-          filePath,
-          scrollPosition: 0,
-          scrollLeft: 0,
-          zoomLevel: 100,
-          timestamp: Date.now(),
-        }],
-        currentHistoryIndex: 0, // Start at position 0 (home)
-        forwardHistory: [],
-        createdAt: Date.now(),
-        folderId: activeFolderId, // Connect to active folder if available
-        isDirectFile: !activeFolderId, // Mark as direct file if no active folder
-      };
-      addTab(newTab);
+        timestamp: Date.now(),
+      }],
+      currentHistoryIndex: 0, // Start at position 0 (home)
+      forwardHistory: [],
+      createdAt: Date.now(),
+      folderId: shouldUseFolderContext && activeFolderId ? activeFolderId : null,
+      isDirectFile: !shouldUseFolderContext, // Mark as direct file based on context
+    };
+    addTab(newTab);
+    setActiveTab(newTab.id); // Activate the newly created tab
+    setShowHome(false); // Hide home page and show file viewer
+
+    // T017: Track file in recents
+    try {
+      const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
+      await recentsFavoritesService.addRecent({
+        path: filePath,
+        type: 'file',
+        lastOpened: Date.now(),
+        displayName: fileName
+      });
+    } catch (error) {
+      console.error('[AppLayout] Failed to track file in recents:', error);
     }
   };
 
@@ -1583,17 +1647,23 @@ const AppLayout: React.FC = () => {
             setError(null);
 
             // Create a tab for this file with the correct folder ID
-            const existingTab = Array.from(tabs.values()).find(t => t.filePath === firstFilePath);
+            // Check ALL tabs for one matching this file in this folder context
+            const existingTab = Array.from(tabs.values()).find(t =>
+              t.filePath === firstFilePath && t.folderId === folderId
+            );
 
             if (existingTab) {
               // Tab already exists, just set it as active
               const { setActiveTab } = useTabsStore.getState();
               setActiveTab(existingTab.id);
+              setShowHome(false); // Hide home page and show file viewer
             } else {
+              // Generate deterministic tab ID for this folder file
+              const tabId = generateFolderFileTabId(folderId, firstFilePath);
               // Create new tab
               const fileName = firstFilePath.split(/[/\\]/).pop() || 'Untitled';
               const newTab = {
-                id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+                id: tabId,
                 filePath: firstFilePath,
                 title: fileName,
                 scrollPosition: 0,
@@ -1620,6 +1690,7 @@ const AppLayout: React.FC = () => {
               // Set the new tab as active so it's visible
               const { setActiveTab } = useTabsStore.getState();
               setActiveTab(newTab.id);
+              setShowHome(false); // Hide home page and show file viewer
             }
           }
         } else {
@@ -1629,14 +1700,16 @@ const AppLayout: React.FC = () => {
           const folderName = folderPath.split(/[/\\]/).pop() || 'Folder';
           const overviewPath = `${folderPath}/[Folder Overview]`;
 
-          // Check if tab already exists for this folder
+          // Check ALL tabs for folder overview in this folder context
           const existingTab = Array.from(tabs.values()).find(t =>
-            t.folderId === folderId && t.filePath.includes('[Folder Overview]')
+            t.filePath === overviewPath && t.folderId === folderId
           );
 
           if (!existingTab) {
+            // Generate deterministic tab ID for folder overview
+            const tabId = generateFolderFileTabId(folderId, overviewPath);
             const newTab = {
-              id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+              id: tabId,
               filePath: overviewPath,
               title: `${folderName}/`,
               scrollPosition: 0,
@@ -1663,12 +1736,35 @@ const AppLayout: React.FC = () => {
             // Set the new tab as active so it's visible
             const { setActiveTab } = useTabsStore.getState();
             setActiveTab(newTab.id);
+          } else {
+            // Tab already exists, just set it as active
+            const { setActiveTab } = useTabsStore.getState();
+            setActiveTab(existingTab.id);
           }
 
           // Set empty content with a message
           setCurrentFile(overviewPath);
           setCurrentContent(`# ${folderName}\n\n*This folder contains no markdown files.*\n\nCreate a markdown file to get started.`);
           setError(null);
+        }
+      }
+
+      // T018: Track folder in recents
+      // Skip repositories - they should be tracked separately as 'repo' type
+      const { folders: allFolders } = useFoldersStore.getState();
+      const isRepository = allFolders.find(f => f.path === folderPath && f.type === 'repository');
+
+      if (!isRepository) {
+        try {
+          const folderName = folderPath.split(/[/\\]/).pop() || 'Folder';
+          await recentsFavoritesService.addRecent({
+            path: folderPath,
+            type: 'folder',
+            lastOpened: Date.now(),
+            displayName: folderName
+          });
+        } catch (error) {
+          console.error('[AppLayout] Failed to track folder in recents:', error);
         }
       }
     } catch (err) {
@@ -2068,35 +2164,18 @@ const AppLayout: React.FC = () => {
                     revealFilePath={revealFilePath}
                     onFileSelect={async (filePath) => {
                       try {
-                        // IMPORTANT: Use the FileTree's folderId, not activeFolderId from store
-                        // This ensures we fetch from the correct branch when multiple branches are open
+                        // Single click: Navigate within current tab, add to history
                         const activeFolder = folders.find(f => f.id === activeFolderId);
                         let fileContent: string | null = null;
 
-                        console.log('[AppLayout] onFileSelect called:', {
-                          filePath,
-                          fileTreeFolderId: activeFolderId,
-                          activeFolderId,
-                          hasActiveFolder: !!activeFolder,
-                          folderType: activeFolder?.type,
-                          isRepository: activeFolder?.type === 'repository',
-                          repositoryId: activeFolder?.repositoryId,
-                          currentBranch: activeFolder?.currentBranch,
-                        });
+                        console.log('[AppLayout] onFileSelect - navigating to:', filePath);
 
                         if (activeFolder?.type === 'repository') {
                           // Load file from repository using Git API
-                          console.log('[AppLayout] onFileSelect - Using Git API');
                           const result = await window.git?.repo?.fetchFile({
                             repositoryId: activeFolder.repositoryId!,
                             filePath: filePath,
                             branch: activeFolder.currentBranch!,
-                          });
-
-                          console.log('[AppLayout] onFileSelect - Git API result:', {
-                            success: result?.success,
-                            hasData: !!result?.data,
-                            error: result?.error,
                           });
 
                           if (result?.success && result.data) {
@@ -2104,7 +2183,6 @@ const AppLayout: React.FC = () => {
                           }
                         } else {
                           // Load file from local file system
-                          console.log('[AppLayout] onFileSelect - Using file system API');
                           const result = await window.electronAPI?.file?.read({ filePath });
                           if (result?.success && result.content) {
                             fileContent = result.content;
@@ -2112,14 +2190,11 @@ const AppLayout: React.FC = () => {
                         }
 
                         if (fileContent) {
-                          // Mark as manually loaded
                           contentLoadedManually.current = true;
-
-                          // Clear loading and error states
                           setIsLoading(false);
                           setError(null);
 
-                          // T065: Add NEW location to navigation history
+                          // Add to current tab's history
                           const { activeTabId, tabs, addHistoryEntry, updateTabZoomLevel } = useTabsStore.getState();
 
                           if (activeTabId) {
@@ -2127,7 +2202,7 @@ const AppLayout: React.FC = () => {
 
                             // Add the NEW file to history if navigating to a different file
                             if (currentTab && currentTab.filePath && currentTab.filePath !== filePath) {
-                              // First, update CURRENT file's history entry with current scroll/zoom
+                              // Save current file's state to history
                               const viewer = document.querySelector('.markdown-viewer') as HTMLElement;
                               const currentScrollTop = viewer?.scrollTop || currentTab.scrollPosition || 0;
                               const currentScrollLeft = viewer?.scrollLeft || currentTab.scrollLeft || 0;
@@ -2139,46 +2214,36 @@ const AppLayout: React.FC = () => {
                                 timestamp: Date.now(),
                               });
 
-                              console.log('[FileTree] Adding history entry for new file:', filePath);
-                              // Then add NEW file to history with reset zoom
+                              // Add new file to history
                               addHistoryEntry(activeTabId, {
-                                filePath: filePath, // Add the NEW file, not the current one!
-                                scrollPosition: 0,  // New file starts at top
-                                scrollLeft: 0,      // New file starts at left
-                                zoomLevel: 100,     // Reset zoom to 100%
+                                filePath: filePath,
+                                scrollPosition: 0,
+                                scrollLeft: 0,
+                                zoomLevel: 100,
                                 timestamp: Date.now(),
                               });
 
                               // Reset zoom for new file
                               updateTabZoomLevel(activeTabId, 100);
-                            } else {
-                              console.log('[FileTree] Skipped history:', {
-                                hasTab: !!currentTab,
-                                currentFilePath: currentTab?.filePath,
-                                newFilePath: filePath,
-                                sameFile: currentTab?.filePath === filePath
-                              });
                             }
                           }
 
-                          // Update file and content atomically
+                          // Update file and content
                           setCurrentFile(filePath);
                           contentCacheRef.current.set(filePath, fileContent);
                           setCurrentContent(fileContent);
 
-                          // Update active tab to reflect the new file being viewed
-                          // IMPORTANT: Get FRESH state after addHistoryEntry to avoid overwriting history!
-                          // IMPORTANT: Update folderId to match the folder from which the file was selected
+                          // Update active tab's file path
                           if (activeTabId) {
-                            const { tabs: freshTabs } = useTabsStore.getState(); // Get fresh state!
+                            const { tabs: freshTabs } = useTabsStore.getState();
                             const freshTab = freshTabs.get(activeTabId);
                             if (freshTab) {
                               const fileName = filePath.split(/[/\\\/]/).pop() || 'Untitled';
                               const updatedTab = {
-                                ...freshTab, // Use fresh tab with updated history!
+                                ...freshTab,
                                 filePath: filePath,
                                 title: fileName,
-                                folderId: activeFolderId, // Update folder ID to match the FileTree's folder
+                                folderId: activeFolderId,
                               };
                               freshTabs.set(activeTabId, updatedTab);
                               useTabsStore.setState({ tabs: new Map(freshTabs) });
@@ -2187,42 +2252,18 @@ const AppLayout: React.FC = () => {
                         } else {
                           setError('Failed to load file');
                         }
-                      } catch (err) {
-                        console.error('Error loading file from tree:', err);
+                      } catch (error) {
+                        console.error('[AppLayout] Error in onFileSelect:', error);
                         setError('Failed to load file');
                         setIsLoading(false);
                       }
                     }}
                     onFileOpen={async (filePath) => {
-                      try {
-                        // Get the active folder to determine if it's a repository
-                        const activeFolder = folders.find(f => f.id === activeFolderId);
-                        let fileContent: string | null = null;
-
-                        if (activeFolder?.type === 'repository') {
-                          // Load file from repository using Git API
-                          const result = await window.git?.repo?.fetchFile({
-                            repositoryId: activeFolder.repositoryId!,
-                            filePath: filePath,
-                            branch: activeFolder.currentBranch!,
-                          });
-
-                          if (result?.success && result.data) {
-                            fileContent = result.data.content;
-                          }
-                        } else {
-                          // Load file from local file system
-                          const result = await window.electronAPI?.file?.read({ filePath });
-                          if (result?.success && result.content) {
-                            fileContent = result.content;
-                          }
-                        }
-
-                        if (fileContent) {
-                          await handleFileOpened(filePath, fileContent);
-                        }
-                      } catch (err) {
-                        console.error('Error opening file:', err);
+                      // Double-click: Same as single click (navigate within current tab)
+                      // Trigger the same handler
+                      const fileTree = document.querySelector('.file-tree');
+                      if (fileTree) {
+                        fileTree.dispatchEvent(new CustomEvent('file-select', { detail: { filePath } }));
                       }
                     }}
                   />
@@ -2283,6 +2324,145 @@ const AppLayout: React.FC = () => {
               onFileOpened={handleFileOpened}
               onFolderOpened={handleFolderOpened}
               onConnectRepository={() => setShowRepoConnect(true)}
+              onRepositoryConnected={async (connectedRepository) => {
+                // Same logic as RepoConnectDialog's onConnected
+                if (!connectedRepository) {
+                  console.error('[AppLayout] No connected repository data received');
+                  return;
+                }
+
+                console.log('[AppLayout] Repository connected from Home:', {
+                  repositoryId: connectedRepository.repositoryId,
+                  currentBranch: connectedRepository.currentBranch,
+                  displayName: connectedRepository.displayName,
+                });
+
+                // Check if this repository/branch combination is already open
+                const { folders, addFolder, setActiveFolder } = useFoldersStore.getState();
+                const targetFolderId = `repo:${connectedRepository.repositoryId}:${connectedRepository.currentBranch}`;
+
+                const existingFolder = folders.find(f => f.id === targetFolderId);
+
+                if (existingFolder) {
+                  // This exact repo/branch is already open - activate it
+                  setActiveFolder(targetFolderId);
+
+                  // Find and activate the first tab for this folder
+                  const { tabs, setActiveTab } = useTabsStore.getState();
+                  const folderTabs = Array.from(tabs.values()).filter(tab => tab.folderId === targetFolderId);
+
+                  if (folderTabs.length > 0) {
+                    setActiveTab(folderTabs[0].id);
+                    setCurrentFile(folderTabs[0].filePath);
+                    setShowHome(false);
+
+                    setToast({
+                      message: `${existingFolder.displayName} is already open. Switched to existing tab.`,
+                      type: 'info',
+                    });
+                  } else {
+                    setToast({
+                      message: `${existingFolder.displayName} is already open. Folder activated.`,
+                      type: 'info',
+                    });
+                  }
+
+                  return;
+                }
+
+                // Check if same repository but different branch is open
+                const sameRepoFolder = folders.find(
+                  f => f.type === 'repository' && f.repositoryId === connectedRepository.repositoryId
+                );
+
+                if (sameRepoFolder) {
+                  // Use openRepositoryBranch for consistency
+                  const { openRepositoryBranch } = useFoldersStore.getState();
+                  const newFolder = await openRepositoryBranch(
+                    connectedRepository.repositoryId,
+                    connectedRepository.currentBranch
+                  );
+
+                  if (newFolder) {
+                    setToast({
+                      message: `Opened ${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
+                      type: 'success',
+                    });
+
+                    // Track this branch in recents
+                    try {
+                      const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                      await addRecent({
+                        path: pathWithBranch,
+                        type: 'repo',
+                        displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
+                      });
+                    } catch (error) {
+                      console.error('[AppLayout] Failed to track repository branch in recents:', error);
+                    }
+                  } else {
+                    // Branch opening failed - remove from recents, favorites, and connection history
+                    try {
+                      const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                      await removeRecent(pathWithBranch, 'repo');
+                      await removeFavorite(pathWithBranch, 'repo');
+                      removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+                      console.log('[AppLayout] Removed unavailable repository branch from recents/favorites/history');
+                    } catch (removeError) {
+                      console.error('[AppLayout] Failed to remove unavailable repository branch:', removeError);
+                    }
+
+                    // Show error toast
+                    setToast({
+                      message: `This branch has been removed. Failed to load repository branch.`,
+                      type: 'error',
+                    });
+                  }
+
+                  return;
+                }
+
+                // Create a folder entry for the repository (first branch only)
+                const repoFolder: Folder = {
+                  id: `repo:${connectedRepository.repositoryId}:${connectedRepository.currentBranch}`,
+                  path: connectedRepository.url,
+                  displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
+                  type: 'repository',
+                  fileTreeState: {
+                    expandedDirectories: new Set<string>(),
+                    scrollPosition: 0,
+                    selectedPath: null,
+                  },
+                  activeFolderId: null,
+                  tabCollection: [],
+                  activeTabId: null,
+                  recentFiles: [],
+                  splitLayout: {
+                    rootPane: {
+                      id: 'pane-root',
+                      tabs: [],
+                      activeTabId: null,
+                      orientation: 'vertical',
+                      sizeRatio: 1.0,
+                      splitChildren: null,
+                    },
+                    layoutType: 'single',
+                  },
+                  createdAt: Date.now(),
+                  lastAccessedAt: Date.now(),
+                  repositoryId: connectedRepository.repositoryId,
+                  currentBranch: connectedRepository.currentBranch,
+                  url: connectedRepository.url,
+                };
+
+                addFolder(repoFolder);
+                setActiveFolder(repoFolder.id);
+
+                setToast({
+                  message: `Connected to ${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
+                  type: 'success',
+                });
+              }}
             />
           ) : (
             <MarkdownViewer
@@ -2454,8 +2634,38 @@ const AppLayout: React.FC = () => {
                 message: `Opened ${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
                 type: 'success',
               });
+
+              // Track this branch in recents
+              try {
+                const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                await addRecent({
+                  path: pathWithBranch,
+                  type: 'repo',
+                  displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
+                });
+                console.log('[AppLayout] Repository branch tracked in recents:', { path: pathWithBranch });
+              } catch (error) {
+                console.error('[AppLayout] Failed to track repository branch in recents:', error);
+              }
             } else {
               console.error('[AppLayout] Failed to open repository branch via openRepositoryBranch');
+
+              // Branch opening failed - remove from recents, favorites, and connection history
+              try {
+                const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                await removeRecent(pathWithBranch, 'repo');
+                await removeFavorite(pathWithBranch, 'repo');
+                removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+                console.log('[AppLayout] Removed unavailable repository branch from recents/favorites/history');
+              } catch (removeError) {
+                console.error('[AppLayout] Failed to remove unavailable repository branch:', removeError);
+              }
+
+              // Show error toast
+              setToast({
+                message: `This branch has been removed. Failed to load repository branch.`,
+                type: 'error',
+              });
             }
 
             return; // Don't continue with manual folder creation
@@ -2578,40 +2788,62 @@ const AppLayout: React.FC = () => {
                   console.log('[AppLayout] onConnected - Folder ID:', repoFolder.id);
                   console.log('[AppLayout] onConnected - Existing tabs count:', tabs.size);
 
-                  // Create a tab for this file
-                  const fileName = firstFilePath.split('/').pop() || 'Untitled';
-                  const newTab = {
-                    id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-                    filePath: firstFilePath,
-                    title: fileName,
-                    scrollPosition: 0,
-                    zoomLevel: 100,
-                    searchState: null,
-                    modificationTimestamp: Date.now(),
-                    isDirty: false,
-                    renderCache: null,
-                    navigationHistory: [{
+                  // Check ALL tabs for one matching this file in this repository folder context
+                  const existingTab = Array.from(tabs.values()).find(t =>
+                    t.filePath === firstFilePath && t.folderId === repoFolder.id
+                  );
+
+                  if (existingTab) {
+                    // Tab already exists, just set it as active
+                    setActiveTab(existingTab.id);
+                    console.log('[AppLayout] onConnected - Reusing existing tab:', {
+                      tabId: existingTab.id,
+                      folderId: existingTab.folderId,
+                      filePath: existingTab.filePath,
+                    });
+                  } else {
+                    // Generate deterministic tab ID for repo file
+                    const tabId = generateRepoFileTabId(
+                      connectedRepository.repositoryId,
+                      connectedRepository.currentBranch,
+                      firstFilePath
+                    );
+                    // Create a tab for this file
+                    const fileName = firstFilePath.split('/').pop() || 'Untitled';
+                    const newTab = {
+                      id: tabId,
                       filePath: firstFilePath,
+                      title: fileName,
                       scrollPosition: 0,
-                      scrollLeft: 0,
                       zoomLevel: 100,
-                      timestamp: Date.now(),
-                    }],
-                    currentHistoryIndex: 0,
-                    forwardHistory: [],
-                    createdAt: Date.now(),
-                    folderId: repoFolder.id,
-                    isDirectFile: false,
-                  };
+                      searchState: null,
+                      modificationTimestamp: Date.now(),
+                      isDirty: false,
+                      renderCache: null,
+                      navigationHistory: [{
+                        filePath: firstFilePath,
+                        scrollPosition: 0,
+                        scrollLeft: 0,
+                        zoomLevel: 100,
+                        timestamp: Date.now(),
+                      }],
+                      currentHistoryIndex: 0,
+                      forwardHistory: [],
+                      createdAt: Date.now(),
+                      folderId: repoFolder.id,
+                      isDirectFile: false,
+                    };
 
-                  addTab(newTab);
-                  setActiveTab(newTab.id);
+                    addTab(newTab);
+                    setActiveTab(newTab.id);
+                    setShowHome(false); // Hide home page and show file viewer
 
-                  console.log('[AppLayout] onConnected - Tab created and activated:', {
-                    tabId: newTab.id,
-                    folderId: newTab.folderId,
-                    filePath: newTab.filePath,
-                  });
+                    console.log('[AppLayout] onConnected - Tab created and activated:', {
+                      tabId: newTab.id,
+                      folderId: newTab.folderId,
+                      filePath: newTab.filePath,
+                    });
+                  }
 
                   // Set the file content
                   setCurrentFile(firstFilePath);
@@ -2620,6 +2852,19 @@ const AppLayout: React.FC = () => {
                   setError(null);
 
                   console.log('[AppLayout] onConnected - File content set for tab');
+
+                  // Track repository in recents
+                  try {
+                    // Include branch in path so each branch is tracked separately
+                    const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                    await addRecent({
+                      path: pathWithBranch,
+                      type: 'repo',
+                      displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
+                    });
+                  } catch (error) {
+                    console.error('[AppLayout] Failed to track repository in recents:', error);
+                  }
                 } else {
                   console.warn('[AppLayout] onConnected - Failed to fetch file or no data:', fileResult?.error);
                 }
@@ -2628,9 +2873,56 @@ const AppLayout: React.FC = () => {
               }
             } else {
               console.warn('[AppLayout] onConnected - Tree fetch failed or no data:', treeResult?.error);
+
+              // Tree fetch failed - clean up the failed connection
+              const { removeFolder } = useFoldersStore.getState();
+              removeFolder(repoFolder.id);
+
+              // Remove from recents, favorites, and connection history
+              try {
+                const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                await removeRecent(pathWithBranch, 'repo');
+                await removeFavorite(pathWithBranch, 'repo');
+                removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+                console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
+              } catch (removeError) {
+                console.error('[AppLayout] Failed to remove unavailable repository:', removeError);
+              }
+
+              // Show error toast
+              const errorMsg = treeResult?.error?.message || 'Failed to load repository';
+              setToast({
+                message: `This branch has been removed. ${errorMsg}`,
+                type: 'error',
+              });
+
+              return; // Don't show success toast
             }
           } catch (err) {
             console.error('[AppLayout] Error loading first repository file:', err);
+
+            // Clean up on error
+            const { removeFolder } = useFoldersStore.getState();
+            removeFolder(repoFolder.id);
+
+            // Remove from recents, favorites, and connection history
+            try {
+              const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+              await removeRecent(pathWithBranch, 'repo');
+              await removeFavorite(pathWithBranch, 'repo');
+              removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+              console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
+            } catch (removeError) {
+              console.error('[AppLayout] Failed to remove unavailable repository:', removeError);
+            }
+
+            // Show error toast
+            setToast({
+              message: `This branch has been removed. ${err instanceof Error ? err.message : 'Unknown error'}`,
+              type: 'error',
+            });
+
+            return; // Don't show success toast
           }
 
           // Show success toast

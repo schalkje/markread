@@ -11,8 +11,9 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useGitRepo } from '../../hooks/useGitRepo';
+import { useRecentsFavorites } from '../../hooks/useRecentsFavorites';
 import type { ConnectRepositoryRequest, BranchInfo } from '../../../shared/types/git-contracts';
-import { getConnectionHistory, groupConnectionHistory, type ConnectionHistoryEntry, type GroupedHistoryRepository } from '../../utils/connection-history';
+import { getConnectionHistory, groupConnectionHistory, removeFromConnectionHistory, type ConnectionHistoryEntry, type GroupedHistoryRepository } from '../../utils/connection-history';
 import { sortBranchesByPriority, getDefaultBranch } from '../../../shared/utils/repository-utils';
 import './RepoConnectDialog.css';
 
@@ -55,6 +56,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   onConnected,
 }) => {
   const { connectRepository, isConnecting, error } = useGitRepo();
+  const { addRecent, removeRecent, removeFavorite } = useRecentsFavorites();
 
   // Form state
   const [url, setUrl] = useState('');
@@ -496,6 +498,23 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
         // Success - notify parent with the connected repository data
         if (response) {
           onConnected?.(response);
+
+          // T019: Track repository in recents using Zustand store
+          try {
+            const repoName = response.displayName || url.split('/').pop() || 'Repository';
+            const displayName = `${repoName} (${selectedBranch})`;
+            // Include branch in path so each branch is tracked separately
+            const pathWithBranch = `${url}#${selectedBranch}`;
+            console.log('[RepoConnectDialog] Adding repository to recents:', { path: pathWithBranch, displayName });
+            await addRecent({
+              path: pathWithBranch,
+              type: 'repo',
+              displayName
+            });
+            console.log('[RepoConnectDialog] Repository added to recents successfully');
+          } catch (error) {
+            console.error('[RepoConnectDialog] Failed to track repository in recents:', error);
+          }
         }
         onClose();
 
@@ -563,7 +582,25 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
         setBranchToPreselect(null);
         lastFetchedUrlRef.current = null;
       } catch (err: any) {
-        setValidationError(err.message || 'An error occurred during connection');
+        const errMsg = err.message || 'An error occurred during connection';
+        setValidationError(`This branch has been removed. ${errMsg}`);
+
+        // Auto-remove item from recents, favorites, AND connection history
+        try {
+          const pathWithBranch = `${historyUrl}#${branch}`;
+          await removeRecent(pathWithBranch, 'repo');
+          await removeFavorite(pathWithBranch, 'repo');
+          removeFromConnectionHistory(historyUrl, branch);
+          console.log('[RepoConnectDialog] Removed unavailable repository from recents/favorites/history:', pathWithBranch);
+
+          // Reload connection history to reflect the removal
+          const history = getConnectionHistory();
+          setConnectionHistory(history);
+          const grouped = groupConnectionHistory(history);
+          setGroupedHistory(grouped);
+        } catch (removeError) {
+          console.error('[RepoConnectDialog] Failed to remove unavailable repository:', removeError);
+        }
       }
     } else {
       // Show branch selector: Set URL and trigger branch fetch
