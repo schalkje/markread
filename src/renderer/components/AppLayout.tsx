@@ -2964,6 +2964,212 @@ const AppLayout: React.FC = () => {
                 addFolder(repoFolder);
                 setActiveFolder(repoFolder.id);
 
+                // Fetch the file tree and open the first markdown file
+                try {
+                  console.log('[AppLayout] Home onRepositoryConnected - Fetching tree for branch:', connectedRepository.currentBranch);
+                  const treeResult = await window.git?.repo?.fetchTree({
+                    repositoryId: connectedRepository.repositoryId,
+                    branch: connectedRepository.currentBranch,
+                    markdownOnly: true,
+                  });
+
+                  console.log('[AppLayout] Home onRepositoryConnected - Tree fetch result:', {
+                    success: treeResult?.success,
+                    hasData: !!treeResult?.data,
+                    hasTree: !!treeResult?.data?.tree,
+                    treeLength: treeResult?.data?.tree?.length,
+                  });
+
+                  if (treeResult?.success && treeResult.data?.tree) {
+                    // Find the first markdown file using breadth-first search
+                    const findFirstMarkdownFile = (nodes: any[]): string | null => {
+                      const queue = [...nodes];
+
+                      while (queue.length > 0) {
+                        const levelSize = queue.length;
+
+                        // Process all nodes at current level before going deeper
+                        for (let i = 0; i < levelSize; i++) {
+                          const node = queue.shift()!;
+
+                          // Check if this node is a markdown file
+                          if (node.type === 'file' && node.isMarkdown) {
+                            return node.path;
+                          }
+
+                          // Add children to queue for next level
+                          if (node.children) {
+                            queue.push(...node.children);
+                          }
+                        }
+                      }
+
+                      return null;
+                    };
+
+                    const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+
+                    console.log('[AppLayout] Home onRepositoryConnected - First markdown file:', firstFilePath);
+
+                    if (firstFilePath) {
+                      // Fetch the first file's content
+                      console.log('[AppLayout] Home onRepositoryConnected - Fetching file content for:', firstFilePath);
+                      const fileResult = await window.git?.repo?.fetchFile({
+                        repositoryId: connectedRepository.repositoryId,
+                        filePath: firstFilePath,
+                        branch: connectedRepository.currentBranch,
+                      });
+
+                      console.log('[AppLayout] Home onRepositoryConnected - File fetch result:', {
+                        success: fileResult?.success,
+                        hasData: !!fileResult?.data,
+                        error: fileResult?.error,
+                      });
+
+                      if (fileResult?.success && fileResult.data) {
+                        const { tabs, addTab, setActiveTab } = useTabsStore.getState();
+
+                        console.log('[AppLayout] Home onRepositoryConnected - Creating tab for branch:', connectedRepository.currentBranch);
+                        console.log('[AppLayout] Home onRepositoryConnected - Folder ID:', repoFolder.id);
+                        console.log('[AppLayout] Home onRepositoryConnected - Existing tabs count:', tabs.size);
+
+                        // Check ALL tabs for one matching this file in this repository folder context
+                        const existingTab = Array.from(tabs.values()).find(t =>
+                          t.filePath === firstFilePath && t.folderId === repoFolder.id
+                        );
+
+                        if (existingTab) {
+                          // Tab already exists, just set it as active
+                          setActiveTab(existingTab.id);
+                          console.log('[AppLayout] Home onRepositoryConnected - Reusing existing tab:', {
+                            tabId: existingTab.id,
+                            folderId: existingTab.folderId,
+                            filePath: existingTab.filePath,
+                          });
+                        } else {
+                          // Generate deterministic tab ID for repo file
+                          const tabId = generateRepoFileTabId(
+                            connectedRepository.repositoryId,
+                            connectedRepository.currentBranch,
+                            firstFilePath
+                          );
+                          // Create a tab for this file
+                          const fileName = firstFilePath.split('/').pop() || 'Untitled';
+                          const newTab = {
+                            id: tabId,
+                            filePath: firstFilePath,
+                            title: fileName,
+                            scrollPosition: 0,
+                            zoomLevel: 100,
+                            searchState: null,
+                            modificationTimestamp: Date.now(),
+                            isDirty: false,
+                            renderCache: null,
+                            navigationHistory: [{
+                              filePath: firstFilePath,
+                              scrollPosition: 0,
+                              scrollLeft: 0,
+                              zoomLevel: 100,
+                              timestamp: Date.now(),
+                            }],
+                            currentHistoryIndex: 0,
+                            forwardHistory: [],
+                            createdAt: Date.now(),
+                            folderId: repoFolder.id,
+                            isDirectFile: false,
+                          };
+
+                          addTab(newTab);
+                          setActiveTab(newTab.id);
+                          setShowHome(false); // Hide home page and show file viewer
+
+                          console.log('[AppLayout] Home onRepositoryConnected - Tab created and activated:', {
+                            tabId: newTab.id,
+                            folderId: newTab.folderId,
+                            filePath: newTab.filePath,
+                          });
+                        }
+
+                        // Set the file content
+                        setCurrentFile(firstFilePath);
+                        contentCacheRef.current.set(firstFilePath, fileResult.data.content);
+                        setCurrentContent(fileResult.data.content);
+                        setError(null);
+
+                        console.log('[AppLayout] Home onRepositoryConnected - File content set for tab');
+
+                        // Track repository in recents
+                        try {
+                          // Include branch in path so each branch is tracked separately
+                          const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                          await addRecent({
+                            path: pathWithBranch,
+                            type: 'repo',
+                            displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
+                          });
+                        } catch (error) {
+                          console.error('[AppLayout] Home onRepositoryConnected - Failed to track repository in recents:', error);
+                        }
+                      } else {
+                        console.warn('[AppLayout] Home onRepositoryConnected - Failed to fetch file or no data:', fileResult?.error);
+                      }
+                    } else {
+                      console.warn('[AppLayout] Home onRepositoryConnected - No markdown files found in tree');
+                    }
+                  } else {
+                    console.warn('[AppLayout] Home onRepositoryConnected - Tree fetch failed or no data:', treeResult?.error);
+
+                    // Tree fetch failed - clean up the failed connection
+                    const { removeFolder } = useFoldersStore.getState();
+                    removeFolder(repoFolder.id);
+
+                    // Remove from recents, favorites, and connection history
+                    try {
+                      const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                      await removeRecent(pathWithBranch, 'repo');
+                      await removeFavorite(pathWithBranch, 'repo');
+                      removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+                      console.log('[AppLayout] Home onRepositoryConnected - Removed unavailable repository from recents/favorites/history');
+                    } catch (removeError) {
+                      console.error('[AppLayout] Home onRepositoryConnected - Failed to remove unavailable repository:', removeError);
+                    }
+
+                    // Show error toast
+                    const errorMsg = treeResult?.error?.message || 'Failed to load repository';
+                    setToast({
+                      message: `This branch has been removed. ${errorMsg}`,
+                      type: 'error',
+                    });
+
+                    return; // Don't show success toast
+                  }
+                } catch (err) {
+                  console.error('[AppLayout] Home onRepositoryConnected - Error loading first repository file:', err);
+
+                  // Clean up on error
+                  const { removeFolder } = useFoldersStore.getState();
+                  removeFolder(repoFolder.id);
+
+                  // Remove from recents, favorites, and connection history
+                  try {
+                    const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                    await removeRecent(pathWithBranch, 'repo');
+                    await removeFavorite(pathWithBranch, 'repo');
+                    removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+                    console.log('[AppLayout] Home onRepositoryConnected - Removed unavailable repository from recents/favorites/history');
+                  } catch (removeError) {
+                    console.error('[AppLayout] Home onRepositoryConnected - Failed to remove unavailable repository:', removeError);
+                  }
+
+                  // Show error toast
+                  setToast({
+                    message: `This branch has been removed. ${err instanceof Error ? err.message : 'Unknown error'}`,
+                    type: 'error',
+                  });
+
+                  return; // Don't show success toast
+                }
+
                 setToast({
                   message: `Connected to ${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
                   type: 'success',
