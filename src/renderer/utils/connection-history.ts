@@ -84,6 +84,38 @@ export function addToConnectionHistory(
 }
 
 /**
+ * Remove a specific branch from connection history
+ */
+export function removeFromConnectionHistory(url: string, branch: string): void {
+  try {
+    const history = getConnectionHistory();
+
+    console.log('[ConnectionHistory] Attempting to remove:', { url, branch });
+    console.log('[ConnectionHistory] Current history:', history);
+
+    // Remove the entry for this URL + branch combination
+    const updatedHistory = history.filter(
+      entry => !(entry.url === url && entry.branch === branch)
+    );
+
+    console.log('[ConnectionHistory] Updated history after filter:', updatedHistory);
+    console.log('[ConnectionHistory] Removed count:', history.length - updatedHistory.length);
+
+    // Save to localStorage
+    if (updatedHistory.length === 0) {
+      // If empty, remove the key entirely
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedHistory));
+    }
+
+    console.log('[ConnectionHistory] Successfully removed entry:', { url, branch, removedCount: history.length - updatedHistory.length });
+  } catch (error) {
+    console.error('Error removing from connection history:', error);
+  }
+}
+
+/**
  * Clear all connection history
  */
 export function clearConnectionHistory(): void {

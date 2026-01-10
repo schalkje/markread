@@ -6,6 +6,7 @@ import { startWatching, stopWatching } from './file-watcher';
 import { createWindow, setGlobalZoom, getGlobalZoom } from './window-manager';
 import { loadUIState, saveUIState } from './ui-state-manager';
 import { registerGitHandlers } from './ipc/git-handlers';
+import { registerRecentsFavoritesHandlers } from './ipc/recents-favorites-handlers';
 
 // T011: IPC handler registration system with Zod validation (research.md Section 6)
 
@@ -804,6 +805,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
   // Register Git IPC handlers
   registerGitHandlers();
+
+  // Register Recents and Favorites IPC handlers
+  registerRecentsFavoritesHandlers();
 
   console.log('IPC handlers registered');
 }
