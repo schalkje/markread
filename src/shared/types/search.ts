@@ -93,10 +93,16 @@ export interface SearchOptions {
 
 /**
  * Search request from renderer to main process
+ * Supports both local folder search and repository search
  */
 export interface SearchRequest {
   query: string;
-  folderPath: string; // root path for inFiles search
+  // For local folder search
+  folderPath?: string; // root path for inFiles search
+  // For repository search
+  repositoryId?: string; // repository UUID
+  branch?: string; // branch name
+  // Common options
   options?: {
     caseSensitive?: boolean;
     wholeWord?: boolean;

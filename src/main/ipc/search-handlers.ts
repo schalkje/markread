@@ -13,6 +13,7 @@
 
 import { ipcMain, BrowserWindow } from 'electron';
 import { SearchService } from '../search-service';
+import { RepositorySearchService } from '../repository-search-service';
 import type {
   SearchRequest,
   SearchResponse,
@@ -20,8 +21,9 @@ import type {
   SearchCancelResponse,
 } from '@shared/types/search';
 
-// Create singleton search service instance
+// Create singleton search service instances
 const searchService = new SearchService();
+const repositorySearchService = new RepositorySearchService();
 
 /**
  * Register all Search IPC handlers
@@ -52,15 +54,29 @@ export function registerSearchHandlers(): void {
         console.log('[IPC] search:in-files request:', {
           query: request.query,
           folderPath: request.folderPath,
+          repositoryId: request.repositoryId,
+          branch: request.branch,
           options: request.options,
         });
 
         // Validate request
-        if (!request.query || !request.folderPath) {
+        if (!request.query) {
           return {
             success: false,
             searchId: '',
-            error: 'Invalid search request: query and folderPath are required',
+            error: 'Invalid search request: query is required',
+          };
+        }
+
+        // Check if this is a repository or folder search
+        const isRepositorySearch = !!request.repositoryId;
+        const isFolderSearch = !!request.folderPath;
+
+        if (!isRepositorySearch && !isFolderSearch) {
+          return {
+            success: false,
+            searchId: '',
+            error: 'Invalid search request: either folderPath or repositoryId is required',
           };
         }
 
@@ -74,22 +90,43 @@ export function registerSearchHandlers(): void {
           };
         }
 
-        // Start the search
-        const searchId = await searchService.startSearch(
-          window,
-          request.folderPath,
-          request.query,
-          {
-            caseSensitive: request.options?.caseSensitive ?? false,
-            wholeWord: request.options?.wholeWord ?? false,
-            useRegex: request.options?.useRegex ?? false,
-            excludePatterns: request.options?.excludePatterns ?? ['node_modules', '.git', 'dist', 'build'],
-            includeHiddenFiles: request.options?.includeHiddenFiles ?? false,
-          },
-          request.maxResults ?? 1000
-        );
+        let searchId: string;
 
-        console.log('[IPC] Search started with ID:', searchId);
+        if (isRepositorySearch) {
+          // Repository search
+          const branch = request.branch || 'main'; // Default to 'main' if not specified
+          searchId = await repositorySearchService.startSearch(
+            window,
+            request.repositoryId!,
+            branch,
+            request.query,
+            {
+              caseSensitive: request.options?.caseSensitive ?? false,
+              wholeWord: request.options?.wholeWord ?? false,
+              useRegex: request.options?.useRegex ?? false,
+              excludePatterns: request.options?.excludePatterns ?? [],
+              includeHiddenFiles: request.options?.includeHiddenFiles ?? false,
+            },
+            request.maxResults ?? 1000
+          );
+          console.log('[IPC] Repository search started with ID:', searchId);
+        } else {
+          // Local folder search
+          searchId = await searchService.startSearch(
+            window,
+            request.folderPath!,
+            request.query,
+            {
+              caseSensitive: request.options?.caseSensitive ?? false,
+              wholeWord: request.options?.wholeWord ?? false,
+              useRegex: request.options?.useRegex ?? false,
+              excludePatterns: request.options?.excludePatterns ?? ['node_modules', '.git', 'dist', 'build'],
+              includeHiddenFiles: request.options?.includeHiddenFiles ?? false,
+            },
+            request.maxResults ?? 1000
+          );
+          console.log('[IPC] Folder search started with ID:', searchId);
+        }
 
         return {
           success: true,
@@ -133,7 +170,10 @@ export function registerSearchHandlers(): void {
           };
         }
 
-        const cancelled = searchService.cancelSearch(request.searchId);
+        // Try to cancel in both services (one will succeed if search exists)
+        const cancelledInFolder = searchService.cancelSearch(request.searchId);
+        const cancelledInRepo = repositorySearchService.cancelSearch(request.searchId);
+        const cancelled = cancelledInFolder || cancelledInRepo;
 
         if (!cancelled) {
           return {

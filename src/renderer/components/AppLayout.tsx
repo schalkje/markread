@@ -199,19 +199,22 @@ const AppLayout: React.FC = () => {
       return;
     }
 
-    // Determine the folder path to search
+    // Determine the folder or repository to search
     let folderPath: string | undefined;
+    let repositoryId: string | undefined;
+    let branch: string | undefined;
+    let activeFolder: Folder | undefined;
 
     // Priority: active folder > tab's folder > direct file's folder
     if (activeFolderId) {
-      const folder = folders.find(f => f.id === activeFolderId);
-      folderPath = folder?.path;
+      activeFolder = folders.find(f => f.id === activeFolderId);
+      folderPath = activeFolder?.path;
     } else if (activeTab && !activeTab.isDirectFile) {
       // Tab is from a folder
       const tabFolderId = activeTab.folderId;
       if (tabFolderId) {
-        const folder = folders.find(f => f.id === tabFolderId);
-        folderPath = folder?.path;
+        activeFolder = folders.find(f => f.id === tabFolderId);
+        folderPath = activeFolder?.path;
       }
     } else if (currentFile) {
       // Direct file - use its parent directory
@@ -219,7 +222,7 @@ const AppLayout: React.FC = () => {
       folderPath = path.dirname(currentFile);
     }
 
-    if (!folderPath) {
+    if (!folderPath && !activeFolder) {
       setToast({
         message: 'No folder is open. Please open a folder to search files.',
         type: 'warning',
@@ -227,11 +230,20 @@ const AppLayout: React.FC = () => {
       return;
     }
 
+    // Check if this is a repository folder
+    if (activeFolder?.type === 'repository') {
+      repositoryId = activeFolder.repositoryId;
+      branch = activeFolder.currentBranch;
+      folderPath = undefined; // Clear folderPath for repository search
+    }
+
     try {
-      // T041: Call IPC to start search
+      // T041: Call IPC to start search (supports both folder and repository)
       const response = await window.search.inFiles({
         query,
         folderPath,
+        repositoryId,
+        branch,
         options: searchStore.searchInFilesOptions,
         maxResults: 1000,
       });
