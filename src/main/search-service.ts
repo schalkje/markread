@@ -31,11 +31,15 @@ export interface SearchResult {
   filePath: string;
   fileName: string;
   matches: SearchMatch[];
+  relativePath?: string;   // T056: Relative path from root folder
+  repository?: string;     // T056: Folder/repository name for grouping
+  branch?: string;         // T053: Git branch name for multi-branch search
 }
 
 interface ActiveSearch {
   id: string;
-  folderPath: string;
+  folderPath: string; // Single folder path (for backward compatibility)
+  folderPaths?: string[]; // T056: Multiple folder paths for multi-folder search
   query: string;
   options: SearchOptions;
   maxResults: number;
@@ -44,6 +48,8 @@ interface ActiveSearch {
   filesSearched: number;
   totalFiles: number;
   resultsFound: number;
+  currentFolderIndex?: number; // T056: Track which folder is being searched
+  currentFolderName?: string; // T056: Current folder name for progress display
 }
 
 /**
@@ -83,6 +89,91 @@ export class SearchService {
     // Start search asynchronously
     this.performSearch(window, activeSearch).catch((error) => {
       console.error('Search error:', error);
+      this.sendSearchError(window, searchId, error.message);
+    });
+
+    return searchId;
+  }
+
+  /**
+   * T056: Start a new multi-folder search
+   * Searches across multiple folder paths
+   */
+  async startMultiFolderSearch(
+    window: BrowserWindow,
+    folderPaths: string[],
+    query: string,
+    options: SearchOptions,
+    maxResults: number = 1000
+  ): Promise<string> {
+    const searchId = `search-${++this.searchIdCounter}-${Date.now()}`;
+
+    const activeSearch: ActiveSearch = {
+      id: searchId,
+      folderPath: folderPaths[0] || '', // Fallback to first folder for compatibility
+      folderPaths,
+      query,
+      options,
+      maxResults,
+      cancelled: false,
+      startTime: Date.now(),
+      filesSearched: 0,
+      totalFiles: 0,
+      resultsFound: 0,
+      currentFolderIndex: 0,
+    };
+
+    this.activeSearches.set(searchId, activeSearch);
+
+    // Start search asynchronously
+    this.performMultiFolderSearch(window, activeSearch).catch((error) => {
+      console.error('Multi-folder search error:', error);
+      this.sendSearchError(window, searchId, error.message);
+    });
+
+    return searchId;
+  }
+
+  /**
+   * T053: Start a new multi-branch search
+   * Searches across all Git worktrees (branches)
+   */
+  async startMultiBranchSearch(
+    window: BrowserWindow,
+    basePath: string,
+    query: string,
+    options: SearchOptions,
+    maxResults: number = 1000
+  ): Promise<string> {
+    const searchId = `search-${++this.searchIdCounter}-${Date.now()}`;
+
+    // Discover all worktree folders
+    const worktrees = await this.discoverWorktrees(basePath);
+
+    if (worktrees.length === 0) {
+      throw new Error('No Git worktrees found');
+    }
+
+    const activeSearch: ActiveSearch = {
+      id: searchId,
+      folderPath: worktrees[0].path, // Fallback to first worktree
+      folderPaths: worktrees.map(w => w.path),
+      query,
+      options,
+      maxResults,
+      cancelled: false,
+      startTime: Date.now(),
+      filesSearched: 0,
+      totalFiles: 0,
+      resultsFound: 0,
+      currentFolderIndex: 0,
+    };
+
+    this.activeSearches.set(searchId, activeSearch);
+
+    // Start search asynchronously across all branches
+    this.performMultiBranchSearch(window, activeSearch, worktrees).catch((error) => {
+      console.error('Multi-branch search error:', error);
       this.sendSearchError(window, searchId, error.message);
     });
 
@@ -131,6 +222,243 @@ export class SearchService {
             filePath,
             search.query,
             search.options
+          );
+
+          search.filesSearched++;
+
+          if (result && result.matches.length > 0) {
+            search.resultsFound += result.matches.length;
+
+            // Send result incrementally (FR-044)
+            this.sendResult(window, search.id, result);
+
+            // Check if max results reached
+            if (search.resultsFound >= search.maxResults) {
+              search.cancelled = true;
+              break;
+            }
+          }
+
+          // Send progress update every 10 files or on last file
+          if (
+            search.filesSearched % 10 === 0 ||
+            search.filesSearched === search.totalFiles
+          ) {
+            this.sendProgress(window, search);
+          }
+        } catch (error) {
+          // Log file error but continue searching
+          console.error(`Error searching file ${filePath}:`, error);
+          this.sendSearchError(
+            window,
+            search.id,
+            `Error reading file: ${path.basename(filePath)}`,
+            filePath
+          );
+        }
+      }
+
+      // Send completion event
+      this.sendCompletion(window, search);
+    } finally {
+      // Clean up
+      this.activeSearches.delete(search.id);
+    }
+  }
+
+  /**
+   * T056: Perform multi-folder search operation
+   * Searches across multiple folders sequentially
+   */
+  private async performMultiFolderSearch(
+    window: BrowserWindow,
+    search: ActiveSearch
+  ): Promise<void> {
+    try {
+      const folderPaths = search.folderPaths || [search.folderPath];
+
+      // First, collect all files from all folders
+      const allFiles: Array<{ filePath: string; folderPath: string; folderName: string }> = [];
+
+      for (let i = 0; i < folderPaths.length; i++) {
+        if (search.cancelled) break;
+
+        const folderPath = folderPaths[i];
+        search.currentFolderIndex = i;
+        search.currentFolderName = path.basename(folderPath);
+
+        const files = await this.findMarkdownFiles(folderPath, search.options);
+
+        // Tag each file with its source folder
+        for (const filePath of files) {
+          allFiles.push({
+            filePath,
+            folderPath,
+            folderName: path.basename(folderPath),
+          });
+        }
+      }
+
+      search.totalFiles = allFiles.length;
+
+      // Send initial progress
+      this.sendProgress(window, search);
+
+      // Search each file
+      for (const { filePath, folderPath, folderName } of allFiles) {
+        if (search.cancelled) {
+          break;
+        }
+
+        try {
+          const result = await this.searchFile(
+            filePath,
+            search.query,
+            search.options,
+            folderPath, // Pass folder path for relative path calculation
+            folderName  // Pass folder name for grouping
+          );
+
+          search.filesSearched++;
+
+          if (result && result.matches.length > 0) {
+            search.resultsFound += result.matches.length;
+
+            // Send result incrementally (FR-044)
+            this.sendResult(window, search.id, result);
+
+            // Check if max results reached
+            if (search.resultsFound >= search.maxResults) {
+              search.cancelled = true;
+              break;
+            }
+          }
+
+          // Send progress update every 10 files or on last file
+          if (
+            search.filesSearched % 10 === 0 ||
+            search.filesSearched === search.totalFiles
+          ) {
+            this.sendProgress(window, search);
+          }
+        } catch (error) {
+          // Log file error but continue searching
+          console.error(`Error searching file ${filePath}:`, error);
+          this.sendSearchError(
+            window,
+            search.id,
+            `Error reading file: ${path.basename(filePath)}`,
+            filePath
+          );
+        }
+      }
+
+      // Send completion event
+      this.sendCompletion(window, search);
+    } finally {
+      // Clean up
+      this.activeSearches.delete(search.id);
+    }
+  }
+
+  /**
+   * T053: Discover all Git worktrees in a base directory
+   * Worktrees are expected to be in folders like: /repo/markread.worktrees/001-feature-name
+   */
+  private async discoverWorktrees(basePath: string): Promise<Array<{ path: string; branch: string }>> {
+    try {
+      const worktrees: Array<{ path: string; branch: string }> = [];
+
+      // Get parent directory that contains worktrees
+      const worktreeBase = path.dirname(basePath);
+      const entries = await fs.readdir(worktreeBase, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const worktreePath = path.join(worktreeBase, entry.name);
+
+          // Check if this is a Git worktree by looking for .git file
+          try {
+            const gitPath = path.join(worktreePath, '.git');
+            const gitStat = await fs.stat(gitPath);
+
+            // Worktrees have a .git file (not directory) pointing to main repo
+            if (gitStat.isFile()) {
+              worktrees.push({
+                path: worktreePath,
+                branch: entry.name, // Use folder name as branch name
+              });
+            }
+          } catch {
+            // Not a worktree, skip
+          }
+        }
+      }
+
+      return worktrees;
+    } catch (error) {
+      console.error('Error discovering worktrees:', error);
+      return [];
+    }
+  }
+
+  /**
+   * T053: Perform multi-branch search operation
+   * Searches across multiple Git branches (worktrees)
+   */
+  private async performMultiBranchSearch(
+    window: BrowserWindow,
+    search: ActiveSearch,
+    worktrees: Array<{ path: string; branch: string }>
+  ): Promise<void> {
+    try {
+      // First, collect all files from all worktrees
+      const allFiles: Array<{
+        filePath: string;
+        folderPath: string;
+        folderName: string;
+        branch: string;
+      }> = [];
+
+      for (let i = 0; i < worktrees.length; i++) {
+        if (search.cancelled) break;
+
+        const worktree = worktrees[i];
+        search.currentFolderIndex = i;
+        search.currentFolderName = worktree.branch;
+
+        const files = await this.findMarkdownFiles(worktree.path, search.options);
+
+        // Tag each file with its branch
+        for (const filePath of files) {
+          allFiles.push({
+            filePath,
+            folderPath: worktree.path,
+            folderName: path.basename(worktree.path),
+            branch: worktree.branch,
+          });
+        }
+      }
+
+      search.totalFiles = allFiles.length;
+
+      // Send initial progress
+      this.sendProgress(window, search);
+
+      // Search each file
+      for (const { filePath, folderPath, folderName, branch } of allFiles) {
+        if (search.cancelled) {
+          break;
+        }
+
+        try {
+          const result = await this.searchFile(
+            filePath,
+            search.query,
+            search.options,
+            folderPath,  // Pass folder path for relative path calculation
+            folderName,  // Pass folder name for grouping
+            branch       // T053: Pass branch name
           );
 
           search.filesSearched++;
@@ -241,11 +569,16 @@ export class SearchService {
 
   /**
    * Search a single file
+   * T056: Enhanced to include folder/repository metadata
+   * T053: Enhanced to include branch metadata
    */
   private async searchFile(
     filePath: string,
     query: string,
-    options: SearchOptions
+    options: SearchOptions,
+    rootFolderPath?: string, // T056: Root folder for relative path calculation
+    folderName?: string,     // T056: Folder name for grouping
+    branch?: string          // T053: Branch name for multi-branch search
   ): Promise<SearchResult | null> {
     const content = await fs.readFile(filePath, 'utf-8');
     const lines = content.split('\n');
@@ -270,10 +603,18 @@ export class SearchService {
       return null;
     }
 
+    // Calculate relative path if root folder provided
+    const relativePath = rootFolderPath
+      ? path.relative(rootFolderPath, filePath)
+      : filePath;
+
     return {
       filePath,
       fileName: path.basename(filePath),
       matches,
+      relativePath,       // T056: Added for better result display
+      repository: folderName, // T056: Use folder name as repository identifier
+      branch,             // T053: Include branch name
     };
   }
 

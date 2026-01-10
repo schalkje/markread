@@ -213,13 +213,13 @@
 
 ### Integration Tasks for US5
 
-- [ ] T051 [US5] Add repository scope selector UI to SearchResults.tsx (Current Branch / All Branches / All Repos)
-- [ ] T052 [US5] Update IPC search request to include repositoryScope parameter
-- [ ] T053 [US5] Implement multi-branch file scanning in src/main/search-service.ts
-- [ ] T054 [US5] Add branch name to SearchResult interface in src/shared/types/search.ts
-- [ ] T055 [US5] Display branch name badge on search results in SearchResults.tsx
-- [ ] T056 [US5] Implement multi-repo file scanning in src/main/search-service.ts (if multiple repos loaded)
-- [ ] T057 [US5] Add repository name grouping in SearchResults.tsx hierarchy
+- [X] T051 [US5] Add repository scope selector UI to SearchResults.tsx (Current Folder / All Open Folders / All Branches)
+- [X] T052 [US5] Update IPC search request to include repositoryScope and multiple folder paths parameters
+- [X] T053 [US5] Implement multi-branch file scanning in src/main/search-service.ts using Git worktrees
+- [X] T054 [US5] Add branch and repository fields to SearchResult interface in src/shared/types/search.ts
+- [X] T055 [US5] Display branch/folder name badge on search results in SearchResults.tsx
+- [X] T056 [US5] Implement multi-folder search in src/main/search-service.ts for all open folders
+- [X] T057 [US5] Add repository/folder name grouping in SearchResults.tsx hierarchy
 
 **Checkpoint**: User Story 5 complete - scope management works across branches/repos
 

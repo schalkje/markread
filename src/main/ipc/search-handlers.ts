@@ -92,6 +92,15 @@ export function registerSearchHandlers(): void {
 
         let searchId: string;
 
+        // Prepare search options
+        const searchOptions = {
+          caseSensitive: request.options?.caseSensitive ?? false,
+          wholeWord: request.options?.wholeWord ?? false,
+          useRegex: request.options?.useRegex ?? false,
+          excludePatterns: request.options?.excludePatterns ?? ['node_modules', '.git', 'dist', 'build'],
+          includeHiddenFiles: request.options?.includeHiddenFiles ?? false,
+        };
+
         if (isRepositorySearch) {
           // Repository search
           const branch = request.branch || 'main'; // Default to 'main' if not specified
@@ -100,32 +109,45 @@ export function registerSearchHandlers(): void {
             request.repositoryId!,
             branch,
             request.query,
-            {
-              caseSensitive: request.options?.caseSensitive ?? false,
-              wholeWord: request.options?.wholeWord ?? false,
-              useRegex: request.options?.useRegex ?? false,
-              excludePatterns: request.options?.excludePatterns ?? [],
-              includeHiddenFiles: request.options?.includeHiddenFiles ?? false,
-            },
+            searchOptions,
             request.maxResults ?? 1000
           );
           console.log('[IPC] Repository search started with ID:', searchId);
         } else {
-          // Local folder search
-          searchId = await searchService.startSearch(
-            window,
-            request.folderPath!,
-            request.query,
-            {
-              caseSensitive: request.options?.caseSensitive ?? false,
-              wholeWord: request.options?.wholeWord ?? false,
-              useRegex: request.options?.useRegex ?? false,
-              excludePatterns: request.options?.excludePatterns ?? ['node_modules', '.git', 'dist', 'build'],
-              includeHiddenFiles: request.options?.includeHiddenFiles ?? false,
-            },
-            request.maxResults ?? 1000
-          );
-          console.log('[IPC] Folder search started with ID:', searchId);
+          // Local folder search - determine search type based on scope
+          const folderScope = request.folderScope || 'current';
+
+          if (folderScope === 'allBranches') {
+            // T053: Multi-branch search across Git worktrees
+            searchId = await searchService.startMultiBranchSearch(
+              window,
+              request.folderPath!,
+              request.query,
+              searchOptions,
+              request.maxResults ?? 1000
+            );
+            console.log('[IPC] Multi-branch search started with ID:', searchId);
+          } else if (folderScope === 'allOpen' && request.folderPaths && request.folderPaths.length > 0) {
+            // T056: Multi-folder search across all open folders
+            searchId = await searchService.startMultiFolderSearch(
+              window,
+              request.folderPaths,
+              request.query,
+              searchOptions,
+              request.maxResults ?? 1000
+            );
+            console.log('[IPC] Multi-folder search started with ID:', searchId, 'folders:', request.folderPaths.length);
+          } else {
+            // Default: Single folder search
+            searchId = await searchService.startSearch(
+              window,
+              request.folderPath!,
+              request.query,
+              searchOptions,
+              request.maxResults ?? 1000
+            );
+            console.log('[IPC] Single folder search started with ID:', searchId);
+          }
         }
 
         return {

@@ -20,6 +20,7 @@ export interface SearchOptions {
   useRegex: boolean;
   excludePatterns: string[];
   includeHiddenFiles: boolean;
+  repositoryScope: 'current' | 'allBranches' | 'allRepos'; // T051: Search scope selector
 }
 
 export interface SearchMatch {
@@ -36,6 +37,9 @@ export interface SearchResult {
   filePath: string;
   fileName: string;
   matches: SearchMatch[];
+  relativePath?: string;   // T056: Relative path from root folder
+  repository?: string;     // T056: Folder/repository name for grouping
+  branch?: string;         // T053: Git branch name for multi-branch search
 }
 
 export interface ActiveSearch {
@@ -121,6 +125,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     useRegex: false,
     excludePatterns: ['node_modules', '.git', 'dist', 'build'],
     includeHiddenFiles: false,
+    repositoryScope: 'allRepos', // T051: Default to all open folders
   },
 
   // History management (T172)

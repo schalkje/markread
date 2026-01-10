@@ -94,14 +94,19 @@ export interface SearchOptions {
 /**
  * Search request from renderer to main process
  * Supports both local folder search and repository search
+ * T052: Enhanced to support multiple folders and branch scope
  */
 export interface SearchRequest {
   query: string;
   // For local folder search
-  folderPath?: string; // root path for inFiles search
+  folderPath?: string; // root path for inFiles search (single folder)
+  folderPaths?: string[]; // T052: multiple folder paths for searching all open folders
+  folderScope?: 'current' | 'allOpen' | 'allBranches'; // T052: folder search scope
   // For repository search
   repositoryId?: string; // repository UUID
-  branch?: string; // branch name
+  repositoryIds?: string[]; // T052: multiple repository UUIDs
+  branch?: string; // branch name (single branch)
+  branches?: string[]; // T052: multiple branches for multi-branch search
   // Common options
   options?: {
     caseSensitive?: boolean;

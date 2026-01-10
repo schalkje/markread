@@ -238,10 +238,43 @@ const AppLayout: React.FC = () => {
     }
 
     try {
-      // T041: Call IPC to start search (supports both folder and repository)
+      // T051, T052, T053, T056: Enhanced search with scope support
+      const scope = searchStore.searchInFilesOptions.repositoryScope;
+      let folderPaths: string[] | undefined;
+      let folderScope: 'current' | 'allOpen' | 'allBranches' = 'current';
+
+      // Determine search scope and collect folder paths
+      if (scope === 'allRepos') {
+        // T056: Search all open folders
+        folderScope = 'allOpen';
+        folderPaths = folders
+          .filter(f => f.type === 'local' && f.path)
+          .map(f => f.path!);
+
+        if (folderPaths.length === 0) {
+          setToast({
+            message: 'No folders are open. Please open folders to search.',
+            type: 'warning',
+          });
+          return;
+        }
+
+        console.log('[AppLayout] Multi-folder search across', folderPaths.length, 'folders');
+      } else if (scope === 'allBranches') {
+        // T053: Search all Git branches (worktrees)
+        folderScope = 'allBranches';
+        console.log('[AppLayout] Multi-branch search in', folderPath);
+      } else {
+        // Default: current folder
+        folderScope = 'current';
+      }
+
+      // T041: Call IPC to start search (supports folder, repository, and multi-folder/branch)
       const response = await window.search.inFiles({
         query,
         folderPath,
+        folderPaths,
+        folderScope,
         repositoryId,
         branch,
         options: searchStore.searchInFilesOptions,
@@ -320,12 +353,29 @@ const AppLayout: React.FC = () => {
   }, [sidebarWidth, minSidebarWidth, maxSidebarWidth]);
 
   // T045, T046: Handle search result click with highlighting
-  const handleSearchResultClick = useCallback(async (filePath: string, lineNumber: number, event: React.MouseEvent) => {
-    console.log('[AppLayout] Search result clicked:', filePath, lineNumber, 'ctrlKey:', event.ctrlKey || event.metaKey);
+  const handleSearchResultClick = useCallback(async (filePath: string, lineNumber: number, event: React.MouseEvent, folderInfo?: { repository?: string; branch?: string }) => {
+    console.log('[AppLayout] Search result clicked:', filePath, lineNumber, 'ctrlKey:', event.ctrlKey || event.metaKey, 'folderInfo:', folderInfo);
 
     try {
       setError(null);
       setIsLoading(true);
+
+      // Find the folder that contains this file
+      const { folders: allFolders, setActiveFolder } = useFoldersStore.getState();
+      let targetFolderId = activeFolderId;
+
+      // Try to find the folder that contains this file
+      const matchingFolder = allFolders.find(folder => {
+        // Check if the file path starts with the folder path
+        return filePath.startsWith(folder.path);
+      });
+
+      if (matchingFolder && matchingFolder.id !== activeFolderId) {
+        // Switch to the folder that contains this file
+        console.log('[AppLayout] Switching to folder:', matchingFolder.displayName, matchingFolder.id);
+        setActiveFolder(matchingFolder.id);
+        targetFolderId = matchingFolder.id;
+      }
 
       // Read file content
       const response = await window.electronAPI.file.read({ filePath });
@@ -339,7 +389,25 @@ const AppLayout: React.FC = () => {
       contentLoadedManually.current = true;
 
       // Get tab store state
-      const { activeTabId, tabs, addTab, setActiveTab, addHistoryEntry, updateTabZoomLevel } = useTabsStore.getState();
+      const { activeTabId: globalActiveTabId, tabs, addTab, setActiveTab, addHistoryEntry, updateTabZoomLevel } = useTabsStore.getState();
+
+      // Find a tab that belongs to the target folder
+      let activeTabId = globalActiveTabId;
+      if (targetFolderId && targetFolderId !== activeFolderId) {
+        // Look for tabs that belong to the target folder
+        const folderTabs = Array.from(tabs.values()).filter(tab => tab.folderId === targetFolderId);
+
+        if (folderTabs.length > 0) {
+          // Use the first tab from the target folder
+          activeTabId = folderTabs[0].id;
+          setActiveTab(activeTabId);
+          console.log('[AppLayout] Using existing tab from target folder:', activeTabId);
+        } else {
+          // No tabs for this folder, will create one below
+          activeTabId = null;
+          console.log('[AppLayout] No tabs found for target folder, will create new tab');
+        }
+      }
 
       // Check if Ctrl/Cmd is pressed for opening in new tab
       const openInNewTab = event.ctrlKey || event.metaKey;
@@ -353,8 +421,8 @@ const AppLayout: React.FC = () => {
           id: newTabId,
           filePath: filePath,
           title: fileName,
-          folderId: activeFolderId || null,
-          isDirectFile: !activeFolderId,
+          folderId: targetFolderId || null,
+          isDirectFile: !targetFolderId,
           scrollPosition: 0,
           scrollLeft: 0,
           zoomLevel: 100,
@@ -391,8 +459,8 @@ const AppLayout: React.FC = () => {
             id: newTabId,
             filePath: filePath,
             title: fileName,
-            folderId: activeFolderId || null,
-            isDirectFile: !activeFolderId,
+            folderId: targetFolderId || null,
+            isDirectFile: !targetFolderId,
             scrollPosition: 0,
             scrollLeft: 0,
             zoomLevel: 100,
@@ -456,7 +524,7 @@ const AppLayout: React.FC = () => {
               ...freshTab,
               filePath: filePath,
               title: fileName,
-              folderId: activeFolderId || freshTab.folderId,
+              folderId: targetFolderId || freshTab.folderId,
             };
             freshTabs.set(activeTabId, updatedTab);
             useTabsStore.setState({ tabs: new Map(freshTabs) });
