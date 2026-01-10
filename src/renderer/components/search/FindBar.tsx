@@ -57,11 +57,16 @@ export const FindBar: React.FC<FindBarProps> = ({
     setFindInPageResults,
     clearFindInPage,
     addToHistory,
+    history,
   } = useSearchStore();
 
   const [localQuery, setLocalQuery] = useState(findInPageQuery);
   // T030, T031: Regex validation state
   const [regexError, setRegexError] = useState<string | null>(null);
+  // FR-032, FR-033: Session-only search history navigation
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  // Track debounce/search state to prevent "no matches" flash
+  const [isSearchPending, setIsSearchPending] = useState<boolean>(false);
 
   // Sync localQuery with findInPageQuery when it changes externally (e.g., from search result click)
   useEffect(() => {
@@ -122,17 +127,22 @@ export const FindBar: React.FC<FindBarProps> = ({
     if (isExternalUpdateRef.current) {
       isExternalUpdateRef.current = false;
       setRegexError(null);
+      setIsSearchPending(false);
       return;
     }
 
-    // Clear old results immediately when query changes
-    setFindInPageQuery('');
-    setFindInPageResults(0, 0);
+    // Don't clear results or show "no matches" immediately - set pending state instead
     setRegexError(null); // T031: Clear previous errors
 
     if (!localQuery || !isVisible) {
+      setFindInPageQuery('');
+      setFindInPageResults(0, 0);
+      setIsSearchPending(false);
       return;
     }
+
+    // Mark search as pending to prevent "no matches" flash
+    setIsSearchPending(true);
 
     // Debounce search: wait 300ms after user stops typing
     const debounceTimer = setTimeout(() => {
@@ -141,6 +151,7 @@ export const FindBar: React.FC<FindBarProps> = ({
       if (!validation.valid) {
         setRegexError(validation.error || 'Invalid pattern');
         setFindInPageResults(0, 0);
+        setIsSearchPending(false);
         return;
       }
 
@@ -151,6 +162,7 @@ export const FindBar: React.FC<FindBarProps> = ({
       try {
         const result = onFind(localQuery, findInPageOptions);
         setFindInPageResults(result.currentIndex, result.totalMatches);
+        setIsSearchPending(false);
 
         // Add to history if there are results
         if (result.totalMatches > 0) {
@@ -165,6 +177,7 @@ export const FindBar: React.FC<FindBarProps> = ({
         console.error('[FindBar] Search error:', error);
         setRegexError('Search failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
         setFindInPageResults(0, 0);
+        setIsSearchPending(false);
       }
     }, 300);
 
@@ -181,6 +194,8 @@ export const FindBar: React.FC<FindBarProps> = ({
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setLocalQuery(query);
+    // Reset history navigation when user types
+    setHistoryIndex(-1);
     // Don't update global store immediately - let the debounced search do it
   };
 
@@ -192,6 +207,40 @@ export const FindBar: React.FC<FindBarProps> = ({
         handleFindPrevious();
       } else {
         handleFindNext();
+      }
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      // FR-032: Navigate through search history with arrow keys
+      e.preventDefault();
+
+      // Filter history for in-page searches only
+      const inPageHistory = history.filter(entry => entry.type === 'inPage');
+
+      if (inPageHistory.length === 0) {
+        return;
+      }
+
+      let newIndex: number;
+      if (e.key === 'ArrowUp') {
+        // Go back in history (newer to older)
+        if (historyIndex === -1) {
+          // Start at the beginning of history (most recent)
+          newIndex = 0;
+        } else {
+          newIndex = historyIndex < inPageHistory.length - 1 ? historyIndex + 1 : historyIndex;
+        }
+      } else {
+        // Go forward in history (older to newer)
+        newIndex = historyIndex > 0 ? historyIndex - 1 : -1;
+      }
+
+      setHistoryIndex(newIndex);
+
+      if (newIndex === -1) {
+        // Clear input when going past history end
+        setLocalQuery('');
+      } else {
+        // Set query from history
+        setLocalQuery(inPageHistory[newIndex].query);
       }
     }
   };
@@ -215,7 +264,8 @@ export const FindBar: React.FC<FindBarProps> = ({
   }
 
   const hasMatches = findInPageTotalMatches > 0;
-  const noMatches = localQuery && findInPageTotalMatches === 0 && !regexError;
+  // Only show "no matches" if search is complete (not pending) and there are no matches
+  const noMatches = localQuery && findInPageTotalMatches === 0 && !regexError && !isSearchPending;
 
   // T031: Determine input class based on state
   const inputClass = [
@@ -233,7 +283,7 @@ export const FindBar: React.FC<FindBarProps> = ({
             ref={inputRef}
             type="text"
             className={inputClass}
-            placeholder="Find in page..."
+            placeholder="Find in page (↕ for history)"
             value={localQuery}
             onChange={handleQueryChange}
             onKeyDown={handleKeyDown}

@@ -811,11 +811,7 @@ const AppLayout: React.FC = () => {
     const unsubscribeComplete = window.search.onComplete((event) => {
       console.log('[AppLayout] Search complete:', event);
       searchStore.completeSearch(event.searchId, event.totalMatches);
-
-      setToast({
-        message: `Search complete: ${event.totalMatches} matches found in ${event.filesSearched} files`,
-        type: 'success',
-      });
+      // Results are shown in the search panel, no need for toast notification
     });
 
     // T044: Search errors

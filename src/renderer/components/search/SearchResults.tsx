@@ -41,12 +41,15 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
     searchInFilesOptions,
     setSearchInFilesOptions,
     getRecentSearches,
+    history,
   } = useSearchStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
   const [showOptions, setShowOptions] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  // FR-032, FR-033: Session-only search history navigation
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
   const recentSearches = getRecentSearches(5);
 
@@ -131,14 +134,52 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
             ref={inputRef}
             type="text"
             className="search-results__input"
-            placeholder="Search across all files..."
+            placeholder="Search across all files (↕ for history)"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              // Reset history navigation when user types
+              setHistoryIndex(-1);
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 handleSearch();
               } else if (e.key === 'Escape') {
                 onClose();
+              } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                // FR-032: Navigate through search history with arrow keys
+                e.preventDefault();
+
+                // Filter history for in-files searches only
+                const inFilesHistory = history.filter(entry => entry.type === 'inFiles');
+
+                if (inFilesHistory.length === 0) {
+                  return;
+                }
+
+                let newIndex: number;
+                if (e.key === 'ArrowUp') {
+                  // Go back in history (newer to older)
+                  if (historyIndex === -1) {
+                    // Start at the beginning of history (most recent)
+                    newIndex = 0;
+                  } else {
+                    newIndex = historyIndex < inFilesHistory.length - 1 ? historyIndex + 1 : historyIndex;
+                  }
+                } else {
+                  // Go forward in history (older to newer)
+                  newIndex = historyIndex > 0 ? historyIndex - 1 : -1;
+                }
+
+                setHistoryIndex(newIndex);
+
+                if (newIndex === -1) {
+                  // Clear input when going past history end
+                  setSearchQuery('');
+                } else {
+                  // Set query from history
+                  setSearchQuery(inFilesHistory[newIndex].query);
+                }
               }
             }}
             disabled={isSearching}
