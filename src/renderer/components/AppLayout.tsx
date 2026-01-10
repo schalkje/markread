@@ -459,11 +459,20 @@ const AppLayout: React.FC = () => {
       // Activate FindBar with search query and highlighting
       const { activeSearch } = searchStore;
       if (activeSearch && activeSearch.query) {
+        // Find the search result for this file
+        const fileResult = activeSearch.results.find(r => r.filePath === filePath);
+        let matchIndex = 0;
+
+        if (fileResult) {
+          // Find the index of the match with the clicked line number
+          const matchIndexInFile = fileResult.matches.findIndex(m => m.lineNumber === lineNumber);
+          if (matchIndexInFile >= 0) {
+            matchIndex = matchIndexInFile;
+          }
+        }
+
         // Set the search query in FindBar store
         searchStore.setFindInPageQuery(activeSearch.query);
-
-        // Open FindBar to show highlighting
-        setIsSearchBarVisible(true);
 
         // Copy search options from multi-file search to in-page search
         searchStore.setFindInPageOptions({
@@ -471,25 +480,17 @@ const AppLayout: React.FC = () => {
           wholeWord: searchStore.searchInFilesOptions.wholeWord,
           useRegex: searchStore.searchInFilesOptions.useRegex,
         });
+
+        // Set the match index and total matches
+        // Use setTimeout to ensure the query is set first and content is rendered
+        setTimeout(() => {
+          const totalMatches = fileResult?.matches.length || 0;
+          searchStore.setFindInPageResults(matchIndex, totalMatches);
+
+          // Open FindBar to show highlighting (after setting results)
+          setIsSearchBarVisible(true);
+        }, 100);
       }
-
-      // Scroll to the line number after content is rendered
-      // Use a small delay to ensure the content is fully rendered
-      setTimeout(() => {
-        const viewer = document.querySelector('.markdown-viewer') as HTMLElement;
-        if (viewer && fileContent) {
-          // Calculate approximate scroll position based on line number
-          // Each line is roughly 20-30px in height
-          const lines = fileContent.split('\n');
-          const approximateLineHeight = viewer.scrollHeight / lines.length;
-          const scrollTop = Math.max(0, (lineNumber - 1) * approximateLineHeight - 100); // -100 to show context
-
-          viewer.scrollTo({
-            top: scrollTop,
-            behavior: 'smooth'
-          });
-        }
-      }, 100);
 
     } catch (err: any) {
       console.error('Failed to open search result file:', err);

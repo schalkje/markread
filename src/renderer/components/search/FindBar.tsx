@@ -45,6 +45,7 @@ export const FindBar: React.FC<FindBarProps> = ({
   onFindPrevious,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const isExternalUpdateRef = useRef<boolean>(false);
 
   const {
     findInPageQuery,
@@ -61,6 +62,14 @@ export const FindBar: React.FC<FindBarProps> = ({
   const [localQuery, setLocalQuery] = useState(findInPageQuery);
   // T030, T031: Regex validation state
   const [regexError, setRegexError] = useState<string | null>(null);
+
+  // Sync localQuery with findInPageQuery when it changes externally (e.g., from search result click)
+  useEffect(() => {
+    if (findInPageQuery && findInPageQuery !== localQuery) {
+      isExternalUpdateRef.current = true;
+      setLocalQuery(findInPageQuery);
+    }
+  }, [findInPageQuery]);
 
   // Focus input when visible
   useEffect(() => {
@@ -109,6 +118,13 @@ export const FindBar: React.FC<FindBarProps> = ({
 
   // Perform search when query or options change (with debouncing)
   useEffect(() => {
+    // Skip clear and debounce for external updates (e.g., from search result click)
+    if (isExternalUpdateRef.current) {
+      isExternalUpdateRef.current = false;
+      setRegexError(null);
+      return;
+    }
+
     // Clear old results immediately when query changes
     setFindInPageQuery('');
     setFindInPageResults(0, 0);
