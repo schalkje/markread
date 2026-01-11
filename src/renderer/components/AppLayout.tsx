@@ -21,6 +21,7 @@ import { Toast } from './common/Toast';
 import { TitleBar } from './titlebar/TitleBar';
 import { RepoConnectDialog } from './git/RepoConnectDialog';
 import { useFileAutoReload, useFileWatcher } from '../hooks/useFileWatcher';
+import type { Tab } from '@shared/types/entities';
 import {
   registerHistoryShortcuts,
   unregisterHistoryShortcuts,
@@ -33,10 +34,15 @@ import {
   registerFileShortcuts,
   unregisterFileShortcuts,
   registerHelpShortcuts,
-  unregisterHelpShortcuts
+  unregisterHelpShortcuts,
+  registerSearchShortcuts,
+  unregisterSearchShortcuts
 } from '../services/keyboard-handler';
 import { ShortcutsReference } from './help/ShortcutsReference';
 import { About } from './help/About';
+import { FindBar } from './search/FindBar'; // T008: Import FindBar component
+import { SearchResults } from './search/SearchResults'; // T035: Import SearchResults component
+import { useSearchStore } from '../stores/search'; // T009: Import search store
 import {
   registerFileCommands,
   registerNavigationCommands,
@@ -65,8 +71,13 @@ const AppLayout: React.FC = () => {
   const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
   const [revealFilePath, setRevealFilePath] = useState<string | null>(null); // File to reveal in sidebar
 
-  // Sidebar view state: 'files' or 'history'
-  const [sidebarView, setSidebarView] = useState<'files' | 'history'>('files');
+  // Sidebar view state: 'files', 'history', or 'search'
+  const [sidebarView, setSidebarView] = useState<'files' | 'history' | 'search'>('files');
+
+  // Sidebar width state (resizable)
+  const [sidebarWidth, setSidebarWidth] = useState(250);
+  const minSidebarWidth = 150;
+  const maxSidebarWidth = 600;
 
   // Home view state - tracks if home page is active
   const [showHome, setShowHome] = useState(false);
@@ -82,6 +93,12 @@ const AppLayout: React.FC = () => {
 
   // Repository connect dialog state
   const [showRepoConnect, setShowRepoConnect] = useState(false);
+
+  // T009: Search bar visibility state
+  const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
+
+  // T009: Access search store for find-in-page functionality
+  const searchStore = useSearchStore();
 
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
@@ -104,6 +121,464 @@ const AppLayout: React.FC = () => {
   const toggleSidebar = useCallback(() => {
     setShowSidebar(!showSidebar);
   }, [showSidebar]);
+
+  // T011: Implement handleSearch callback for FindBar
+  const handleSearch = useCallback((query: string, options: { caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }) => {
+    console.log('[AppLayout] handleSearch called:', { query, options, currentContent: currentContent?.length });
+
+    if (!query || !currentContent) {
+      return { currentIndex: 0, totalMatches: 0 };
+    }
+
+    try {
+      let searchPattern: RegExp;
+
+      if (options.useRegex) {
+        // User provided regex pattern
+        const flags = options.caseSensitive ? 'g' : 'gi';
+        searchPattern = new RegExp(query, flags);
+      } else {
+        // Escape special regex characters for literal search
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = options.wholeWord ? `\\b${escapedQuery}\\b` : escapedQuery;
+        const flags = options.caseSensitive ? 'g' : 'gi';
+        searchPattern = new RegExp(pattern, flags);
+      }
+
+      // Find all matches
+      const matches = Array.from(currentContent.matchAll(searchPattern));
+
+      console.log('[AppLayout] Search found matches:', matches.length);
+
+      return {
+        currentIndex: matches.length > 0 ? 0 : -1,
+        totalMatches: matches.length
+      };
+    } catch (error) {
+      console.error('[AppLayout] Search error:', error);
+      return { currentIndex: 0, totalMatches: 0 };
+    }
+  }, [currentContent]);
+
+  // T016: Handle find next match
+  const handleFindNext = useCallback(() => {
+    console.log('[AppLayout] handleFindNext called');
+    const { findInPageCurrentIndex, findInPageTotalMatches } = searchStore;
+
+    if (findInPageTotalMatches > 0) {
+      const nextIndex = (findInPageCurrentIndex + 1) % findInPageTotalMatches;
+      searchStore.setFindInPageResults(nextIndex, findInPageTotalMatches);
+    }
+  }, [searchStore]);
+
+  // T016: Handle find previous match
+  const handleFindPrevious = useCallback(() => {
+    console.log('[AppLayout] handleFindPrevious called');
+    const { findInPageCurrentIndex, findInPageTotalMatches } = searchStore;
+
+    if (findInPageTotalMatches > 0) {
+      const prevIndex = findInPageCurrentIndex === 0
+        ? findInPageTotalMatches - 1
+        : findInPageCurrentIndex - 1;
+      searchStore.setFindInPageResults(prevIndex, findInPageTotalMatches);
+    }
+  }, [searchStore]);
+
+  // T013: Handle closing FindBar
+  const handleCloseFindBar = useCallback(() => {
+    console.log('[AppLayout] handleCloseFindBar called');
+    setIsSearchBarVisible(false);
+    searchStore.clearFindInPage();
+  }, [searchStore]);
+
+  // T040: Handle multi-file search
+  const handleSearchInFiles = useCallback(async (query: string) => {
+    console.log('[AppLayout] handleSearchInFiles called:', query);
+
+    if (!query.trim()) {
+      return;
+    }
+
+    // Determine the folder or repository to search
+    let folderPath: string | undefined;
+    let repositoryId: string | undefined;
+    let branch: string | undefined;
+    let activeFolder: Folder | undefined;
+
+    // Priority: active folder > tab's folder > direct file's folder
+    if (activeFolderId) {
+      activeFolder = folders.find(f => f.id === activeFolderId);
+      folderPath = activeFolder?.path;
+    } else if (activeTab && !activeTab.isDirectFile) {
+      // Tab is from a folder
+      const tabFolderId = activeTab.folderId;
+      if (tabFolderId) {
+        activeFolder = folders.find(f => f.id === tabFolderId);
+        folderPath = activeFolder?.path;
+      }
+    } else if (currentFile) {
+      // Direct file - use its parent directory
+      const path = window.require('path');
+      folderPath = path.dirname(currentFile);
+    }
+
+    if (!folderPath && !activeFolder) {
+      setToast({
+        message: 'No folder is open. Please open a folder to search files.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    // Check if this is a repository folder
+    if (activeFolder?.type === 'repository') {
+      repositoryId = activeFolder.repositoryId;
+      branch = activeFolder.currentBranch;
+      folderPath = undefined; // Clear folderPath for repository search
+    }
+
+    try {
+      // T051, T052, T053, T056: Enhanced search with scope support
+      const scope = searchStore.searchInFilesOptions.repositoryScope;
+      let folderPaths: string[] | undefined;
+      let folderScope: 'current' | 'allOpen' | 'allBranches' = 'current';
+
+      // Determine search scope and collect folder paths
+      if (scope === 'allRepos') {
+        // T056: Search all open folders
+        folderScope = 'allOpen';
+        folderPaths = folders
+          .filter(f => f.type === 'local' && f.path)
+          .map(f => f.path!);
+
+        if (folderPaths.length === 0) {
+          setToast({
+            message: 'No folders are open. Please open folders to search.',
+            type: 'warning',
+          });
+          return;
+        }
+
+        console.log('[AppLayout] Multi-folder search across', folderPaths.length, 'folders');
+      } else if (scope === 'allBranches') {
+        // T053: Search all Git branches (worktrees)
+        folderScope = 'allBranches';
+        console.log('[AppLayout] Multi-branch search in', folderPath);
+      } else {
+        // Default: current folder
+        folderScope = 'current';
+      }
+
+      // T041: Call IPC to start search (supports folder, repository, and multi-folder/branch)
+      const response = await window.search.inFiles({
+        query,
+        folderPath,
+        folderPaths,
+        folderScope,
+        repositoryId,
+        branch,
+        options: searchStore.searchInFilesOptions,
+        maxResults: 1000,
+      });
+
+      if (!response.success) {
+        console.error('[AppLayout] Search failed:', response.error);
+        setToast({
+          message: `Search failed: ${response.error}`,
+          type: 'error',
+        });
+        return;
+      }
+
+      console.log('[AppLayout] Search started with ID:', response.searchId);
+
+      // Initialize the search in the store
+      searchStore.startSearch(response.searchId, query, 'inFiles');
+
+      // Results will be updated via IPC events
+    } catch (error: any) {
+      console.error('[AppLayout] Search error:', error);
+      setToast({
+        message: `Search error: ${error.message}`,
+        type: 'error',
+      });
+    }
+  }, [activeFolderId, activeTab, currentFile, folders, searchStore, setToast]);
+
+  // T042: Handle search cancellation
+  const handleCancelSearch = useCallback(async () => {
+    console.log('[AppLayout] handleCancelSearch called');
+
+    const { activeSearch } = searchStore;
+    if (!activeSearch || !activeSearch.isActive) {
+      return;
+    }
+
+    try {
+      await window.search.cancel(activeSearch.searchId);
+      console.log('[AppLayout] Search cancelled');
+    } catch (error: any) {
+      console.error('[AppLayout] Cancel search error:', error);
+    }
+  }, [searchStore]);
+
+  // T038: Handle search panel close
+  const handleCloseSearchPanel = useCallback(() => {
+    setSidebarView('files'); // Switch back to files view
+    // Cancel search if active
+    if (searchStore.activeSearch?.isActive) {
+      handleCancelSearch();
+    }
+  }, [searchStore.activeSearch, handleCancelSearch]);
+
+  // Handle sidebar resize
+  const handleSidebarResize = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = sidebarWidth;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - startX;
+      const newWidth = Math.min(maxSidebarWidth, Math.max(minSidebarWidth, startWidth + deltaX));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [sidebarWidth, minSidebarWidth, maxSidebarWidth]);
+
+  // T045, T046: Handle search result click with highlighting
+  const handleSearchResultClick = useCallback(async (filePath: string, lineNumber: number, event: React.MouseEvent, folderInfo?: { repository?: string; branch?: string }) => {
+    console.log('[AppLayout] Search result clicked:', filePath, lineNumber, 'ctrlKey:', event.ctrlKey || event.metaKey, 'folderInfo:', folderInfo);
+
+    try {
+      setError(null);
+      setIsLoading(true);
+
+      // Find the folder that contains this file
+      const { folders: allFolders, setActiveFolder } = useFoldersStore.getState();
+      let targetFolderId = activeFolderId;
+
+      // Try to find the folder that contains this file
+      const matchingFolder = allFolders.find(folder => {
+        // Check if the file path starts with the folder path
+        return filePath.startsWith(folder.path);
+      });
+
+      if (matchingFolder && matchingFolder.id !== activeFolderId) {
+        // Switch to the folder that contains this file
+        console.log('[AppLayout] Switching to folder:', matchingFolder.displayName, matchingFolder.id);
+        setActiveFolder(matchingFolder.id);
+        targetFolderId = matchingFolder.id;
+      }
+
+      // Read file content
+      const response = await window.electronAPI.file.read({ filePath });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to read file');
+      }
+
+      const fileContent = response.content;
+      setIsLoading(false);
+      contentLoadedManually.current = true;
+
+      // Get tab store state
+      const { activeTabId: globalActiveTabId, tabs, addTab, setActiveTab, addHistoryEntry, updateTabZoomLevel } = useTabsStore.getState();
+
+      // Find a tab that belongs to the target folder
+      let activeTabId = globalActiveTabId;
+      if (targetFolderId && targetFolderId !== activeFolderId) {
+        // Look for tabs that belong to the target folder
+        const folderTabs = Array.from(tabs.values()).filter(tab => tab.folderId === targetFolderId);
+
+        if (folderTabs.length > 0) {
+          // Use the first tab from the target folder
+          activeTabId = folderTabs[0].id;
+          setActiveTab(activeTabId);
+          console.log('[AppLayout] Using existing tab from target folder:', activeTabId);
+        } else {
+          // No tabs for this folder, will create one below
+          activeTabId = null;
+          console.log('[AppLayout] No tabs found for target folder, will create new tab');
+        }
+      }
+
+      // Check if Ctrl/Cmd is pressed for opening in new tab
+      const openInNewTab = event.ctrlKey || event.metaKey;
+
+      if (openInNewTab) {
+        // Create a new tab for this file
+        const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
+        const newTabId = `search-result-${Date.now()}`;
+
+        const newTab: Tab = {
+          id: newTabId,
+          filePath: filePath,
+          title: fileName,
+          folderId: targetFolderId || null,
+          isDirectFile: !targetFolderId,
+          scrollPosition: 0,
+          scrollLeft: 0,
+          zoomLevel: 100,
+          searchState: null,
+          modificationTimestamp: Date.now(),
+          isDirty: false,
+          renderCache: null,
+          navigationHistory: [{
+            filePath: filePath,
+            scrollPosition: 0,
+            scrollLeft: 0,
+            zoomLevel: 100,
+            timestamp: Date.now(),
+          }],
+          currentHistoryIndex: 0,
+          forwardHistory: [],
+          createdAt: Date.now(),
+        };
+
+        addTab(newTab);
+        setActiveTab(newTabId);
+        setShowHome(false);
+        setCurrentFile(filePath);
+        contentCacheRef.current.set(filePath, fileContent);
+        setCurrentContent(fileContent);
+      } else {
+        // Navigate in current tab (or create one if none exists)
+        if (!activeTabId) {
+          // No active tab, create one
+          const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
+          const newTabId = `search-result-${Date.now()}`;
+
+          const newTab: Tab = {
+            id: newTabId,
+            filePath: filePath,
+            title: fileName,
+            folderId: targetFolderId || null,
+            isDirectFile: !targetFolderId,
+            scrollPosition: 0,
+            scrollLeft: 0,
+            zoomLevel: 100,
+            searchState: null,
+            modificationTimestamp: Date.now(),
+            isDirty: false,
+            renderCache: null,
+            navigationHistory: [{
+              filePath: filePath,
+              scrollPosition: 0,
+              scrollLeft: 0,
+              zoomLevel: 100,
+              timestamp: Date.now(),
+            }],
+            currentHistoryIndex: 0,
+            forwardHistory: [],
+            createdAt: Date.now(),
+          };
+
+          addTab(newTab);
+          setActiveTab(newTabId);
+          setShowHome(false);
+        } else {
+          // Update existing tab
+          const currentTab = tabs.get(activeTabId);
+
+          if (currentTab && currentTab.filePath !== filePath) {
+            // Save current file's state to history
+            const viewer = document.querySelector('.markdown-viewer') as HTMLElement;
+            const currentScrollTop = viewer?.scrollTop || currentTab.scrollPosition || 0;
+            const currentScrollLeft = viewer?.scrollLeft || currentTab.scrollLeft || 0;
+            addHistoryEntry(activeTabId, {
+              filePath: currentTab.filePath,
+              scrollPosition: currentScrollTop,
+              scrollLeft: currentScrollLeft,
+              zoomLevel: currentTab.zoomLevel || 100,
+              timestamp: Date.now(),
+            });
+
+            // Add new file to history
+            addHistoryEntry(activeTabId, {
+              filePath: filePath,
+              scrollPosition: 0,
+              scrollLeft: 0,
+              zoomLevel: 100,
+              timestamp: Date.now(),
+            });
+
+            // Reset zoom for new file
+            updateTabZoomLevel(activeTabId, 100);
+          }
+
+          // Get fresh tabs after history updates
+          const { tabs: freshTabs } = useTabsStore.getState();
+          const freshTab = freshTabs.get(activeTabId);
+
+          // Update tab's file path and title
+          if (freshTab) {
+            const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
+            const updatedTab: Tab = {
+              ...freshTab,
+              filePath: filePath,
+              title: fileName,
+              folderId: targetFolderId || freshTab.folderId,
+            };
+            freshTabs.set(activeTabId, updatedTab);
+            useTabsStore.setState({ tabs: new Map(freshTabs) });
+          }
+        }
+
+        setCurrentFile(filePath);
+        contentCacheRef.current.set(filePath, fileContent);
+        setCurrentContent(fileContent);
+      }
+
+      // Activate FindBar with search query and highlighting
+      const { activeSearch } = searchStore;
+      if (activeSearch && activeSearch.query) {
+        // Find the search result for this file
+        const fileResult = activeSearch.results.find(r => r.filePath === filePath);
+        let matchIndex = 0;
+
+        if (fileResult) {
+          // Find the index of the match with the clicked line number
+          const matchIndexInFile = fileResult.matches.findIndex(m => m.lineNumber === lineNumber);
+          if (matchIndexInFile >= 0) {
+            matchIndex = matchIndexInFile;
+          }
+        }
+
+        // Set all search state together after content is rendered
+        // This prevents the effect from running with default currentIndex=0 before the correct index is set
+        setTimeout(() => {
+          // Set the search query in FindBar store
+          searchStore.setFindInPageQuery(activeSearch.query);
+
+          // Copy search options from multi-file search to in-page search
+          searchStore.setFindInPageOptions({
+            caseSensitive: searchStore.searchInFilesOptions.caseSensitive,
+            wholeWord: searchStore.searchInFilesOptions.wholeWord,
+            useRegex: searchStore.searchInFilesOptions.useRegex,
+          });
+
+          // Set the match index and total matches
+          const totalMatches = fileResult?.matches.length || 0;
+          searchStore.setFindInPageResults(matchIndex, totalMatches);
+
+          // Open FindBar to show highlighting (after setting results)
+          setIsSearchBarVisible(true);
+        }, 100);
+      }
+
+    } catch (err: any) {
+      console.error('Failed to open search result file:', err);
+      setError(err.message || 'Failed to open file');
+      setIsLoading(false);
+    }
+  }, [searchStore, activeFolderId, setShowHome]);
 
   // Listen for toggle-sidebar events from TitleBar
   useEffect(() => {
@@ -365,6 +840,80 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
+  // T010: Register CTRL+F event listener for find-in-page
+  useEffect(() => {
+    const handleFindInPage = () => {
+      console.log('[AppLayout] Find in page triggered (CTRL+F)');
+      setIsSearchBarVisible(true);
+    };
+
+    window.addEventListener('menu:find', handleFindInPage);
+    return () => {
+      window.removeEventListener('menu:find', handleFindInPage);
+    };
+  }, []);
+
+  // T037: Register CTRL+SHIFT+F event listener for find-in-files
+  useEffect(() => {
+    const handleFindInFiles = () => {
+      console.log('[AppLayout] Find in files triggered (CTRL+SHIFT+F)');
+      setShowSidebar(true); // Ensure sidebar is visible
+      setSidebarView('search'); // Switch to search view
+    };
+
+    window.addEventListener('menu:find-in-files', handleFindInFiles);
+    return () => {
+      window.removeEventListener('menu:find-in-files', handleFindInFiles);
+    };
+  }, []);
+
+  // T041-T044: Wire up IPC event listeners for multi-file search
+  useEffect(() => {
+    console.log('[AppLayout] Registering search IPC event listeners');
+
+    // T041: Individual search results
+    const unsubscribeResult = window.search.onResult((event) => {
+      console.log('[AppLayout] Search result:', event);
+      searchStore.addSearchResult(event.searchId, event.result);
+    });
+
+    // T041: Progress updates
+    const unsubscribeProgress = window.search.onProgress((event) => {
+      console.log('[AppLayout] Search progress:', event);
+      searchStore.updateSearchProgress(
+        event.searchId,
+        event.filesSearched,
+        event.totalFiles,
+        event.resultsFound
+      );
+    });
+
+    // T043: Search completion
+    const unsubscribeComplete = window.search.onComplete((event) => {
+      console.log('[AppLayout] Search complete:', event);
+      searchStore.completeSearch(event.searchId, event.totalMatches);
+      // Results are shown in the search panel, no need for toast notification
+    });
+
+    // T044: Search errors
+    const unsubscribeError = window.search.onError((event) => {
+      console.error('[AppLayout] Search error:', event);
+
+      setToast({
+        message: `Search error: ${event.error}`,
+        type: 'error',
+      });
+    });
+
+    return () => {
+      console.log('[AppLayout] Unregistering search IPC event listeners');
+      unsubscribeResult();
+      unsubscribeProgress();
+      unsubscribeComplete();
+      unsubscribeError();
+    };
+  }, [searchStore, setToast]);
+
   // Register all commands for the shortcuts reference
   useEffect(() => {
     // File commands
@@ -515,12 +1064,8 @@ const AppLayout: React.FC = () => {
       onFindInPage: () => {
         window.dispatchEvent(new CustomEvent('menu:find'));
       },
-      onFindNext: () => {
-        console.log('Find next not implemented yet');
-      },
-      onFindPrevious: () => {
-        console.log('Find previous not implemented yet');
-      },
+      onFindNext: handleFindNext,
+      onFindPrevious: handleFindPrevious,
       onReplace: () => {
         console.log('Replace not implemented yet');
       },
@@ -553,7 +1098,7 @@ const AppLayout: React.FC = () => {
         window.close();
       },
     });
-  }, []);
+  }, [handleFindNext, handleFindPrevious]);
 
   // Memoize callback to prevent unnecessary re-renders
   const handleRenderComplete = useCallback(() => {
@@ -1214,6 +1759,18 @@ const AppLayout: React.FC = () => {
       },
     });
 
+    // Register search shortcuts (Ctrl+F, F3, Shift+F3, Ctrl+Shift+F)
+    registerSearchShortcuts({
+      onFindInPage: () => {
+        setIsSearchBarVisible(true);
+      },
+      onFindNext: handleFindNext,
+      onFindPrevious: handleFindPrevious,
+      onFindInFiles: () => {
+        window.dispatchEvent(new CustomEvent('menu:find-in-files'));
+      },
+    });
+
     // Listen for navigate-to-history events (for Home navigation)
     window.addEventListener('navigate-to-history', handleNavigateToHistory);
     // Listen for directory listing events
@@ -1332,6 +1889,7 @@ const AppLayout: React.FC = () => {
       unregisterTabShortcuts();
       unregisterFileShortcuts();
       unregisterHelpShortcuts();
+      unregisterSearchShortcuts();
       window.removeEventListener('mouseup', handleMouseButtons);
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
@@ -1340,7 +1898,7 @@ const AppLayout: React.FC = () => {
       window.removeEventListener('reveal-in-sidebar', handleRevealInSidebar);
       window.removeEventListener('view-folder-directory', handleViewFolderDirectory);
     };
-  }, []);
+  }, [handleFindNext, handleFindPrevious]);
 
   // Register zoom keyboard shortcuts (Ctrl+=/-/0 for document, Ctrl+Alt+=/-/0 for application)
   useEffect(() => {
@@ -1929,12 +2487,15 @@ const AppLayout: React.FC = () => {
       <div className="app-layout__content">
         {/* Only show sidebar if there are tabs or folders */}
         {showSidebar && hasContent && (
-          <div className="sidebar">
+          <div
+            className={`sidebar ${sidebarWidth < 200 ? 'sidebar--narrow' : ''}`}
+            style={{ width: `${sidebarWidth}px` }}
+          >
             <div className="sidebar-header">
             {/* T111-T113: Folder Switcher */}
             {folders.length > 0 && <FolderSwitcher onFolderOpened={handleFolderOpened} />}
 
-            {/* Sidebar view toggle: Files / History */}
+            {/* Sidebar view toggle: Files / History / Search */}
             {tabs.size > 0 && (
               <div className="sidebar-view-toggle">
                 <button
@@ -1942,21 +2503,46 @@ const AppLayout: React.FC = () => {
                   onClick={() => setSidebarView('files')}
                   title="Show File Tree"
                   type="button"
+                  data-sidebar-width={sidebarWidth}
                 >
-                  📁 Files
+                  <span className="sidebar-view-toggle__icon">📁</span>
+                  <span className="sidebar-view-toggle__text">Files</span>
                 </button>
                 <button
                   className={`sidebar-view-toggle__button ${sidebarView === 'history' ? 'sidebar-view-toggle__button--active' : ''}`}
                   onClick={() => setSidebarView('history')}
                   title="Show Navigation History"
                   type="button"
+                  data-sidebar-width={sidebarWidth}
                 >
-                  🕐 History
+                  <span className="sidebar-view-toggle__icon">🕐</span>
+                  <span className="sidebar-view-toggle__text">History</span>
+                </button>
+                <button
+                  className={`sidebar-view-toggle__button ${sidebarView === 'search' ? 'sidebar-view-toggle__button--active' : ''}`}
+                  onClick={() => setSidebarView('search')}
+                  title="Search in Files"
+                  type="button"
+                  data-sidebar-width={sidebarWidth}
+                >
+                  <span className="sidebar-view-toggle__icon">🔍</span>
+                  <span className="sidebar-view-toggle__text">Search</span>
                 </button>
               </div>
             )}
           </div>
           <div className="sidebar-content">
+            {/* Show Search Panel when search view is active */}
+            {sidebarView === 'search' && (
+              <SearchResults
+                isVisible={true}
+                onClose={handleCloseSearchPanel}
+                onSearch={handleSearchInFiles}
+                onCancel={handleCancelSearch}
+                onResultClick={handleSearchResultClick}
+              />
+            )}
+
             {/* Show History Panel when history view is active */}
             {sidebarView === 'history' && tabs.size > 0 && (
               <HistoryPanel
@@ -2280,6 +2866,7 @@ const AppLayout: React.FC = () => {
               );
             })()}
           </div>
+          <div className="sidebar-resize-handle" onMouseDown={handleSidebarResize}></div>
           </div>
         )}
 
@@ -2458,6 +3045,212 @@ const AppLayout: React.FC = () => {
                 addFolder(repoFolder);
                 setActiveFolder(repoFolder.id);
 
+                // Fetch the file tree and open the first markdown file
+                try {
+                  console.log('[AppLayout] Home onRepositoryConnected - Fetching tree for branch:', connectedRepository.currentBranch);
+                  const treeResult = await window.git?.repo?.fetchTree({
+                    repositoryId: connectedRepository.repositoryId,
+                    branch: connectedRepository.currentBranch,
+                    markdownOnly: true,
+                  });
+
+                  console.log('[AppLayout] Home onRepositoryConnected - Tree fetch result:', {
+                    success: treeResult?.success,
+                    hasData: !!treeResult?.data,
+                    hasTree: !!treeResult?.data?.tree,
+                    treeLength: treeResult?.data?.tree?.length,
+                  });
+
+                  if (treeResult?.success && treeResult.data?.tree) {
+                    // Find the first markdown file using breadth-first search
+                    const findFirstMarkdownFile = (nodes: any[]): string | null => {
+                      const queue = [...nodes];
+
+                      while (queue.length > 0) {
+                        const levelSize = queue.length;
+
+                        // Process all nodes at current level before going deeper
+                        for (let i = 0; i < levelSize; i++) {
+                          const node = queue.shift()!;
+
+                          // Check if this node is a markdown file
+                          if (node.type === 'file' && node.isMarkdown) {
+                            return node.path;
+                          }
+
+                          // Add children to queue for next level
+                          if (node.children) {
+                            queue.push(...node.children);
+                          }
+                        }
+                      }
+
+                      return null;
+                    };
+
+                    const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+
+                    console.log('[AppLayout] Home onRepositoryConnected - First markdown file:', firstFilePath);
+
+                    if (firstFilePath) {
+                      // Fetch the first file's content
+                      console.log('[AppLayout] Home onRepositoryConnected - Fetching file content for:', firstFilePath);
+                      const fileResult = await window.git?.repo?.fetchFile({
+                        repositoryId: connectedRepository.repositoryId,
+                        filePath: firstFilePath,
+                        branch: connectedRepository.currentBranch,
+                      });
+
+                      console.log('[AppLayout] Home onRepositoryConnected - File fetch result:', {
+                        success: fileResult?.success,
+                        hasData: !!fileResult?.data,
+                        error: fileResult?.error,
+                      });
+
+                      if (fileResult?.success && fileResult.data) {
+                        const { tabs, addTab, setActiveTab } = useTabsStore.getState();
+
+                        console.log('[AppLayout] Home onRepositoryConnected - Creating tab for branch:', connectedRepository.currentBranch);
+                        console.log('[AppLayout] Home onRepositoryConnected - Folder ID:', repoFolder.id);
+                        console.log('[AppLayout] Home onRepositoryConnected - Existing tabs count:', tabs.size);
+
+                        // Check ALL tabs for one matching this file in this repository folder context
+                        const existingTab = Array.from(tabs.values()).find(t =>
+                          t.filePath === firstFilePath && t.folderId === repoFolder.id
+                        );
+
+                        if (existingTab) {
+                          // Tab already exists, just set it as active
+                          setActiveTab(existingTab.id);
+                          console.log('[AppLayout] Home onRepositoryConnected - Reusing existing tab:', {
+                            tabId: existingTab.id,
+                            folderId: existingTab.folderId,
+                            filePath: existingTab.filePath,
+                          });
+                        } else {
+                          // Generate deterministic tab ID for repo file
+                          const tabId = generateRepoFileTabId(
+                            connectedRepository.repositoryId,
+                            connectedRepository.currentBranch,
+                            firstFilePath
+                          );
+                          // Create a tab for this file
+                          const fileName = firstFilePath.split('/').pop() || 'Untitled';
+                          const newTab = {
+                            id: tabId,
+                            filePath: firstFilePath,
+                            title: fileName,
+                            scrollPosition: 0,
+                            zoomLevel: 100,
+                            searchState: null,
+                            modificationTimestamp: Date.now(),
+                            isDirty: false,
+                            renderCache: null,
+                            navigationHistory: [{
+                              filePath: firstFilePath,
+                              scrollPosition: 0,
+                              scrollLeft: 0,
+                              zoomLevel: 100,
+                              timestamp: Date.now(),
+                            }],
+                            currentHistoryIndex: 0,
+                            forwardHistory: [],
+                            createdAt: Date.now(),
+                            folderId: repoFolder.id,
+                            isDirectFile: false,
+                          };
+
+                          addTab(newTab);
+                          setActiveTab(newTab.id);
+                          setShowHome(false); // Hide home page and show file viewer
+
+                          console.log('[AppLayout] Home onRepositoryConnected - Tab created and activated:', {
+                            tabId: newTab.id,
+                            folderId: newTab.folderId,
+                            filePath: newTab.filePath,
+                          });
+                        }
+
+                        // Set the file content
+                        setCurrentFile(firstFilePath);
+                        contentCacheRef.current.set(firstFilePath, fileResult.data.content);
+                        setCurrentContent(fileResult.data.content);
+                        setError(null);
+
+                        console.log('[AppLayout] Home onRepositoryConnected - File content set for tab');
+
+                        // Track repository in recents
+                        try {
+                          // Include branch in path so each branch is tracked separately
+                          const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                          await addRecent({
+                            path: pathWithBranch,
+                            type: 'repo',
+                            displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
+                          });
+                        } catch (error) {
+                          console.error('[AppLayout] Home onRepositoryConnected - Failed to track repository in recents:', error);
+                        }
+                      } else {
+                        console.warn('[AppLayout] Home onRepositoryConnected - Failed to fetch file or no data:', fileResult?.error);
+                      }
+                    } else {
+                      console.warn('[AppLayout] Home onRepositoryConnected - No markdown files found in tree');
+                    }
+                  } else {
+                    console.warn('[AppLayout] Home onRepositoryConnected - Tree fetch failed or no data:', treeResult?.error);
+
+                    // Tree fetch failed - clean up the failed connection
+                    const { removeFolder } = useFoldersStore.getState();
+                    removeFolder(repoFolder.id);
+
+                    // Remove from recents, favorites, and connection history
+                    try {
+                      const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                      await removeRecent(pathWithBranch, 'repo');
+                      await removeFavorite(pathWithBranch, 'repo');
+                      removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+                      console.log('[AppLayout] Home onRepositoryConnected - Removed unavailable repository from recents/favorites/history');
+                    } catch (removeError) {
+                      console.error('[AppLayout] Home onRepositoryConnected - Failed to remove unavailable repository:', removeError);
+                    }
+
+                    // Show error toast
+                    const errorMsg = treeResult?.error?.message || 'Failed to load repository';
+                    setToast({
+                      message: `This branch has been removed. ${errorMsg}`,
+                      type: 'error',
+                    });
+
+                    return; // Don't show success toast
+                  }
+                } catch (err) {
+                  console.error('[AppLayout] Home onRepositoryConnected - Error loading first repository file:', err);
+
+                  // Clean up on error
+                  const { removeFolder } = useFoldersStore.getState();
+                  removeFolder(repoFolder.id);
+
+                  // Remove from recents, favorites, and connection history
+                  try {
+                    const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
+                    await removeRecent(pathWithBranch, 'repo');
+                    await removeFavorite(pathWithBranch, 'repo');
+                    removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
+                    console.log('[AppLayout] Home onRepositoryConnected - Removed unavailable repository from recents/favorites/history');
+                  } catch (removeError) {
+                    console.error('[AppLayout] Home onRepositoryConnected - Failed to remove unavailable repository:', removeError);
+                  }
+
+                  // Show error toast
+                  setToast({
+                    message: `This branch has been removed. ${err instanceof Error ? err.message : 'Unknown error'}`,
+                    type: 'error',
+                  });
+
+                  return; // Don't show success toast
+                }
+
                 setToast({
                   message: `Connected to ${connectedRepository.displayName} (${connectedRepository.currentBranch})`,
                   type: 'success',
@@ -2539,6 +3332,15 @@ const AppLayout: React.FC = () => {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* T012: FindBar for in-page search (CTRL+F) */}
+      <FindBar
+        isVisible={isSearchBarVisible}
+        onClose={handleCloseFindBar}
+        onFind={handleSearch}
+        onFindNext={handleFindNext}
+        onFindPrevious={handleFindPrevious}
+      />
 
       {/* Keyboard Shortcuts Reference */}
       <ShortcutsReference

@@ -202,6 +202,18 @@
   background: #1a7f37; /* Green */
 }
 
+/* T024: Current match marker (brighter/more prominent) */
+.custom-scrollbar__marker--current {
+  background: #ff6b00 !important; /* Bright orange for current match */
+  height: 3px !important; /* Slightly taller */
+  box-shadow: 0 0 3px rgba(255, 107, 0, 0.6);
+}
+
+.custom-scrollbar--horizontal .custom-scrollbar__marker--current {
+  width: 3px !important;
+  height: 100% !important;
+}
+
 /* Marker types - Dark theme */
 [data-theme="dark"] .custom-scrollbar__marker--heading,
 .custom-scrollbar--dark .custom-scrollbar__marker--heading {
@@ -211,6 +223,12 @@
 [data-theme="dark"] .custom-scrollbar__marker--search,
 .custom-scrollbar--dark .custom-scrollbar__marker--search {
   background: #ffa657;
+}
+
+[data-theme="dark"] .custom-scrollbar__marker--current,
+.custom-scrollbar--dark .custom-scrollbar__marker--current {
+  background: #ff8c42 !important; /* Brighter orange for dark theme */
+  box-shadow: 0 0 4px rgba(255, 140, 66, 0.8);
 }
 
 [data-theme="dark"] .custom-scrollbar__marker--error,

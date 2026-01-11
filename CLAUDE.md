@@ -27,10 +27,10 @@ npm test; npm run lint
 JavaScript/TypeScript with Node.js + Electron + React: Follow standard conventions with React functional components and hooks
 
 ## Recent Changes
+- 001-search-find: Added TypeScript 5.7 with Node.js (Electron 33.4.11)
 - 001-home-recents-favorites: Added TypeScript 5.7 / Node.js with Electron 33.4.11 + React 18.3.1, Zustand 4.5.0, electron-store 11.0.2, react-router-dom 6.20.0
 - 001-git-repo-integration: Added TypeScript 5.7 with Node.js (Electron 33.4.11) + React 18.3.1, Zustand 4.5.0, markdown-it 14.1.0, Zod 3.22.0, react-router-dom 6.20.0
 
-- 001-git-repo-integration: Added axios (HTTP client), better-sqlite3 (cache storage), p-retry (exponential backoff), Electron safeStorage API (credential encryption)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

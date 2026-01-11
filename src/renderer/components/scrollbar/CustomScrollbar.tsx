@@ -237,18 +237,34 @@ export const CustomScrollbar: React.FC<CustomScrollbarProps> = ({
         {/* Overview ruler markers */}
         {markers.length > 0 && (
           <div className="custom-scrollbar__overview">
-            {markers.map((marker) => (
-              <div
-                key={marker.id}
-                className={`custom-scrollbar__marker custom-scrollbar__marker--${marker.type}`}
-                style={
-                  isVertical
-                    ? { top: `${marker.position * 100}%` }
-                    : { left: `${marker.position * 100}%` }
-                }
-                title={marker.tooltip}
-              />
-            ))}
+            {markers.map((marker) => {
+              // T023: Handle marker click to scroll to position
+              const handleMarkerClick = (e: React.MouseEvent) => {
+                e.stopPropagation(); // Prevent track click
+                const scrollPosition = marker.position * maxScroll;
+                onScrollRequest(scrollPosition);
+              };
+
+              // T024: Detect current search match marker
+              const isCurrentMatch = marker.id.includes('search-current');
+              const markerClass = isCurrentMatch
+                ? `custom-scrollbar__marker custom-scrollbar__marker--${marker.type} custom-scrollbar__marker--current`
+                : `custom-scrollbar__marker custom-scrollbar__marker--${marker.type}`;
+
+              return (
+                <div
+                  key={marker.id}
+                  className={markerClass}
+                  style={
+                    isVertical
+                      ? { top: `${marker.position * 100}%` }
+                      : { left: `${marker.position * 100}%` }
+                  }
+                  title={marker.tooltip}
+                  onClick={handleMarkerClick}
+                />
+              );
+            })}
           </div>
         )}
 
