@@ -7,6 +7,7 @@ import { createWindow, setGlobalZoom, getGlobalZoom } from './window-manager';
 import { loadUIState, saveUIState } from './ui-state-manager';
 import { registerGitHandlers } from './ipc/git-handlers';
 import { registerRecentsFavoritesHandlers } from './ipc/recents-favorites-handlers';
+import { registerSearchHandlers } from './ipc/search-handlers';
 
 // T011: IPC handler registration system with Zod validation (research.md Section 6)
 
@@ -808,6 +809,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
   // Register Recents and Favorites IPC handlers
   registerRecentsFavoritesHandlers();
+
+  // T007: Register Search IPC handlers
+  registerSearchHandlers();
 
   console.log('IPC handlers registered');
 }

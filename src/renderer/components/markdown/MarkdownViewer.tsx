@@ -16,6 +16,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { renderMarkdown, renderMermaidDiagrams, applySyntaxHighlighting } from '../../services/markdown-renderer';
 import { CustomScrollbar, ScrollbarMarker } from '../scrollbar/CustomScrollbar';
 import { extractHeadingMarkers } from '../../utils/marker-extractor';
+import { useSearchStore } from '../../stores/search'; // T014: Import search store
 import './MarkdownViewer.css';
 
 export interface MarkdownViewerProps {
@@ -103,6 +104,14 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Track current zoom level without triggering re-renders (for smooth wheel zoom)
   const currentZoomRef = useRef<number>(zoomLevel);
   const zoomUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // T014: Search store access for highlighting
+  const {
+    findInPageQuery,
+    findInPageOptions,
+    findInPageCurrentIndex,
+    findInPageTotalMatches
+  } = useSearchStore();
 
   // Custom scrollbar state
   const [scrollState, setScrollState] = useState({
@@ -743,6 +752,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         addTaskListHandlers(targetContentElement);
         console.log('[MarkdownViewer] Task list handlers added');
 
+        // T014, T015: Apply search highlighting if query exists
+        if (findInPageQuery) {
+          applySearchHighlighting(targetContentElement, findInPageQuery, findInPageOptions, findInPageCurrentIndex);
+          console.log('[MarkdownViewer] Search highlighting applied during render');
+        }
+
         if (!isCancelled) {
           setIsRendering(false);
           onRenderComplete?.();
@@ -912,8 +927,34 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         element,
         element.scrollHeight
       );
-      // console.log('[MarkdownViewer] Extracted markers:', headingMarkers.length);
-      setMarkers(headingMarkers);
+
+      // T020, T021, T024, T025: Extract search markers
+      const searchMarkers: ScrollbarMarker[] = [];
+      if (findInPageQuery && findInPageTotalMatches > 0) {
+        const markElements = element.querySelectorAll('mark.search-highlight');
+        markElements.forEach((markElement, index) => {
+          // Calculate position relative to document height (0-1 range)
+          const elementTop = (markElement as HTMLElement).offsetTop || 0;
+          const position = element.scrollHeight > 0 ? elementTop / element.scrollHeight : 0;
+
+          // T024: Check if this is the current match
+          const isCurrent = index === findInPageCurrentIndex;
+
+          searchMarkers.push({
+            id: isCurrent ? `search-current-${index}` : `search-${index}`, // T024: Mark current match with special ID
+            position: Math.max(0, Math.min(1, position)),
+            type: 'search',
+            tooltip: isCurrent ? `Current match (${index + 1} of ${findInPageTotalMatches})` : `Match ${index + 1} of ${findInPageTotalMatches}`
+          });
+        });
+
+        console.log('[MarkdownViewer] Extracted search markers:', searchMarkers.length);
+      }
+
+      // Combine heading and search markers
+      const allMarkers = [...headingMarkers, ...searchMarkers];
+      // console.log('[MarkdownViewer] Extracted markers:', allMarkers.length);
+      setMarkers(allMarkers);
     };
 
     // Initial update
@@ -934,7 +975,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       resizeObserver.disconnect();
       clearTimeout(timeoutId);
     };
-  }, [content, zoomLevel, activeBuffer]);
+  }, [content, zoomLevel, activeBuffer, findInPageQuery, findInPageTotalMatches, findInPageCurrentIndex]); // T025: Update markers when search state changes
 
   // T051i: Mouse wheel zoom with Ctrl+Scroll (smooth, synchronous)
   useEffect(() => {
@@ -1163,6 +1204,38 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [zoomLevel, activeBuffer]);
 
+  // T014, T015, T017: Apply search highlighting and scroll-to-match when search state changes
+  useEffect(() => {
+    const activeContentRef = activeBuffer === 'A' ? contentARef : contentBRef;
+    const contentElement = activeContentRef.current;
+
+    if (!contentElement) return;
+
+    // Apply or clear highlighting
+    const matchElements = applySearchHighlighting(
+      contentElement,
+      findInPageQuery,
+      findInPageOptions,
+      findInPageCurrentIndex
+    );
+
+    // T017: Scroll to current match
+    if (matchElements.length > 0 && findInPageCurrentIndex >= 0 && findInPageCurrentIndex < matchElements.length) {
+      const currentMatchElement = matchElements[findInPageCurrentIndex];
+      if (currentMatchElement) {
+        // Use requestAnimationFrame to ensure DOM has updated before scrolling
+        requestAnimationFrame(() => {
+          currentMatchElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          });
+          console.log('[MarkdownViewer] Scrolled to match:', findInPageCurrentIndex);
+        });
+      }
+    }
+  }, [findInPageQuery, findInPageOptions, findInPageCurrentIndex, findInPageTotalMatches, activeBuffer]);
+
   /**
    * Resolve relative image paths to absolute file:// URLs
    * Uses the file:resolvePath IPC handler (T036)
@@ -1244,6 +1317,126 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         imgElement.alt = `[Image error: ${src}]`;
         imgElement.title = `Failed to load image: ${err instanceof Error ? err.message : 'Unknown error'}`;
       }
+    }
+  };
+
+  /**
+   * T014, T015: Apply search highlighting to rendered content
+   * Wraps search matches in <mark> tags with special class for current match
+   */
+  const applySearchHighlighting = (container: HTMLElement, query: string, options: typeof findInPageOptions, currentIndex: number): HTMLElement[] => {
+    // Always clear existing highlights first
+    const existingMarks = container.querySelectorAll('mark.search-highlight, mark.search-highlight-current');
+    existingMarks.forEach(mark => {
+      const parent = mark.parentNode;
+      if (parent) {
+        parent.replaceChild(document.createTextNode(mark.textContent || ''), mark);
+        parent.normalize(); // Merge adjacent text nodes
+      }
+    });
+
+    if (!query) {
+      return [];
+    }
+
+    try {
+      // Build regex pattern
+      let searchPattern: RegExp;
+      if (options.useRegex) {
+        const flags = options.caseSensitive ? 'g' : 'gi';
+        searchPattern = new RegExp(query, flags);
+      } else {
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = options.wholeWord ? `\\b${escapedQuery}\\b` : escapedQuery;
+        const flags = options.caseSensitive ? 'g' : 'gi';
+        searchPattern = new RegExp(pattern, flags);
+      }
+
+      const matchElements: HTMLElement[] = [];
+      let matchCount = 0;
+
+      // Walk through all text nodes and highlight matches
+      const walker = document.createTreeWalker(
+        container,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: (node) => {
+            // Skip script, style, and already highlighted nodes
+            const parent = node.parentElement;
+            if (!parent) return NodeFilter.FILTER_REJECT;
+            const tagName = parent.tagName.toLowerCase();
+            if (tagName === 'script' || tagName === 'style' || tagName === 'mark') {
+              return NodeFilter.FILTER_REJECT;
+            }
+            // Only process nodes with content that matches our pattern
+            if (node.textContent && searchPattern.test(node.textContent)) {
+              return NodeFilter.FILTER_ACCEPT;
+            }
+            return NodeFilter.FILTER_REJECT;
+          }
+        }
+      );
+
+      const nodesToProcess: Text[] = [];
+      let node: Node | null;
+      while ((node = walker.nextNode())) {
+        nodesToProcess.push(node as Text);
+      }
+
+      // Process nodes and wrap matches in <mark> tags
+      nodesToProcess.forEach(textNode => {
+        const text = textNode.textContent || '';
+        const matches = Array.from(text.matchAll(searchPattern));
+
+        if (matches.length === 0) return;
+
+        const parent = textNode.parentNode;
+        if (!parent) return;
+
+        let lastIndex = 0;
+        const fragment = document.createDocumentFragment();
+
+        matches.forEach(match => {
+          const matchStart = match.index!;
+          const matchEnd = matchStart + match[0].length;
+
+          // Add text before match
+          if (matchStart > lastIndex) {
+            fragment.appendChild(document.createTextNode(text.substring(lastIndex, matchStart)));
+          }
+
+          // Create <mark> element for match
+          const mark = document.createElement('mark');
+          const isCurrentMatch = matchCount === currentIndex;
+          mark.className = isCurrentMatch ? 'search-highlight search-highlight-current' : 'search-highlight';
+          mark.textContent = match[0];
+          mark.setAttribute('data-match-index', matchCount.toString());
+          fragment.appendChild(mark);
+          matchElements.push(mark);
+
+          matchCount++;
+          lastIndex = matchEnd;
+        });
+
+        // Add remaining text
+        if (lastIndex < text.length) {
+          fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+        }
+
+        // Replace original text node with fragment
+        parent.replaceChild(fragment, textNode);
+      });
+
+      console.log('[MarkdownViewer] Search highlighting applied:', {
+        query,
+        totalMatches: matchElements.length,
+        currentIndex
+      });
+
+      return matchElements;
+    } catch (error) {
+      console.error('[MarkdownViewer] Search highlighting error:', error);
+      return [];
     }
   };
 

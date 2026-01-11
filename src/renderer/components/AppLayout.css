@@ -18,7 +18,8 @@
 
 /* Sidebar */
 .sidebar {
-  width: 250px;
+  min-width: 150px;
+  max-width: 600px;
   background: var(--color-bg-sidebar, #f6f8fa);
   border-right: 1px solid var(--color-border-default, #d0d7de);
   display: flex;
@@ -26,6 +27,23 @@
   overflow: visible;
   position: relative;
   z-index: 10;
+}
+
+/* Sidebar resize handle */
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 100;
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-resize-handle:hover {
+  background-color: var(--accent-color, #0969da);
 }
 
 .sidebar-header {
@@ -66,6 +84,29 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sidebar-view-toggle__icon {
+  flex-shrink: 0;
+}
+
+.sidebar-view-toggle__text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s ease;
+}
+
+/* Hide text when sidebar is narrow (< 200px) */
+.sidebar--narrow .sidebar-view-toggle__text {
+  display: none;
+}
+
+/* Reduce padding when narrow */
+.sidebar--narrow .sidebar-view-toggle__button {
+  padding: 6px 8px;
 }
 
 .sidebar-view-toggle__button:hover {
