@@ -5,6 +5,16 @@
 **Status**: Draft
 **Input**: User description: "Modernize MarkRead packaging and distribution from legacy WPF/WiX to Electron-native infrastructure"
 
+## Clarifications
+
+### Session 2026-01-11
+
+- Q: When an end user experiences an installation failure (e.g., corrupted download, insufficient disk space, permission issues), how should they diagnose and report the problem? → A: Installer writes structured logs to AppData\Local\MarkRead\Logs with user-facing error dialog showing log path and error code
+- Q: When the code signing certificate approaches expiration or expires, what is the renewal and transition strategy? → A: CI/CD workflow checks certificate expiration at build time; fails with warning if <30 days remain; GitHub Secrets must be updated with new certificate before expiration (currently using self-signed developer certificates)
+- Q: How should the portable .exe variant differ from the NSIS installer in behavior and features? → A: Portable .exe runs without installation, no registry changes, no file associations, no auto-updates, stores settings in local folder; Installer provides full integration with auto-updates and file associations
+- Q: What should be the rollback and recovery strategy when an auto-update installation fails or causes application instability? → A: Electron auto-updater keeps previous version as backup; if new version crashes on startup, automatically reverts to previous version and logs failure
+- Q: How should the application handle update check failures when GitHub Releases API is unavailable or returns errors? → A: Fail silently, log error, retry with exponential backoff (1hr, 2hr, 4hr); resume normal 4hr interval once successful
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Clean Legacy Artifacts (Priority: P1)
@@ -131,13 +141,15 @@ As a user, I want .md and .markdown files to be associated with MarkRead with "O
 ### Edge Cases
 
 - What happens when electron-builder encounters a corrupted icon.ico file during packaging?
-- How does the system handle code signing when the certificate has expired?
-- What occurs if GitHub Releases API is unavailable during auto-update check?
+- How does the system handle code signing when the certificate has expired (signing script checks expiration at build time, fails with warning if <30 days remain or already expired)?
+- What occurs if GitHub Releases API is unavailable during auto-update check (fails silently, logs error to %LOCALAPPDATA%\MarkRead\Logs, retries with exponential backoff: 1hr, 2hr, 4hr, then resumes normal 4hr interval after successful check)?
 - How does the installer behave when a newer version is already installed?
 - What happens if npm run build fails partway through due to out-of-memory errors?
 - How does auto-update handle network interruption during download?
-- What occurs when the user lacks sufficient disk space for update download?
+- What occurs when the user lacks sufficient disk space for update download (installer logs error to %LOCALAPPDATA%\MarkRead\Logs with error code, displays dialog with log path)?
+- What happens when an auto-update installation completes but the new version crashes on startup (auto-updater automatically reverts to previous version backup, logs failure to %LOCALAPPDATA%\MarkRead\Logs, displays notification to user about rollback)?
 - How does the system handle concurrent installations on the same machine?
+- What happens when installer fails due to permission issues (logs detailed diagnostic info, shows error dialog with log file path and error code)?
 
 ## Requirements *(mandatory)*
 
@@ -148,14 +160,16 @@ As a user, I want .md and .markdown files to be associated with MarkRead with "O
 - **FR-003**: CI workflow MUST install Node.js 20 dependencies, run tests, perform TypeScript type checking, run ESLint, build the Electron application, and package an unsigned installer for smoke testing
 - **FR-004**: Release workflow MUST verify package.json version matches the git tag version before proceeding with packaging
 - **FR-005**: Release workflow MUST build Electron application, sign the installer with a valid code signing certificate using SHA256 algorithm, verify the digital signature, generate build metadata JSON, and create a GitHub Release with the signed installer
-- **FR-006**: electron-builder.yml MUST be configured with maximum LZMA compression, ASAR packaging enabled, file associations for .md and .markdown extensions, NSIS installer targeting Windows x64, portable .exe variant, and publish configuration for GitHub Releases auto-updates
+- **FR-006**: electron-builder.yml MUST be configured with maximum LZMA compression, ASAR packaging enabled, file associations for .md and .markdown extensions, NSIS installer targeting Windows x64, portable .exe variant (no installation, no registry changes, no file associations, no auto-updates, settings stored in local portable folder), and publish configuration for GitHub Releases auto-updates
 - **FR-007**: NSIS installer MUST support custom installation directory selection, create desktop and start menu shortcuts, display license agreement, install per-user by default with optional elevation, and preserve user data on uninstallation
-- **FR-008**: Code signing script (scripts/electron-sign.ps1) MUST locate signtool.exe from Windows SDK, sign .exe files with certificate from environment variables (PFX file or certificate store thumbprint), use SHA256 hash algorithm, include timestamp from DigiCert timestamp server, and verify signature after signing
-- **FR-009**: Auto-update functionality MUST check for updates 5 seconds after app launch and every 4 hours, query GitHub Releases for latest version, download updates in the background with progress reporting, display notifications for available/downloaded updates, allow users to install immediately or defer, and skip update checks in development mode
+- **FR-008**: Code signing script (scripts/electron-sign.ps1) MUST locate signtool.exe from Windows SDK, sign .exe files with certificate from environment variables (PFX file or certificate store thumbprint), use SHA256 hash algorithm, include timestamp from DigiCert timestamp server, verify signature after signing, and check certificate expiration date to fail build with warning if certificate expires within 30 days
+- **FR-009**: Auto-update functionality MUST check for updates 5 seconds after app launch and every 4 hours, query GitHub Releases for latest version, download updates in the background with progress reporting, display notifications for available/downloaded updates, allow users to install immediately or defer, skip update checks in development mode, keep previous version as backup during updates, automatically rollback to previous version with failure logging if new version crashes on startup, and handle update check failures by logging errors silently and retrying with exponential backoff intervals (1hr, 2hr, 4hr) before resuming normal 4hr checks after successful connection
 - **FR-010**: Release script (scripts/release.ps1) MUST read/update package.json version, validate semver format, prompt for CHANGELOG.md editing, run tests and linting with failure handling, create git commit and tag, and provide clear push instructions
 - **FR-011**: File associations MUST create Windows registry entries for .md and .markdown extensions, add "Open with MarkRead" to context menu with MarkRead icon, enable double-click to open files in MarkRead, and cleanly remove all registry entries on uninstallation
 - **FR-012**: Build metadata JSON MUST include version, build date, commit SHA, Node.js version, npm version, and Electron version
 - **FR-013**: System MUST preserve existing code signing infrastructure (certificate secrets in GitHub Actions, PFX files, certificate store integration) while adapting scripts from MSI to Electron .exe signing
+- **FR-014**: Installer MUST use application icon from assets/icon.ico for the application executable and assets/icon.png for package metadata, and NSIS installer MUST use assets/installer-banner.bmp and assets/installer-dialog.bmp for installer UI where supported by electron-builder NSIS configuration, and display license agreement from assets/License.rtf
+- **FR-015**: NSIS installer MUST write structured installation logs to %LOCALAPPDATA%\MarkRead\Logs directory with timestamps, error codes, and diagnostic details, and display user-facing error dialogs showing the log file path and specific error code when installation failures occur
 
 ### Key Entities
 
@@ -172,6 +186,8 @@ As a user, I want .md and .markdown files to be associated with MarkRead with "O
 - **CI/CD Workflow**: Represents GitHub Actions workflows (ci.yml for continuous integration, release.yml for releases) that build, test, package, sign, and publish installers. Relates to Installer Package and Release Artifact.
 
 - **Build Configuration**: Represents electron-builder.yml configuration file defining packaging settings including compression, file inclusions/exclusions, NSIS installer options, file associations, code signing script, and publish targets. Relates to Installer Package.
+
+- **Portable Executable**: Represents the standalone portable .exe variant that runs without installation, makes no registry modifications, excludes file associations and auto-update functionality, and stores all settings in a local folder relative to the executable location. Intended for users requiring no-install execution (USB drives, shared computers, restricted environments). Relates to Release Artifact.
 
 ## Success Criteria *(mandatory)*
 
