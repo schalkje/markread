@@ -76,13 +76,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T017 [P] [US2] Implement CI workflow .github/workflows/ci.yml with steps: npm ci, type-check, lint, test, build, package (unsigned)
-- [ ] T018 [P] [US2] Add artifact upload to CI workflow for unsigned installer (retention: 30 days)
-- [ ] T019 [US2] Implement release workflow .github/workflows/release.yml with trigger on v*.*.* tags
-- [ ] T020 [US2] Add version validation step in release workflow to compare package.json version with git tag
-- [ ] T021 [US2] Add steps to release workflow: type-check, lint, test, build (matching CI workflow)
-- [ ] T022 [US2] Add packaging step to release workflow (will be completed in US3 with signing)
-- [ ] T023 [P] [US2] Add artifact upload to release workflow for installer, portable .exe, latest.yml, blockmap (retention: 90 days)
+- [X] T017 [P] [US2] Implement CI workflow .github/workflows/ci.yml with steps: npm ci, type-check, lint, test, build, package (unsigned)
+- [X] T018 [P] [US2] Add artifact upload to CI workflow for unsigned installer (retention: 30 days)
+- [X] T019 [US2] Implement release workflow .github/workflows/release.yml with trigger on v*.*.* tags
+- [X] T020 [US2] Add version validation step in release workflow to compare package.json version with git tag
+- [X] T021 [US2] Add steps to release workflow: type-check, lint, test, build (matching CI workflow)
+- [X] T022 [US2] Add packaging step to release workflow (will be completed in US3 with signing)
+- [X] T023 [P] [US2] Add artifact upload to release workflow for installer, portable .exe, latest.yml, blockmap (retention: 90 days)
 - [ ] T024 [US2] Test CI workflow by pushing to develop branch and verify build succeeds
 - [ ] T025 [US2] Test release workflow by creating test tag v0.5.1-beta.1 (without signing, expect unsigned build)
 
