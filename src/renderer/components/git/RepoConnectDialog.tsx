@@ -13,6 +13,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useGitRepo } from '../../hooks/useGitRepo';
 import { useRecentsFavorites } from '../../hooks/useRecentsFavorites';
 import type { ConnectRepositoryRequest, BranchInfo } from '../../../shared/types/git-contracts';
+import { ItemType } from '../../../shared/types/recents-favorites';
 import { getConnectionHistory, groupConnectionHistory, removeFromConnectionHistory, type ConnectionHistoryEntry, type GroupedHistoryRepository } from '../../utils/connection-history';
 import { sortBranchesByPriority, getDefaultBranch } from '../../../shared/utils/repository-utils';
 import './RepoConnectDialog.css';
@@ -159,9 +160,9 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
       console.log('[Fetch Branches] Got branches:', branches);
 
       // Sort branches by priority
-      const sortedBranchNames = sortBranchesByPriority(branches.map(b => b.name));
-      const sortedBranches = sortedBranchNames.map(name =>
-        branches.find(b => b.name === name)!
+      const sortedBranchNames = sortBranchesByPriority(branches.map((b: BranchInfo) => b.name));
+      const sortedBranches = sortedBranchNames.map((name: string) =>
+        branches.find((b: BranchInfo) => b.name === name)!
       );
 
       setAvailableBranches(sortedBranches);
@@ -508,7 +509,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
             console.log('[RepoConnectDialog] Adding repository to recents:', { path: pathWithBranch, displayName });
             await addRecent({
               path: pathWithBranch,
-              type: 'repo',
+              type: ItemType.REPO,
               displayName
             });
             console.log('[RepoConnectDialog] Repository added to recents successfully');
@@ -588,15 +589,15 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
         // Auto-remove item from recents, favorites, AND connection history
         try {
           const pathWithBranch = `${historyUrl}#${branch}`;
-          await removeRecent(pathWithBranch, 'repo');
-          await removeFavorite(pathWithBranch, 'repo');
+          await removeRecent(pathWithBranch, ItemType.REPO);
+          await removeFavorite(pathWithBranch, ItemType.REPO);
           removeFromConnectionHistory(historyUrl, branch);
           console.log('[RepoConnectDialog] Removed unavailable repository from recents/favorites/history:', pathWithBranch);
 
           // Reload connection history to reflect the removal
           const history = getConnectionHistory();
           setConnectionHistory(history);
-          const grouped = groupConnectionHistory(history);
+          const grouped = groupConnectionHistory();
           setGroupedHistory(grouped);
         } catch (removeError) {
           console.error('[RepoConnectDialog] Failed to remove unavailable repository:', removeError);

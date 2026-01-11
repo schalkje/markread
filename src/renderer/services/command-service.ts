@@ -9,7 +9,7 @@
  * - Recent commands tracking
  */
 
-import type { Command, CommandCategory, CommandContext, CommandSearchResult } from '@shared/types/commands.d.ts';
+import type { Command, CommandContext, CommandSearchResult } from '@shared/types/commands.d.ts';
 import { CommandCategory as CC } from '@shared/types/commands.d.ts';
 
 class CommandService {

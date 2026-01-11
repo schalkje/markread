@@ -53,7 +53,7 @@ export class AzureDevOpsClient {
     console.log('[AzureDevOpsClient] Branches response type:', typeof response);
 
     // Detect HTML sign-in page (Azure DevOps returns HTML instead of 401)
-    if (typeof response === 'string' && response.includes('<!DOCTYPE html')) {
+    if (typeof response === 'string' && (response as string).includes('<!DOCTYPE html')) {
       throw {
         code: 'AUTH_FAILED',
         message: 'Authentication required. Please sign in to access this repository.',
@@ -102,7 +102,7 @@ export class AzureDevOpsClient {
     console.log('[AzureDevOpsClient] Repository response type:', typeof response);
 
     // Detect HTML sign-in page (Azure DevOps returns HTML instead of 401)
-    if (typeof response === 'string' && response.includes('<!DOCTYPE html')) {
+    if (typeof response === 'string' && (response as string).includes('<!DOCTYPE html')) {
       throw {
         code: 'AUTH_FAILED',
         message: 'Authentication required. Please sign in to access this repository.',

@@ -72,7 +72,7 @@ export class GitHttpClient {
         if (response.headers) {
           const repositoryId = (response.config as any).repositoryId;
           if (repositoryId) {
-            rateLimiter.updateFromHeaders(repositoryId, response.headers);
+            rateLimiter.updateFromHeaders(repositoryId, response.headers as Record<string, string>);
           }
         }
         return response;

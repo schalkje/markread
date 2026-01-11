@@ -101,7 +101,7 @@ export class GitCredentialHelper {
     try {
       // git ls-remote will trigger GCM authentication if needed
       // We don't care about the output, just whether it succeeds
-      const { stdout, stderr } = await execAsync(`git ls-remote "${url}" HEAD`, {
+      const { stderr } = await execAsync(`git ls-remote "${url}" HEAD`, {
         timeout,
         // Set environment to ensure interactive prompts work
         env: {

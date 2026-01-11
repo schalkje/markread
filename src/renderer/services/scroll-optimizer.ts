@@ -91,7 +91,7 @@ export const scrollOptimizer = new ScrollOptimizerService();
  * });
  * ```
  */
-export function useOptimizedScroll(callback: ScrollCallback): void {
+export function useOptimizedScroll(callback: ScrollCallback): () => void {
   // Note: This is a simplified version. In a real implementation,
   // you'd use useEffect with proper cleanup
   const unsubscribe = scrollOptimizer.onScroll(callback);

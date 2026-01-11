@@ -21,7 +21,7 @@ import CopyButtonPlugin from 'highlightjs-copy';
 /**
  * T025: Configure markdown-it v14.1.0 with GFM plugins
  */
-const md = new MarkdownIt({
+const md: MarkdownIt = new MarkdownIt({
   html: false, // Disable raw HTML for security
   xhtmlOut: true,
   breaks: true, // Convert \n to <br>
@@ -33,10 +33,10 @@ const md = new MarkdownIt({
    * We don't highlight here because highlightjs-copy needs DOM elements
    * Highlighting is applied in applySyntaxHighlighting() after render
    */
-  highlight: (code: string, language: string) => {
+  highlight: (code: string, _language: string): string => {
     // Just escape HTML - markdown-it will wrap this in <pre><code class="language-xxx">
     // The post-render applySyntaxHighlighting() will do actual highlighting
-    return md.utils.escapeHtml(code);
+    return MarkdownIt().utils.escapeHtml(code);
   },
 });
 
@@ -155,7 +155,7 @@ export function registerLanguage(lang: string): boolean {
  */
 const defaultFence = md.renderer.rules.fence!;
 
-md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+md.renderer.rules.fence = (tokens: any, idx: number, options: any, env: any, self: any) => {
   const token = tokens[idx];
   const info = token.info.trim();
   const lang = info.split(/\s+/)[0];

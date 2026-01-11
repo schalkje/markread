@@ -33,6 +33,7 @@ export type GitErrorCode =
   // Cache errors
   | 'CACHE_ERROR'           // Cache read/write operation failed
   | 'CACHE_FULL'            // Cache size limit exceeded
+  | 'NOT_CACHED'            // Requested data not found in cache
 
   // System errors
   | 'OFFLINE'               // System is offline, operation requires connectivity
@@ -83,6 +84,7 @@ export const GitErrorResponseSchema = z.object({
     'FILE_NOT_FOUND',
     'CACHE_ERROR',
     'CACHE_FULL',
+    'NOT_CACHED',
     'OFFLINE',
     'STORAGE_ERROR',
     'UNKNOWN',
@@ -116,6 +118,7 @@ export const ERROR_MESSAGES: Record<GitErrorCode, string> = {
 
   CACHE_ERROR: 'Failed to read from cache. Please try refreshing.',
   CACHE_FULL: 'Cache storage is full. Please clear some cached repositories.',
+  NOT_CACHED: 'Requested data not found in cache.',
 
   OFFLINE: 'You are offline. This operation requires an internet connection.',
   STORAGE_ERROR: 'Failed to access local storage. Please check disk space and permissions.',

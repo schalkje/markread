@@ -11,9 +11,9 @@ import { create } from 'zustand';
 import { recentsFavoritesService } from '../services/recents-favorites-service';
 import type {
   RecentItem,
-  Favorite,
-  ItemType
+  Favorite
 } from '@shared/types/recents-favorites';
+import { ItemType } from '@shared/types/recents-favorites';
 
 /**
  * Recents and Favorites store state interface
@@ -82,12 +82,12 @@ export const useRecentsFavoritesStore = create<RecentsFavoritesState>((set, get)
         foldersFavorites,
         reposFavorites
       ] = await Promise.all([
-        recentsFavoritesService.getRecents('file'),
-        recentsFavoritesService.getRecents('folder'),
-        recentsFavoritesService.getRecents('repo'),
-        recentsFavoritesService.getFavorites('file'),
-        recentsFavoritesService.getFavorites('folder'),
-        recentsFavoritesService.getFavorites('repo')
+        recentsFavoritesService.getRecents(ItemType.FILE),
+        recentsFavoritesService.getRecents(ItemType.FOLDER),
+        recentsFavoritesService.getRecents(ItemType.REPO),
+        recentsFavoritesService.getFavorites(ItemType.FILE),
+        recentsFavoritesService.getFavorites(ItemType.FOLDER),
+        recentsFavoritesService.getFavorites(ItemType.REPO)
       ]);
 
       set({
@@ -155,9 +155,9 @@ export const useRecentsFavoritesStore = create<RecentsFavoritesState>((set, get)
       } else {
         // Clear all categories
         await Promise.all([
-          recentsFavoritesService.clearRecents('file'),
-          recentsFavoritesService.clearRecents('folder'),
-          recentsFavoritesService.clearRecents('repo')
+          recentsFavoritesService.clearRecents(ItemType.FILE),
+          recentsFavoritesService.clearRecents(ItemType.FOLDER),
+          recentsFavoritesService.clearRecents(ItemType.REPO)
         ]);
         set({
           recents: {

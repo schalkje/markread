@@ -7,6 +7,7 @@ import { useRecentsFavorites } from '../hooks/useRecentsFavorites';
 import { useGitRepo } from '../hooks/useGitRepo';
 import { useFoldersStore } from '../stores/folders';
 import type { RecentItem, Favorite } from '@shared/types/recents-favorites';
+import { ItemType } from '@shared/types/recents-favorites';
 import type { Folder } from '@shared/types/entities.d.ts';
 import type { ConnectRepositoryRequest, ConnectRepositoryResponse } from '@shared/types/git-contracts';
 import './Home.css';
@@ -176,7 +177,7 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
 
             await addRecent({
               path: pathWithBranch, // Include branch in path for separate tracking
-              type: 'repo',
+              type: ItemType.REPO,
               displayName: `${repoName} (${branch})`
             });
 
@@ -258,7 +259,7 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
     const fileName = filePath.split(/[\\/]/).pop() || filePath;
     await addRecent({
       path: filePath,
-      type: 'file',
+      type: ItemType.FILE,
       displayName: fileName
     });
 
@@ -271,7 +272,7 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
     const folderName = folderPath.split(/[\\/]/).pop() || folderPath;
     await addRecent({
       path: folderPath,
-      type: 'folder',
+      type: ItemType.FOLDER,
       displayName: folderName
     });
 

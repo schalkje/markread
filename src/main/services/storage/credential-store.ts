@@ -33,13 +33,25 @@ interface CredentialEntry {
  * - Tokens never logged or sent over IPC
  */
 export class CredentialStore {
-  private store: Store<{ credentials: CredentialEntry[] }> | null = null;
-  private storePromise: Promise<Store<{ credentials: CredentialEntry[] }>> | null = null;
+  private store: Store<{
+    credentials: CredentialEntry[];
+    'provider-token-github'?: string;
+    'provider-token-azure'?: string;
+  }> | null = null;
+  private storePromise: Promise<Store<{
+    credentials: CredentialEntry[];
+    'provider-token-github'?: string;
+    'provider-token-azure'?: string;
+  }>> | null = null;
 
   /**
    * Initialize the store (lazy loading with dynamic import)
    */
-  private async getStore(): Promise<Store<{ credentials: CredentialEntry[] }>> {
+  private async getStore(): Promise<Store<{
+    credentials: CredentialEntry[];
+    'provider-token-github'?: string;
+    'provider-token-azure'?: string;
+  }>> {
     if (this.store) {
       return this.store;
     }

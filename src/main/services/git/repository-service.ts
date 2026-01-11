@@ -452,9 +452,6 @@ export class RepositoryService {
 
     const branch = request.branch || repository.currentBranch;
 
-    // Try to get from cache first
-    const cachedTree = await cacheManager.getTree(request.repositoryId, branch);
-
     // Fetch fresh tree from provider
     let tree;
     if (repository.provider === 'github') {

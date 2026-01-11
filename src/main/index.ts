@@ -1,11 +1,9 @@
-import { app, BrowserWindow, protocol, net, session } from 'electron';
-import { extname } from 'path';
+import { app, BrowserWindow, net, session } from 'electron';
 
 import { createWindow } from './window-manager';
 import { registerIpcHandlers } from './ipc-handlers';
 import { initLogger } from './logger';
-import { stopAllWatchers } from './file-watcher';
-import { loadUIState, saveUIStateImmediate } from './ui-state-manager';
+import { loadUIState } from './ui-state-manager';
 
 // T019: Global error handler
 process.on('uncaughtException', (error) => {
@@ -45,25 +43,8 @@ protocol.registerSchemesAsPrivileged([
 console.log('[Main] Custom protocol "mdfile" registered with privileges');
 */
 
-// MIME type mapping for common image formats
-const getMimeType = (filepath: string): string => {
-  const ext = extname(filepath).toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.webp': 'image/webp',
-    '.bmp': 'image/bmp',
-    '.ico': 'image/x-icon',
-  };
-  return mimeTypes[ext] || 'application/octet-stream';
-};
-
 // Single instance lock (FR-028)
 // TEMPORARY: Commented out to allow app to launch (app module undefined at module level)
-const gotTheLock = true; // Bypass for now
 /*
 const gotTheLock = app.requestSingleInstanceLock();
 
