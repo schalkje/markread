@@ -61,8 +61,8 @@
 - [X] T012 [P] [US1] Remove scripts/sign-msi.ps1 (MSI-specific signing script)
 - [X] T013 [P] [US1] Update .gitignore to remove .NET-specific entries (*.csproj, bin/, obj/, etc.) while preserving Electron entries
 - [X] T014 [P] [US1] Update README.md to remove references to WiX and MSI packaging
-- [ ] T015 [US1] Commit changes with message "chore: Remove legacy WPF/WiX packaging artifacts"
-- [ ] T016 [US1] Verify git history shows ~6.5MB reduction in repository size
+- [X] T015 [US1] Commit changes with message "chore: Remove legacy WPF/WiX packaging artifacts"
+- [X] T016 [US1] Verify git history shows ~6.5MB reduction in repository size
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently - legacy artifacts removed, repository clean
 
