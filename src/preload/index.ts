@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { exposeGitAPI } from './git-api';
+import { exposeSearchAPI } from './search-api';
 import { IPC_CHANNELS } from '@shared/types/recents-favorites';
 import type {
   RecentItem,
@@ -9,6 +10,14 @@ import type {
   RecentsUpdatedEvent,
   FavoritesUpdatedEvent
 } from '@shared/types/recents-favorites';
+import type {
+  SearchRequest,
+  SearchResponse,
+  SearchCancelResponse,
+  SearchProgressEvent,
+  SearchCompleteEvent,
+  SearchErrorEvent
+} from '@shared/types/search';
 
 console.log('[Preload] Script starting...');
 
@@ -162,6 +171,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'menu:global-zoom-out',
       'menu:global-zoom-reset',
       'menu:global-zoom-preset',
+      // T004: Search menu events
+      'menu:find',
+      'menu:find-in-files',
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, callback);
@@ -180,7 +192,16 @@ try {
   console.error('[Preload] Failed to expose Git API:', error);
 }
 
-// Type declaration for global window object
+// T004: Expose Search API
+try {
+  console.log('[Preload] Exposing Search API...');
+  exposeSearchAPI();
+  console.log('[Preload] Search API exposed successfully');
+} catch (error) {
+  console.error('[Preload] Failed to expose Search API:', error);
+}
+
+// T006: Type declaration for global window object
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
@@ -197,6 +218,14 @@ declare global {
         check: (request?: any) => Promise<any>;
       };
       recent: Record<string, any>;
+    };
+    search: {
+      inFiles: (request: SearchRequest) => Promise<SearchResponse>;
+      cancel: (searchId: string) => Promise<SearchCancelResponse>;
+      onProgress: (callback: (event: SearchProgressEvent) => void) => () => void;
+      onComplete: (callback: (event: SearchCompleteEvent) => void) => () => void;
+      onError: (callback: (event: SearchErrorEvent) => void) => () => void;
+      onResult: (callback: (event: { searchId: string; result: any }) => void) => () => void;
     };
   }
 }

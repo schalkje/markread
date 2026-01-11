@@ -98,6 +98,32 @@
   pointer-events: none;
 }
 
+/* T031: Error state for regex validation */
+.find-bar__input--error {
+  border-color: var(--danger-color, #d1242f);
+  background: var(--danger-bg, #ffebe9);
+  border-width: 2px;
+}
+
+.find-bar__input--error:focus {
+  box-shadow: 0 0 0 3px rgba(209, 36, 47, 0.2);
+}
+
+/* T031, T034: Error message display */
+.find-bar__error {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--danger-color, #d1242f);
+  font-weight: 500;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Navigation Buttons */
 .find-bar__navigation {
   display: flex;

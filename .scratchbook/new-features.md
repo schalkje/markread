@@ -101,9 +101,42 @@ Support split window: 2 documents horizontal / vertical
 
 
 
----
+# Find
+Implement search and find, to locate specific text.
 
-# Packaging
-Can you analyze the packaging and distribution code that is still there from the wpf implementation; and create a proposition how to change this to a best practice way of working for the new Electron setup.
-The goal is that users can download and install the application on windows machines; Think about installing on other Mac in the future and maybe even mobile devices; but the first mvp should be about installing on windows
+## find in document
+CTRL+F
+Connect the option in the Edit menu
 
+- show a search bar above the text: search string, toggles, result hit nr of total; next, previous hit buttons; close search button
+- search a text in the current document
+- toggle to switch on/off case sensitivity (default off)
+- add the option to search using regexp
+
+Output:
+- mark the vertical scroll bar, make the results visible and clickable
+- give all found results a yellow background
+- navigate through the finds (use default shortcuts like vcode)
+
+## find in files
+SHIFT+CTRL+F
+Connect the option in the Edit menu
+
+Search in all files
+- ability to define the scope:
+  - current folder/repo-branch
+  - current folder/repo all branches
+  - all folders/repo's in the folder selector
+
+- toggle to switch on/off case sensitivity (default off)
+- add the option to search using regexp
+
+Output:
+- in the place of the filetree/history, add a pane for search results
+- show the results per folder / file
+- show stats at the folder level and at the file level of how many hits
+- take inspiration from the find in files of vscode
+
+
+the search in files seams to need the search in file box. What's the idea here?
+Currently the Find in page text is not filled; so it is not working. Shouldn't it be separate functionality, or do they need to use each other?

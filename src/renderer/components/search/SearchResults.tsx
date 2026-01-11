@@ -19,7 +19,7 @@ export interface SearchResultsProps {
   /** Callback when search panel should close */
   onClose: () => void;
   /** Callback when a search result is clicked */
-  onResultClick?: (filePath: string, lineNumber: number) => void;
+  onResultClick?: (filePath: string, lineNumber: number, event: React.MouseEvent, folderInfo?: { repository?: string; branch?: string }) => void;
   /** Callback to start a new search */
   onSearch?: (query: string) => void;
   /** Callback to cancel active search */
@@ -41,22 +41,51 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
     searchInFilesOptions,
     setSearchInFilesOptions,
     getRecentSearches,
+    history,
   } = useSearchStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set()); // T057: Track expanded folder groups
   const [showOptions, setShowOptions] = useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  // FR-032, FR-033: Session-only search history navigation
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
   const recentSearches = getRecentSearches(5);
 
-  // Auto-expand files with results
+  // Restore search query from active search when becoming visible
+  useEffect(() => {
+    if (isVisible) {
+      // Restore query from active search if available
+      if (activeSearch && activeSearch.query && !searchQuery) {
+        setSearchQuery(activeSearch.query);
+      }
+
+      // Focus input
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+    }
+  }, [isVisible, activeSearch]);
+
+  // Auto-expand files and groups with results
   useEffect(() => {
     if (activeSearch?.results) {
-      const newExpanded = new Set(expandedFiles);
+      const newExpandedFiles = new Set(expandedFiles);
+      const newExpandedGroups = new Set(expandedGroups);
+
       activeSearch.results.forEach((result) => {
-        newExpanded.add(result.filePath);
+        newExpandedFiles.add(result.filePath);
+        // Auto-expand groups that have results
+        if (result.repository) {
+          newExpandedGroups.add(result.repository);
+        }
       });
-      setExpandedFiles(newExpanded);
+
+      setExpandedFiles(newExpandedFiles);
+      setExpandedGroups(newExpandedGroups);
     }
   }, [activeSearch?.results]);
 
@@ -81,8 +110,20 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
     });
   };
 
-  const handleResultClick = (filePath: string, lineNumber: number) => {
-    onResultClick?.(filePath, lineNumber);
+  const toggleGroup = (groupName: string) => {
+    setExpandedGroups((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupName)) {
+        newSet.delete(groupName);
+      } else {
+        newSet.add(groupName);
+      }
+      return newSet;
+    });
+  };
+
+  const handleResultClick = (filePath: string, lineNumber: number, event: React.MouseEvent, folderInfo?: { repository?: string; branch?: string }) => {
+    onResultClick?.(filePath, lineNumber, event, folderInfo);
   };
 
   const handleRecentSearchClick = (query: string) => {
@@ -107,33 +148,59 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
   return (
     <div className="search-results" data-testid="search-results">
-      {/* Header */}
-      <div className="search-results__header">
-        <h2 className="search-results__title">Search in Files</h2>
-        <button
-          className="search-results__close"
-          onClick={onClose}
-          title="Close search panel"
-          aria-label="Close search panel"
-        >
-          ×
-        </button>
-      </div>
-
       {/* Search Input */}
       <div className="search-results__search">
         <div className="search-results__input-container">
           <input
+            ref={inputRef}
             type="text"
             className="search-results__input"
-            placeholder="Search across all files..."
+            placeholder="Search across all files (↕ for history)"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              // Reset history navigation when user types
+              setHistoryIndex(-1);
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 handleSearch();
               } else if (e.key === 'Escape') {
                 onClose();
+              } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                // FR-032: Navigate through search history with arrow keys
+                e.preventDefault();
+
+                // Filter history for in-files searches only
+                const inFilesHistory = history.filter(entry => entry.type === 'inFiles');
+
+                if (inFilesHistory.length === 0) {
+                  return;
+                }
+
+                let newIndex: number;
+                if (e.key === 'ArrowUp') {
+                  // Go back in history (newer to older)
+                  if (historyIndex === -1) {
+                    // Start at the beginning of history (most recent)
+                    newIndex = 0;
+                  } else {
+                    newIndex = historyIndex < inFilesHistory.length - 1 ? historyIndex + 1 : historyIndex;
+                  }
+                } else {
+                  // Go forward in history (older to newer)
+                  newIndex = historyIndex > 0 ? historyIndex - 1 : -1;
+                }
+
+                setHistoryIndex(newIndex);
+
+                if (newIndex === -1) {
+                  // Clear input when going past history end
+                  setSearchQuery('');
+                } else {
+                  // Set query from history
+                  setSearchQuery(inFilesHistory[newIndex].query);
+                }
               }
             }}
             disabled={isSearching}
@@ -172,6 +239,25 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
         {/* Search Options */}
         {showOptions && (
           <div className="search-results__options">
+            {/* T051: Folder scope selector */}
+            <div className="search-results__option search-results__option--scope">
+              <label className="search-results__option-label">Search Scope:</label>
+              <select
+                className="search-results__scope-selector"
+                value={searchInFilesOptions.repositoryScope || 'current'}
+                onChange={(e) =>
+                  setSearchInFilesOptions({
+                    repositoryScope: e.target.value as 'current' | 'allBranches' | 'allRepos',
+                  })
+                }
+                title="Select search scope"
+              >
+                <option value="current">Current Folder</option>
+                <option value="allRepos">All Open Folders</option>
+                <option value="allBranches">All Branches (/repo/branches)</option>
+              </select>
+            </div>
+
             <label className="search-results__option">
               <input
                 type="checkbox"
@@ -267,17 +353,86 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
       {/* Results List */}
       {hasResults && (
         <div className="search-results__list">
-          {activeSearch.results.map((result) => (
-            <SearchResultFile
-              key={result.filePath}
-              result={result}
-              isExpanded={expandedFiles.has(result.filePath)}
-              onToggle={() => toggleFile(result.filePath)}
-              onMatchClick={(lineNumber) =>
-                handleResultClick(result.filePath, lineNumber)
-              }
-            />
-          ))}
+          {/* T057: Group results by folder/repository */}
+          {(() => {
+            // Group results by repository/folder
+            const groupedResults = new Map<string, SearchResult[]>();
+            const hasMultipleFolders = new Set(activeSearch.results.map(r => r.repository).filter(Boolean)).size > 1;
+
+            // Only group if we have multiple folders/repositories
+            if (hasMultipleFolders) {
+              activeSearch.results.forEach((result) => {
+                const groupKey = result.repository || 'Other';
+                if (!groupedResults.has(groupKey)) {
+                  groupedResults.set(groupKey, []);
+                }
+                groupedResults.get(groupKey)!.push(result);
+              });
+
+              // Render grouped results
+              return Array.from(groupedResults.entries()).map(([groupName, results]) => {
+                const isGroupExpanded = expandedGroups.has(groupName);
+                const totalMatches = results.reduce((sum, r) => sum + r.matches.length, 0);
+
+                return (
+                  <div key={groupName} className="search-results__group">
+                    <button
+                      className="search-results__group-header"
+                      onClick={() => toggleGroup(groupName)}
+                      aria-expanded={isGroupExpanded ? 'true' : 'false'}
+                      type="button"
+                    >
+                      <span className="search-results__group-chevron">
+                        {isGroupExpanded ? '▼' : '▶'}
+                      </span>
+                      <span className="search-results__group-icon">📁</span>
+                      <span className="search-results__group-name">{groupName}</span>
+                      <span className="search-results__group-count">
+                        {results.length} {results.length === 1 ? 'file' : 'files'}
+                      </span>
+                      <span className="search-results__group-matches">
+                        {totalMatches} {totalMatches === 1 ? 'result' : 'results'}
+                      </span>
+                    </button>
+                    {isGroupExpanded && (
+                      <div className="search-results__group-items">
+                        {results.map((result) => (
+                          <SearchResultFile
+                            key={result.filePath}
+                            result={result}
+                            isExpanded={expandedFiles.has(result.filePath)}
+                            onToggle={() => toggleFile(result.filePath)}
+                            onMatchClick={(lineNumber, event) =>
+                              handleResultClick(result.filePath, lineNumber, event, {
+                                repository: result.repository,
+                                branch: result.branch,
+                              })
+                            }
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            }
+
+            // No grouping - render flat list
+            return activeSearch.results.map((result) => (
+              <SearchResultFile
+                key={result.filePath}
+                result={result}
+                isExpanded={expandedFiles.has(result.filePath)}
+                onToggle={() => toggleFile(result.filePath)}
+                onMatchClick={(lineNumber, event) =>
+                  handleResultClick(result.filePath, lineNumber, event, {
+                    repository: result.repository,
+                    branch: result.branch,
+                  })
+                }
+              />
+            ));
+          })()}
         </div>
       )}
 
@@ -298,7 +453,7 @@ interface SearchResultFileProps {
   result: SearchResult;
   isExpanded: boolean;
   onToggle: () => void;
-  onMatchClick: (lineNumber: number) => void;
+  onMatchClick: (lineNumber: number, event: React.MouseEvent) => void;
 }
 
 const SearchResultFile: React.FC<SearchResultFileProps> = ({
@@ -321,6 +476,18 @@ const SearchResultFile: React.FC<SearchResultFileProps> = ({
         <span className="search-result-file__name" title={result.filePath}>
           {result.fileName}
         </span>
+        {/* T055: Display folder/repository badge */}
+        {result.repository && (
+          <span className="search-result-file__badge" title={`Repository: ${result.repository}`}>
+            {result.repository}
+          </span>
+        )}
+        {/* T055: Display branch badge */}
+        {result.branch && (
+          <span className="search-result-file__badge search-result-file__badge--branch" title={`Branch: ${result.branch}`}>
+            🔀 {result.branch}
+          </span>
+        )}
         <span className="search-result-file__count">
           {result.matches.length} {result.matches.length === 1 ? 'match' : 'matches'}
         </span>
@@ -332,7 +499,7 @@ const SearchResultFile: React.FC<SearchResultFileProps> = ({
             <SearchResultMatch
               key={`${match.lineNumber}-${index}`}
               match={match}
-              onClick={() => onMatchClick(match.lineNumber)}
+              onClick={(event) => onMatchClick(match.lineNumber, event)}
             />
           ))}
         </div>
@@ -346,7 +513,7 @@ const SearchResultFile: React.FC<SearchResultFileProps> = ({
  */
 interface SearchResultMatchProps {
   match: SearchMatch;
-  onClick: () => void;
+  onClick: (event: React.MouseEvent) => void;
 }
 
 const SearchResultMatch: React.FC<SearchResultMatchProps> = ({ match, onClick }) => {
