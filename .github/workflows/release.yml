@@ -74,12 +74,37 @@ jobs:
     - name: Build application
       run: npm run build
 
-    - name: Package installer (unsigned for now)
+    - name: Check certificate configuration
+      run: |
+        Write-Host "Checking certificate configuration..." -ForegroundColor Cyan
+
+        # Check if signing is configured
+        if ($env:PFX_PATH -or $env:CERT_THUMBPRINT) {
+          Write-Host "✓ Code signing is ENABLED" -ForegroundColor Green
+          if ($env:PFX_PATH) {
+            Write-Host "  Certificate source: PFX file" -ForegroundColor Gray
+          } elseif ($env:CERT_THUMBPRINT) {
+            Write-Host "  Certificate source: Windows Store" -ForegroundColor Gray
+          }
+          Write-Host "  Note: Detailed expiration check happens during signing" -ForegroundColor Gray
+        } else {
+          Write-Host "⚠ Code signing is DISABLED (no certificate configured)" -ForegroundColor Yellow
+          Write-Host "  Installers will be unsigned" -ForegroundColor Yellow
+        }
+      shell: pwsh
+      env:
+        PFX_PATH: ${{ secrets.PFX_PATH }}
+        PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+        CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
+
+    - name: Package installer
       run: npm run package
       env:
-        # Code signing will be added in Phase 5 (US3)
-        # For now, skip signing to test the release pipeline
-        CSC_IDENTITY_AUTO_DISCOVERY: false
+        # Code signing environment variables
+        PFX_PATH: ${{ secrets.PFX_PATH }}
+        PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+        CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
+        TIMESTAMP_SERVER: http://timestamp.digicert.com
 
     - name: List release artifacts
       id: list-artifacts
@@ -104,6 +129,35 @@ jobs:
           "portable-path=$($portable.FullName)" >> $env:GITHUB_OUTPUT
         }
       shell: pwsh
+
+    - name: Verify signatures
+      run: |
+        # Check if signing was enabled
+        if ($env:PFX_PATH -or $env:CERT_THUMBPRINT) {
+          Write-Host "Verifying installer signatures..." -ForegroundColor Cyan
+
+          # Verify installer
+          $installer = Get-ChildItem dist/*.exe | Where-Object { $_.Name -match 'Setup' } | Select-Object -First 1
+          if ($installer) {
+            Write-Host "Verifying: $($installer.Name)" -ForegroundColor Gray
+            .\scripts\electron-sign.ps1 -Path $installer.FullName -Verify
+          }
+
+          # Verify portable exe
+          $portable = Get-ChildItem dist/*.exe | Where-Object { $_.Name -match 'portable' } | Select-Object -First 1
+          if ($portable) {
+            Write-Host "Verifying: $($portable.Name)" -ForegroundColor Gray
+            .\scripts\electron-sign.ps1 -Path $portable.FullName -Verify
+          }
+
+          Write-Host "✓ All signatures verified successfully" -ForegroundColor Green
+        } else {
+          Write-Host "⚠ Skipping signature verification (installers are unsigned)" -ForegroundColor Yellow
+        }
+      shell: pwsh
+      env:
+        PFX_PATH: ${{ secrets.PFX_PATH }}
+        CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
 
     - name: Upload release artifacts
       uses: actions/upload-artifact@v4
@@ -136,19 +190,13 @@ jobs:
           - Download `${{ steps.list-artifacts.outputs.installer-name }}`
           - Run the installer and follow the wizard
           - Automatic updates enabled
+          - Digitally signed for Windows SmartScreen compatibility
 
           **Portable Version**
           - Download `${{ steps.list-artifacts.outputs.portable-name }}`
           - Run from any location without installation
           - No registry modifications
-
-          ### ⚠️ Important Note
-
-          This release contains **unsigned** installers for testing purposes.
-          Code signing will be added in a future update (Phase 5 - US3).
-
-          Windows SmartScreen may show warnings for unsigned installers.
-          This is expected and will be resolved once code signing is implemented.
+          - Also digitally signed for security
 
           ### 📝 What's Changed
           See below for automatically generated release notes.
@@ -164,5 +212,4 @@ jobs:
         Write-Host "Installer: ${{ steps.list-artifacts.outputs.installer-name }}" -ForegroundColor Gray
         Write-Host "Portable: ${{ steps.list-artifacts.outputs.portable-name }}" -ForegroundColor Gray
         Write-Host "`nView release: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}" -ForegroundColor Cyan
-        Write-Host "`nNote: Installers are unsigned (code signing in Phase 5 - US3)" -ForegroundColor Yellow
       shell: pwsh

@@ -98,14 +98,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Implement certificate loading logic in scripts/electron-sign.ps1 (PFX file or Windows Certificate Store)
-- [ ] T027 [P] [US3] Implement certificate expiration check in scripts/electron-sign.ps1 (WARN if <30 days, FAIL if expired)
-- [ ] T028 [US3] Implement signing logic in scripts/electron-sign.ps1 (SHA256, timestamp from DigiCert)
-- [ ] T029 [P] [US3] Implement signature verification logic in scripts/electron-sign.ps1 (signtool verify /pa /v)
-- [ ] T030 [US3] Configure electron-builder.yml win.sign to call scripts/electron-sign.ps1
-- [ ] T031 [US3] Add certificate expiration check step in .github/workflows/release.yml before packaging
-- [ ] T032 [US3] Configure GitHub Secrets for code signing (PFX_PATH, PFX_PASSWORD or CERT_THUMBPRINT)
-- [ ] T033 [US3] Add signature verification step in .github/workflows/release.yml after packaging
+- [X] T026 [P] [US3] Implement certificate loading logic in scripts/electron-sign.ps1 (PFX file or Windows Certificate Store)
+- [X] T027 [P] [US3] Implement certificate expiration check in scripts/electron-sign.ps1 (WARN if <30 days, FAIL if expired)
+- [X] T028 [US3] Implement signing logic in scripts/electron-sign.ps1 (SHA256, timestamp from DigiCert)
+- [X] T029 [P] [US3] Implement signature verification logic in scripts/electron-sign.ps1 (signtool verify /pa /v)
+- [X] T030 [US3] Configure electron-builder.yml win.sign to call scripts/electron-sign.ps1
+- [X] T031 [US3] Add certificate expiration check step in .github/workflows/release.yml before packaging
+- [X] T032 [US3] Configure GitHub Secrets for code signing (PFX_PATH, PFX_PASSWORD or CERT_THUMBPRINT)
+- [X] T033 [US3] Add signature verification step in .github/workflows/release.yml after packaging
 - [ ] T034 [US3] Test signing locally with development self-signed certificate
 - [ ] T035 [US3] Test release workflow with code signing enabled (use test certificate)
 
@@ -146,17 +146,17 @@
 
 ### Implementation for User Story 5
 
-- [ ] T048 [P] [US5] Configure electron-builder.yml win target with NSIS and portable variants
-- [ ] T049 [P] [US5] Configure electron-builder.yml NSIS section (oneClick: false, allowToChangeInstallationDirectory: true, perMachine: false)
-- [ ] T050 [P] [US5] Configure electron-builder.yml NSIS shortcuts (createDesktopShortcut: true, createStartMenuShortcut: true)
-- [ ] T051 [P] [US5] Configure electron-builder.yml NSIS license (assets/License.rtf)
-- [ ] T052 [P] [US5] Configure electron-builder.yml NSIS installer UI (installerHeader: assets/installer-banner.bmp, installerSidebar: assets/installer-dialog.bmp)
-- [ ] T053 [P] [US5] Configure electron-builder.yml NSIS data preservation (deleteAppDataOnUninstall: false)
-- [ ] T054 [P] [US5] Configure electron-builder.yml portable section (artifactName pattern)
-- [ ] T055 [P] [US5] Configure electron-builder.yml compression (maximum LZMA compression)
-- [ ] T056 [P] [US5] Configure electron-builder.yml asar packaging (asar: true)
-- [ ] T057 [P] [US5] Configure electron-builder.yml fileAssociations for .md and .markdown extensions
-- [ ] T058 [P] [US5] Configure electron-builder.yml win.icon (assets/icon.ico)
+- [X] T048 [P] [US5] Configure electron-builder.yml win target with NSIS and portable variants
+- [X] T049 [P] [US5] Configure electron-builder.yml NSIS section (oneClick: false, allowToChangeInstallationDirectory: true, perMachine: false)
+- [X] T050 [P] [US5] Configure electron-builder.yml NSIS shortcuts (createDesktopShortcut: true, createStartMenuShortcut: true)
+- [X] T051 [P] [US5] Configure electron-builder.yml NSIS license (assets/License.rtf)
+- [X] T052 [P] [US5] Configure electron-builder.yml NSIS installer UI (installerHeader: assets/installer-banner.bmp, installerSidebar: assets/installer-dialog.bmp)
+- [X] T053 [P] [US5] Configure electron-builder.yml NSIS data preservation (deleteAppDataOnUninstall: false)
+- [X] T054 [P] [US5] Configure electron-builder.yml portable section (artifactName pattern)
+- [X] T055 [P] [US5] Configure electron-builder.yml compression (maximum LZMA compression)
+- [X] T056 [P] [US5] Configure electron-builder.yml asar packaging (asar: true)
+- [X] T057 [P] [US5] Configure electron-builder.yml fileAssociations for .md and .markdown extensions
+- [X] T058 [P] [US5] Configure electron-builder.yml win.icon (assets/icon.ico)
 - [ ] T059 [US5] Test packaging locally with npm run package and verify all configuration settings
 - [ ] T060 [US5] Verify installer size is <100MB with LZMA compression
 - [ ] T061 [US5] Verify portable .exe stores settings in ./portable-data/ (not %LOCALAPPDATA%)
