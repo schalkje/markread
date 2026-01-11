@@ -7,6 +7,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-29
 - File system cache (AppData folder), OS credential manager (Windows Credential Manager/macOS Keychain/Linux Secret Service) (001-git-repo-integration)
 - TypeScript 5.7 / Node.js with Electron 33.4.11 + React 18.3.1, Zustand 4.5.0, electron-store 11.0.2, react-router-dom 6.20.0 (001-home-recents-favorites)
 - electron-store (persistent local storage in AppData folder) (001-home-recents-favorites)
+- TypeScript 5.7 / Node.js 20+ with Electron 33.4.11+ + electron-builder (NSIS packaging), electron-updater (auto-updates), GitHub Actions (CI/CD), Windows SDK signtool (code signing) (002-packaging-modernization)
+- File system (logs in %LOCALAPPDATA%\MarkRead\Logs, portable settings in local folder), GitHub Releases (distribution) (002-packaging-modernization)
 
 - JavaScript/TypeScript with Node.js + Electron 39.2.7 (main framework), React 18.3.0 (UI framework), Zustand 4.5.0 (state management), markdown-it 14.1.0 (markdown parsing), Highlight.js 11.11.1 (syntax highlighting), Mermaid.js 11.12.2 (diagram rendering), chokidar 5.0.0 (file watching) (006-electron-redesign)
 - axios (HTTP client), better-sqlite3 (cache storage), p-retry (exponential backoff), Electron safeStorage API (credential encryption) (001-git-repo-integration)
@@ -27,10 +29,10 @@ npm test; npm run lint
 JavaScript/TypeScript with Node.js + Electron + React: Follow standard conventions with React functional components and hooks
 
 ## Recent Changes
+- 002-packaging-modernization: Added TypeScript 5.7 / Node.js 20+ with Electron 33.4.11+ + electron-builder (NSIS packaging), electron-updater (auto-updates), GitHub Actions (CI/CD), Windows SDK signtool (code signing)
 - 001-home-recents-favorites: Added TypeScript 5.7 / Node.js with Electron 33.4.11 + React 18.3.1, Zustand 4.5.0, electron-store 11.0.2, react-router-dom 6.20.0
 - 001-git-repo-integration: Added TypeScript 5.7 with Node.js (Electron 33.4.11) + React 18.3.1, Zustand 4.5.0, markdown-it 14.1.0, Zod 3.22.0, react-router-dom 6.20.0
 
-- 001-git-repo-integration: Added axios (HTTP client), better-sqlite3 (cache storage), p-retry (exponential backoff), Electron safeStorage API (credential encryption)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
