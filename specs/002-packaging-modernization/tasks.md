@@ -25,10 +25,10 @@
 
 **Purpose**: Project initialization and packaging infrastructure setup
 
-- [ ] T001 Review current project structure and verify package.json has correct metadata (productName, version, author, license)
-- [ ] T002 [P] Install electron-builder as dev dependency in package.json
-- [ ] T003 [P] Install electron-updater as dependency in package.json
-- [ ] T004 [P] Add packaging scripts to package.json (package, publish)
+- [X] T001 Review current project structure and verify package.json has correct metadata (productName, version, author, license)
+- [X] T002 [P] Install electron-builder as dev dependency in package.json
+- [X] T003 [P] Install electron-updater as dependency in package.json
+- [X] T004 [P] Add packaging scripts to package.json (package, publish)
 
 ---
 
@@ -38,12 +38,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Create electron-builder.yml at repository root with basic configuration (appId, productName, directories)
-- [ ] T006 [P] Create scripts/electron-sign.ps1 PowerShell script skeleton (locate signtool.exe function)
-- [ ] T007 [P] Verify assets/ directory has all required files (icon.ico, icon.png, installer-banner.bmp, installer-dialog.bmp, License.rtf)
-- [ ] T008 [P] Create .github/workflows/ci.yml skeleton (Node.js 20 setup, checkout)
-- [ ] T009 [P] Create .github/workflows/release.yml skeleton (Node.js 20 setup, checkout)
-- [ ] T010 Create scripts/release.ps1 skeleton for release automation
+- [X] T005 Create electron-builder.yml at repository root with basic configuration (appId, productName, directories)
+- [X] T006 [P] Create scripts/electron-sign.ps1 PowerShell script skeleton (locate signtool.exe function)
+- [X] T007 [P] Verify assets/ directory has all required files (icon.ico, icon.png, installer-banner.bmp, installer-dialog.bmp, License.rtf)
+- [X] T008 [P] Create .github/workflows/ci.yml skeleton (Node.js 20 setup, checkout)
+- [X] T009 [P] Create .github/workflows/release.yml skeleton (Node.js 20 setup, checkout)
+- [X] T010 Create scripts/release.ps1 skeleton for release automation
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -57,10 +57,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Delete installer/ directory completely (includes MarkRead.Installer.wixproj, Package.wxs, all build artifacts)
-- [ ] T012 [P] [US1] Remove scripts/sign-msi.ps1 (MSI-specific signing script)
-- [ ] T013 [P] [US1] Update .gitignore to remove .NET-specific entries (*.csproj, bin/, obj/, etc.) while preserving Electron entries
-- [ ] T014 [P] [US1] Update README.md to remove references to WiX and MSI packaging
+- [X] T011 [US1] Delete installer/ directory completely (includes MarkRead.Installer.wixproj, Package.wxs, all build artifacts)
+- [X] T012 [P] [US1] Remove scripts/sign-msi.ps1 (MSI-specific signing script)
+- [X] T013 [P] [US1] Update .gitignore to remove .NET-specific entries (*.csproj, bin/, obj/, etc.) while preserving Electron entries
+- [X] T014 [P] [US1] Update README.md to remove references to WiX and MSI packaging
 - [ ] T015 [US1] Commit changes with message "chore: Remove legacy WPF/WiX packaging artifacts"
 - [ ] T016 [US1] Verify git history shows ~6.5MB reduction in repository size
 
