@@ -16,10 +16,7 @@ win:
       arch: x64
   icon: assets/icon.ico
   artifactName: ${productName}-${version}-${arch}.${ext}
-  publisherName: MarkRead Project
-  sign: scripts/electron-sign.ps1
-  signingHashAlgorithms:
-    - sha256
+  forceCodeSigning: false  # Disable signing for testing
 
 nsis:
   oneClick: false
