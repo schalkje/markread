@@ -8,9 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Cross-file search functionality
 - Export to PDF
-- Bookmarks/favorites
+- Bookmarks
+
+## [0.5.1] - 2026-01-12
+
+### Added
+- Home page with recents and favorites
+- Search in open file
+- Search in folders and repos / cross-file search functionality
+- Release workflow
 
 ## [0.5.0] - 2026-01-05
 
