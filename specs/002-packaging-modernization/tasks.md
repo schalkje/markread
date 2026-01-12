@@ -173,15 +173,15 @@
 
 ### Implementation for User Story 6
 
-- [ ] T062 [P] [US6] Implement version validation in scripts/release.ps1 (semver format check)
-- [ ] T063 [P] [US6] Implement package.json version update in scripts/release.ps1 (read current version, update to new version)
-- [ ] T064 [US6] Implement CHANGELOG.md prompt in scripts/release.ps1 (open editor, wait for user)
-- [ ] T065 [P] [US6] Implement test/lint/build execution in scripts/release.ps1 with failure handling
-- [ ] T066 [P] [US6] Implement git commit and tag creation in scripts/release.ps1
-- [ ] T067 [P] [US6] Implement push instructions output in scripts/release.ps1 (clear commands to push main and tags)
-- [ ] T068 [P] [US6] Implement dry-run mode in scripts/release.ps1 (-DryRun flag)
-- [ ] T069 [P] [US6] Implement duplicate version check in scripts/release.ps1 (warn if version exists in CHANGELOG.md)
-- [ ] T070 [US6] Test release script with -DryRun flag and verify output
+- [X] T062 [P] [US6] Implement version validation in scripts/release.ps1 (semver format check)
+- [X] T063 [P] [US6] Implement package.json version update in scripts/release.ps1 (read current version, update to new version)
+- [X] T064 [US6] Implement CHANGELOG.md prompt in scripts/release.ps1 (open editor, wait for user)
+- [X] T065 [P] [US6] Implement test/lint/build execution in scripts/release.ps1 with failure handling
+- [X] T066 [P] [US6] Implement git commit and tag creation in scripts/release.ps1
+- [X] T067 [P] [US6] Implement push instructions output in scripts/release.ps1 (clear commands to push main and tags)
+- [X] T068 [P] [US6] Implement dry-run mode in scripts/release.ps1 (-DryRun flag)
+- [X] T069 [P] [US6] Implement duplicate version check in scripts/release.ps1 (warn if version exists in CHANGELOG.md)
+- [X] T070 [US6] Test release script with -DryRun flag and verify output
 - [ ] T071 [US6] Test release script with actual version update (use test branch)
 
 **Checkpoint**: At this point, User Story 6 should be fully functional and testable independently - release script automates version management and release process
