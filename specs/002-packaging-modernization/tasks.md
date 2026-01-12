@@ -196,9 +196,9 @@
 
 ### Implementation for User Story 7
 
-- [ ] T072 [P] [US7] Implement file open handler in src/main/index.ts (handle file:// protocol and command-line args)
-- [ ] T073 [P] [US7] Implement second-instance handler in src/main/index.ts (open file in existing window if app already running)
-- [ ] T074 [P] [US7] Register file association protocol handler in src/main/index.ts (app.setAsDefaultProtocolClient for markread://)
+- [X] T072 [P] [US7] Implement file open handler in src/main/index.ts (handle file:// protocol and command-line args)
+- [X] T073 [P] [US7] Implement second-instance handler in src/main/index.ts (open file in existing window if app already running)
+- [X] T074 [P] [US7] Register file association protocol handler in src/main/index.ts (app.setAsDefaultProtocolClient for markread://)
 - [ ] T075 [US7] Test file associations by installing NSIS installer and double-clicking .md file
 - [ ] T076 [US7] Test context menu by right-clicking .md file and selecting "Open with MarkRead"
 - [ ] T077 [US7] Test file association cleanup by uninstalling MarkRead and verifying registry entries are removed

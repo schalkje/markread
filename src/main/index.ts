@@ -5,6 +5,7 @@ import { registerIpcHandlers } from './ipc-handlers';
 import { initLogger } from './logger';
 import { loadUIState } from './ui-state-manager';
 import { initAutoUpdater, cleanupAutoUpdater } from './auto-updater';
+import { initFileAssociations, setupMacOSFileHandler, parseFileFromArgs, handleFileOpen } from './file-associations';
 
 // T019: Global error handler
 process.on('uncaughtException', (error) => {
@@ -44,27 +45,13 @@ protocol.registerSchemesAsPrivileged([
 console.log('[Main] Custom protocol "mdfile" registered with privileges');
 */
 
-// Single instance lock (FR-028)
-// TEMPORARY: Commented out to allow app to launch (app module undefined at module level)
-/*
-const gotTheLock = app.requestSingleInstanceLock();
+// T072-T074: Initialize file associations (single-instance, protocol handlers)
+initFileAssociations(mainWindow);
 
-if (!gotTheLock) {
-  app.quit();
-} else {
-*/
-  // TEMPORARY: Comment out app.on at module level
-  /*
-  app.on('second-instance', () => {
-    // Someone tried to run a second instance, focus our window
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
-  */
+// T072: Set up macOS file handler
+setupMacOSFileHandler(mainWindow);
 
-  app.whenReady().then(async () => {
+app.whenReady().then(async () => {
     console.log('[Main] App ready, registering protocol handler...');
 
     // Register protocol handler for mdfile:// URLs on the default session
@@ -135,6 +122,12 @@ if (!gotTheLock) {
     // T037: Initialize auto-updater (skip in dev mode, portable mode)
     initAutoUpdater();
 
+    // T072: Handle file open on startup (if launched with file path argument)
+    const startupFilePath = parseFileFromArgs(process.argv);
+    if (startupFilePath && mainWindow) {
+      handleFileOpen(mainWindow, startupFilePath);
+    }
+
     app.on('activate', () => {
       // On macOS re-create window when dock icon is clicked
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -142,7 +135,6 @@ if (!gotTheLock) {
       }
     });
   });
-// } // End of single instance lock block (commented out)
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
