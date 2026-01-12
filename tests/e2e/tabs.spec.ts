@@ -9,7 +9,6 @@
  */
 
 import { test, expect, _electron as electron, ElectronApplication, Page } from '@playwright/test';
-import { findLatestBuild, parseElectronApp } from 'electron-playwright-helpers';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -57,13 +56,9 @@ test.beforeAll(async () => {
   fs.writeFileSync(path.join(testDir, 'test-file-2.md'), TEST_FILE_2);
   fs.writeFileSync(path.join(testDir, 'test-file-3.md'), TEST_FILE_3);
 
-  // Launch Electron app
-  const latestBuild = findLatestBuild('out');
-  const appInfo = parseElectronApp(latestBuild);
-
+  // Launch Electron app with built output
   electronApp = await electron.launch({
-    args: [appInfo.main],
-    executablePath: appInfo.executable,
+    args: [path.join(__dirname, '../../out/main/index.js')],
   });
 
   page = await electronApp.firstWindow();

@@ -10,7 +10,6 @@
  */
 
 import { test, expect, _electron as electron, ElectronApplication, Page } from '@playwright/test';
-import { findLatestBuild, parseElectronApp } from 'electron-playwright-helpers';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -171,13 +170,9 @@ test.beforeAll(async () => {
   fs.writeFileSync(path.join(testDir, 'test-mermaid.md'), TEST_MARKDOWN_MERMAID);
   fs.writeFileSync(path.join(testDir, 'test-complex.md'), TEST_MARKDOWN_COMPLEX);
 
-  // Launch Electron app
-  const latestBuild = findLatestBuild('out');
-  const appInfo = parseElectronApp(latestBuild);
-
+  // Launch Electron app with built output
   electronApp = await electron.launch({
-    args: [appInfo.main],
-    executablePath: appInfo.executable,
+    args: [path.join(__dirname, '../../out/main/index.js')],
   });
 
   page = await electronApp.firstWindow();
