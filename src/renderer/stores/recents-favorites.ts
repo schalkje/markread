@@ -35,6 +35,9 @@ interface RecentsFavoritesState {
   removeFavorite: (path: string, type: ItemType) => Promise<void>;
   isFavorite: (path: string, type: ItemType) => boolean;
 
+  // Error handling
+  clearError: () => void;
+
   // Internal setters
   setRecents: (type: ItemType, items: RecentItem[]) => void;
   setFavorites: (type: ItemType, items: Favorite[]) => void;
@@ -124,9 +127,11 @@ export const useRecentsFavoritesStore = create<RecentsFavoritesState>((set, get)
       await recentsFavoritesService.addRecent(recentItem);
       const updated = await recentsFavoritesService.getRecents(item.type);
       get().setRecents(item.type, updated);
+      set({ error: null });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add recent';
       console.error('[RecentsFavoritesStore] Error adding recent:', error);
-      throw error;
+      set({ error: errorMessage });
     }
   },
 
@@ -220,6 +225,11 @@ export const useRecentsFavoritesStore = create<RecentsFavoritesState>((set, get)
     const favorites = get().favorites[type];
     return favorites.some(fav => fav.path === path);
   },
+
+  /**
+   * Clear error state
+   */
+  clearError: () => set({ error: null }),
 
   // Internal setters
   setRecents: (type, items) => set((state) => ({

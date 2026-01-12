@@ -58,7 +58,7 @@ test.beforeAll(async () => {
   fs.writeFileSync(path.join(testDir, 'test-file-3.md'), TEST_FILE_3);
 
   // Launch Electron app
-  const latestBuild = findLatestBuild('dist');
+  const latestBuild = findLatestBuild('out');
   const appInfo = parseElectronApp(latestBuild);
 
   electronApp = await electron.launch({
@@ -71,7 +71,9 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await electronApp.close();
+  if (electronApp) {
+    await electronApp.close();
+  }
 
   // Clean up test files
   const testDir = path.join(__dirname, '../fixtures');

@@ -351,10 +351,10 @@ describe('FavoritesManager', () => {
       const favorites = await favoritesManager.getFavorites(ItemType.FILE);
       expect(favorites).toHaveLength(3);
 
-      // Should be sorted alphabetically
-      expect(favorites[0].displayName).toBe('File & More');
-      expect(favorites[1].displayName).toBe('File (Copy)');
-      expect(favorites[2].displayName).toBe('File [Draft]');
+      // Should be sorted alphabetically using localeCompare (parentheses/brackets before symbols)
+      expect(favorites[0].displayName).toBe('File (Copy)');
+      expect(favorites[1].displayName).toBe('File [Draft]');
+      expect(favorites[2].displayName).toBe('File & More');
     });
   });
 
