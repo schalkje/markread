@@ -4,6 +4,7 @@ import { createWindow } from './window-manager';
 import { registerIpcHandlers } from './ipc-handlers';
 import { initLogger } from './logger';
 import { loadUIState } from './ui-state-manager';
+import { initAutoUpdater, cleanupAutoUpdater } from './auto-updater';
 
 // T019: Global error handler
 process.on('uncaughtException', (error) => {
@@ -131,6 +132,9 @@ if (!gotTheLock) {
     // T011: Register all IPC handlers (must be done after window is created)
     registerIpcHandlers(mainWindow);
 
+    // T037: Initialize auto-updater (skip in dev mode, portable mode)
+    initAutoUpdater();
+
     app.on('activate', () => {
       // On macOS re-create window when dock icon is clicked
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -140,8 +144,6 @@ if (!gotTheLock) {
   });
 // } // End of single instance lock block (commented out)
 
-// TEMPORARY: Comment out module-level app.on calls
-/*
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -150,14 +152,21 @@ app.on('window-all-closed', () => {
 
 // T107: Cleanup file watchers on app quit
 // T167: Save UI state immediately before quitting
+// T037-T045: Cleanup auto-updater timers
 app.on('before-quit', async () => {
-  await stopAllWatchers();
+  // Cleanup auto-updater
+  cleanupAutoUpdater();
+
+  // TODO: Cleanup file watchers (when implemented)
+  // await stopAllWatchers();
 
   // Save window bounds immediately before quit
   if (mainWindow && !mainWindow.isDestroyed()) {
     const bounds = mainWindow.getBounds();
     const isMaximized = mainWindow.isMaximized();
 
+    // TODO: Save UI state (when saveUIStateImmediate is implemented)
+    /*
     await saveUIStateImmediate({
       windowBounds: {
         x: bounds.x,
@@ -167,6 +176,6 @@ app.on('before-quit', async () => {
         isMaximized,
       },
     });
+    */
   }
 });
-*/

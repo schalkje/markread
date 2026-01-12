@@ -121,16 +121,16 @@
 
 ### Implementation for User Story 4
 
-- [ ] T036 [P] [US4] Configure electron-builder.yml publish section for GitHub Releases provider
-- [ ] T037 [P] [US4] Implement auto-update initialization in src/main/index.ts (configure electron-updater, skip in dev mode)
-- [ ] T038 [P] [US4] Implement startup update check in src/main/index.ts (5-second delay after app launch)
-- [ ] T039 [P] [US4] Implement periodic update check in src/main/index.ts (every 4 hours)
-- [ ] T040 [US4] Implement update-available event handler in src/main/index.ts (show notification with download option)
-- [ ] T041 [US4] Implement download-progress event handler in src/main/index.ts (send progress to renderer)
-- [ ] T042 [US4] Implement update-downloaded event handler in src/main/index.ts (show notification with restart option)
-- [ ] T043 [P] [US4] Implement exponential backoff for update check failures in src/main/index.ts (1hr, 2hr, 4hr retry intervals)
-- [ ] T044 [P] [US4] Implement rollback detection in src/main/index.ts (crash flag, previous version backup)
-- [ ] T045 [P] [US4] Add portable mode detection in src/main/index.ts (skip auto-updates if process.env.PORTABLE_EXECUTABLE_FILE)
+- [X] T036 [P] [US4] Configure electron-builder.yml publish section for GitHub Releases provider
+- [X] T037 [P] [US4] Implement auto-update initialization in src/main/index.ts (configure electron-updater, skip in dev mode)
+- [X] T038 [P] [US4] Implement startup update check in src/main/index.ts (5-second delay after app launch)
+- [X] T039 [P] [US4] Implement periodic update check in src/main/index.ts (every 4 hours)
+- [X] T040 [US4] Implement update-available event handler in src/main/index.ts (show notification with download option)
+- [X] T041 [US4] Implement download-progress event handler in src/main/index.ts (send progress to renderer)
+- [X] T042 [US4] Implement update-downloaded event handler in src/main/index.ts (show notification with restart option)
+- [X] T043 [P] [US4] Implement exponential backoff for update check failures in src/main/index.ts (1hr, 2hr, 4hr retry intervals)
+- [X] T044 [P] [US4] Implement rollback detection in src/main/index.ts (crash flag, previous version backup)
+- [X] T045 [P] [US4] Add portable mode detection in src/main/index.ts (skip auto-updates if process.env.PORTABLE_EXECUTABLE_FILE)
 - [ ] T046 [US4] Test auto-update flow with local mock versions (update-available, download-progress, update-downloaded events)
 - [ ] T047 [US4] Test exponential backoff by simulating GitHub API failures
 

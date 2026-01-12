@@ -36,7 +36,9 @@
       "Bash(git fetch:*)",
       "Bash(git rev-parse:*)",
       "Bash(git -C C:/repo/markread.worktrees/001-search-find rev-parse:*)",
-      "Bash(npx tsc --noEmit)"
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx electron-builder:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
