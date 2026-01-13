@@ -80,6 +80,12 @@ export function handleFileOpen(win: BrowserWindow, filePath: string): void {
  * open the file in the existing window instead of creating a new instance
  */
 export function setupSecondInstanceHandler(mainWindow: BrowserWindow | null): void {
+  // Check if app is defined (may not be during testing)
+  if (typeof app === 'undefined' || !app || !app.requestSingleInstanceLock) {
+    logInfo('[FileAssociations] Skipping single instance lock (app not available)');
+    return;
+  }
+
   // Request single instance lock
   const gotTheLock = app.requestSingleInstanceLock();
 
@@ -119,6 +125,12 @@ export function setupSecondInstanceHandler(mainWindow: BrowserWindow | null): vo
  * Registers markread:// protocol so files can be opened via custom URLs
  */
 export function registerProtocolHandler(): void {
+  // Check if app is defined (may not be during testing)
+  if (typeof app === 'undefined' || !app) {
+    logInfo('[FileAssociations] Skipping protocol registration (app not available)');
+    return;
+  }
+
   // Skip in development mode
   if (!app.isPackaged) {
     logInfo('[FileAssociations] Skipping protocol registration (development mode)');
@@ -154,6 +166,12 @@ export function initFileAssociations(mainWindow: BrowserWindow | null): void {
  * macOS uses 'open-file' event instead of command-line args
  */
 export function setupMacOSFileHandler(mainWindow: BrowserWindow | null): void {
+  // Check if app is defined (may not be during testing)
+  if (typeof app === 'undefined' || !app) {
+    logInfo('[FileAssociations] Skipping macOS file handler (app not available)');
+    return;
+  }
+
   app.on('open-file', (event, filePath) => {
     event.preventDefault();
     logInfo(`[FileAssociations] macOS open-file event: ${filePath}`);

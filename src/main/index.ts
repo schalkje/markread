@@ -46,13 +46,19 @@ console.log('[Main] Custom protocol "mdfile" registered with privileges');
 */
 
 // T072-T074: Initialize file associations (single-instance, protocol handlers)
-initFileAssociations(mainWindow);
+// NOTE: Must be called before app.whenReady() but after app is available
+// For now, moved inside whenReady to ensure app is fully initialized
+// initFileAssociations(mainWindow);
 
 // T072: Set up macOS file handler
-setupMacOSFileHandler(mainWindow);
+// setupMacOSFileHandler(mainWindow);
 
 app.whenReady().then(async () => {
     console.log('[Main] App ready, registering protocol handler...');
+
+    // T072-T074: Initialize file associations after app is ready
+    initFileAssociations(mainWindow);
+    setupMacOSFileHandler(mainWindow);
 
     // Register protocol handler for mdfile:// URLs on the default session
     // CRITICAL: Must register on the session object, not the global protocol object

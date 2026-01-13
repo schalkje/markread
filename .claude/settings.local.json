@@ -39,7 +39,9 @@
       "Bash(npx tsc --noEmit)",
       "Bash(npx electron-builder:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []
