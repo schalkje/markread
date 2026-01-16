@@ -64,6 +64,9 @@ test.beforeAll(async () => {
 
   page = await electronApp.firstWindow();
   await page.waitForLoadState('domcontentloaded');
+
+  // Wait for home page to be ready
+  await page.waitForSelector('h1:has-text("Welcome to MarkRead")', { timeout: 10000 });
 });
 
 test.afterAll(async () => {
@@ -92,8 +95,8 @@ test.describe('T055: Tab Switching', () => {
       await page.evaluate((fp) => {
         return window.electronAPI?.file?.read({ filePath: fp });
       }, filePath);
-      // Wait for file to load before opening next
-      await page.waitForSelector('.markdown-viewer', { timeout: 10000 });
+      // Wait for specific content to be rendered before opening next
+      await page.waitForSelector(`h1:has-text("Document ${i}")`, { timeout: 10000 });
       await page.waitForTimeout(200);
     }
   });
@@ -231,7 +234,9 @@ test.describe('T056: Navigation History', () => {
     await page.evaluate((filePath) => {
       return window.electronAPI?.file?.read({ filePath });
     }, testFile);
-    await page.waitForSelector('.markdown-viewer', { timeout: 10000 });
+    // Wait for specific content to be rendered (not home page)
+    await page.waitForSelector('h1:has-text("Document 3")', { timeout: 10000 });
+    await page.waitForTimeout(200);
   });
 
   test('should navigate back with Alt+Left', async () => {

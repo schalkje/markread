@@ -235,8 +235,8 @@ test.describe('T021: Markdown Rendering', () => {
       setActiveTab(tabId);
     }, testFile);
 
-    // Wait for markdown to render
-    await page.waitForSelector('.markdown-viewer', { timeout: 10000 });
+    // Wait for specific content to be rendered (not home page)
+    await page.waitForSelector('h1:has-text("Test Document")', { timeout: 10000 });
 
     // Verify task lists render
     const taskLists = await page.locator('input[type="checkbox"]').count();
@@ -276,42 +276,14 @@ test.describe('T022: Syntax Highlighting', () => {
   test('should apply syntax highlighting to code blocks', async () => {
     const testFile = path.join(__dirname, '../fixtures/test-code.md');
 
+    // Use file.read() to properly load and render the file
     await page.evaluate((filePath) => {
-      const useTabsStore = (window as any).__TEST_TABS_STORE__;
-      const fileName = filePath.split(/[/\\]/).pop() || 'test-file.md';
-      const tabId = `e2e-test-tab-${Date.now()}`;
-
-      const tab = {
-        id: tabId,
-        filePath,
-        title: fileName,
-        folderId: null,
-        isDirectFile: true,
-        scrollPosition: 0,
-        scrollLeft: 0,
-        zoomLevel: 100,
-        searchState: null,
-        modificationTimestamp: Date.now(),
-        isDirty: false,
-        renderCache: null,
-        navigationHistory: [{
-          filePath,
-          scrollPosition: 0,
-          scrollLeft: 0,
-          zoomLevel: 100,
-          timestamp: Date.now(),
-        }],
-        currentHistoryIndex: 0,
-        forwardHistory: [],
-        createdAt: Date.now(),
-      };
-
-      const { addTab, setActiveTab } = useTabsStore.getState();
-      addTab(tab);
-      setActiveTab(tabId);
+      return window.electronAPI?.file?.read({ filePath });
     }, testFile);
 
-    await page.waitForSelector('.markdown-viewer', { timeout: 10000 });
+    // Wait for specific content to be rendered (not home page)
+    await page.waitForSelector('h1:has-text("Syntax Highlighting Test")', { timeout: 10000 });
+    await page.waitForTimeout(500); // Wait for rendering to complete
 
     // Verify code blocks exist
     const codeBlocks = await page.locator('pre code').count();
@@ -393,7 +365,7 @@ test.describe('T023: Mermaid Diagrams', () => {
       setActiveTab(tabId);
     }, testFile);
 
-    await page.waitForSelector('.markdown-viewer', { timeout: 10000 });
+    await page.waitForSelector('h1', { timeout: 10000 });
 
     // Wait for Mermaid to render (may take a moment)
     await page.waitForSelector('svg', { timeout: 10000 });
@@ -463,7 +435,7 @@ test.describe('T024: Rendering Performance', () => {
       setActiveTab(tabId);
     }, testFile);
 
-    await page.waitForSelector('.markdown-viewer', { timeout: 10000 });
+    await page.waitForSelector('h1', { timeout: 10000 });
 
     // Wait for all content to render
     await page.waitForSelector('h1', { timeout: 1000 });
@@ -515,7 +487,7 @@ test.describe('T024: Rendering Performance', () => {
       setActiveTab(tabId);
     }, testFile);
 
-    await page.waitForSelector('.markdown-viewer', { timeout: 10000 });
+    await page.waitForSelector('h1', { timeout: 10000 });
 
     // Verify all code blocks rendered
     const codeBlocks = await page.locator('pre code').count();
