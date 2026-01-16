@@ -21,7 +21,7 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConnectRepository, onRepositoryConnected }) => {
-  const { recents, favorites, removeRecent, removeFavorite, addFavorite, addRecent, isFavorite, loading, loadAll } = useRecentsFavorites();
+  const { recents, favorites, removeRecent, removeFavorite, addFavorite, addRecent, loading, loadAll } = useRecentsFavorites();
   const { connectRepository } = useGitRepo();
   const { addFolder } = useFoldersStore();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

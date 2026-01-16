@@ -45,7 +45,9 @@ export const useUIStore = create<UIState>((set, get) => ({
 
         // Persist to UIState
         await window.electronAPI?.uiState?.save({
-          globalZoomLevel: clampedLevel,
+          uiState: {
+            globalZoomLevel: clampedLevel,
+          }
         });
       }
     } catch (error) {

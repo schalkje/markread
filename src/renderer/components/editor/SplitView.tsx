@@ -9,7 +9,7 @@
  * - Independent scroll/zoom per pane
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { usePanesStore } from '../../stores/panes';
 import { useTabsStore } from '../../stores/tabs';
 import type { Pane } from '@shared/types/entities.d.ts';
@@ -39,7 +39,6 @@ const PaneView: React.FC<PaneViewProps> = ({ pane, depth = 0 }) => {
   const setActivePaneTab = usePanesStore((state) => state.setActivePaneTab);
 
   const getTab = useTabsStore((state) => state.getTab);
-  const getAllTabs = useTabsStore((state) => state.getAllTabs);
 
   const paneState = getPaneState(pane.id);
   const [showToc, setShowToc] = useState(false);
@@ -70,8 +69,6 @@ const PaneView: React.FC<PaneViewProps> = ({ pane, depth = 0 }) => {
   }
 
   // Leaf pane - render tabs and content
-  const allTabs = getAllTabs();
-  const paneTabs = allTabs.filter((tab) => pane.tabs.includes(tab.id));
   const activeTab = pane.activeTabId ? getTab(pane.activeTabId) : null;
 
   const handleTabClick = (tabId: string) => {

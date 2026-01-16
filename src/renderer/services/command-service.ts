@@ -10,7 +10,7 @@
  */
 
 import type { Command, CommandContext, CommandSearchResult } from '@shared/types/commands.d.ts';
-import { CommandCategory as CC } from '@shared/types/commands.d.ts';
+import { CommandCategory as CC } from '@shared/types/commands.js';
 
 class CommandService {
   private commands: Map<string, Command> = new Map();

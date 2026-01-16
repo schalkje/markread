@@ -46,7 +46,6 @@ export class RecentsManager {
         this.store = new ElectronStore<RecentsSchema>({
           name: 'recents',
           cwd: this.cwd,
-          projectName: 'MarkRead',
           defaults: {
             files: [],
             folders: [],
@@ -93,6 +92,8 @@ export class RecentsManager {
         return 'folders';
       case 'repo':
         return 'repos';
+      default:
+        return 'files';
     }
   }
 

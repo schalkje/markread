@@ -160,11 +160,11 @@ app.on('before-quit', async () => {
 
   // Save window bounds immediately before quit
   if (mainWindow && !mainWindow.isDestroyed()) {
+    // TODO: Save UI state (when saveUIStateImmediate is implemented)
+    /*
     const bounds = mainWindow.getBounds();
     const isMaximized = mainWindow.isMaximized();
 
-    // TODO: Save UI state (when saveUIStateImmediate is implemented)
-    /*
     await saveUIStateImmediate({
       windowBounds: {
         x: bounds.x,

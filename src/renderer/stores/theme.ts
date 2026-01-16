@@ -6,7 +6,7 @@
 
 import { create } from 'zustand';
 import type { Theme } from '@shared/types/entities.d.ts';
-import { ThemeType } from '@shared/types/entities.d.ts';
+import { ThemeType } from '@shared/types/entities.js';
 
 interface ThemeState {
   // Available themes

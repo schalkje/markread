@@ -626,6 +626,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         cancelled = true;
       };
     }
+    return undefined;
   }, [scrollTop, scrollLeft, filePath, preparingBuffer, activeBuffer]); // Trigger when navigating to a new page (removed zoomLevel to avoid conflicts)
 
   // Track the last render to prevent duplicate renders
@@ -700,8 +701,6 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     let isCancelled = false;
 
     const renderContent = async () => {
-      const startTime = Date.now();
-
       console.log('[MarkdownViewer] renderContent started for', targetBuffer);
 
       setIsRendering(true);
@@ -1279,29 +1278,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         });
 
         if (result?.success && result.absolutePath && result.exists) {
-          // Get image data as base64 data URL via IPC
-          console.log('[MarkdownViewer] Fetching image data for:', result.absolutePath);
-
-          const imageData = await window.electronAPI?.file?.getImageData({
-            filePath: result.absolutePath,
-          });
-
-          if (imageData?.success && imageData.dataUrl) {
-            console.log('[MarkdownViewer] Setting image src to data URL, length:', imageData.dataUrl.length);
-            const imgElement = img as HTMLImageElement;
-            imgElement.src = imageData.dataUrl;
-          } else {
-            // Failed to get image data
-            console.error('[MarkdownViewer] Failed to get image data:', imageData?.error);
-            const imgElement = img as HTMLImageElement;
-            imgElement.style.display = 'inline-block';
-            imgElement.style.backgroundColor = '#fff3cd';
-            imgElement.style.border = '1px dashed #ffc107';
-            imgElement.style.padding = '8px';
-            imgElement.style.borderRadius = '4px';
-            imgElement.alt = `[Image not accessible: ${src}]`;
-            imgElement.title = `Failed to load image: ${imageData?.error || 'Unknown error'}`;
-          }
+          // Use file:// protocol to load local images
+          console.log('[MarkdownViewer] Loading image from file path:', result.absolutePath);
+          const imgElement = img as HTMLImageElement;
+          imgElement.src = `file:///${result.absolutePath.replace(/\\/g, '/')}`;
         } else {
           // Image file doesn't exist - show placeholder
           console.warn(`Image not found: ${src}`, result);

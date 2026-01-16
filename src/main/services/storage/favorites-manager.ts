@@ -47,7 +47,6 @@ export class FavoritesManager {
         this.store = new ElectronStore<FavoritesSchema>({
           name: 'favorites',
           cwd: this.cwd,
-          projectName: 'MarkRead',
           defaults: {
             files: [],
             folders: [],
@@ -94,6 +93,8 @@ export class FavoritesManager {
         return 'folders';
       case 'repo':
         return 'repos';
+      default:
+        return 'files';
     }
   }
 

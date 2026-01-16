@@ -139,7 +139,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose, onHomeCl
   };
 
   const handleContextMenuRevealInSidebar = (tabId: string) => {
-    const tab = tabs.get(tabId);
+    const tab = tabs.find(t => t.id === tabId);
     if (tab && tab.filePath) {
       // Dispatch event to reveal file in sidebar
       window.dispatchEvent(new CustomEvent('reveal-in-sidebar', {

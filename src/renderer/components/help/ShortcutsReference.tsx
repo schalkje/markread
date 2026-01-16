@@ -20,11 +20,6 @@ export interface ShortcutsReferenceProps {
   onClose: () => void;
 }
 
-interface ShortcutGroup {
-  category: string;
-  shortcuts: Command[];
-}
-
 /**
  * T090: Shortcuts Reference organized by category
  */
@@ -59,7 +54,7 @@ export const ShortcutsReference: React.FC<ShortcutsReferenceProps> = ({
     });
 
     const conflictSet = new Set<string>();
-    shortcutMap.forEach((commandIds, shortcut) => {
+    shortcutMap.forEach((commandIds) => {
       if (commandIds.length > 1) {
         commandIds.forEach(id => conflictSet.add(id));
       }

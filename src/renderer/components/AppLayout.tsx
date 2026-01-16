@@ -119,10 +119,6 @@ const AppLayout: React.FC = () => {
     }
   }, [activeTabId]);
 
-  const toggleSidebar = useCallback(() => {
-    setShowSidebar(!showSidebar);
-  }, [showSidebar]);
-
   // T011: Implement handleSearch callback for FindBar
   const handleSearch = useCallback((query: string, options: { caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }) => {
     console.log('[AppLayout] handleSearch called:', { query, options, currentContent: currentContent?.length });
