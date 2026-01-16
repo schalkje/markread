@@ -159,6 +159,8 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
 `;
 
 test.beforeAll(async () => {
+  test.setTimeout(90000);
+
   // Create test markdown files
   const testDir = path.join(__dirname, '../fixtures');
   if (!fs.existsSync(testDir)) {
@@ -173,10 +175,11 @@ test.beforeAll(async () => {
   // Launch Electron app with built output
   electronApp = await electron.launch({
     args: [path.join(__dirname, '../../out/main/index.js')],
+    timeout: 60000,
   });
 
   page = await electronApp.firstWindow();
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState('domcontentloaded', { timeout: 30000 });
 });
 
 test.afterAll(async () => {

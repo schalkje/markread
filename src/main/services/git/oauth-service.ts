@@ -12,7 +12,8 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { shell } from 'electron';
+import * as electron from 'electron';
+const { shell } = electron;
 import axios from 'axios';
 import { credentialStore } from '../storage/credential-store';
 import { azureOAuthService } from './azure-oauth-service';

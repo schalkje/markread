@@ -11,13 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to PDF
 - Bookmarks
 
-## [0.5.7] - 2026-01-16
+## [0.5.8] - 2026-01-16
 
 ### Fixes
 - Release tests
 - Fix type checks
 - Fix linting to new standard
-
+- Remoe e2e test from build
 
 ### Added
 - Home page with recents and favorites

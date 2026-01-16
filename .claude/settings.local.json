@@ -44,7 +44,8 @@
       "Bash(timeout:*)",
       "Bash(move eslint.config.js eslint.config.mjs)",
       "Bash(find:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(git -C c:/repo/markread rev-parse:*)"
     ],
     "deny": [],
     "ask": []

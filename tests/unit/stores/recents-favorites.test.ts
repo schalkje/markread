@@ -44,6 +44,9 @@ describe('Recents & Favorites Store', () => {
 
     // Clear all mocks
     vi.clearAllMocks();
+
+    // Suppress console.error during error tests
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   describe('Initial State', () => {

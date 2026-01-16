@@ -10,7 +10,8 @@
  * Source: specs/001-git-repo-integration/research.md (Section 3)
  */
 
-import { safeStorage } from 'electron';
+import * as electron from 'electron';
+const { safeStorage } = electron;
 import type Store from 'electron-store';
 
 /**

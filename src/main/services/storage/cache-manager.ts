@@ -13,7 +13,8 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { app } from 'electron';
+import * as electron from 'electron';
+const { app } = electron;
 import type { CacheEntry } from '@shared/types/cache';
 
 interface CacheMetadata {
