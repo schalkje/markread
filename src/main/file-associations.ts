@@ -97,7 +97,7 @@ export function setupSecondInstanceHandler(mainWindow: BrowserWindow | null): vo
   }
 
   // Handle second-instance event
-  app.on('second-instance', (_event, commandLine, _workingDirectory) => {
+  app.on('second-instance', (_event, commandLine) => {
     logInfo('[FileAssociations] Second instance detected');
 
     // Parse file path from command line

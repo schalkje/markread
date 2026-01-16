@@ -83,7 +83,7 @@ export class CacheManager {
     try {
       const content = await fs.readFile(cacheFilePath, 'utf-8');
       return content;
-    } catch (error) {
+    } catch {
       // Cache file missing, remove from metadata
       this.metadata.entries.delete(key);
       return null;
@@ -147,7 +147,7 @@ export class CacheManager {
    */
   async clear(repositoryId: string, branch?: string): Promise<void> {
     const entriesToDelete = Array.from(this.metadata.entries.entries())
-      .filter(([_, entry]) => {
+      .filter(([, entry]) => {
         if (entry.repositoryId !== repositoryId) return false;
         if (branch && entry.branch !== branch) return false;
         return true;
@@ -195,7 +195,7 @@ export class CacheManager {
     try {
       const content = await fs.readFile(cacheFilePath, 'utf-8');
       return JSON.parse(content);
-    } catch (error) {
+    } catch {
       // Cache file missing or corrupt, remove from metadata
       this.metadata.entries.delete(key);
       return null;
@@ -288,7 +288,7 @@ export class CacheManager {
   private async evictLRU(repositoryId: string | null, bytesToFree: number): Promise<void> {
     // Get entries sorted by last accessed (oldest first)
     const entries = Array.from(this.metadata.entries.entries())
-      .filter(([_, entry]) => !repositoryId || entry.repositoryId === repositoryId)
+      .filter(([, entry]) => !repositoryId || entry.repositoryId === repositoryId)
       .sort((a, b) => a[1].lastAccessedAt - b[1].lastAccessedAt);
 
     let freedBytes = 0;
@@ -332,7 +332,7 @@ export class CacheManager {
    */
   private getCacheFilePath(key: string): string {
     // Create a safe file path from the key
-    const safeKey = key.replace(/[^a-zA-Z0-9\-_\/]/g, '_');
+    const safeKey = key.replace(/[^a-zA-Z0-9\-_/]/g, '_');
     return path.join(this.CACHE_DIR, safeKey);
   }
 
@@ -349,7 +349,7 @@ export class CacheManager {
         totalSize: parsed.totalSize,
         repositorySizes: new Map(parsed.repositorySizes),
       };
-    } catch (error) {
+    } catch {
       // Metadata doesn't exist yet, start fresh
       this.metadata = {
         entries: new Map(),

@@ -2822,7 +2822,7 @@ const AppLayout: React.FC = () => {
                             const { tabs: freshTabs } = useTabsStore.getState();
                             const freshTab = freshTabs.get(activeTabId);
                             if (freshTab) {
-                              const fileName = filePath.split(/[/\\\/]/).pop() || 'Untitled';
+                              const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
                               const updatedTab = {
                                 ...freshTab,
                                 filePath: filePath,

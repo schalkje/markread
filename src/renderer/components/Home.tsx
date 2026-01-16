@@ -50,7 +50,7 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
         if (duration > 500) {
           console.warn(`[Home] Performance warning: Page load took ${duration.toFixed(2)}ms (target: <500ms)`);
         }
-      } catch (error) {
+      } catch {
         // Marks might not exist on first render, ignore
       }
     }

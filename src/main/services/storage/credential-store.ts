@@ -233,7 +233,7 @@ export class CredentialStore {
       const encryptedBuffer = Buffer.from(encryptedToken, 'base64');
       const decrypted = safeStorage.decryptString(encryptedBuffer);
       return decrypted;
-    } catch (error) {
+    } catch {
       // If decryption fails, delete the corrupted token
       store.delete(`provider-token-${provider}`);
       return null;

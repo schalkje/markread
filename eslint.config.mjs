@@ -3,6 +3,7 @@ import typescript from '@typescript-eslint/eslint-plugin';
 import typescriptParser from '@typescript-eslint/parser';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
+import globals from 'globals';
 
 export default [
   // Global ignores
@@ -25,6 +26,14 @@ export default [
       '.idea/**',
       '.DS_Store',
       'Thumbs.db',
+      // Ignore spec contracts (have intentional test patterns)
+      '**/specs/**',
+      // Ignore test helper files
+      '**/isolated-test.js',
+      '**/test-*.js',
+      'test-dir/**',
+      '**/tests/**/*.spec.ts',
+      '**/tests/**/*.test.ts',
     ],
   },
   // Base configuration for all files
@@ -40,28 +49,12 @@ export default [
         },
       },
       globals: {
-        // Browser globals
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        console: 'readonly',
-        // Node globals
-        process: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        module: 'readonly',
-        require: 'readonly',
-        Buffer: 'readonly',
-        global: 'readonly',
-        // ES2021 globals
-        Promise: 'readonly',
-        Symbol: 'readonly',
-        WeakMap: 'readonly',
-        WeakSet: 'readonly',
-        Map: 'readonly',
-        Set: 'readonly',
-        Proxy: 'readonly',
-        Reflect: 'readonly',
+        ...globals.browser,
+        ...globals.node,
+        ...globals.es2021,
+        // Additional TypeScript/Electron globals
+        NodeJS: 'readonly',
+        EventListener: 'readonly',
       },
     },
     plugins: {

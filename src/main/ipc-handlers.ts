@@ -46,7 +46,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   });
 
   // T035: file:openFileDialog IPC handler
-  ipcMain.handle('file:openFileDialog', async (_event, _payload) => {
+  ipcMain.handle('file:openFileDialog', async () => {
     try {
       const result = await dialog.showOpenDialog({
         properties: ['openFile'],
@@ -677,7 +677,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   });
 
   // T051d: window:getGlobalZoom IPC handler
-  ipcMain.handle('window:getGlobalZoom', async (event, _payload) => {
+  ipcMain.handle('window:getGlobalZoom', async (event) => {
     try {
       // Get the window that sent this request
       const senderWindow = BrowserWindow.fromWebContents(event.sender);
@@ -705,7 +705,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
   });
 
   // T165: uiState:load IPC handler
-  ipcMain.handle('uiState:load', async (_event, _payload) => {
+  ipcMain.handle('uiState:load', async () => {
     try {
       const uiState = await loadUIState();
       return {

@@ -350,22 +350,26 @@ export namespace SearchEvents {
 // ============================================================================
 
 export namespace WindowOperations {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface MinimizeWindowRequest {}
   export interface MinimizeWindowResponse {
     success: boolean;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface MaximizeWindowRequest {}
   export interface MaximizeWindowResponse {
     success: boolean;
     isMaximized: boolean;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface CloseWindowRequest {}
   export interface CloseWindowResponse {
     success: boolean;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface GetWindowBoundsRequest {}
   export interface GetWindowBoundsResponse {
     success: boolean;
@@ -401,6 +405,7 @@ export namespace WindowOperations {
     error?: string;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface GetGlobalZoomRequest {}
 
   export interface GetGlobalZoomResponse {
@@ -415,6 +420,7 @@ export namespace WindowOperations {
 // ============================================================================
 
 export namespace UIStateOperations {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface LoadUIStateRequest {}
   export interface LoadUIStateResponse {
     success: boolean;

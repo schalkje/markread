@@ -7,7 +7,7 @@
  * Pattern: invoke/handle
  */
 
-import type { UIState, Folder, RecentItem, PanelLayout } from '../data-model';
+import type { UIState, RecentItem, PanelLayout } from '../data-model';
 
 export namespace UIStateOperations {
   /** Load UI state from disk */

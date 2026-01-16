@@ -71,7 +71,7 @@ export const RepoConnectDialog: React.FC<RepoConnectDialogProps> = ({
   const [branchToPreselect, setBranchToPreselect] = useState<string | null>(null);
 
   // Connection history state
-  const [_connectionHistory, setConnectionHistory] = useState<ConnectionHistoryEntry[]>([]);
+  const [, setConnectionHistory] = useState<ConnectionHistoryEntry[]>([]);
   const [groupedHistory, setGroupedHistory] = useState<GroupedHistoryRepository[]>([]);
 
   // Device Flow state

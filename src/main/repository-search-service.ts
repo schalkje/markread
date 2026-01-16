@@ -243,7 +243,7 @@ export class RepositorySearchService {
 
     try {
       return new RegExp(pattern, flags);
-    } catch (error) {
+    } catch {
       // Invalid regex, fall back to literal search
       const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       return new RegExp(escapedQuery, flags);

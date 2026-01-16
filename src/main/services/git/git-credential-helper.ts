@@ -8,7 +8,7 @@
  * of implementing our own OAuth flow.
  */
 
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
@@ -78,7 +78,7 @@ export class GitCredentialHelper {
       this.hasGCM = true;
       console.log('[GitCredentialHelper] GCM available:', stdout.trim());
       return true;
-    } catch (error) {
+    } catch {
       // GCM might still work even if this command fails
       // (older versions might not have --version flag)
       console.log('[GitCredentialHelper] GCM version check failed, but may still be available');
@@ -235,7 +235,7 @@ export class GitCredentialHelper {
    */
   private async executeGitCredentialFill(input: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      const process = require('child_process').spawn('git', ['credential', 'fill'], {
+      const process = spawn('git', ['credential', 'fill'], {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
@@ -321,7 +321,7 @@ export class GitCredentialHelper {
     ].join('\n');
 
     return new Promise((resolve, reject) => {
-      const process = require('child_process').spawn('git', ['credential', 'approve'], {
+      const process = spawn('git', ['credential', 'approve'], {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
@@ -371,7 +371,7 @@ export class GitCredentialHelper {
     ].join('\n');
 
     return new Promise((resolve, reject) => {
-      const process = require('child_process').spawn('git', ['credential', 'reject'], {
+      const process = spawn('git', ['credential', 'reject'], {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 

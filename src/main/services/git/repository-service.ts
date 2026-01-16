@@ -67,7 +67,7 @@ export class RepositoryService {
         // Get stored token for this provider
         const token = await credentialStore.getToken(provider);
         return token;
-      } catch (error) {
+      } catch {
         // If token retrieval fails, proceed without authentication
         return null;
       }

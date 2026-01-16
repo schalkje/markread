@@ -151,7 +151,11 @@ export const RepoFileTree: React.FC<RepoFileTreeProps> = ({
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                isDirectory ? toggleDirectory(node.path) : handleFileClick(node.path);
+                if (isDirectory) {
+                  toggleDirectory(node.path);
+                } else {
+                  handleFileClick(node.path);
+                }
               }
             }}
           >

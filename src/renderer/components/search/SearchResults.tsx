@@ -439,7 +439,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
       {/* No Results */}
       {!isSearching && activeSearch && !hasResults && activeSearch.query && (
         <div className="search-results__empty">
-          <p>No results found for "{activeSearch.query}"</p>
+          <p>No results found for &quot;{activeSearch.query}&quot;</p>
         </div>
       )}
     </div>

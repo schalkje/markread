@@ -13,9 +13,9 @@ import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 import mermaid from 'mermaid';
 import DOMPurify from 'isomorphic-dompurify';
-// @ts-ignore - markdown-it-task-lists may not have types
+// @ts-expect-error - markdown-it-task-lists may not have types
 import taskLists from 'markdown-it-task-lists';
-// @ts-ignore - highlightjs-copy may not have types
+// @ts-expect-error - highlightjs-copy may not have types
 import CopyButtonPlugin from 'highlightjs-copy';
 
 /**
@@ -33,6 +33,7 @@ const md: MarkdownIt = new MarkdownIt({
    * We don't highlight here because highlightjs-copy needs DOM elements
    * Highlighting is applied in applySyntaxHighlighting() after render
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   highlight: (code: string, _language: string): string => {
     // Just escape HTML - markdown-it will wrap this in <pre><code class="language-xxx">
     // The post-render applySyntaxHighlighting() will do actual highlighting
