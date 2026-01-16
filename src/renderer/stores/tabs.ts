@@ -5,7 +5,7 @@
  */
 
 import { create } from 'zustand';
-import type { Tab, HistoryEntry } from '@shared/types/entities.d.ts';
+import type { Tab, HistoryEntry } from '@shared/types/entities';
 import { generateDirectFileTabId, generateFolderFileTabId, generateRepoFileTabId } from '../utils/tab-id';
 import { useFoldersStore } from './folders';
 

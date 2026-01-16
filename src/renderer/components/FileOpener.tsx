@@ -9,7 +9,7 @@
 import React, { useState } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { generateDirectFileTabId } from '../utils/tab-id';
-import type { Tab } from '@shared/types/entities.d.ts';
+import type { Tab } from '@shared/types/entities';
 import './FileOpener.css';
 
 export interface FileOpenerProps {

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to PDF
 - Bookmarks
 
-## [0.5.5] - 2026-01-16
+## [0.5.6] - 2026-01-16
 
 ### Fixes
 - Release tests

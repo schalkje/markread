@@ -53,7 +53,7 @@ import {
 } from '../services/command-service';
 import { generateDirectFileTabId, generateFolderFileTabId, generateRepoFileTabId } from '../utils/tab-id';
 import { removeFromConnectionHistory } from '../utils/connection-history';
-import type { Folder } from '@shared/types/entities.d.ts';
+import type { Folder } from '@shared/types/entities';
 import './AppLayout.css';
 
 // T016: Base layout component with sidebar/content/toolbar structure

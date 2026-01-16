@@ -8,7 +8,7 @@ import { useGitRepo } from '../hooks/useGitRepo';
 import { useFoldersStore } from '../stores/folders';
 import type { RecentItem, Favorite } from '@shared/types/recents-favorites';
 import { ItemType } from '@shared/types/recents-favorites';
-import type { Folder } from '@shared/types/entities.d.ts';
+import type { Folder } from '@shared/types/entities';
 import type { ConnectRepositoryRequest, ConnectRepositoryResponse } from '@shared/types/git-contracts';
 import './Home.css';
 import './home/styles.css';

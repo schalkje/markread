@@ -12,7 +12,7 @@
 import React, { useState, useRef } from 'react';
 import { usePanesStore } from '../../stores/panes';
 import { useTabsStore } from '../../stores/tabs';
-import type { Pane } from '@shared/types/entities.d.ts';
+import type { Pane } from '@shared/types/entities';
 import { TabBar } from './TabBar';
 import { MarkdownViewer } from '../markdown/MarkdownViewer';
 import { ZoomControls } from './ZoomControls';

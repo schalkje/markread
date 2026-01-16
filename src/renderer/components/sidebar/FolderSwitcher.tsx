@@ -13,7 +13,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useFoldersStore } from '../../stores/folders';
 import { useTabsStore } from '../../stores/tabs';
-import type { Folder } from '@shared/types/entities.d.ts';
+import type { Folder } from '@shared/types/entities';
 import { groupFoldersByRepository } from '@shared/utils/repository-utils';
 import './FolderSwitcher.css';
 

@@ -5,8 +5,8 @@
  */
 
 import { create } from 'zustand';
-import type { Theme } from '@shared/types/entities.d.ts';
-import { ThemeType } from '@shared/types/entities.js';
+import type { Theme } from '@shared/types/entities';
+import { ThemeType } from '@shared/types/entities';
 
 interface ThemeState {
   // Available themes

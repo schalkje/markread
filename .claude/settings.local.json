@@ -42,7 +42,8 @@
       "Bash(npm test:*)",
       "Bash(npx playwright test:*)",
       "Bash(timeout:*)",
-      "Bash(move eslint.config.js eslint.config.mjs)"
+      "Bash(move eslint.config.js eslint.config.mjs)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
