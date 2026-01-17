@@ -74,11 +74,29 @@ jobs:
     - name: Build application
       run: npm run build
 
+    - name: Decode certificate
+      run: |
+        if ($env:CERT_PFX) {
+          Write-Host "Decoding certificate from CERT_PFX secret..." -ForegroundColor Cyan
+          $pfxBytes = [System.Convert]::FromBase64String($env:CERT_PFX)
+          $pfxPath = Join-Path $env:RUNNER_TEMP "certificate.pfx"
+          [System.IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+          Write-Host "✓ Certificate decoded to: $pfxPath" -ForegroundColor Green
+          "PFX_PATH=$pfxPath" >> $env:GITHUB_ENV
+          "PFX_PASSWORD=$env:CERT_PASSWORD" >> $env:GITHUB_ENV
+        } else {
+          Write-Host "No CERT_PFX secret found, skipping certificate decode" -ForegroundColor Gray
+        }
+      shell: pwsh
+      env:
+        CERT_PFX: ${{ secrets.CERT_PFX }}
+        CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
+
     - name: Check certificate configuration
       run: |
         Write-Host "Checking certificate configuration..." -ForegroundColor Cyan
 
-        # Check if signing is configured
+        # Check if signing is configured (PFX_PATH set by decode step or CERT_THUMBPRINT from secrets)
         if ($env:PFX_PATH -or $env:CERT_THUMBPRINT) {
           Write-Host "✓ Code signing is ENABLED" -ForegroundColor Green
           if ($env:PFX_PATH) {
@@ -93,18 +111,16 @@ jobs:
         }
       shell: pwsh
       env:
-        PFX_PATH: ${{ secrets.PFX_PATH }}
-        PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
         CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
 
     - name: Package installer
       run: npm run package
       env:
-        # Code signing environment variables
-        PFX_PATH: ${{ secrets.PFX_PATH }}
-        PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+        # Code signing environment variables (set by decode step or from secrets)
         CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
         TIMESTAMP_SERVER: http://timestamp.digicert.com
+        # GitHub token for electron-builder publishing
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: List release artifacts
       id: list-artifacts
@@ -156,7 +172,6 @@ jobs:
         }
       shell: pwsh
       env:
-        PFX_PATH: ${{ secrets.PFX_PATH }}
         CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
 
     - name: Upload release artifacts
