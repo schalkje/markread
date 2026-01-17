@@ -114,13 +114,11 @@ jobs:
         CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
 
     - name: Package installer
-      run: npm run package
+      run: npx electron-builder --publish never
       env:
         # Code signing environment variables (set by decode step or from secrets)
         CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
         TIMESTAMP_SERVER: http://timestamp.digicert.com
-        # GitHub token for electron-builder publishing
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: List release artifacts
       id: list-artifacts
