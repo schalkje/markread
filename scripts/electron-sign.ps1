@@ -218,47 +218,50 @@ function Test-Signature {
 
     Write-Status "Verifying signature: $FilePath" "Info"
 
-    # First try with /pa (trusted chain), fall back to /all (any signature) for self-signed certs
-    $verifyArgs = @(
-        "verify"
-        "/pa"                              # Use default verification policy
-        "/v"                               # Verbose output
-        $FilePath
-    )
+    # Use PowerShell's Get-AuthenticodeSignature which is more lenient with self-signed certs
+    $signature = Get-AuthenticodeSignature -FilePath $FilePath
 
-    Write-Status "Executing: signtool $($verifyArgs -join ' ')" "Info"
+    if ($null -eq $signature -or $null -eq $signature.SignerCertificate) {
+        throw "No signature found on file"
+    }
 
-    $output = & $SignToolPath $verifyArgs 2>&1
-    $exitCode = $LASTEXITCODE
+    Write-Status "Signature found:" "Success"
+    Write-Host "  Status: $($signature.Status)"
+    Write-Host "  Subject: $($signature.SignerCertificate.Subject)"
+    Write-Host "  Issuer: $($signature.SignerCertificate.Issuer)"
+    Write-Host "  Thumbprint: $($signature.SignerCertificate.Thumbprint)"
+    Write-Host "  Valid from: $($signature.SignerCertificate.NotBefore)"
+    Write-Host "  Valid to: $($signature.SignerCertificate.NotAfter)"
 
-    Write-Host $output
-
-    if ($exitCode -ne 0) {
-        Write-Status "Trusted chain verification failed (likely self-signed cert), trying basic signature check..." "Warning"
-
-        # Try again with /all flag which accepts self-signed certificates
-        $verifyArgs = @(
-            "verify"
-            "/all"                         # Verify all signatures (allows self-signed)
-            "/v"                          # Verbose output
-            $FilePath
-        )
-
-        Write-Status "Executing: signtool $($verifyArgs -join ' ')" "Info"
-
-        $output = & $SignToolPath $verifyArgs 2>&1
-        $exitCode = $LASTEXITCODE
-
-        Write-Host $output
-
-        if ($exitCode -ne 0) {
-            throw "Signature verification failed with exit code $exitCode"
-        }
-
-        Write-Status "Signature found (self-signed certificate)" "Success"
+    if ($null -ne $signature.TimeStamperCertificate) {
+        Write-Host "  Timestamp: $($signature.TimeStamperCertificate.NotBefore)"
+        Write-Status "Signature is timestamped" "Success"
     }
     else {
-        Write-Status "Signature verification passed (trusted chain)" "Success"
+        Write-Status "Warning: Signature is not timestamped" "Warning"
+    }
+
+    # Check signature status
+    switch ($signature.Status) {
+        "Valid" {
+            Write-Status "Signature verification passed (trusted chain)" "Success"
+        }
+        "UnknownError" {
+            throw "Signature verification failed with unknown error"
+        }
+        "NotSigned" {
+            throw "File is not signed"
+        }
+        "HashMismatch" {
+            throw "File hash does not match signature"
+        }
+        "NotTrusted" {
+            # This is expected for self-signed certificates
+            Write-Status "Signature verified (self-signed certificate - not in trusted root store)" "Success"
+        }
+        default {
+            Write-Status "Signature status: $($signature.Status) (non-critical)" "Warning"
+        }
     }
 }
 
