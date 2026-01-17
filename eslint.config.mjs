@@ -34,6 +34,7 @@ export default [
       'test-dir/**',
       '**/tests/**/*.spec.ts',
       '**/tests/**/*.test.ts',
+      '**/crepo*.js',  // Ignore any corrupted file paths
     ],
   },
   // Base configuration for all files
