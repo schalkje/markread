@@ -82,6 +82,12 @@ jobs:
           $pfxPath = Join-Path $env:RUNNER_TEMP "certificate.pfx"
           [System.IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
           Write-Host "✓ Certificate decoded to: $pfxPath" -ForegroundColor Green
+
+          # Set environment variables for electron-builder
+          "CSC_LINK=$pfxPath" >> $env:GITHUB_ENV
+          "CSC_KEY_PASSWORD=$env:CERT_PASSWORD" >> $env:GITHUB_ENV
+
+          # Also set PFX_PATH for our scripts
           "PFX_PATH=$pfxPath" >> $env:GITHUB_ENV
           "PFX_PASSWORD=$env:CERT_PASSWORD" >> $env:GITHUB_ENV
         } else {
