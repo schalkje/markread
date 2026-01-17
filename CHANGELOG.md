@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to PDF
 - Bookmarks
 
+## [0.5.12] - 2026-01-16
+
+### Fixes
+- Update packaging to use GitHub action and not Electron publishing
+
 ## [0.5.11] - 2026-01-16
 
 ### Fixes
