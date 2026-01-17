@@ -45,7 +45,10 @@
       "Bash(move eslint.config.js eslint.config.mjs)",
       "Bash(find:*)",
       "Bash(npx eslint:*)",
-      "Bash(git -C c:/repo/markread rev-parse:*)"
+      "Bash(git -C c:/repo/markread rev-parse:*)",
+      "Bash(git clean:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
