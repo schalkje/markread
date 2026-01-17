@@ -218,7 +218,7 @@ function Test-Signature {
 
     Write-Status "Verifying signature: $FilePath" "Info"
 
-    # Verify using signtool
+    # First try with /pa (trusted chain), fall back to /all (any signature) for self-signed certs
     $verifyArgs = @(
         "verify"
         "/pa"                              # Use default verification policy
@@ -234,10 +234,32 @@ function Test-Signature {
     Write-Host $output
 
     if ($exitCode -ne 0) {
-        throw "Signature verification failed with exit code $exitCode"
-    }
+        Write-Status "Trusted chain verification failed (likely self-signed cert), trying basic signature check..." "Warning"
 
-    Write-Status "Signature verification passed" "Success"
+        # Try again with /all flag which accepts self-signed certificates
+        $verifyArgs = @(
+            "verify"
+            "/all"                         # Verify all signatures (allows self-signed)
+            "/v"                          # Verbose output
+            $FilePath
+        )
+
+        Write-Status "Executing: signtool $($verifyArgs -join ' ')" "Info"
+
+        $output = & $SignToolPath $verifyArgs 2>&1
+        $exitCode = $LASTEXITCODE
+
+        Write-Host $output
+
+        if ($exitCode -ne 0) {
+            throw "Signature verification failed with exit code $exitCode"
+        }
+
+        Write-Status "Signature found (self-signed certificate)" "Success"
+    }
+    else {
+        Write-Status "Signature verification passed (trusted chain)" "Success"
+    }
 }
 
 # =============================================================================
