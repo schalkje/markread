@@ -29,6 +29,11 @@ export class FavoritesManager {
   private storePromise: Promise<Store<FavoritesSchema>> | null = null;
 
   /**
+   * @param cwd - Optional custom directory for storage (primarily for testing)
+   */
+  constructor(private cwd?: string) {}
+
+  /**
    * Initialize the store (lazy loading with dynamic import)
    */
   private async getStore(): Promise<Store<FavoritesSchema>> {
@@ -41,6 +46,7 @@ export class FavoritesManager {
         const { default: ElectronStore } = await import('electron-store');
         this.store = new ElectronStore<FavoritesSchema>({
           name: 'favorites',
+          cwd: this.cwd,
           defaults: {
             files: [],
             folders: [],
@@ -87,6 +93,8 @@ export class FavoritesManager {
         return 'folders';
       case 'repo':
         return 'repos';
+      default:
+        return 'files';
     }
   }
 
@@ -94,7 +102,8 @@ export class FavoritesManager {
    * Normalize path for cross-platform consistency
    */
   private normalizePath(itemPath: string): string {
-    return path.normalize(path.resolve(itemPath));
+    // Normalize separators and convert to forward slashes for cross-platform consistency
+    return path.normalize(itemPath).replace(/\\/g, '/');
   }
 
   /**

@@ -1,0 +1,94 @@
+# Contract: electron-builder Configuration
+# File: electron-builder.yml (repository root)
+
+appId: com.markread.app
+productName: MarkRead
+copyright: Copyright © 2026 MarkRead Project
+
+directories:
+  output: dist
+  buildResources: assets
+
+files:
+  - "!**/.git"
+  - "!**/.DS_Store"
+  - "!**/node_modules/**"
+  - "!**/*.map"
+
+win:
+  target:
+    - target: nsis
+      arch: x64
+    - target: portable
+      arch: x64
+  icon: assets/icon.ico
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  sign: scripts/electron-sign.ps1
+  publisherName: MarkRead Project
+
+nsis:
+  oneClick: false  # Custom installer (not one-click)
+  allowToChangeInstallationDirectory: true
+  perMachine: false  # Per-user installation by default
+  allowElevation: true  # Allow optional elevation for system-wide install
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: MarkRead
+  license: assets/License.rtf
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
+  installerHeader: assets/installer-banner.bmp  # 493x58 px
+  installerSidebar: assets/installer-dialog.bmp  # 493x312 px
+  deleteAppDataOnUninstall: false  # Preserve user data and logs
+  runAfterFinish: true  # Launch app after installation
+  menuCategory: true  # Create Start Menu folder
+
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}
+  # Portable-specific behavior:
+  # - No installation required
+  # - Settings stored in ./portable-data/ (relative to .exe)
+  # - Auto-updates disabled (checked via process.env.PORTABLE_EXECUTABLE_FILE)
+  # - No registry modifications
+  # - No file associations
+
+compression: maximum  # LZMA compression for <100MB target
+
+asar: true  # Bundle source code for basic protection and performance
+
+fileAssociations:
+  - ext: md
+    name: Markdown File
+    description: Markdown Document
+    icon: assets/icon.ico
+    role: Editor
+  - ext: markdown
+    name: Markdown File
+    description: Markdown Document
+    icon: assets/icon.ico
+    role: Editor
+
+publish:
+  provider: github
+  owner: yourusername  # Replace with actual GitHub username/org
+  repo: markread
+  releaseType: release
+  # Generates latest.yml for auto-update discovery
+
+# Functional Requirements Satisfied:
+# - FR-006: electron-builder.yml configured with LZMA compression, ASAR packaging, file associations (.md, .markdown), NSIS installer (Windows x64), portable .exe variant, GitHub Releases auto-updates
+# - FR-007: NSIS installer supports custom installation directory, desktop/start menu shortcuts, license display, per-user default with optional elevation, preserves user data on uninstallation
+# - FR-011: File associations create Windows registry entries for .md and .markdown, add "Open with MarkRead" to context menu with MarkRead icon
+# - FR-014: Installer uses assets/icon.ico for app executable and assets/icon.png for package metadata, NSIS uses assets/installer-banner.bmp and assets/installer-dialog.bmp for UI, displays license from assets/License.rtf
+
+# Success Criteria Addressed:
+# - SC-003: Windows installer package size <100MB with maximum compression
+# - SC-009: Users can double-click .md files to open in MarkRead with 100% success rate after installation
+# - SC-010: File associations cleanly removed on uninstallation with 0% registry orphan rate
+
+# Notes:
+# - NSIS installer provides custom installation experience (directory selection, license, shortcuts)
+# - Portable .exe is self-contained with no system modifications
+# - File associations automatically created and cleaned up by NSIS
+# - LZMA compression achieves best compression ratio for <100MB target
+# - ASAR packaging improves load performance and provides basic code protection

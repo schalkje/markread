@@ -1,287 +1,234 @@
-name: Release - Build, Sign, and Publish
+# Release Workflow - Build, Sign, and Publish Electron Application
+# Triggers: Push tags matching v*.*.*
+# Purpose: Create signed installers and publish to GitHub Releases
 
-on:
-  push:
-    tags: [ 'v*' ]
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to release (e.g., v0.3.0)'
-        required: true
-        type: string
+name: Release - Build, Sign, and Publish
 
 permissions:
   contents: write  # Required for creating releases
 
-env:
-  DOTNET_VERSION: '8.0.x'
-  BUILD_CONFIGURATION: Release
-  WIX_VERSION: '4.0.5'
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v0.5.1)'
+        required: true
+        type: string
 
 jobs:
   release:
     runs-on: windows-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v4
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-    
-    - name: Install WiX Toolset
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Validate version match
       run: |
-        Write-Host "Installing WiX Toolset v${{ env.WIX_VERSION }}..." -ForegroundColor Cyan
-        dotnet tool install --global wix --version ${{ env.WIX_VERSION }}
-        wix --version
+        # Extract version from tag (v0.5.1 -> 0.5.1)
+        $tag = "${{ github.ref_name }}"
+        if ($tag -match '^v(.+)$') {
+          $tagVersion = $matches[1]
+        } else {
+          throw "Tag '$tag' does not match expected format 'v*.*.*'"
+        }
+
+        # Read version from package.json
+        $packageJson = Get-Content "package.json" -Raw | ConvertFrom-Json
+        $pkgVersion = $packageJson.version
+
+        Write-Host "Tag version: $tagVersion" -ForegroundColor Cyan
+        Write-Host "package.json version: $pkgVersion" -ForegroundColor Cyan
+
+        if ($tagVersion -ne $pkgVersion) {
+          Write-Host "❌ Version mismatch!" -ForegroundColor Red
+          Write-Host "Tag version ($tagVersion) does not match package.json version ($pkgVersion)" -ForegroundColor Red
+          throw "Version mismatch: tag=$tagVersion, package.json=$pkgVersion"
+        }
+
+        Write-Host "✓ Version validation passed" -ForegroundColor Green
       shell: pwsh
-    
-    - name: Restore dependencies
-      run: |
-        Write-Host "Restoring dependencies..." -ForegroundColor Cyan
-        dotnet restore markread.sln
-      shell: pwsh
-    
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Type check
+      run: npm run type-check
+
+    - name: Lint code
+      run: npm run lint
+
+    - name: Run tests
+      run: npm test
+
     - name: Build application
+      run: npm run build
+
+    - name: Decode certificate
       run: |
-        Write-Host "Building MarkRead application..." -ForegroundColor Cyan
-        dotnet build markread.sln `
-          --configuration ${{ env.BUILD_CONFIGURATION }} `
-          --no-restore `
-          /p:Platform="Any CPU" `
-          /maxcpucount:1
-      shell: pwsh
-    
-    - name: Build MSI installer
-      run: |
-        Write-Host "Building MSI installer..." -ForegroundColor Cyan
-        dotnet build installer/MarkRead.Installer.wixproj `
-          --configuration ${{ env.BUILD_CONFIGURATION }} `
-          /p:Platform=x64 `
-          --no-restore `
-          /maxcpucount:1
-      shell: pwsh
-    
-    - name: Locate unsigned MSI file
-      id: find-msi
-      run: |
-        $msiPath = Get-ChildItem -Path "installer/bin/${{ env.BUILD_CONFIGURATION }}" -Filter "*.msi" -Recurse | 
-                   Select-Object -First 1 -ExpandProperty FullName
-        
-        if (-not $msiPath) {
-          throw "MSI file not found in build output"
+        if ($env:CERT_PFX) {
+          Write-Host "Decoding certificate from CERT_PFX secret..." -ForegroundColor Cyan
+          $pfxBytes = [System.Convert]::FromBase64String($env:CERT_PFX)
+          $pfxPath = Join-Path $env:RUNNER_TEMP "certificate.pfx"
+          [System.IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+          Write-Host "✓ Certificate decoded to: $pfxPath" -ForegroundColor Green
+
+          # Set environment variables for electron-builder
+          "CSC_LINK=$pfxPath" >> $env:GITHUB_ENV
+          "CSC_KEY_PASSWORD=$env:CERT_PASSWORD" >> $env:GITHUB_ENV
+
+          # Also set PFX_PATH for our scripts
+          "PFX_PATH=$pfxPath" >> $env:GITHUB_ENV
+          "PFX_PASSWORD=$env:CERT_PASSWORD" >> $env:GITHUB_ENV
+        } else {
+          Write-Host "No CERT_PFX secret found, skipping certificate decode" -ForegroundColor Gray
         }
-        
-        Write-Host "Found MSI: $msiPath" -ForegroundColor Green
-        $msiName = Split-Path -Leaf $msiPath
-        
-        "msi-path=$msiPath" >> $env:GITHUB_OUTPUT
-        "msi-name=$msiName" >> $env:GITHUB_OUTPUT
       shell: pwsh
-    
-    - name: Decode certificate from secrets
+      env:
+        CERT_PFX: ${{ secrets.CERT_PFX }}
+        CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
+
+    - name: Check certificate configuration
       run: |
-        Write-Host "Decoding certificate from GitHub Secrets..." -ForegroundColor Cyan
-        
-        $certBase64 = "${{ secrets.CERT_PFX }}"
-        if ([string]::IsNullOrWhiteSpace($certBase64)) {
-          throw "CERT_PFX secret is not set. Please configure signing certificate in repository secrets."
-        }
-        
-        $certPassword = "${{ secrets.CERT_PASSWORD }}"
-        if ([string]::IsNullOrWhiteSpace($certPassword)) {
-          throw "CERT_PASSWORD secret is not set. Please configure certificate password in repository secrets."
-        }
-        
-        $certBytes = [System.Convert]::FromBase64String($certBase64)
-        $certPath = Join-Path $env:RUNNER_TEMP "cert.pfx"
-        [System.IO.File]::WriteAllBytes($certPath, $certBytes)
-        
-        Write-Host "✓ Certificate decoded successfully" -ForegroundColor Green
-        
-        "cert-path=$certPath" >> $env:GITHUB_OUTPUT
-      shell: pwsh
-      id: decode-cert
-    
-    - name: Validate certificate
-      run: |
-        Write-Host "Validating certificate..." -ForegroundColor Cyan
-        
-        .\scripts\validate-certificate.ps1 `
-          -PfxPath "${{ steps.decode-cert.outputs.cert-path }}" `
-          -Password "${{ secrets.CERT_PASSWORD }}"
-        
-        if ($LASTEXITCODE -ne 0) {
-          throw "Certificate validation failed"
-        }
-        
-        Write-Host "✓ Certificate is valid" -ForegroundColor Green
-      shell: pwsh
-    
-    - name: Sign MSI installer
-      run: |
-        Write-Host "Signing MSI installer..." -ForegroundColor Cyan
-        
-        .\scripts\sign-msi.ps1 `
-          -MsiPath "${{ steps.find-msi.outputs.msi-path }}" `
-          -PfxPath "${{ steps.decode-cert.outputs.cert-path }}" `
-          -Password "${{ secrets.CERT_PASSWORD }}" `
-          -Description "MarkRead - Markdown Viewer"
-        
-        if ($LASTEXITCODE -ne 0) {
-          throw "MSI signing failed"
-        }
-        
-        Write-Host "✓ MSI signed successfully" -ForegroundColor Green
-      shell: pwsh
-    
-    - name: Verify signature
-      run: |
-        Write-Host "Verifying MSI signature..." -ForegroundColor Cyan
-        
-        .\scripts\verify-signature.ps1 `
-          -MsiPath "${{ steps.find-msi.outputs.msi-path }}"
-        
-        # Allow NotTrusted status for self-signed certificates
-        if ($LASTEXITCODE -eq 0) {
-          Write-Host "✓ Signature verified successfully" -ForegroundColor Green
-        }
-        else {
-          $sig = Get-AuthenticodeSignature "${{ steps.find-msi.outputs.msi-path }}"
-          if ($sig.Status -eq "NotTrusted") {
-            Write-Host "✓ Signature is valid (NotTrusted status expected for self-signed cert)" -ForegroundColor Green
+        Write-Host "Checking certificate configuration..." -ForegroundColor Cyan
+
+        # Check if signing is configured (PFX_PATH set by decode step or CERT_THUMBPRINT from secrets)
+        if ($env:PFX_PATH -or $env:CERT_THUMBPRINT) {
+          Write-Host "✓ Code signing is ENABLED" -ForegroundColor Green
+          if ($env:PFX_PATH) {
+            Write-Host "  Certificate source: PFX file" -ForegroundColor Gray
+          } elseif ($env:CERT_THUMBPRINT) {
+            Write-Host "  Certificate source: Windows Store" -ForegroundColor Gray
           }
-          else {
-            throw "Signature verification failed with status: $($sig.Status)"
-          }
+          Write-Host "  Note: Detailed expiration check happens during signing" -ForegroundColor Gray
+        } else {
+          Write-Host "⚠ Code signing is DISABLED (no certificate configured)" -ForegroundColor Yellow
+          Write-Host "  Installers will be unsigned" -ForegroundColor Yellow
         }
       shell: pwsh
-    
-    - name: Upload signed MSI artifact
+      env:
+        CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
+
+    - name: Package installer
+      run: npx electron-builder --publish never
+      env:
+        # Code signing environment variables (set by decode step or from secrets)
+        CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
+        TIMESTAMP_SERVER: http://timestamp.digicert.com
+
+    - name: List release artifacts
+      id: list-artifacts
+      run: |
+        Write-Host "Release artifacts in dist/:" -ForegroundColor Cyan
+        Get-ChildItem dist/ -Recurse | Where-Object { -not $_.PSIsContainer } | ForEach-Object {
+          $size = [math]::Round($_.Length / 1MB, 2)
+          Write-Host "  $($_.Name) - ${size} MB" -ForegroundColor Gray
+        }
+
+        # Find installer and portable exe
+        $installer = Get-ChildItem dist/*.exe | Where-Object { $_.Name -match 'Setup' } | Select-Object -First 1
+        $portable = Get-ChildItem dist/*.exe | Where-Object { $_.Name -match 'portable' } | Select-Object -First 1
+
+        if ($installer) {
+          "installer-name=$($installer.Name)" >> $env:GITHUB_OUTPUT
+          "installer-path=$($installer.FullName)" >> $env:GITHUB_OUTPUT
+        }
+
+        if ($portable) {
+          "portable-name=$($portable.Name)" >> $env:GITHUB_OUTPUT
+          "portable-path=$($portable.FullName)" >> $env:GITHUB_OUTPUT
+        }
+      shell: pwsh
+
+    - name: Verify signatures
+      run: |
+        # Check if signing was enabled
+        if ($env:PFX_PATH -or $env:CERT_THUMBPRINT) {
+          Write-Host "Verifying installer signatures..." -ForegroundColor Cyan
+
+          # Verify installer
+          $installer = Get-ChildItem dist/*.exe | Where-Object { $_.Name -match 'Setup' } | Select-Object -First 1
+          if ($installer) {
+            Write-Host "Verifying: $($installer.Name)" -ForegroundColor Gray
+            .\scripts\electron-sign.ps1 -Path $installer.FullName -Verify
+          }
+
+          # Verify portable exe
+          $portable = Get-ChildItem dist/*.exe | Where-Object { $_.Name -match 'portable' } | Select-Object -First 1
+          if ($portable) {
+            Write-Host "Verifying: $($portable.Name)" -ForegroundColor Gray
+            .\scripts\electron-sign.ps1 -Path $portable.FullName -Verify
+          }
+
+          Write-Host "✓ All signatures verified successfully" -ForegroundColor Green
+        } else {
+          Write-Host "⚠ Skipping signature verification (installers are unsigned)" -ForegroundColor Yellow
+        }
+      shell: pwsh
+      env:
+        CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
+
+    - name: Upload release artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: markread-msi-signed
-        path: ${{ steps.find-msi.outputs.msi-path }}
+        name: markread-release-${{ github.ref_name }}
+        path: |
+          dist/*.exe
+          dist/*.blockmap
+          dist/latest.yml
         if-no-files-found: error
         retention-days: 90
-    
-    - name: Export public certificate
-      run: |
-        Write-Host "Exporting public certificate for users..." -ForegroundColor Cyan
-        
-        # Extract certificate from signed MSI
-        $sig = Get-AuthenticodeSignature "${{ steps.find-msi.outputs.msi-path }}"
-        $cert = $sig.SignerCertificate
-        
-        if (-not $cert) {
-          throw "Could not extract certificate from signed MSI"
-        }
-        
-        # Export as .cer file
-        $cerPath = Join-Path $env:RUNNER_TEMP "markread-cert.cer"
-        $certBytes = $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
-        [System.IO.File]::WriteAllBytes($cerPath, $certBytes)
-        
-        Write-Host "✓ Public certificate exported: $cerPath" -ForegroundColor Green
-        Write-Host "Certificate subject: $($cert.Subject)" -ForegroundColor Gray
-        Write-Host "Certificate expiry: $($cert.NotAfter)" -ForegroundColor Gray
-        
-        "cert-public-path=$cerPath" >> $env:GITHUB_OUTPUT
-      shell: pwsh
-      id: export-cert
-    
-    - name: Prepare release files
-      run: |
-        Write-Host "Preparing files for release..." -ForegroundColor Cyan
-        
-        # Create release directory
-        $releaseDir = Join-Path $env:RUNNER_TEMP "release"
-        New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
-        
-        # Copy signed MSI
-        $msiPath = "${{ steps.find-msi.outputs.msi-path }}"
-        $msiName = "${{ steps.find-msi.outputs.msi-name }}"
-        $releaseMsiPath = Join-Path $releaseDir $msiName
-        Copy-Item -Path $msiPath -Destination $releaseMsiPath -Force
-        Write-Host "✓ Copied signed MSI: $msiName" -ForegroundColor Green
-        
-        # Copy public certificate
-        $certPath = "${{ steps.export-cert.outputs.cert-public-path }}"
-        $releaseCertPath = Join-Path $releaseDir "markread-cert.cer"
-        Copy-Item -Path $certPath -Destination $releaseCertPath -Force
-        Write-Host "✓ Copied public certificate: markread-cert.cer" -ForegroundColor Green
-        
-        # Build file list
-        $fileList = @($releaseMsiPath, $releaseCertPath)
-        
-        # Display release contents
-        Write-Host "`nRelease contents:" -ForegroundColor Cyan
-        Get-ChildItem $releaseDir | ForEach-Object { 
-          $size = [math]::Round($_.Length / 1MB, 2)
-          Write-Host "  - $($_.Name) ($size MB)" -ForegroundColor Gray 
-        }
-        
-        # Output file paths
-        $filesOutput = $fileList -join "`n"
-        "release-files<<EOF" >> $env:GITHUB_OUTPUT
-        $filesOutput >> $env:GITHUB_OUTPUT
-        "EOF" >> $env:GITHUB_OUTPUT
-      shell: pwsh
-      id: prepare-release
-    
-    - name: Create GitHub release
+
+    - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          ${{ steps.prepare-release.outputs.release-files }}
+          dist/*.exe
+          dist/*.blockmap
+          dist/latest.yml
         draft: false
         prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
         generate_release_notes: true
         fail_on_unmatched_files: true
         body: |
-          ## Installation Instructions
-          
-          1. **Download** both files:
-             - `${{ steps.find-msi.outputs.msi-name }}` - The signed installer
-             - `markread-cert.cer` - The public certificate
-          
-          2. **Install the certificate** (one-time setup):
-             - Right-click `markread-cert.cer` → Install Certificate
-             - Select "Local Machine" → Next
-             - Choose "Place all certificates in the following store"
-             - Browse → Select "Trusted Root Certification Authorities" → OK
-             - Complete the wizard
-          
-          3. **Run the installer**:
-             - Double-click `${{ steps.find-msi.outputs.msi-name }}`
-             - The installer will now run without "Unknown Publisher" warnings
-          
-          ## What's Changed
+          ## 🎉 MarkRead ${{ github.ref_name }}
+
+          ### 📦 Installation
+
+          **NSIS Installer (Recommended)**
+          - Download `${{ steps.list-artifacts.outputs.installer-name }}`
+          - Run the installer and follow the wizard
+          - Automatic updates enabled
+          - Digitally signed for Windows SmartScreen compatibility
+
+          **Portable Version**
+          - Download `${{ steps.list-artifacts.outputs.portable-name }}`
+          - Run from any location without installation
+          - No registry modifications
+          - Also digitally signed for security
+
+          ### 📝 What's Changed
           See below for automatically generated release notes.
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Clean up certificate
-      if: always() && steps.decode-cert.outputs.cert-path
-      run: |
-        $certPath = "${{ steps.decode-cert.outputs.cert-path }}"
-        if (Test-Path $certPath) {
-          Remove-Item $certPath -Force
-          Write-Host "✓ Certificate file removed" -ForegroundColor Green
-        }
-      shell: pwsh
-    
+
     - name: Release summary
       run: |
         Write-Host "`n================================" -ForegroundColor Cyan
         Write-Host "✓ RELEASE COMPLETED SUCCESSFULLY" -ForegroundColor Green
         Write-Host "================================`n" -ForegroundColor Cyan
         Write-Host "Release tag: ${{ github.ref_name }}" -ForegroundColor Gray
-        Write-Host "MSI file: ${{ steps.find-msi.outputs.msi-name }}" -ForegroundColor Gray
-        Write-Host "Certificate: markread-cert.cer" -ForegroundColor Gray
+        Write-Host "Installer: ${{ steps.list-artifacts.outputs.installer-name }}" -ForegroundColor Gray
+        Write-Host "Portable: ${{ steps.list-artifacts.outputs.portable-name }}" -ForegroundColor Gray
         Write-Host "`nView release: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}" -ForegroundColor Cyan
       shell: pwsh

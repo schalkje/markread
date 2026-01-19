@@ -58,7 +58,7 @@ export const CategoryColumn: React.FC<CategoryColumnProps> = ({
               onClick={() => onItemClick(item)}
               onRemove={() => onItemRemove(item)}
               showRemoveButton={showRemoveButtons}
-              onAddToFavorites={onAddToFavorites ? () => onAddToFavorites(item) : undefined}
+              onToggleFavorite={onAddToFavorites ? () => onAddToFavorites(item) : undefined}
               isFavorited={isFavorited ? isFavorited(item) : false}
             />
           ))

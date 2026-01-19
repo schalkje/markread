@@ -8,9 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Cross-file search functionality
 - Export to PDF
-- Bookmarks/favorites
+- Bookmarks
+
+## [0.5.16] - 2026-01-17
+
+### Fixes
+- Update packaging to use GitHub action and not Electron publishing
+- Fix signing and accept self-signed certificates
+
+## [0.5.11] - 2026-01-16
+
+### Fixes
+- Release tests
+- Fix type checks
+- Fix linting to new standard
+- Remoe e2e test from build
+
+### Added
+- Home page with recents and favorites
+- Search in open file
+- Search in folders and repos / cross-file search functionality
+- Release workflow
 
 ## [0.5.0] - 2026-01-05
 

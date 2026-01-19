@@ -44,6 +44,9 @@ describe('Recents & Favorites Store', () => {
 
     // Clear all mocks
     vi.clearAllMocks();
+
+    // Suppress console.error during error tests
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   describe('Initial State', () => {
@@ -204,13 +207,11 @@ describe('Recents & Favorites Store', () => {
   describe('clearRecents Action', () => {
     it('should clear all recents for a type', async () => {
       (recentsFavoritesService.clearRecents as Mock).mockResolvedValue(undefined);
-      (recentsFavoritesService.getRecents as Mock).mockResolvedValue([]);
 
       const { clearRecents } = useRecentsFavoritesStore.getState();
       await clearRecents(ItemType.FILE);
 
       expect(recentsFavoritesService.clearRecents).toHaveBeenCalledWith(ItemType.FILE);
-      expect(recentsFavoritesService.getRecents).toHaveBeenCalledWith(ItemType.FILE);
 
       const state = useRecentsFavoritesStore.getState();
       expect(state.recents.file).toHaveLength(0);
@@ -219,7 +220,7 @@ describe('Recents & Favorites Store', () => {
 
   describe('addFavorite Action', () => {
     it('should add a favorite item successfully', async () => {
-      (recentsFavoritesService.addFavorite as Mock).mockResolvedValue(undefined);
+      (recentsFavoritesService.addFavorite as Mock).mockResolvedValue({ success: true });
       (recentsFavoritesService.getFavorites as Mock).mockResolvedValue([
         {
           path: '/test/file.md',

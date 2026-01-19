@@ -1,0 +1,163 @@
+# Contract: Release Workflow
+# File: .github/workflows/release.yml
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write  # Required for creating GitHub Releases
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate version match
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}" -replace '^v', ''
+          $pkgVersion = (Get-Content package.json | ConvertFrom-Json).version
+          if ($tag -ne $pkgVersion) {
+            throw "Version mismatch: tag=$tag, package.json=$pkgVersion"
+          }
+          Write-Output "Version validation passed: $tag"
+
+      - name: TypeScript type check
+        run: npm run type-check
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Check certificate expiration
+        shell: pwsh
+        env:
+          CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
+          PFX_PATH: ${{ secrets.PFX_PATH }}
+          PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+        run: |
+          if ($env:CERT_THUMBPRINT) {
+            # Certificate Store
+            $cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Thumbprint -eq $env:CERT_THUMBPRINT }
+            if (-not $cert) {
+              throw "Certificate not found in store: $env:CERT_THUMBPRINT"
+            }
+          } elseif ($env:PFX_PATH -and $env:PFX_PASSWORD) {
+            # PFX File
+            $securePassword = ConvertTo-SecureString -String $env:PFX_PASSWORD -AsPlainText -Force
+            $cert = Get-PfxCertificate -FilePath $env:PFX_PATH
+          } else {
+            throw "No certificate configuration found (set CERT_THUMBPRINT or PFX_PATH+PFX_PASSWORD)"
+          }
+
+          $daysUntilExpiration = ($cert.NotAfter - (Get-Date)).Days
+          Write-Output "Certificate expires in $daysUntilExpiration days"
+
+          if ($cert.NotAfter -lt (Get-Date)) {
+            throw "Certificate has expired!"
+          } elseif ($daysUntilExpiration -lt 30) {
+            Write-Warning "Certificate expires in less than 30 days! Plan renewal."
+          }
+
+      - name: Package and sign installer
+        run: npm run package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CERT_THUMBPRINT: ${{ secrets.CERT_THUMBPRINT }}
+          PFX_PATH: ${{ secrets.PFX_PATH }}
+          PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+
+      - name: Verify signature
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem dist\*Setup*.exe | Select-Object -First 1
+          Write-Output "Verifying signature: $($installer.Name)"
+          & .\scripts\electron-sign.ps1 -Path $installer.FullName -Verify
+          if ($LASTEXITCODE -ne 0) {
+            throw "Signature verification failed"
+          }
+
+      - name: Generate build metadata
+        shell: pwsh
+        run: |
+          $metadata = @{
+            version = "${{ github.ref_name }}" -replace '^v', ''
+            buildDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+            commitSHA = "${{ github.sha }}"
+            nodeVersion = (node --version) -replace '^v', ''
+            npmVersion = (npm --version)
+            electronVersion = (Get-Content package.json | ConvertFrom-Json).devDependencies.electron -replace '[\^~]', ''
+          }
+          $metadata | ConvertTo-Json | Out-File -FilePath dist\build-metadata.json -Encoding utf8
+          Write-Output "Build metadata:"
+          Get-Content dist\build-metadata.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*Setup*.exe
+            dist/*portable*.exe
+            dist/*.blockmap
+            dist/latest.yml
+            dist/build-metadata.json
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-${{ github.ref_name }}
+          path: |
+            dist/*Setup*.exe
+            dist/*portable*.exe
+            dist/*.blockmap
+            dist/latest.yml
+            dist/build-metadata.json
+          retention-days: 90
+
+# Functional Requirements Satisfied:
+# - FR-004: Release workflow verifies package.json version matches git tag
+# - FR-005: Release workflow builds, signs, verifies signature, generates metadata, creates GitHub Release
+# - FR-008: Code signing script checks certificate expiration (<30 days warning, expired fails)
+# - FR-012: Build metadata JSON includes version, build date, commit SHA, Node/npm/Electron versions
+# - FR-013: Preserves code signing infrastructure (GitHub Secrets for certificate credentials)
+
+# Success Criteria Addressed:
+# - SC-005: Code signed installers pass Windows SmartScreen verification
+# - SC-007: GitHub Actions build time <10 minutes
+# - SC-008: Release process from tag to GitHub Release <15 minutes
+# - SC-011: Developers can create releases with 100% success rate when tests pass
+
+# Notes:
+# - Triggered by pushing version tags (e.g., v0.5.1)
+# - Fails if version mismatch between package.json and tag
+# - Fails if certificate expired, warns if <30 days remaining
+# - Verifies signature after signing
+# - Creates GitHub Release with all artifacts
+# - Retention: 90 days for artifacts, permanent for GitHub Releases

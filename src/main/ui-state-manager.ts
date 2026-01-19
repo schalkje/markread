@@ -9,7 +9,7 @@
 import { app } from 'electron';
 import { readFile, writeFile, mkdir } from 'fs/promises';
 import { join, dirname } from 'path';
-import type { UIState } from '@shared/types/entities.d.ts';
+import type { UIState } from '@shared/types/entities';
 
 // Get UI state file path
 function getUIStatePath(): string {

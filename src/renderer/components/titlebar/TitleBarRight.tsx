@@ -101,6 +101,7 @@ export const TitleBarRight: React.FC = () => {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
+    return undefined;
   }, [showZoomMenu]);
 
   // T159j: Window control handlers

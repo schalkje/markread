@@ -4,8 +4,8 @@
  */
 
 import { create } from 'zustand';
-import type { Settings } from '@shared/types/entities.d.ts';
-import { LogLevel } from '@shared/types/entities.d.ts';
+import type { Settings } from '@shared/types/entities';
+import { LogLevel } from '@shared/types/entities';
 
 // Default settings
 const createDefaultSettings = (): Settings => ({

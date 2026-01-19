@@ -47,7 +47,6 @@ export const CategoryList: React.FC<CategoryListProps> = ({
 
   const hasFavorites = favorites.length > 0;
   const hasRecents = filteredRecents.length > 0;
-  const hasItems = hasFavorites || hasRecents;
 
   // For repository lists, group items by repository
   if (isRepositoryList) {

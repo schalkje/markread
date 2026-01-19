@@ -266,7 +266,7 @@ export class AuthService {
   async getToken(provider: 'github' | 'azure'): Promise<string | null> {
     try {
       return await credentialStore.getToken(provider);
-    } catch (error) {
+    } catch {
       return null;
     }
   }

@@ -5,7 +5,7 @@
  */
 
 import { create } from 'zustand';
-import type { Tab, HistoryEntry } from '@shared/types/entities.d.ts';
+import type { Tab, HistoryEntry } from '@shared/types/entities';
 import { generateDirectFileTabId, generateFolderFileTabId, generateRepoFileTabId } from '../utils/tab-id';
 import { useFoldersStore } from './folders';
 
@@ -76,7 +76,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
   // T059: Add tab with limit checking
   addTab: (tab) => {
-    const { canAddTab, tabs, tabOrder } = get();
+    const { canAddTab } = get();
     const check = canAddTab();
 
     if (!check.allowed) {
@@ -545,7 +545,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       const { folders } = useFoldersStore.getState();
       const folder = folders.find(f => f.id === folderId);
 
-      if (folder && folder.type === 'repo' && folder.repositoryId && folder.currentBranch) {
+      if (folder && folder.type === 'repository' && folder.repositoryId && folder.currentBranch) {
         // Repository file
         tabId = generateRepoFileTabId(folder.repositoryId, folder.currentBranch, filePath);
       } else {

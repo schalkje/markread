@@ -105,19 +105,19 @@ export async function startWatching(
 
     // Watch for file changes
     watcher
-      .on('add', (filePath) => {
+      .on('add', (filePath: string) => {
         console.log(`File added: ${filePath}`);
         debouncedSend('add', filePath);
       })
-      .on('change', (filePath) => {
+      .on('change', (filePath: string) => {
         console.log(`File changed: ${filePath}`);
         debouncedSend('change', filePath);
       })
-      .on('unlink', (filePath) => {
+      .on('unlink', (filePath: string) => {
         console.log(`File removed: ${filePath}`);
         debouncedSend('unlink', filePath);
       })
-      .on('error', (error) => {
+      .on('error', (error: Error) => {
         console.error(`Watcher error for ${config.watcherId}:`, error);
         window.webContents.send('file:watchError', {
           watcherId: config.watcherId,

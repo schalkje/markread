@@ -57,40 +57,6 @@ test-results/
 playwright-report/
 playwright/.cache/
 
-# Legacy .NET artifacts
-bin/
-obj/
-.vs/
-*.user
-*.suo
-*.userosscache
-*.dbmdl
-*.dbproj.user
-*.jfm
-TestResults/
-*.pdb
-*.cache
-*.tlog
-*.lastbuildstate
-*.FileListAbsolute.txt
-publish/
-/packages/
-/src/**/Generated/
-*.nuget.props
-*.nuget.targets
-_ReSharper*/
-*.pyc
-__pycache__/
-
-# Installer artifacts
-*.msi
-*.wixpdb
-*.zip
-*.msix
-*.appx
-AppPackages/
-BundleArtifacts/
-
 # Code signing certificates (NEVER commit these!)
 *.pfx
 *.cer

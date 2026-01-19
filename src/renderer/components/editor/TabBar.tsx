@@ -16,7 +16,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTabsStore } from '../../stores/tabs';
 import { useFoldersStore } from '../../stores/folders';
 import { TabContextMenu } from './TabContextMenu';
-import type { Tab } from '@shared/types/entities.d.ts';
+import type { Tab } from '@shared/types/entities';
 import './TabBar.css';
 
 export interface TabBarProps {
@@ -139,7 +139,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose, onHomeCl
   };
 
   const handleContextMenuRevealInSidebar = (tabId: string) => {
-    const tab = tabs.get(tabId);
+    const tab = tabs.find(t => t.id === tabId);
     if (tab && tab.filePath) {
       // Dispatch event to reveal file in sidebar
       window.dispatchEvent(new CustomEvent('reveal-in-sidebar', {

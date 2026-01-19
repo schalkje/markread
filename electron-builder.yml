@@ -1,0 +1,56 @@
+# electron-builder configuration for MarkRead
+# See: https://www.electron.build/configuration/configuration
+
+appId: com.markread.app
+productName: MarkRead
+
+directories:
+  output: dist
+  buildResources: assets
+
+win:
+  target:
+    - target: nsis
+      arch: x64
+    - target: portable
+      arch: x64
+  icon: assets/icon.ico
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  forceCodeSigning: false  # Disable signing for testing
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false  # Per-user by default
+  allowElevation: true  # Prompt if system-wide requested
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  license: assets/License.rtf
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
+  installerHeader: assets/installer-banner.bmp
+  installerSidebar: assets/installer-dialog.bmp
+  deleteAppDataOnUninstall: false  # Preserve user data
+
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}
+
+compression: maximum  # LZMA compression for <100MB target
+
+asar: true  # Bundle app source
+
+fileAssociations:
+  - ext: md
+    name: Markdown File
+    description: Markdown Document
+    icon: assets/icon.ico
+    role: Editor
+  - ext: markdown
+    name: Markdown File
+    description: Markdown Document
+    icon: assets/icon.ico
+    role: Editor
+
+publish:
+  provider: github
+  releaseType: release
