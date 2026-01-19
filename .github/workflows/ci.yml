@@ -46,7 +46,7 @@ jobs:
       run: npm run build
 
     - name: Package installer (unsigned)
-      run: npm run package
+      run: npx electron-builder --publish never
       env:
         # Skip code signing in CI builds
         CSC_IDENTITY_AUTO_DISCOVERY: false
