@@ -196,6 +196,26 @@ mermaid.initialize({
 });
 
 /**
+ * Clean up inline !important styles from Mermaid that interfere with CSS
+ * Removes fill !important from row-rect elements to allow CSS transparency
+ */
+function cleanupMermaidInlineStyles(diagram: HTMLElement): void {
+  // Remove fill !important from row-rect-even and row-rect-odd path elements
+  const rowPaths = diagram.querySelectorAll('g.row-rect-even > path, g.row-rect-odd > path');
+  rowPaths.forEach((path) => {
+    const element = path as HTMLElement;
+    if (element.style.fill) {
+      // Remove the inline fill style to let CSS take over
+      const fillValue = element.getAttribute('fill');
+      if (fillValue && fillValue !== 'none') {
+        // Keep the fill attribute, just remove the inline style
+        element.style.removeProperty('fill');
+      }
+    }
+  });
+}
+
+/**
  * Render Mermaid diagrams in the DOM
  * Should be called after markdown HTML is inserted
  */
@@ -222,6 +242,10 @@ export async function renderMermaidDiagrams(container: HTMLElement): Promise<voi
       // Replace text with SVG
       diagram.innerHTML = svg;
       diagram.classList.add('mermaid-rendered');
+
+      // Clean up inline !important styles that interfere with CSS
+      cleanupMermaidInlineStyles(diagram);
+
       console.log(`[Mermaid] Diagram ${i + 1} rendered successfully`);
     } catch (err) {
       console.error('Mermaid rendering error:', err);

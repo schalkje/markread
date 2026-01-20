@@ -472,6 +472,11 @@
   color: var(--color-text-primary, #24292f);
 }
 
+/* Mermaid edge label background rectangles - add transparency */
+.markdown-viewer .mermaid-rendered .edgeLabel rect.background {
+  fill-opacity: 0.8;
+}
+
 /* Mermaid edge labels for dark theme */
 [data-theme="dark"] .markdown-viewer .mermaid-rendered .edgeLabel .label {
   fill: var(--color-bg-primary, #0d1117) !important;
@@ -486,6 +491,25 @@
 
 [data-theme="dark"] .markdown-viewer .mermaid-rendered .edgeLabel .text-inner-tspan {
   fill: var(--color-text-primary, #e6edf3);
+}
+
+/* Mermaid ER diagram entity headers - darken for visual hierarchy */
+.markdown-viewer .mermaid-rendered g.node > g:first-child > path[stroke="none"] {
+  filter: brightness(0.85);
+}
+
+/* Light theme: less darkening for headers */
+[data-theme="light"] .markdown-viewer .mermaid-rendered g.node > g:first-child > path[stroke="none"] {
+  filter: brightness(0.90);
+}
+
+/* Entity attribute rows - keep odd rows solid, make even rows transparent */
+.markdown-viewer .mermaid-rendered g.row-rect-odd > path[stroke="none"] {
+  fill-opacity: 1;
+}
+
+.markdown-viewer .mermaid-rendered g.row-rect-even > path[stroke="none"] {
+  fill-opacity: 0.7;
 }
 
 .markdown-viewer .mermaid-error {
