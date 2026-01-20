@@ -466,6 +466,28 @@
   display: block;
 }
 
+/* Mermaid edge labels - override default purple background */
+.markdown-viewer .mermaid-rendered .edgeLabel .label {
+  fill: var(--color-bg-primary, #ffffff) !important;
+  color: var(--color-text-primary, #24292f);
+}
+
+/* Mermaid edge labels for dark theme */
+[data-theme="dark"] .markdown-viewer .mermaid-rendered .edgeLabel .label {
+  fill: var(--color-bg-primary, #0d1117) !important;
+  color: var(--color-text-primary, #e6edf3);
+}
+
+/* Ensure text inside labels is visible */
+.markdown-viewer .mermaid-rendered .edgeLabel .text-inner-tspan {
+  fill: var(--color-text-primary, #24292f);
+  font-size: 14px;
+}
+
+[data-theme="dark"] .markdown-viewer .mermaid-rendered .edgeLabel .text-inner-tspan {
+  fill: var(--color-text-primary, #e6edf3);
+}
+
 .markdown-viewer .mermaid-error {
   background-color: #ffebe9;
   color: #cf222e;
