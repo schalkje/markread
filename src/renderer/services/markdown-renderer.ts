@@ -197,7 +197,7 @@ mermaid.initialize({
 
 /**
  * Clean up inline !important styles from Mermaid that interfere with CSS
- * Removes fill !important from row-rect elements to allow CSS transparency
+ * Removes fill !important from row-rect elements and entity headers to allow CSS styling
  */
 function cleanupMermaidInlineStyles(diagram: HTMLElement): void {
   // Remove fill !important from row-rect-even and row-rect-odd path elements
@@ -211,6 +211,15 @@ function cleanupMermaidInlineStyles(diagram: HTMLElement): void {
         // Keep the fill attribute, just remove the inline style
         element.style.removeProperty('fill');
       }
+    }
+  });
+
+  // Also remove inline styles from entity header backgrounds
+  const headerPaths = diagram.querySelectorAll('g.node > g:first-child > path[stroke="none"]');
+  headerPaths.forEach((path) => {
+    const element = path as HTMLElement;
+    if (element.style.fill) {
+      element.style.removeProperty('fill');
     }
   });
 }
