@@ -120,19 +120,23 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
         addFolder(newFolder);
 
         // Start watching the folder
+        console.log('[Home] Starting folder watch setup for:', folderPath);
         try {
           const watchResult = await window.electronAPI?.file?.watchFolder({
             folderPath,
-            filePatterns: ['**/*.md', '**/*.markdown'],
+            filePatterns: ['*.md', '*.markdown', '**/*.md', '**/*.markdown'],
             ignorePatterns: ['**/node_modules/**', '**/.git/**'],
             debounceMs: 300,
           });
 
+          console.log('[Home] Watch result:', watchResult);
           if (watchResult?.success && watchResult.watcherId) {
-            console.log(`Started watching folder: ${folderPath} (ID: ${watchResult.watcherId})`);
+            console.log(`[Home] Started watching folder: ${folderPath} (ID: ${watchResult.watcherId})`);
+          } else {
+            console.error('[Home] Watch failed:', watchResult);
           }
         } catch (err) {
-          console.error('Failed to start watching folder:', err);
+          console.error('[Home] Failed to start watching folder:', err);
           // Non-fatal error - folder still opens, just without watching
         }
 

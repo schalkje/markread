@@ -177,7 +177,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, callback);
+      // Return cleanup function to remove listener
+      return () => ipcRenderer.removeListener(channel, callback);
     }
+    // Return no-op cleanup if channel not valid
+    return () => {};
   },
 } as ElectronAPI);
 

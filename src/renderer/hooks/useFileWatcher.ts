@@ -46,16 +46,24 @@ export function useFileWatcher(
       onError?.(data);
     };
 
-    // Register event listeners
-    window.electronAPI.on('file:changed', handleFileChanged);
-    window.electronAPI.on('file:watchError', handleWatchError);
+    // Register event listeners and store cleanup functions
+    const cleanupFileChanged = window.electronAPI.on('file:changed', handleFileChanged);
+    const cleanupWatchError = window.electronAPI.on('file:watchError', handleWatchError);
 
-    // Cleanup not needed as IPC listeners are managed by main process
+    // Return cleanup function to remove listeners when component unmounts
     return () => {
-      // Note: ipcRenderer.removeListener would be needed here if exposed
-      // For now, listeners will be cleaned up when window is closed
+      cleanupFileChanged?.();
+      cleanupWatchError?.();
     };
   }, [onFileChanged, onError]);
+}
+
+/**
+ * Normalize file path for comparison (handles different separators and case)
+ */
+function normalizePath(filePath: string): string {
+  // Convert all separators to forward slashes and lowercase for consistent comparison
+  return filePath.replace(/\\/g, '/').toLowerCase();
 }
 
 /**
@@ -68,16 +76,31 @@ export function useFileAutoReload(
   useFileWatcher(
     (event) => {
       // T110: Auto-reload if the changed file is currently open
-      if (event.eventType === 'change' && currentFilePath === event.filePath) {
-        console.log(`Auto-reloading file: ${event.filePath}`);
+      console.log('[useFileAutoReload] File changed event:', {
+        eventType: event.eventType,
+        changedFile: event.filePath,
+        currentFile: currentFilePath,
+        normalizedChanged: normalizePath(event.filePath),
+        normalizedCurrent: currentFilePath ? normalizePath(currentFilePath) : null,
+        match: currentFilePath ? normalizePath(event.filePath) === normalizePath(currentFilePath) : false
+      });
+
+      if (!currentFilePath) return;
+
+      // Normalize paths for comparison (handles \ vs / and case sensitivity)
+      const normalizedEventPath = normalizePath(event.filePath);
+      const normalizedCurrentPath = normalizePath(currentFilePath);
+
+      if (event.eventType === 'change' && normalizedEventPath === normalizedCurrentPath) {
+        console.log(`[useFileAutoReload] Auto-reloading file: ${event.filePath}`);
         onFileReload(event.filePath);
-      } else if (event.eventType === 'unlink' && currentFilePath === event.filePath) {
-        console.warn(`Current file was deleted: ${event.filePath}`);
+      } else if (event.eventType === 'unlink' && normalizedEventPath === normalizedCurrentPath) {
+        console.warn(`[useFileAutoReload] Current file was deleted: ${event.filePath}`);
         // Could show a notification to user
       }
     },
     (error) => {
-      console.error('File watch error:', error);
+      console.error('[useFileAutoReload] File watch error:', error);
     }
   );
 }

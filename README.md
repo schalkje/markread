@@ -21,7 +21,7 @@
 - ⚡ **Fast & Offline** - Instant startup, no internet required, fully local operation
 - 🎯 **Developer-Focused** - Perfect for documentation in Git repositories and project folders
 
-## � Installation
+## Installation
 
 ### Via MSI Installer (Recommended)
 
@@ -42,7 +42,7 @@ The installer will:
 - **Disk Space:** ~150 MB
 - **Memory:** ~100-200 MB (Electron + Chromium)
 
-## �🚀 Quick Start
+## 🚀 Quick Start
 
 ```powershell
 # Launch MarkRead and open a folder

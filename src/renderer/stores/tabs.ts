@@ -65,6 +65,9 @@ interface TabsState {
 
   // T063l: Convert direct file tab to folder-connected tab
   convertDirectFileToFolder: (tabId: string, folderPath: string) => void;
+
+  // T110: Invalidate render cache when file is reloaded
+  invalidateTabCache: (tabId: string) => void;
 }
 
 export const useTabsStore = create<TabsState>((set, get) => ({
@@ -624,6 +627,23 @@ export const useTabsStore = create<TabsState>((set, get) => ({
         ...tab,
         isDirectFile: false,
         folderId: `folder-${folderPath}`, // This should match actual folder ID
+      });
+
+      return { tabs: newTabs };
+    });
+  },
+
+  // T110: Invalidate render cache when file is reloaded
+  invalidateTabCache: (tabId: string) => {
+    set((state) => {
+      const tab = state.tabs.get(tabId);
+      if (!tab) return state;
+
+      const newTabs = new Map(state.tabs);
+      newTabs.set(tabId, {
+        ...tab,
+        renderCache: null,
+        modificationTimestamp: Date.now(),
       });
 
       return { tabs: newTabs };

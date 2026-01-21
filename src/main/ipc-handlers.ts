@@ -446,6 +446,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
   // T108: file:watchFolder IPC handler
   ipcMain.handle('file:watchFolder', async (_event, payload) => {
+    console.log('[ipc-handlers] file:watchFolder called with payload:', payload);
     try {
       const WatchFolderSchema = z.object({
         folderPath: z.string().min(1),
@@ -459,8 +460,11 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         payload
       );
 
+      console.log('[ipc-handlers] Validated payload:', { folderPath, filePatterns, ignorePatterns, debounceMs });
+
       // Generate unique watcher ID
       const watcherId = `watcher-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      console.log('[ipc-handlers] Generated watcherId:', watcherId);
 
       // Start watching
       await startWatching(
@@ -474,11 +478,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         mainWindow
       );
 
+      console.log('[ipc-handlers] Successfully started watcher:', watcherId);
       return {
         success: true,
         watcherId,
       };
     } catch (error: any) {
+      console.error('[ipc-handlers] Error in file:watchFolder:', error);
       return {
         success: false,
         error: error.message,

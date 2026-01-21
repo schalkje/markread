@@ -1,6 +1,6 @@
 # Entity-Relationship Diagrams (ERD)
 
-> =Í **Navigation**: [Home](../../../README.md) ’ [Documentation](../../README.md) ’ [Markdown Features](../) ’ [Diagrams](./) ’ ERD
+> ğŸ“ **Navigation**: [Home](../../../README.md) â†’ [Documentation](../../README.md) â†’ [Markdown Features](../) â†’ [Diagrams](./) â†’ ERD2
 
 Entity-Relationship Diagrams show database structure, relationships between entities, and cardinality.
 

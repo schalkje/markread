@@ -53,8 +53,15 @@ export async function startWatching(
     const { watch } = await getChokidar();
 
     // Configure chokidar watcher
-    const watcher = watch(config.filePatterns, {
-      cwd: config.folderPath,
+    // Watch the entire folder, filter by extension in event handlers
+    // Use native path separators (don't normalize to forward slashes on Windows)
+    console.log('[file-watcher] Creating watcher with config:', {
+      folderPath: config.folderPath,
+      watchingEntireFolder: true,
+      ignorePatterns: config.ignorePatterns,
+    });
+
+    const watcher = watch(config.folderPath, {
       ignored: [
         ...config.ignorePatterns,
         '**/node_modules/**',
@@ -64,11 +71,20 @@ export async function startWatching(
         '**/.DS_Store',
       ],
       persistent: true,
-      ignoreInitial: true, // Don't emit events for existing files
+      ignoreInitial: false, // MUST be false so chokidar scans and adds files to watch list
       awaitWriteFinish: {
         stabilityThreshold: config.debounceMs,
         pollInterval: 100,
       },
+    });
+
+    // Track when watcher is ready to avoid sending events for initial scan
+    let isReady = false;
+
+    // Log when watcher is ready
+    watcher.on('ready', () => {
+      isReady = true;
+      console.log('[file-watcher] Watcher ready, currently watching:', watcher.getWatched());
     });
 
     // Debounce helper
@@ -76,7 +92,15 @@ export async function startWatching(
 
     const sendEvent = (eventType: 'add' | 'change' | 'unlink', filePath: string) => {
       // T109: Send file:changed events to renderer
-      const absolutePath = path.resolve(config.folderPath, filePath);
+      // filePath from chokidar is now absolute since we're not using cwd
+      const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(config.folderPath, filePath);
+
+      console.log(`[file-watcher] Sending ${eventType} event:`, {
+        watcherId: config.watcherId,
+        receivedPath: filePath,
+        absolutePath: absolutePath,
+        folderPath: config.folderPath
+      });
 
       window.webContents.send('file:changed', {
         watcherId: config.watcherId,
@@ -87,6 +111,12 @@ export async function startWatching(
     };
 
     const debouncedSend = (eventType: 'add' | 'change' | 'unlink', filePath: string) => {
+      // Don't send events during initial scan
+      if (!isReady) {
+        console.log(`[file-watcher] Ignoring ${eventType} event during initial scan: ${filePath}`);
+        return;
+      }
+
       const key = `${eventType}:${filePath}`;
 
       // Clear existing timer
@@ -105,24 +135,30 @@ export async function startWatching(
 
     // Watch for file changes
     watcher
+      .on('all', (eventType, filePath) => {
+        console.log(`[file-watcher] *** ALL EVENT ***: ${eventType} - ${filePath} (watcher: ${config.watcherId}, ready: ${isReady})`);
+      })
       .on('add', (filePath) => {
-        console.log(`File added: ${filePath}`);
+        console.log(`[file-watcher] File added: ${filePath} (watcher: ${config.watcherId}, ready: ${isReady})`);
         debouncedSend('add', filePath);
       })
       .on('change', (filePath) => {
-        console.log(`File changed: ${filePath}`);
+        console.log(`[file-watcher] File changed: ${filePath} (watcher: ${config.watcherId}, ready: ${isReady})`);
         debouncedSend('change', filePath);
       })
       .on('unlink', (filePath) => {
-        console.log(`File removed: ${filePath}`);
+        console.log(`[file-watcher] File removed: ${filePath} (watcher: ${config.watcherId}, ready: ${isReady})`);
         debouncedSend('unlink', filePath);
       })
       .on('error', (error) => {
-        console.error(`Watcher error for ${config.watcherId}:`, error);
+        console.error(`[file-watcher] Watcher error for ${config.watcherId}:`, error);
         window.webContents.send('file:watchError', {
           watcherId: config.watcherId,
           error: error.message,
         });
+      })
+      .on('raw', (event, path, details) => {
+        console.log(`[file-watcher] RAW event: ${event}, path: ${path}, details:`, details);
       });
 
     // Store active watcher
@@ -131,7 +167,13 @@ export async function startWatching(
       config,
     });
 
-    console.log(`Started watching folder: ${config.folderPath} (ID: ${config.watcherId})`);
+    console.log(`[file-watcher] Started watching folder:`, {
+      watcherId: config.watcherId,
+      folderPath: config.folderPath,
+      filePatterns: config.filePatterns,
+      ignorePatterns: config.ignorePatterns,
+      debounceMs: config.debounceMs
+    });
   } catch (error: any) {
     console.error(`Failed to start watcher ${config.watcherId}:`, error);
     throw error;

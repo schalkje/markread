@@ -42,6 +42,8 @@ export interface MarkdownViewerProps {
   onFileLink?: (filePath: string) => void;
   /** Callback when zoom level changes (T051i) */
   onZoomChange?: (newZoom: number) => void;
+  /** Modification timestamp to detect content changes (T110) */
+  modificationTimestamp?: number;
 }
 
 /**
@@ -63,6 +65,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   onScrollChange,
   onFileLink,
   onZoomChange,
+  modificationTimestamp,
 }) => {
   const viewerRef = useRef<HTMLDivElement>(null);
   const bufferARef = useRef<HTMLDivElement>(null);
@@ -629,7 +632,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   }, [scrollTop, scrollLeft, filePath, preparingBuffer, activeBuffer]); // Trigger when navigating to a new page (removed zoomLevel to avoid conflicts)
 
   // Track the last render to prevent duplicate renders
-  const lastRenderRef = useRef<{ buffer: string; filePath: string } | null>(null);
+  const lastRenderRef = useRef<{ buffer: string; filePath: string; modificationTimestamp?: number } | null>(null);
   // Track previous dependencies to see what changed
   const prevDepsRef = useRef<{
     filePath: string | undefined;
@@ -687,15 +690,18 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     }
 
     // Skip if we're already rendering or just rendered the same content to the same buffer
-    if (lastRenderRef.current?.buffer === targetBuffer && lastRenderRef.current?.filePath === filePath) {
+    // T110: Include modificationTimestamp to detect content changes
+    if (lastRenderRef.current?.buffer === targetBuffer &&
+        lastRenderRef.current?.filePath === filePath &&
+        lastRenderRef.current?.modificationTimestamp === modificationTimestamp) {
       console.log('[MarkdownViewer] Skipping duplicate render to', targetBuffer, 'for', filePath);
       return;
     }
 
-    console.log('[MarkdownViewer] Rendering to buffer:', targetBuffer, { preparingBuffer, activeBuffer, filePath });
+    console.log('[MarkdownViewer] Rendering to buffer:', targetBuffer, { preparingBuffer, activeBuffer, filePath, modificationTimestamp });
 
     // Mark this render as in progress
-    lastRenderRef.current = { buffer: targetBuffer, filePath: filePath || '' };
+    lastRenderRef.current = { buffer: targetBuffer, filePath: filePath || '', modificationTimestamp };
 
     let isCancelled = false;
 
@@ -804,13 +810,14 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [filePath, isLoading, preparingBuffer, activeBuffer]);
+  }, [filePath, isLoading, preparingBuffer, activeBuffer, modificationTimestamp]);
   // NOTE: Removed scrollTop, scrollLeft, onRenderComplete, isTransitioning, and content from dependencies
   // because they can change during rendering and cause unwanted cancellations.
   // - content: AppLayout may pass a new string instance even if file content hasn't changed, causing unnecessary re-renders
   // - scrollTop/scrollLeft: Only used by scroll restoration effect
   // - onRenderComplete: Callback reference may change
   // - isTransitioning: Only used for logging
+  // T110: Added modificationTimestamp to detect content changes for auto-reload
   // We rely on filePath changes to detect when to re-render a different file.
 
   // T048, T051l, T051m: Pan functionality with mouse drag

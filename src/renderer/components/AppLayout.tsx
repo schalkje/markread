@@ -1270,18 +1270,37 @@ const AppLayout: React.FC = () => {
 
   // T110: Auto-reload current file when it changes on disk
   const handleFileReload = useCallback(async (filePath: string) => {
+    console.log('[AppLayout] handleFileReload called for:', filePath);
     try {
       const result = await window.electronAPI?.file?.read({ filePath });
+      console.log('[AppLayout] File read result:', { success: result?.success, hasContent: !!result?.content });
       if (result?.success && result.content) {
         contentCacheRef.current.set(filePath, result.content);
         setCurrentContent(result.content);
-        console.log('File auto-reloaded:', filePath);
+
+        // Invalidate render cache for current tab to force re-render
+        if (activeTabId) {
+          const { invalidateTabCache } = useTabsStore.getState();
+          invalidateTabCache(activeTabId);
+          console.log('[AppLayout] Invalidated render cache for tab:', activeTabId);
+        }
+
+        // Extract filename for toast notification
+        const fileName = filePath.split(/[/\\]/).pop() || 'File';
+
+        // Show toast notification
+        setToast({
+          message: `${fileName} has been updated`,
+          type: 'info',
+        });
+
+        console.log('[AppLayout] File auto-reloaded successfully:', filePath);
       }
     } catch (err) {
-      console.error('Error reloading file:', err);
+      console.error('[AppLayout] Error reloading file:', err);
       setError('File was modified but failed to reload');
     }
-  }, []);
+  }, [setToast, activeTabId]);
 
   useFileAutoReload(currentFile, handleFileReload);
 
@@ -2648,19 +2667,23 @@ const AppLayout: React.FC = () => {
                       folderId = newFolder.id;
 
                       // Start watching the folder
+                      console.log('[AppLayout] Starting folder watch setup for:', folderPath);
                       try {
                         const watchResult = await window.electronAPI?.file?.watchFolder({
                           folderPath,
-                          filePatterns: ['**/*.md', '**/*.markdown'],
+                          filePatterns: ['*.md', '*.markdown', '**/*.md', '**/*.markdown'],
                           ignorePatterns: ['**/node_modules/**', '**/.git/**'],
                           debounceMs: 300,
                         });
 
+                        console.log('[AppLayout] Watch result:', watchResult);
                         if (watchResult?.success && watchResult.watcherId) {
-                          console.log(`Started watching folder: ${folderPath} (ID: ${watchResult.watcherId})`);
+                          console.log(`[AppLayout] Started watching folder: ${folderPath} (ID: ${watchResult.watcherId})`);
+                        } else {
+                          console.error('[AppLayout] Watch failed:', watchResult);
                         }
                       } catch (err) {
-                        console.error('Failed to start watching folder:', err);
+                        console.error('[AppLayout] Failed to start watching folder:', err);
                       }
                     }
 
@@ -3266,6 +3289,7 @@ const AppLayout: React.FC = () => {
               zoomLevel={activeTab?.zoomLevel || 100}
               scrollTop={activeTab?.scrollPosition}
               scrollLeft={activeTab?.scrollLeft}
+              modificationTimestamp={activeTab?.modificationTimestamp}
               onRenderComplete={handleRenderComplete}
               onFileLink={handleLinkClick}
               onScrollChange={(scrollTop, scrollLeft) => {
