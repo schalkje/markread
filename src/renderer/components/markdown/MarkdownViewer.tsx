@@ -656,9 +656,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     }
     prevDepsRef.current = { filePath, isLoading, preparingBuffer, activeBuffer };
 
-    if (!content || isLoading) {
+    if (content === null || content === undefined || isLoading) {
       console.log('[MarkdownViewer] Skipping render - no content or loading:', {
-        hasContent: !!content,
+        hasContent: content !== null && content !== undefined,
         contentLength: content?.length,
         isLoading,
         filePath

@@ -12,13 +12,14 @@
 ## Add support for container
 use https://github.com/markdown-it/markdown-it-container?tab=readme-ov-file
 
-Add a demo page under advanced
+Add a demo page under the advanced folder
 
 ::: warning
 *here be dragons*
 :::
 
-Different classes for info, warning, error
+Different classes. e.g. info (yellow), warning (orange), error (red), blue, green
+
 
 ## empty file renders as failure
 When I open a markdown file with no content at all, I get:

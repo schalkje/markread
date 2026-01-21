@@ -2453,8 +2453,8 @@ const AppLayout: React.FC = () => {
 
         // Only update content if this is still the current file being displayed
         if (loadingFileRef.current === fileToLoad && currentFile === fileToLoad) {
-          if (result?.success && (result.content || result.data?.content)) {
-            const content = result.content || result.data.content;
+          if (result?.success && (result.content !== undefined || result.data?.content !== undefined)) {
+            const content = result.content !== undefined ? result.content : result.data.content;
             // Cache the content by filePath
             contentCacheRef.current.set(fileToLoad, content);
             setCurrentContent(content);
@@ -2770,7 +2770,7 @@ const AppLayout: React.FC = () => {
                       try {
                         // Single click: Navigate within current tab, add to history
                         const activeFolder = folders.find(f => f.id === activeFolderId);
-                        let fileContent: string | null = null;
+                        let fileContent: string | undefined = undefined;
 
                         console.log('[AppLayout] onFileSelect - navigating to:', filePath);
 
@@ -2782,18 +2782,18 @@ const AppLayout: React.FC = () => {
                             branch: activeFolder.currentBranch!,
                           });
 
-                          if (result?.success && result.data) {
+                          if (result?.success && result.data && result.data.content !== undefined) {
                             fileContent = result.data.content;
                           }
                         } else {
                           // Load file from local file system
                           const result = await window.electronAPI?.file?.read({ filePath });
-                          if (result?.success && result.content) {
+                          if (result?.success && result.content !== undefined) {
                             fileContent = result.content;
                           }
                         }
 
-                        if (fileContent) {
+                        if (fileContent !== undefined) {
                           contentLoadedManually.current = true;
                           setIsLoading(false);
                           setError(null);
