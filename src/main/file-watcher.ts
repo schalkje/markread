@@ -62,14 +62,27 @@ export async function startWatching(
     });
 
     const watcher = watch(config.folderPath, {
-      ignored: [
-        ...config.ignorePatterns,
-        '**/node_modules/**',
-        '**/.git/**',
-        '**/dist/**',
-        '**/out/**',
-        '**/.DS_Store',
-      ],
+      // Use function for more precise ignore control
+      ignored: (path: string, stats?: any) => {
+        const pathPart = path.split(/[\\/]/).pop() || '';
+
+        // Block specific directories
+        if (['node_modules', '.git', 'dist', 'out', '.vscode', '.idea'].includes(pathPart)) {
+          return true; // Ignore these directories
+        }
+
+        // If we have stats, check if it's a directory
+        if (stats) {
+          if (stats.isDirectory()) {
+            return false; // Allow all other directories
+          }
+          // It's a file - only watch markdown files
+          return !/\.(md|markdown)$/i.test(path);
+        }
+
+        // No stats provided - allow it to be scanned (chokidar will call again with stats)
+        return false;
+      },
       persistent: true,
       ignoreInitial: false, // MUST be false so chokidar scans and adds files to watch list
       awaitWriteFinish: {
@@ -84,7 +97,13 @@ export async function startWatching(
     // Log when watcher is ready
     watcher.on('ready', () => {
       isReady = true;
-      console.log('[file-watcher] Watcher ready, currently watching:', watcher.getWatched());
+      const watched = watcher.getWatched();
+      // Count total markdown files being watched
+      let totalFiles = 0;
+      Object.values(watched).forEach((files: any) => {
+        totalFiles += files.length;
+      });
+      console.log(`[file-watcher] Watcher ready, watching ${totalFiles} markdown files in ${Object.keys(watched).length} directories`);
     });
 
     // Debounce helper
@@ -133,21 +152,29 @@ export async function startWatching(
       debounceTimers.set(key, timer);
     };
 
-    // Watch for file changes
+    // Helper to check if file is markdown (redundant now, but kept for event handlers)
+    const isMarkdownFile = (filePath: string): boolean => {
+      return /\.(md|markdown)$/i.test(filePath);
+    };
+
+    // Watch for file changes (only markdown files due to ignored function)
     watcher
-      .on('all', (eventType, filePath) => {
-        console.log(`[file-watcher] *** ALL EVENT ***: ${eventType} - ${filePath} (watcher: ${config.watcherId}, ready: ${isReady})`);
-      })
       .on('add', (filePath) => {
-        console.log(`[file-watcher] File added: ${filePath} (watcher: ${config.watcherId}, ready: ${isReady})`);
+        // Double-check file extension (should already be filtered by ignored function)
+        if (!isMarkdownFile(filePath)) return;
+        console.log(`[file-watcher] File added: ${filePath}`);
         debouncedSend('add', filePath);
       })
       .on('change', (filePath) => {
-        console.log(`[file-watcher] File changed: ${filePath} (watcher: ${config.watcherId}, ready: ${isReady})`);
+        // Double-check file extension (should already be filtered by ignored function)
+        if (!isMarkdownFile(filePath)) return;
+        console.log(`[file-watcher] File changed: ${filePath}`);
         debouncedSend('change', filePath);
       })
       .on('unlink', (filePath) => {
-        console.log(`[file-watcher] File removed: ${filePath} (watcher: ${config.watcherId}, ready: ${isReady})`);
+        // Double-check file extension (should already be filtered by ignored function)
+        if (!isMarkdownFile(filePath)) return;
+        console.log(`[file-watcher] File removed: ${filePath}`);
         debouncedSend('unlink', filePath);
       })
       .on('error', (error) => {
@@ -156,9 +183,6 @@ export async function startWatching(
           watcherId: config.watcherId,
           error: error.message,
         });
-      })
-      .on('raw', (event, path, details) => {
-        console.log(`[file-watcher] RAW event: ${event}, path: ${path}, details:`, details);
       });
 
     // Store active watcher
