@@ -1307,9 +1307,12 @@ const AppLayout: React.FC = () => {
   // T110: Handle file changes to refresh file tree
   useFileWatcher(
     (event) => {
-      // Refresh file tree when files are added, changed, or removed
-      console.log(`File tree update triggered by: ${event.eventType} ${event.filePath}`);
-      setFileTreeKey((prev) => prev + 1); // Force FileTree to reload
+      // Only refresh file tree when files are added or removed (not when modified)
+      // 'change' events don't affect the tree structure, only file content
+      if (event.eventType === 'add' || event.eventType === 'unlink') {
+        console.log(`File tree update triggered by: ${event.eventType} ${event.filePath}`);
+        setFileTreeKey((prev) => prev + 1); // Force FileTree to reload
+      }
     },
     (error) => {
       console.error('File watch error:', error);
