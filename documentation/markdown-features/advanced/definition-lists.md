@@ -2,6 +2,8 @@
 
 > 📍 **Navigation**: [Home](../../../README.md) → [Documentation](../../README.md) → [Markdown Features](../) → [Advanced](./) → Definition Lists
 
+> ⚠️ **NOT SUPPORTED** - Definition lists are **not currently supported** in MarkRead. This feature requires the `markdown-it-deflist` plugin which is not installed. This page is kept for reference and future implementation.
+
 Definition lists create term-definition pairs, useful for glossaries.
 
 ## Basic Definition List
@@ -17,7 +19,7 @@ Term 2
 : Second definition for term 2
 ```
 
-**Note**: Definition list support varies by Markdown processor. MarkRead uses Markdig which supports them with the Definition Lists extension.
+**Note**: Definition list support varies by Markdown processor. MarkRead uses markdown-it which does **not** support them without the `markdown-it-deflist` plugin.
 
 ## Glossary Example
 
@@ -149,7 +151,8 @@ fontSize
 ## Compatibility
 
 Definition lists are supported by:
-- ✅ Markdig (used by MarkRead)
+- ❌ markdown-it (used by MarkRead) - requires `markdown-it-deflist` plugin
+- ✅ Markdig (with Definition Lists extension)
 - ✅ Python-Markdown
 - ✅ PHP Markdown Extra
 - ❌ CommonMark (core spec)

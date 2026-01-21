@@ -2,6 +2,8 @@
 
 > 📍 **Navigation**: [Home](../../../README.md) → [Documentation](../../README.md) → [Markdown Features](../) → [Advanced](./) → Footnotes
 
+> ⚠️ **NOT SUPPORTED** - Footnotes are **not currently supported** in MarkRead. This feature requires the `markdown-it-footnote` plugin which is not installed. This page is kept for reference and future implementation.
+
 Footnotes add references and additional information.
 
 ## Basic Footnote
@@ -162,7 +164,8 @@ Footnotes typically render as:
 ## Compatibility
 
 Footnotes are supported by:
-- ✅ Markdig (used by MarkRead)
+- ❌ markdown-it (used by MarkRead) - requires `markdown-it-footnote` plugin
+- ✅ Markdig (with Footnotes extension)
 - ✅ Python-Markdown
 - ✅ PHP Markdown Extra
 - ✅ GitHub Flavored Markdown

@@ -25,13 +25,14 @@ dotnet test --configuration Release --no-build
 ### Output Location
 
 ```
-bin/Release/net8.0-windows/
-├── MarkRead.App.exe
-├── MarkRead.App.dll
-├── MarkRead.App.pdb (optional)
-├── Markdig.dll
-├── Microsoft.Web.WebView2.*.dll
-└── runtimes/
+dist/
+├── win-unpacked/
+│   ├── MarkRead.exe (Electron app)
+│   ├── resources/
+│   │   ├── app.asar (bundled application code)
+│   │   └── node_modules/
+│   └── ...electron runtime files
+└── MarkRead-Setup-1.0.0.exe (installer)
 ```
 
 ## Publishing

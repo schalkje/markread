@@ -12,7 +12,7 @@ graph TD
     Services --> Rendering[Rendering Engine]
     Services --> FileSystem[File System]
     Rendering --> WebView[WebView2]
-    Rendering --> Markdig[Markdig Parser]
+    Rendering --> MarkdownIt[markdown-it Parser]
     WebView --> Assets[Web Assets]
     Assets --> HighlightJS[Highlight.js]
     Assets --> Mermaid[Mermaid.js]
@@ -67,12 +67,12 @@ sequenceDiagram
 
 ## Technology Stack
 
-- **.NET 8** - Framework
-- **WPF** - UI framework
-- **WebView2** - Rendering engine (Chromium)
-- **Markdig** - Markdown parser
-- **Highlight.js** - Syntax highlighting
-- **Mermaid.js** - Diagram rendering
+- **Electron 33.4.11** - Framework (Node.js + Chromium)
+- **React 18.3.1** - UI framework
+- **markdown-it 14.1.0** - Markdown parser
+- **Highlight.js 11.11.1** - Syntax highlighting (40+ languages)
+- **Mermaid.js 11.12.2** - Diagram rendering
+- **DOMPurify 3.3.1** - XSS protection
 
 ## Design Principles
 

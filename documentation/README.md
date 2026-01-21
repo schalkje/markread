@@ -79,7 +79,7 @@ For developers who want to understand, modify, or contribute to MarkRead.
 - **[App Shell](developer/components/app-shell.md)** - Main application container
 - **[Tab Management](developer/components/tab-management.md)** - TabService and UI
 - **[Sidebar System](developer/components/sidebar.md)** - File tree and navigation
-- **[Markdown Rendering](developer/components/markdown-rendering.md)** - Markdig integration
+- **[Markdown Rendering](developer/components/markdown-rendering.md)** - markdown-it integration
 - **[WebView Integration](developer/components/webview-integration.md)** - WebView2 hosting
 - **[Theme System](developer/components/theme-system.md)** - Theme management
 - **[Search System](developer/components/search-system.md)** - Search implementation

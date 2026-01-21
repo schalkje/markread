@@ -194,8 +194,9 @@ Screen readers may skip or announce strikethrough differently. For important inf
 
 Strikethrough is widely supported:
 
+- ✅ markdown-it (used by MarkRead) - built-in with `strikethrough` option
 - ✅ GitHub Flavored Markdown
-- ✅ Markdig (used by MarkRead)
+- ✅ Markdig
 - ✅ Most modern processors
 - ❌ CommonMark (core spec - extension)
 

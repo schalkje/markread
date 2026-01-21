@@ -2,21 +2,23 @@
 
 > 📍 **Navigation**: [Home](../../../README.md) → [Documentation](../../README.md) → [Markdown Features](../) → [Advanced](./) → Emoji
 
+> ⚠️ **PARTIALLY SUPPORTED** - Emoji shortcodes (`:smile:`) are **not supported** in MarkRead (requires `markdown-it-emoji` plugin). However, **Unicode emoji** work perfectly - just paste them directly in your markdown!
+
 Emoji add visual expression to Markdown documents.
 
-## Emoji Codes
+## Emoji Codes (NOT SUPPORTED)
 
-Use `:emoji_code:` syntax:
+The `:emoji_code:` syntax is **not supported**:
 
 ```markdown
 :smile: :heart: :rocket: :star: :fire:
 ```
 
-Results: 😄 ❤️ 🚀 ⭐ 🔥
+This will **NOT** render as emoji in MarkRead.
 
-## Direct Unicode Emoji
+## Direct Unicode Emoji ✅ SUPPORTED
 
-You can also use emoji directly:
+You should use Unicode emoji directly (this works perfectly):
 
 ```markdown
 😀 😃 😄 😁 😆 😅 🤣 😂
@@ -29,47 +31,42 @@ Results: 😀 😃 😄 😁 😆 😅 🤣 😂
 ### Smileys & People
 
 ```markdown
-:smile: :grin: :joy: :heart_eyes: :thinking:
-:thumbsup: :thumbsdown: :clap: :wave: :raised_hands:
+😄 😁 😂 😍 🤔 👍 👎 👏 👋 🙌
 ```
 
-😄 😁 😂 😍 🤔 👍 👎 👏 👋 🙌
+Results: 😄 😁 😂 😍 🤔 👍 👎 👏 👋 🙌
 
 ### Nature
 
 ```markdown
-:sun: :moon: :star: :cloud: :fire:
-:tree: :flower: :leaves: :herb: :seedling:
+☀️ 🌙 ⭐ ☁️ 🔥 🌲 🌸 🍃 🌿 🌱
 ```
 
-☀️ 🌙 ⭐ ☁️ 🔥 🌲 🌸 🍃 🌿 🌱
+Results: ☀️ 🌙 ⭐ ☁️ 🔥 🌲 🌸 🍃 🌿 🌱
 
 ### Objects
 
 ```markdown
-:computer: :keyboard: :mouse: :printer: :phone:
-:book: :pencil: :memo: :file_folder: :open_file_folder:
+💻 ⌨️ 🖱️ 🖨️ 📱 📖 ✏️ 📝 📁 📂
 ```
 
-💻 ⌨️ 🖱️ 🖨️ 📱 📖 ✏️ 📝 📁 📂
+Results: 💻 ⌨️ 🖱️ 🖨️ 📱 📖 ✏️ 📝 📁 📂
 
 ### Symbols
 
 ```markdown
-:heart: :star: :check: :x: :warning:
-:info: :question: :exclamation: :arrow_right: :arrow_left:
+❤️ ⭐ ✔️ ❌ ⚠️ ℹ️ ❓ ❗ ➡️ ⬅️
 ```
 
-❤️ ⭐ ✔️ ❌ ⚠️ ℹ️ ❓ ❗ ➡️ ⬅️
+Results: ❤️ ⭐ ✔️ ❌ ⚠️ ℹ️ ❓ ❗ ➡️ ⬅️
 
 ### Development & Tech
 
 ```markdown
-:rocket: :bug: :gear: :hammer: :wrench:
-:package: :lock: :unlock: :key: :mag:
+🚀 🐛 ⚙️ 🔨 🔧 📦 🔒 🔓 🔑 🔍
 ```
 
-🚀 🐛 ⚙️ 🔨 🔧 📦 🔒 🔓 🔑 🔍
+Results: 🚀 🐛 ⚙️ 🔨 🔧 📦 🔒 🔓 🔑 🔍
 
 ## Emoji in Context
 
@@ -152,11 +149,13 @@ Rendering may vary by platform:
 
 ## Best Practices
 
+✅ Use **Unicode emoji** directly (paste from emoji picker)
 ✅ Use sparingly for visual impact
 ✅ Consistent usage across docs
 ✅ Consider accessibility (screen readers)
 ✅ Use meaningful emoji
 
+❌ Don't use emoji shortcodes (`:smile:`) - not supported
 ❌ Don't overuse - reduces readability
 ❌ Don't use instead of text
 ❌ Don't assume all platforms render same
@@ -180,26 +179,31 @@ Getting Started
 
 ### Emoji Codes (`:smile:`)
 
+- ❌ **markdown-it (used by MarkRead)** - requires `markdown-it-emoji` plugin
 - ✅ GitHub Flavored Markdown
 - ✅ Markdig (with Emoji extension)
 - ✅ Many other processors
 - ❌ CommonMark (core spec)
 
-### Direct Unicode Emoji
+### Direct Unicode Emoji ✅ RECOMMENDED
 
+- ✅ **markdown-it (used by MarkRead)** - fully supported
 - ✅ All Markdown processors
 - ✅ Universal support
 - Rendering depends on OS/browser
 
-## Configuration in MarkRead
+## How to Insert Unicode Emoji
 
-MarkRead supports emoji through Markdig's Emoji extension:
+**Windows:**
+- Press `Win + .` (period) to open emoji picker
+- Or press `Win + ;` (semicolon)
 
-```csharp
-var pipeline = new MarkdownPipelineBuilder()
-    .UseEmojiAndSmiley()
-    .Build();
-```
+**macOS:**
+- Press `Cmd + Control + Space`
+
+**Copy from websites:**
+- [Emojipedia](https://emojipedia.org/)
+- [Unicode Emoji List](https://unicode.org/emoji/charts/full-emoji-list.html)
 
 ## See Also
 

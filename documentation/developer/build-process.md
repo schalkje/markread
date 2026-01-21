@@ -18,8 +18,8 @@ MarkRead uses **.csproj** files for build configuration:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Markdig" Version="0.33.0" />
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
+    <!-- Electron app - see package.json for dependencies -->
+    <!-- markdown-it, highlight.js, mermaid, dompurify -->
   </ItemGroup>
 </Project>
 ```
