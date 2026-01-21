@@ -320,7 +320,7 @@ export function sanitizeHtml(html: string): string {
       'img',
       'div',
       'span',
-      'input', // For task list checkboxes
+      'input', // For task list checkboxes 
       'label', // For task list labels
       'svg', // For Mermaid diagrams
       'g',
