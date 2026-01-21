@@ -22,7 +22,7 @@ import CopyButtonPlugin from 'highlightjs-copy';
  * T025: Configure markdown-it v14.1.0 with GFM plugins
  */
 const md = new MarkdownIt({
-  html: false, // Disable raw HTML for security
+  html: true, // Enable raw HTML (sanitized by DOMPurify)
   xhtmlOut: true,
   breaks: true, // Convert \n to <br>
   linkify: true, // Auto-convert URLs to links
