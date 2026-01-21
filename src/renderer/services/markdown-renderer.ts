@@ -341,6 +341,15 @@ export function sanitizeHtml(html: string): string {
       'data-*', // Allow data attributes for Mermaid
       'width',
       'height',
+      'style', // Allow inline CSS (DOMPurify sanitizes dangerous CSS)
+      'align', // Text/image alignment
+      'valign', // Vertical alignment in tables
+      'border', // Table borders
+      'cellpadding', // Table cell padding
+      'cellspacing', // Table cell spacing
+      'colspan', // Table column span
+      'rowspan', // Table row span
+      // SVG attributes for Mermaid diagrams
       'viewBox',
       'xmlns',
       'fill',
