@@ -68,7 +68,6 @@ const AppLayout: React.FC = () => {
   const activeTab = activeTabId ? tabs.get(activeTabId) : null;
   const { folders, activeFolderId } = useFoldersStore();
   const { addRecent, removeRecent, removeFavorite } = useRecentsFavorites();
-  const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
   const [revealFilePath, setRevealFilePath] = useState<string | null>(null); // File to reveal in sidebar
 
   // Sidebar view state: 'files', 'history', or 'search'
@@ -1304,15 +1303,12 @@ const AppLayout: React.FC = () => {
 
   useFileAutoReload(currentFile, handleFileReload);
 
-  // T110: Handle file changes to refresh file tree
+  // T110: File tree updates are now handled incrementally by FileTree component
+  // No need to force remount - FileTree listens to file:changed events directly
   useFileWatcher(
     (event) => {
-      // Only refresh file tree when files are added or removed (not when modified)
-      // 'change' events don't affect the tree structure, only file content
-      if (event.eventType === 'add' || event.eventType === 'unlink') {
-        console.log(`File tree update triggered by: ${event.eventType} ${event.filePath}`);
-        setFileTreeKey((prev) => prev + 1); // Force FileTree to reload
-      }
+      // FileTree component handles add/unlink events incrementally
+      console.log(`File event received: ${event.eventType} ${event.filePath}`);
     },
     (error) => {
       console.error('File watch error:', error);
@@ -2711,9 +2707,6 @@ const AppLayout: React.FC = () => {
                     // Trigger a re-render by updating the store
                     useTabsStore.setState({ tabs: new Map(tabsStore.tabs) });
 
-                    // Force FileTree to reload
-                    setFileTreeKey((prev) => prev + 1);
-
                     console.log(`Opened folder for file: ${folderPath}, converted ${tabsToConvert.length} tab(s)`);
                   } catch (err) {
                     console.error('Error opening folder for file:', err);
@@ -2771,7 +2764,6 @@ const AppLayout: React.FC = () => {
                 console.log('[AppLayout] Rendering FileTree for folder:', activeFolderId);
                 return (
                   <FileTree
-                    key={fileTreeKey}
                     folderId={activeFolderId}
                     revealFilePath={revealFilePath}
                     onFileSelect={async (filePath) => {

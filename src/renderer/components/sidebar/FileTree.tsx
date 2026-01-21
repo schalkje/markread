@@ -59,6 +59,125 @@ const sortTreeNodes = (nodes: FileTreeNode[]): FileTreeNode[] => {
 };
 
 /**
+ * Add a file to the tree incrementally without rebuilding
+ */
+const addFileToTree = (
+  tree: FileTreeNode[],
+  filePath: string,
+  folderPath: string
+): FileTreeNode[] => {
+  // Get relative path from folder
+  const normalizedFilePath = filePath.replace(/\\/g, '/');
+  const normalizedFolderPath = folderPath.replace(/\\/g, '/');
+  const relativePath = normalizedFilePath.replace(normalizedFolderPath + '/', '');
+  const pathParts = relativePath.split('/');
+
+  // Recursive helper to add file at the correct depth
+  const addToNode = (nodes: FileTreeNode[], parts: string[], currentDepth: number, currentPath: string): FileTreeNode[] => {
+    if (parts.length === 0) return nodes;
+
+    const part = parts[0];
+    const isFile = parts.length === 1;
+    const nodePath = currentPath ? `${currentPath}/${part}` : part;
+
+    // Check if node already exists
+    const existingIndex = nodes.findIndex(n => n.name === part);
+
+    if (existingIndex >= 0) {
+      // Node exists
+      const existingNode = nodes[existingIndex];
+
+      if (isFile) {
+        // File already exists, don't add duplicate
+        return nodes;
+      } else {
+        // Directory exists, recurse into children
+        const updatedNode = {
+          ...existingNode,
+          children: addToNode(
+            existingNode.children || [],
+            parts.slice(1),
+            currentDepth + 1,
+            nodePath
+          ),
+        };
+
+        const newNodes = [...nodes];
+        newNodes[existingIndex] = updatedNode;
+        return sortTreeNodes(newNodes);
+      }
+    } else {
+      // Node doesn't exist, create it
+      if (isFile) {
+        // Add new file node
+        const newNode: FileTreeNode = {
+          name: part,
+          path: filePath, // Use original full path
+          type: 'file',
+          depth: currentDepth,
+        };
+
+        return sortTreeNodes([...nodes, newNode]);
+      } else {
+        // Add new directory node and recurse
+        const newNode: FileTreeNode = {
+          name: part,
+          path: `${folderPath}/${nodePath}`.replace(/\//g, '\\'), // Convert to Windows path if needed
+          type: 'directory',
+          depth: currentDepth,
+          children: addToNode([], parts.slice(1), currentDepth + 1, nodePath),
+        };
+
+        return sortTreeNodes([...nodes, newNode]);
+      }
+    }
+  };
+
+  return addToNode(tree, pathParts, 0, '');
+};
+
+/**
+ * Remove a file from the tree incrementally
+ */
+const removeFileFromTree = (tree: FileTreeNode[], filePath: string): FileTreeNode[] => {
+  const normalizedFilePath = filePath.replace(/\\/g, '/');
+
+  const removeFromNode = (nodes: FileTreeNode[]): FileTreeNode[] => {
+    const result: FileTreeNode[] = [];
+
+    for (const node of nodes) {
+      const normalizedNodePath = node.path.replace(/\\/g, '/');
+
+      // Skip if this is the file to remove
+      if (normalizedNodePath === normalizedFilePath) {
+        continue;
+      }
+
+      // If directory, recurse into children
+      if (node.type === 'directory' && node.children) {
+        const updatedChildren = removeFromNode(node.children);
+
+        // Only keep directory if it still has children
+        if (updatedChildren.length > 0) {
+          result.push({
+            ...node,
+            children: updatedChildren,
+          });
+        }
+        // Empty directories are removed automatically
+      } else {
+        // Keep this node
+        result.push(node);
+      }
+    }
+
+    return result;
+  };
+
+  return removeFromNode(tree);
+};
+
+/**
  * T101: FileTree component with expand/collapse
  */
 export const FileTree: React.FC<FileTreeProps> = ({
@@ -194,6 +313,52 @@ export const FileTree: React.FC<FileTreeProps> = ({
       setExpandedDirs(new Set(folder.fileTreeState.expandedDirectories));
     }
     setSelectedPath(folder.fileTreeState.selectedPath);
+  }, [folder]);
+
+  // T110: Listen for file change events and update tree incrementally
+  useEffect(() => {
+    if (!folder || folder.type === 'repository') {
+      // Only handle file system events for local folders, not git repos
+      return;
+    }
+
+    const handleFileChanged = (event: any) => {
+      const { eventType, filePath } = event.detail;
+
+      console.log('[FileTree] Received file event:', { eventType, filePath, folderPath: folder.path });
+
+      // Only handle events for this folder
+      // Normalize paths for comparison (handle both forward and back slashes)
+      const normalizedFilePath = filePath.replace(/\\/g, '/');
+      const normalizedFolderPath = folder.path.replace(/\\/g, '/');
+
+      if (!normalizedFilePath.startsWith(normalizedFolderPath)) {
+        console.log('[FileTree] Ignoring event - not in this folder');
+        return;
+      }
+
+      // Handle add/unlink events by updating tree incrementally
+      if (eventType === 'add') {
+        // Add new file to tree
+        setTreeData((prevTree) => {
+          console.log('[FileTree] Adding file to tree:', filePath);
+          return addFileToTree(prevTree, filePath, folder.path);
+        });
+      } else if (eventType === 'unlink') {
+        // Remove file from tree
+        setTreeData((prevTree) => {
+          console.log('[FileTree] Removing file from tree:', filePath);
+          return removeFileFromTree(prevTree, filePath);
+        });
+      }
+    };
+
+    // Listen for file:changed events
+    window.addEventListener('file:changed', handleFileChanged as EventListener);
+
+    return () => {
+      window.removeEventListener('file:changed', handleFileChanged as EventListener);
+    };
   }, [folder]);
 
   // Handle reveal file path - expand parents and scroll into view

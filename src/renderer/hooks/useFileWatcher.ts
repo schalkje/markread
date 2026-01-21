@@ -37,6 +37,10 @@ export function useFileWatcher(
     // T110: Handle file:changed events
     const handleFileChanged = (_event: any, data: FileChangedEvent) => {
       console.log(`File ${data.eventType}: ${data.filePath}`);
+
+      // Dispatch as DOM CustomEvent so other components can listen without using Electron API
+      window.dispatchEvent(new CustomEvent('file:changed', { detail: data }));
+
       onFileChanged?.(data);
     };
 

@@ -20,6 +20,13 @@ Add a demo page under advanced
 
 Different classes for info, warning, error
 
+## empty file renders as failure
+When I open a markdown file with no content at all, I get:
+Failed to Render Markdown
+Failed to load file
+
+I expect an empty file; or if more logical, a message the file is empty
+
 # Clean up wpf
 Clean all files that are related to wpf or dotnet development. They should not be needed anymore in the electron solution.
 
