@@ -2,8 +2,6 @@
 
 > 📍 **Navigation**: [Home](../../../README.md) → [Documentation](../../README.md) → [Markdown Features](../) → [Advanced](./) → Footnotes
 
-> ⚠️ **NOT SUPPORTED** - Footnotes are **not currently supported** in MarkRead. This feature requires the `markdown-it-footnote` plugin which is not installed. This page is kept for reference and future implementation.
-
 Footnotes add references and additional information.
 
 ## Basic Footnote
@@ -30,6 +28,12 @@ MarkRead[^markread] is built with .NET 8[^dotnet] and uses WebView2[^webview2].
 [^webview2]: Microsoft Edge WebView2 control
 ```
 
+MarkRead[^markread] is built with .NET 8[^dotnet] and uses WebView2[^webview2].
+
+[^markread]: A modern Markdown viewer for Windows
+[^dotnet]: Latest version of Microsoft's .NET platform
+[^webview2]: Microsoft Edge WebView2 control
+
 ## Named Footnotes
 
 ```markdown
@@ -37,6 +41,10 @@ This uses a named reference[^my-note].
 
 [^my-note]: Footnotes can have descriptive names.
 ```
+
+This uses a named reference[^my-note].
+
+[^my-note]: Footnotes can have descriptive names.
 
 ## Multi-Paragraph Footnotes
 
@@ -56,6 +64,20 @@ Here's a complex footnote.[^complex]
     ```
 ```
 
+Here's a complex footnote.[^complex]
+
+[^complex]: This footnote has multiple paragraphs.
+
+    It can include indented content.
+    
+    - List items
+    - More items
+    
+    And code blocks:
+    ```csharp
+    var x = 1;
+    ```
+
 ## Inline Footnotes
 
 Some processors support inline footnotes:
@@ -63,6 +85,8 @@ Some processors support inline footnotes:
 ```markdown
 This is an inline footnote^[Inline content here].
 ```
+
+This is an inline footnote^[Inline content here].
 
 ## Practical Examples
 
@@ -74,6 +98,10 @@ Markdown was created by John Gruber in 2004[^gruber].
 [^gruber]: John Gruber, "Markdown", 2004, https://daringfireball.net/projects/markdown/
 ```
 
+Markdown was created by John Gruber in 2004[^gruber].
+
+[^gruber]: John Gruber, "Markdown", 2004, https://daringfireball.net/projects/markdown/
+
 ### Technical Notes
 
 ```markdown
@@ -84,6 +112,12 @@ MarkRead uses Markdig for parsing[^markdig].
     See https://github.com/xoofx/markdig
 ```
 
+MarkRead uses Markdig for parsing[^markdig].
+
+[^markdig]: Markdig is a fast, powerful Markdown processor for .NET. 
+    It supports CommonMark and many extensions.
+    See https://github.com/xoofx/markdig
+
 ### Definitions
 
 ```markdown
@@ -92,6 +126,11 @@ WPF[^wpf] provides the UI framework for MarkRead.
 [^wpf]: **Windows Presentation Foundation** - A UI framework for building 
     Windows desktop applications with XAML and .NET.
 ```
+
+WPF[^wpf] provides the UI framework for MarkRead.
+
+[^wpf]: **Windows Presentation Foundation** - A UI framework for building 
+    Windows desktop applications with XAML and .NET.
 
 ## Footnote Numbering
 
@@ -107,6 +146,14 @@ Third reference[^3]
 [^3]: Third footnote
 ```
 
+First reference[^1]
+Second reference[^2]
+Third reference[^3]
+
+[^1]: First footnote
+[^2]: Second footnote
+[^3]: Third footnote
+
 ## Reusing Footnotes
 
 Reference the same footnote multiple times:
@@ -117,6 +164,11 @@ MarkRead displays Markdown[^md] beautifully.
 
 [^md]: Markdown is a lightweight markup language.
 ```
+
+Markdown[^md] is great for documentation.
+MarkRead displays Markdown[^md] beautifully.
+
+[^md]: Markdown is a lightweight markup language.
 
 ## Footnote Placement
 
@@ -133,6 +185,16 @@ More content.[^note2]
 <!-- Define at bottom -->
 [^note2]: Defined at document end
 ```
+
+<!-- Define at top -->
+[^note1]: Defined at document start
+
+Some content here.[^note1]
+
+More content.[^note2]
+
+<!-- Define at bottom -->
+[^note2]: Defined at document end
 
 ## HTML Output
 
@@ -164,7 +226,7 @@ Footnotes typically render as:
 ## Compatibility
 
 Footnotes are supported by:
-- ❌ markdown-it (used by MarkRead) - requires `markdown-it-footnote` plugin
+- ✅ **markdown-it (used by MarkRead)** - via `markdown-it-footnote` plugin
 - ✅ Markdig (with Footnotes extension)
 - ✅ Python-Markdown
 - ✅ PHP Markdown Extra

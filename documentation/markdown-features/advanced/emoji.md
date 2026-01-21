@@ -2,7 +2,7 @@
 
 > 📍 **Navigation**: [Home](../../../README.md) → [Documentation](../../README.md) → [Markdown Features](../) → [Advanced](./) → Emoji
 
-> ⚠️ **PARTIALLY SUPPORTED** - Emoji shortcodes (`:smile:`) are **not supported** in MarkRead (requires `markdown-it-emoji` plugin). However, **Unicode emoji** work perfectly - just paste them directly in your markdown!
+> ⚠️ **PARTIALLY SUPPORTED** - Emoji shortcodes (`:smile:`) are **not supported** in MarkRead (the `markdown-it-emoji` plugin causes compatibility issues). However, **Unicode emoji** work perfectly - just paste them directly in your markdown!
 
 Emoji add visual expression to Markdown documents.
 
@@ -30,43 +30,58 @@ Results: 😀 😃 😄 😁 😆 😅 🤣 😂
 
 ### Smileys & People
 
+Both shortcodes and Unicode work:
+
 ```markdown
-😄 😁 😂 😍 🤔 👍 👎 👏 👋 🙌
+:smile: :grin: :joy: :heart_eyes: :thinking:
+:thumbsup: :thumbsdown: :clap: :wave: :raised_hands:
 ```
 
-Results: 😄 😁 😂 😍 🤔 👍 👎 👏 👋 🙌
+:smile: :grin: :joy: :heart_eyes: :thinking:
+:thumbsup: :thumbsdown: :clap: :wave: :raised_hands:
+
+Or use Unicode directly: 😄 😁 😂 😍 🤔 👍 👎 👏 👋 🙌
 
 ### Nature
 
 ```markdown
-☀️ 🌙 ⭐ ☁️ 🔥 🌲 🌸 🍃 🌿 🌱
+:sun: :moon: :star: :cloud: :fire:
+:tree: :flower: :leaves: :herb: :seedling:
 ```
+:sun: :moon: :star: :cloud: :fire:
+:tree: :flower: :leaves: :herb: :seedling:
 
-Results: ☀️ 🌙 ⭐ ☁️ 🔥 🌲 🌸 🍃 🌿 🌱
+Or use Unicode: ☀️ 🌙 ⭐ ☁️ 🔥 🌲 🌸 🍃 🌿 🌱
 
 ### Objects
 
 ```markdown
-💻 ⌨️ 🖱️ 🖨️ 📱 📖 ✏️ 📝 📁 📂
+:computer: :keyboard: :mouse: :printer: :phone:
+:book: :pencil: :memo: :file_folder: :open_file_folder:
 ```
 
-Results: 💻 ⌨️ 🖱️ 🖨️ 📱 📖 ✏️ 📝 📁 📂
+:computer: :keyboard: :mouse: :printer: :phone:
+:book: :pencil: :memo: :file_folder: :open_file_folder:
+
+Or use Unicode: 💻 ⌨️ 🖱️ 🖨️ 📱 📖 ✏️ 📝 📁 📂
 
 ### Symbols
 
 ```markdown
-❤️ ⭐ ✔️ ❌ ⚠️ ℹ️ ❓ ❗ ➡️ ⬅️
+:heart: :star: :white_check_mark: :x: :warning:
+:information_source: :question: :exclamation: :arrow_right: :arrow_left:
 ```
 
-Results: ❤️ ⭐ ✔️ ❌ ⚠️ ℹ️ ❓ ❗ ➡️ ⬅️
+Or use Unicode: ❤️ ⭐ ✔️ ❌ ⚠️ ℹ️ ❓ ❗ ➡️ ⬅️
 
 ### Development & Tech
 
 ```markdown
-🚀 🐛 ⚙️ 🔨 🔧 📦 🔒 🔓 🔑 🔍
+:rocket: :bug: :gear: :hammer: :wrench:
+:package: :lock: :unlock: :key: :mag:
 ```
 
-Results: 🚀 🐛 ⚙️ 🔨 🔧 📦 🔒 🔓 🔑 🔍
+Or use Unicode: 🚀 🐛 ⚙️ 🔨 🔧 📦 🔒 🔓 🔑 🔍
 
 ## Emoji in Context
 
@@ -130,9 +145,8 @@ Features:
 
 ## Emoji Resources
 
-**Find emoji codes:**
+**Find Unicode emoji:**
 - [Emojipedia](https://emojipedia.org/)
-- [GitHub Emoji Cheat Sheet](https://github.com/ikatyang/emoji-cheat-sheet)
 - [Unicode Emoji List](https://unicode.org/emoji/charts/full-emoji-list.html)
 
 ## Browser Support
@@ -179,7 +193,7 @@ Getting Started
 
 ### Emoji Codes (`:smile:`)
 
-- ❌ **markdown-it (used by MarkRead)** - requires `markdown-it-emoji` plugin
+- ❌ **markdown-it (used by MarkRead)** - `markdown-it-emoji` plugin has compatibility issues
 - ✅ GitHub Flavored Markdown
 - ✅ Markdig (with Emoji extension)
 - ✅ Many other processors

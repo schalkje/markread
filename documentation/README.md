@@ -124,7 +124,7 @@ This documentation is designed to be viewed in MarkRead itself! Here are some ti
 4. **Navigate Back** - Use `Alt+Left` to return to previous pages
 5. **Theme Toggle** - Switch between light and dark modes for comfortable reading
 
-## 📊 Documentation Statistics
+## 📊 Documentation Statistics 
 
 This documentation includes:
 

@@ -15,6 +15,10 @@ import mermaid from 'mermaid';
 import DOMPurify from 'isomorphic-dompurify';
 // @ts-ignore - markdown-it-task-lists may not have types
 import taskLists from 'markdown-it-task-lists';
+// @ts-ignore - markdown-it-footnote may not have types
+import footnote from 'markdown-it-footnote';
+// @ts-ignore - markdown-it-deflist may not have types
+import deflist from 'markdown-it-deflist';
 // @ts-ignore - highlightjs-copy may not have types
 import CopyButtonPlugin from 'highlightjs-copy';
 
@@ -54,6 +58,12 @@ md.use(taskLists, {
   label: true, // Wrap checkbox in label for better UX
   labelAfter: false, // Label before checkbox
 });
+
+// Enable footnotes plugin
+md.use(footnote);
+
+// Enable definition lists plugin
+md.use(deflist);
 
 /**
  * Add copy button plugin for code blocks
@@ -326,6 +336,8 @@ export function sanitizeHtml(html: string): string {
       'defs',
       'marker',
       'foreignObject',
+      'sup',
+      'sub'
     ],
 
     ALLOWED_ATTR: [

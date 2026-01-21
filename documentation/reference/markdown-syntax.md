@@ -330,15 +330,17 @@ Press `Ctrl+Shift+P` for command palette
 - ❌ Tables (extension)
 - ❌ Emoji (extension)
 
-### Markdig (MarkRead)
+### markdown-it (MarkRead)
 
-- ✅ All GFM features
-- ✅ Extended syntax
+- ✅ All GFM features (tables, strikethrough, task lists)
+- ✅ Raw HTML (sanitized)
+- ✅ Syntax highlighting (Highlight.js)
 - ✅ Mermaid diagrams
-- ✅ Footnotes
-- ✅ Definition lists
-- ✅ Abbreviations
-- ✅ Math (KaTeX)
+- ✅ Footnotes (via `markdown-it-footnote`)
+- ✅ Definition lists (via `markdown-it-deflist`)
+- ✅ Unicode emoji (😄 native support)
+- ❌ Emoji shortcodes (`:smile:` - plugin has compatibility issues)
+- ❌ Math/KaTeX
 
 ## Quick Tips
 
