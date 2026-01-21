@@ -168,7 +168,7 @@ md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     // Return a div with data attribute for Mermaid to process
     // Empty placeholder (page is hidden during rendering anyway)
     return `<div class="mermaid-diagram" data-mermaid-code="${encodedCode}"></div>`;
-  }
+  } 
 
   // Use default fence rendering for other languages
   return defaultFence(tokens, idx, options, env, self);
@@ -177,47 +177,54 @@ md.renderer.rules.fence = (tokens, idx, options, env, self) => {
 /**
  * T029: Configure Mermaid v11.12.2 with securityLevel: 'strict'
  * Prevents script execution in diagrams
+ * Uses base theme with themeVariables that can be updated dynamically
+ * 
+ * https://mermaid.js.org/config/theming.html
+ * lineColor: color of the connection in ERD diagrams  
+ * primaryTextColor: color of the entity titles in ERD diagrams, not the labels of the relations
+ * primaryBorderColor: border color of the entities in ERD diagrams, also the color of the label of the relations, BUT THIS IS OVERRIDDEN IN CSS
  */
-mermaid.initialize({
-  startOnLoad: false, // We'll manually trigger rendering
-  theme: 'default',
-  securityLevel: 'strict', // Disable script tags, prevent XSS
-  fontFamily: 'Segoe UI, system-ui, sans-serif',
-  themeVariables: {
-    fontSize: '14px',
-  },
-  flowchart: {
-    useMaxWidth: true,
-    htmlLabels: false, // Disable HTML in labels for security
-  },
-  sequence: {
-    useMaxWidth: true,
-  },
-});
+function initializeMermaidTheme(theme: 'light' | 'dark' = 'light'): void {
+  const isDark = theme === 'dark';
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base', // Base theme is the only one that accepts themeVariables
+    securityLevel: 'strict',
+    themeVariables: {
+      // ER Diagram: Row backgrounds (undocumented but functional)
+      attributeBackgroundColorOdd: isDark ? '#21262d' : '#f00',
+      attributeBackgroundColorEven: isDark ? '#161b22' : '#00f',
+
+      // General colors for entity headers and borders
+      primaryColor: isDark ? '#30363d' : '#e1e4e8',
+      primaryTextColor: isDark ? '#e6edf3' : '#24292f',
+      primaryBorderColor: isDark ? '#6e7681' : '#d0d7de',
+      lineColor: isDark ? '#8b949e' : '#6e7681',
+      textColor: isDark ? '#c9d1d9' : '#24292f',
+    },
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: false,
+    },
+    sequence: {
+      useMaxWidth: true,
+    },
+  });
+}
+
+// Initialize with light theme by default
+initializeMermaidTheme('light');
 
 /**
- * Clean up inline !important styles from Mermaid that interfere with CSS
- * Removes fill !important from row-rect elements and entity headers to allow CSS styling
+ * Minimal cleanup for edge label backgrounds
+ * Only removes the purple background from edge labels
  */
 function cleanupMermaidInlineStyles(diagram: HTMLElement): void {
-  // Remove fill !important from row-rect-even and row-rect-odd path elements
-  const rowPaths = diagram.querySelectorAll('g.row-rect-even > path, g.row-rect-odd > path');
-  rowPaths.forEach((path) => {
-    const element = path as HTMLElement;
-    if (element.style.fill) {
-      // Remove the inline fill style to let CSS take over
-      const fillValue = element.getAttribute('fill');
-      if (fillValue && fillValue !== 'none') {
-        // Keep the fill attribute, just remove the inline style
-        element.style.removeProperty('fill');
-      }
-    }
-  });
-
-  // Also remove inline styles from entity header backgrounds
-  const headerPaths = diagram.querySelectorAll('g.node > g:first-child > path[stroke="none"]');
-  headerPaths.forEach((path) => {
-    const element = path as HTMLElement;
+  // Edge labels often have hardcoded purple backgrounds - let CSS control them
+  const edgeLabels = diagram.querySelectorAll('.edgeLabel rect.background');
+  edgeLabels.forEach((rect) => {
+    const element = rect as SVGElement;
     if (element.style.fill) {
       element.style.removeProperty('fill');
     }
@@ -410,9 +417,7 @@ export function applySyntaxHighlighting(container: HTMLElement): void {
  * Called from theme store
  */
 export function updateMermaidTheme(theme: 'light' | 'dark'): void {
-  mermaid.initialize({
-    theme: theme === 'dark' ? 'dark' : 'default',
-  });
+  initializeMermaidTheme(theme);
 }
 
 export default {

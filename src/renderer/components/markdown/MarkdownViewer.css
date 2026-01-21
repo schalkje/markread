@@ -467,49 +467,32 @@
 }
 
 /* Mermaid edge labels - override default purple background */
-.markdown-viewer .mermaid-rendered .edgeLabel .label {
-  fill: var(--color-bg-primary, #ffffff) !important;
-  color: var(--color-text-primary, #24292f);
-}
-
-/* Mermaid edge label background rectangles - add transparency */
 .markdown-viewer .mermaid-rendered .edgeLabel rect.background {
+  fill: var(--color-bg-primary, #ffffff);
   fill-opacity: 0.8;
 }
 
-/* Mermaid edge labels for dark theme */
-[data-theme="dark"] .markdown-viewer .mermaid-rendered .edgeLabel .label {
-  fill: var(--color-bg-primary, #0d1117) !important;
-  color: var(--color-text-primary, #e6edf3);
+[data-theme="dark"] .markdown-viewer .mermaid-rendered .edgeLabel rect.background {
+  fill: var(--color-bg-primary, #0d1117);
 }
 
-/* Ensure text inside labels is visible */
-.markdown-viewer .mermaid-rendered .edgeLabel .text-inner-tspan {
-  fill: var(--color-text-primary, #24292f);
-  font-size: 14px;
+.markdown-viewer .mermaid-rendered g.edgeLabel text {
+  fill: #24292f !important;
 }
 
-[data-theme="dark"] .markdown-viewer .mermaid-rendered .edgeLabel .text-inner-tspan {
-  fill: var(--color-text-primary, #e6edf3);
+[data-theme="dark"] .markdown-viewer .mermaid-rendered g.edgeLabel text {
+  fill: #e6edf3 !important;
 }
 
-/* Mermaid ER diagram entity headers - darken for visual hierarchy */
-.markdown-viewer .mermaid-rendered g.node > g:first-child > path[stroke="none"] {
-  filter: brightness(0.85);
+.markdown-viewer .mermaid-rendered .row-rect-even > path:nth-child(1) {
+  filter: brightness(1.8) !important;
 }
 
-/* Light theme: less darkening for headers */
-[data-theme="light"] .markdown-viewer .mermaid-rendered g.node > g:first-child > path[stroke="none"] {
-  filter: brightness(0.90);
-}
 
-/* Entity attribute rows - keep odd rows solid, make even rows transparent */
-.markdown-viewer .mermaid-rendered g.row-rect-odd > path[stroke="none"] {
-  fill-opacity: 1;
-}
-
-.markdown-viewer .mermaid-rendered g.row-rect-even > path[stroke="none"] {
-  fill-opacity: 0.7;
+/* ER Diagrams: Make even rows slightly lighter than odd rows */
+/* This works for both default theme colors and custom classDef colors */
+.markdown-viewer .mermaid-rendered g.row-rect-even > path {
+  opacity: 0.7;
 }
 
 .markdown-viewer .mermaid-error {
