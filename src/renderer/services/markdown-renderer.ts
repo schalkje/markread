@@ -19,13 +19,15 @@ import taskLists from 'markdown-it-task-lists';
 import footnote from 'markdown-it-footnote';
 // @ts-ignore - markdown-it-deflist may not have types
 import deflist from 'markdown-it-deflist';
+// @ts-ignore - markdown-it-container may not have types
+import container from 'markdown-it-container';
 // @ts-ignore - highlightjs-copy may not have types
 import CopyButtonPlugin from 'highlightjs-copy';
 
 /**
  * T025: Configure markdown-it v14.1.0 with GFM plugins
  */
-const md = new MarkdownIt({
+const md: MarkdownIt = new MarkdownIt({
   html: true, // Enable raw HTML (sanitized by DOMPurify)
   xhtmlOut: true,
   breaks: true, // Convert \n to <br>
@@ -37,7 +39,7 @@ const md = new MarkdownIt({
    * We don't highlight here because highlightjs-copy needs DOM elements
    * Highlighting is applied in applySyntaxHighlighting() after render
    */
-  highlight: (code: string, language: string) => {
+  highlight: (code: string, _language: string): string => {
     // Just escape HTML - markdown-it will wrap this in <pre><code class="language-xxx">
     // The post-render applySyntaxHighlighting() will do actual highlighting
     return md.utils.escapeHtml(code);
@@ -64,6 +66,43 @@ md.use(footnote);
 
 // Enable definition lists plugin
 md.use(deflist);
+
+/**
+ * Enable container plugin for callouts
+ * Supports info, warning, error, success, and note container types
+ */
+const containerTypes = [
+  { name: 'info', defaultTitle: 'Info' },
+  { name: 'warning', defaultTitle: 'Warning' },
+  { name: 'error', defaultTitle: 'Error' },
+  { name: 'success', defaultTitle: 'Success' },
+  { name: 'note', defaultTitle: 'Note' },
+];
+
+containerTypes.forEach(({ name, defaultTitle }) => {
+  md.use(container, name, {
+    render: function (
+      tokens: any[],
+      idx: number,
+      _options: any,
+      _env: any,
+      _self: any
+    ): string {
+      const token = tokens[idx];
+
+      if (token.nesting === 1) {
+        // Opening tag
+        const title = token.info.trim().slice(name.length).trim() || defaultTitle;
+        return `<div class="markdown-container markdown-container-${name}">
+<div class="markdown-container-title">${md.utils.escapeHtml(title)}</div>
+<div class="markdown-container-content">\n`;
+      } else {
+        // Closing tag
+        return '</div></div>\n';
+      }
+    },
+  });
+});
 
 /**
  * Add copy button plugin for code blocks
@@ -165,7 +204,13 @@ export function registerLanguage(lang: string): boolean {
  */
 const defaultFence = md.renderer.rules.fence!;
 
-md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+md.renderer.rules.fence = (
+  tokens: any[],
+  idx: number,
+  options: any,
+  env: any,
+  self: any
+): string => {
   const token = tokens[idx];
   const info = token.info.trim();
   const lang = info.split(/\s+/)[0];
@@ -178,7 +223,7 @@ md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     // Return a div with data attribute for Mermaid to process
     // Empty placeholder (page is hidden during rendering anyway)
     return `<div class="mermaid-diagram" data-mermaid-code="${encodedCode}"></div>`;
-  } 
+  }
 
   // Use default fence rendering for other languages
   return defaultFence(tokens, idx, options, env, self);
