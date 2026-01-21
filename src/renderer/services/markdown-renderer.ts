@@ -337,7 +337,8 @@ export function sanitizeHtml(html: string): string {
       'marker',
       'foreignObject',
       'sup',
-      'sub'
+      'sub',
+      's'
     ],
 
     ALLOWED_ATTR: [
