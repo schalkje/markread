@@ -25,7 +25,24 @@ console.log('[Preload] Script starting...');
 // Security: No direct access to ipcRenderer from renderer process
 
 // Type-safe IPC API
+export interface ChangelogEntry {
+  category: string;
+  items: string[];
+}
+
+export interface ChangelogResponse {
+  success: boolean;
+  version?: string;
+  date?: string | null;
+  changes?: ChangelogEntry[] | null;
+  error?: string;
+}
+
 export interface ElectronAPI {
+  app: {
+    getVersion: () => Promise<{ success: boolean; version: string }>;
+    getChangelog: () => Promise<ChangelogResponse>;
+  };
   file: {
     read: (payload: { filePath: string }) => Promise<any>;
     openFileDialog: (payload?: any) => Promise<any>;
@@ -93,6 +110,10 @@ export interface ElectronAPI {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  app: {
+    getVersion: () => ipcRenderer.invoke('app:getVersion'),
+    getChangelog: () => ipcRenderer.invoke('app:getChangelog'),
+  },
   file: {
     read: (payload: any) => ipcRenderer.invoke('file:read', payload),
     openFileDialog: (payload: any) => ipcRenderer.invoke('file:openFileDialog', payload),

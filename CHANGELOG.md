@@ -1,4 +1,4 @@
-# Changelog
+# Changelog\
 
 All notable changes to MarkRead will be documented in this file.
 

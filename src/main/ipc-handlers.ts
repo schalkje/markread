@@ -1,4 +1,4 @@
-import { ipcMain, dialog, BrowserWindow, shell } from 'electron';
+import { ipcMain, dialog, BrowserWindow, shell, app } from 'electron';
 import { readFile, stat, readdir } from 'fs/promises';
 import * as path from 'path';
 import { z } from 'zod';
@@ -801,6 +801,86 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
       return {
         success: true,
         filePath,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // app:getVersion IPC handler - returns version from package.json
+  ipcMain.handle('app:getVersion', async () => {
+    return {
+      success: true,
+      version: app.getVersion(),
+    };
+  });
+
+  // app:getChangelog IPC handler - returns changelog for current version
+  ipcMain.handle('app:getChangelog', async () => {
+    try {
+      const version = app.getVersion();
+      const changelogPath = path.join(app.getAppPath(), 'CHANGELOG.md');
+
+      const content = await readFile(changelogPath, 'utf-8');
+
+      // Parse changelog to extract current version's section
+      const versionHeader = `## [${version}]`;
+      const startIndex = content.indexOf(versionHeader);
+
+      if (startIndex === -1) {
+        return {
+          success: true,
+          version,
+          changes: null,
+        };
+      }
+
+      // Find the next version header or end of relevant content
+      const afterHeader = content.substring(startIndex + versionHeader.length);
+      const nextVersionMatch = afterHeader.match(/\n## \[/);
+      const endIndex = nextVersionMatch
+        ? startIndex + versionHeader.length + nextVersionMatch.index!
+        : content.indexOf('\n## Release Notes', startIndex);
+
+      const versionSection = endIndex !== -1
+        ? content.substring(startIndex, endIndex)
+        : content.substring(startIndex);
+
+      // Parse the section into structured data
+      const lines = versionSection.split('\n');
+      const changes: { category: string; items: string[] }[] = [];
+      let currentCategory = '';
+      let currentItems: string[] = [];
+
+      for (const line of lines) {
+        if (line.startsWith('### ')) {
+          if (currentCategory && currentItems.length > 0) {
+            changes.push({ category: currentCategory, items: [...currentItems] });
+          }
+          currentCategory = line.replace('### ', '').trim();
+          currentItems = [];
+        } else if (line.startsWith('- ')) {
+          currentItems.push(line.replace('- ', '').trim());
+        }
+      }
+
+      // Don't forget the last category
+      if (currentCategory && currentItems.length > 0) {
+        changes.push({ category: currentCategory, items: currentItems });
+      }
+
+      // Extract date from header
+      const dateMatch = versionSection.match(/## \[[\d.]+\] - ([\d-]+)/);
+      const date = dateMatch ? dateMatch[1] : null;
+
+      return {
+        success: true,
+        version,
+        date,
+        changes,
       };
     } catch (error: any) {
       return {
