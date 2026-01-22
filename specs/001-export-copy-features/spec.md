@@ -33,10 +33,11 @@ As a user viewing a document with mermaid diagrams, I want to quickly copy a dia
 
 **Acceptance Scenarios**:
 
-1. **Given** a rendered mermaid diagram is visible, **When** the user hovers over it, **Then** action buttons appear (copy as image, copy code, download)
-2. **Given** hover buttons are visible on a mermaid diagram, **When** the user clicks "Copy as Image", **Then** the diagram is copied to clipboard as an image that can be pasted elsewhere
-3. **Given** hover buttons are visible on a mermaid diagram, **When** the user clicks "Copy Code", **Then** the mermaid source code is copied to clipboard
-4. **Given** hover buttons are visible on a mermaid diagram, **When** the user clicks "Download", **Then** the diagram is saved as an SVG file
+1. **Given** a rendered mermaid diagram is visible, **When** the user hovers over it, **Then** action buttons appear (copy as PNG, copy as SVG, copy code, download, open in tab)
+2. **Given** hover buttons are visible on a mermaid diagram, **When** the user clicks "Copy as PNG", **Then** the diagram is copied to clipboard as a PNG image that can be pasted elsewhere
+3. **Given** hover buttons are visible on a mermaid diagram, **When** the user clicks "Copy as SVG", **Then** the diagram is copied to clipboard as an SVG image that can be pasted elsewhere
+4. **Given** hover buttons are visible on a mermaid diagram, **When** the user clicks "Copy Code", **Then** the mermaid source code is copied to clipboard
+5. **Given** hover buttons are visible on a mermaid diagram, **When** the user clicks "Download", **Then** the diagram is saved as an SVG file
 
 ---
 
@@ -50,10 +51,12 @@ As a user reading a document, I want to select text and copy it in different for
 
 **Acceptance Scenarios**:
 
-1. **Given** a user has selected text in the document, **When** they right-click or use a keyboard shortcut, **Then** they see options to copy as plain text, markdown, or rich text
-2. **Given** a user copies text as "plain text", **When** they paste into any application, **Then** they get unformatted text content
-3. **Given** a user copies text as "markdown", **When** they paste into a markdown-supporting editor, **Then** they get the original markdown syntax
-4. **Given** a user copies text as "rich text", **When** they paste into Word or Teams, **Then** they get formatted text with styling preserved
+1. **Given** a user has selected text in the document, **When** they press Ctrl+C, **Then** the text is copied in rich text format
+2. **Given** a user has selected text in the document, **When** they press Ctrl+Shift+C, **Then** a format picker appears showing plain text, markdown, and rich text options
+3. **Given** a user has selected text in the document, **When** they right-click, **Then** they see options to copy as plain text, markdown, or rich text
+4. **Given** a user copies text as "plain text", **When** they paste into any application, **Then** they get unformatted text content
+5. **Given** a user copies text as "markdown", **When** they paste into a markdown-supporting editor, **Then** they get the original markdown syntax
+6. **Given** a user copies text as "rich text", **When** they paste into Word or Teams, **Then** they get formatted text with styling preserved
 
 ---
 
@@ -106,12 +109,13 @@ As a user viewing a complex mermaid diagram, I want to open it in a dedicated ta
 
 ### Edge Cases
 
-- What happens when exporting a very large document to PDF? (System should show progress and handle memory efficiently)
-- How does the system handle mermaid diagrams that fail to render? (Show error message in PDF, skip in copy operations)
-- What happens when copying selected text that spans multiple formatting elements? (Preserve hierarchy and nesting)
-- How does folder export handle non-markdown files? (Skip them, optionally include as attachments)
-- What happens when clipboard copy fails due to permissions? (Show user-friendly error message)
-- How does the system handle images in documents during PDF export? (Embed images, handle missing images gracefully)
+- What happens when exporting a very large document to PDF? System shows progress indicator; if memory limits exceeded, displays error dialog with retry option and suggestion to export smaller sections
+- How does the system handle mermaid diagrams that fail to render? Show error placeholder in PDF with diagram source; skip in copy operations and notify user via error dialog
+- What happens when copying selected text that spans multiple formatting elements? Preserve hierarchy and nesting according to selected format (plain/markdown/rich)
+- How does folder export handle non-markdown files? Skip them; optionally log skipped files in export summary
+- What happens when clipboard copy fails due to permissions? Show error dialog with specific reason and troubleshooting guidance
+- How does the system handle images in documents during PDF export? Embed images inline; for missing images, show placeholder with broken image indicator and continue export
+- What happens when PDF export fails? Show error dialog with specific reason, retry button, and option to view detailed logs
 
 ## Requirements *(mandatory)*
 
@@ -128,22 +132,33 @@ As a user viewing a complex mermaid diagram, I want to open it in a dedicated ta
 
 **Mermaid Diagram Actions**
 - **FR-008**: System MUST display hover action buttons when user hovers over a rendered mermaid diagram
-- **FR-009**: System MUST allow users to copy mermaid diagrams as images to clipboard
-- **FR-010**: System MUST allow users to copy mermaid source code to clipboard
-- **FR-011**: System MUST allow users to download mermaid diagrams as SVG files
-- **FR-012**: System MUST allow users to open mermaid diagrams in a dedicated full-size tab
+- **FR-009**: System MUST allow users to copy mermaid diagrams as PNG images to clipboard
+- **FR-010**: System MUST allow users to copy mermaid diagrams as SVG images to clipboard
+- **FR-011**: System MUST allow users to copy mermaid source code to clipboard
+- **FR-012**: System MUST allow users to download mermaid diagrams as SVG files
+- **FR-013**: System MUST allow users to open mermaid diagrams in a dedicated full-size tab
 
 **Text Selection and Copy**
-- **FR-013**: System MUST allow users to select text within the rendered document
-- **FR-014**: System MUST provide option to copy selected text as plain text
-- **FR-015**: System MUST provide option to copy selected text as markdown source
-- **FR-016**: System MUST provide option to copy selected text as rich formatted text (compatible with Word/Teams)
-- **FR-017**: System MUST make copy format options accessible via context menu and/or keyboard shortcuts
+- **FR-014**: System MUST allow users to select text within the rendered document
+- **FR-015**: System MUST provide option to copy selected text as plain text
+- **FR-016**: System MUST provide option to copy selected text as markdown source
+- **FR-017**: System MUST provide option to copy selected text as rich formatted text (compatible with Word/Teams)
+- **FR-018**: System MUST make copy format options accessible via context menu (right-click)
+- **FR-019**: System MUST support Ctrl+C to copy selected text in default format (rich text)
+- **FR-020**: System MUST support Ctrl+Shift+C to show format picker for copy operation
+- **FR-021**: Default copy format MUST be rich text to preserve formatting in most common paste scenarios
 
 **User Interface**
-- **FR-018**: Hover buttons on diagrams MUST appear within 200ms of hover and disappear when mouse leaves
-- **FR-019**: System MUST show progress indication for long-running export operations
-- **FR-020**: System MUST display success or error feedback after export/copy operations
+- **FR-022**: Hover buttons on diagrams MUST appear after 200ms hover delay to prevent accidental triggering
+- **FR-023**: Hover buttons MUST remain visible for 500ms after mouse leaves diagram bounds to allow users to reach them
+- **FR-024**: System MUST show progress indication for long-running export operations
+- **FR-025**: System MUST display success or error feedback after export/copy operations
+
+**Error Handling**
+- **FR-026**: System MUST display error dialog with specific reason when PDF export fails
+- **FR-027**: Error dialog MUST provide a retry button to attempt export again
+- **FR-028**: Error dialog MUST provide option to view detailed logs for troubleshooting
+- **FR-029**: System MUST log all export operations with timestamps, file paths, and error details
 
 ### Key Entities
 
@@ -164,6 +179,21 @@ As a user viewing a complex mermaid diagram, I want to open it in a dedicated ta
 - **SC-006**: Rich text copied from the application pastes correctly in Microsoft Word and Teams
 - **SC-007**: Folder export with table of contents completes within 30 seconds for folders with up to 50 documents
 - **SC-008**: Users report 80% or higher satisfaction with export quality in user testing
+
+## Clarifications
+
+### Session 2026-01-22
+
+- Q: Which PDF generation technology should be used? → A: Use Chromium's built-in print-to-PDF API (Puppeteer/Playwright or direct DevTools Protocol)
+- Q: What should the hover button interaction behavior be? → A: Buttons appear after 200ms hover delay, remain visible for 500ms after mouse leaves diagram
+- Q: What clipboard image format should be used for mermaid diagrams? → A: Both - separate buttons for PNG and SVG copy options
+- Q: How should the system handle failed PDF export? → A: Show error dialog with reason, retry button, and option to view logs
+- Q: What keyboard shortcuts should be used for copy operations? → A: Ctrl+C (default format), Ctrl+Shift+C (show format picker), context menu available
+
+## Technical Constraints
+
+- **TC-001**: PDF generation MUST use Chromium's built-in print-to-PDF API via Electron's DevTools Protocol or Puppeteer/Playwright integration
+- **TC-002**: PDF generation MUST leverage existing WebView2/Chromium rendering infrastructure to ensure consistency between screen display and exported output
 
 ## Assumptions
 
