@@ -591,9 +591,7 @@ export class SearchService {
       const lineMatches = this.findMatchesInLine(
         line,
         searchRegex,
-        i + 1,
-        query,
-        options
+        i + 1
       );
 
       matches.push(...lineMatches);
@@ -637,7 +635,7 @@ export class SearchService {
 
     try {
       return new RegExp(pattern, flags);
-    } catch (error) {
+    } catch {
       // Invalid regex, fall back to literal search
       const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       return new RegExp(escapedQuery, flags);
@@ -650,9 +648,7 @@ export class SearchService {
   private findMatchesInLine(
     line: string,
     regex: RegExp,
-    lineNumber: number,
-    query: string,
-    options: SearchOptions
+    lineNumber: number
   ): SearchMatch[] {
     const matches: SearchMatch[] = [];
     let match: RegExpExecArray | null;

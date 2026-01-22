@@ -1,0 +1,80 @@
+# Contract: CI Workflow
+# File: .github/workflows/ci.yml
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  test:
+    name: Test and Build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npm run type-check
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Package installer (unsigned)
+        run: npm run package
+        env:
+          # Skip code signing in CI
+          SKIP_CODE_SIGN: true
+
+      - name: Upload unsigned installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-unsigned-${{ github.sha }}
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
+          retention-days: 30
+
+      - name: Upload build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-metadata-${{ github.sha }}
+          path: dist/build-metadata.json
+          retention-days: 30
+
+# Functional Requirements Satisfied:
+# - FR-003: CI workflow installs Node.js 20, runs tests, type-check, lint, build, package
+
+# Success Criteria Addressed:
+# - SC-002: CI/CD pipelines successfully build and test Electron installers with 100% success rate
+# - SC-007: GitHub Actions build time from push to published release <10 minutes
+
+# Notes:
+# - Runs on every push to main/develop
+# - Packages unsigned installer for smoke testing
+# - Artifacts retained for 30 days
+# - Fails on any step failure (type errors, lint errors, test failures, build errors)

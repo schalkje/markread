@@ -9,7 +9,7 @@
 import React, { useState } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { generateDirectFileTabId } from '../utils/tab-id';
-import type { Tab } from '@shared/types/entities.d.ts';
+import type { Tab } from '@shared/types/entities';
 import './FileOpener.css';
 
 export interface FileOpenerProps {
@@ -92,6 +92,7 @@ export const FileOpener: React.FC<FileOpenerProps> = ({ onFileOpened }) => {
           navigationHistory: [],
           currentHistoryIndex: -1,
           forwardHistory: [],
+          currentHistoryIndex: 0,
           createdAt: Date.now(),
           folderId: null, // No folder for directly opened files
           isDirectFile: true, // T063g - Mark as direct file

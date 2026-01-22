@@ -10,7 +10,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { commandService } from '../../services/command-service';
-import type { Command } from '@shared/types/commands.d.ts';
+import type { Command } from '@shared/types/commands';
 import './ShortcutsReference.css';
 
 export interface ShortcutsReferenceProps {
@@ -18,11 +18,6 @@ export interface ShortcutsReferenceProps {
   isOpen: boolean;
   /** Callback when reference should close */
   onClose: () => void;
-}
-
-interface ShortcutGroup {
-  category: string;
-  shortcuts: Command[];
 }
 
 /**
@@ -59,7 +54,7 @@ export const ShortcutsReference: React.FC<ShortcutsReferenceProps> = ({
     });
 
     const conflictSet = new Set<string>();
-    shortcutMap.forEach((commandIds, shortcut) => {
+    shortcutMap.forEach((commandIds) => {
       if (commandIds.length > 1) {
         commandIds.forEach(id => conflictSet.add(id));
       }

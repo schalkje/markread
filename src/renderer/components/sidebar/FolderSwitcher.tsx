@@ -13,9 +13,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useFoldersStore } from '../../stores/folders';
 import { useTabsStore } from '../../stores/tabs';
-import { useGitStore } from '../../stores/git-store';
-import type { Folder } from '@shared/types/entities.d.ts';
-import { groupFoldersByRepository, getRepositoryId } from '@shared/utils/repository-utils';
+import type { Folder } from '@shared/types/entities';
+import { groupFoldersByRepository } from '@shared/utils/repository-utils';
 import './FolderSwitcher.css';
 
 export interface FolderSwitcherProps {

@@ -9,7 +9,7 @@
  * - Mermaid theme synchronization
  */
 
-import type { Theme } from '@shared/types/entities.d.ts';
+import type { Theme } from '@shared/types/entities';
 import { useThemeStore } from '../stores/theme';
 import { loadSyntaxTheme } from './syntax-theme-loader';
 

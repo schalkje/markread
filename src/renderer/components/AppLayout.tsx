@@ -11,6 +11,7 @@ import { useTabsStore } from '../stores/tabs';
 import { useFoldersStore } from '../stores/folders';
 import { recentsFavoritesService } from '../services/recents-favorites-service';
 import { useRecentsFavorites } from '../hooks/useRecentsFavorites';
+import { ItemType } from '@shared/types/recents-favorites';
 import { MarkdownViewer } from './markdown/MarkdownViewer';
 import { Home } from './Home';
 import { FileTree } from './sidebar/FileTree';
@@ -52,7 +53,7 @@ import {
 } from '../services/command-service';
 import { generateDirectFileTabId, generateFolderFileTabId, generateRepoFileTabId } from '../utils/tab-id';
 import { removeFromConnectionHistory } from '../utils/connection-history';
-import type { Folder } from '@shared/types/entities.d.ts';
+import type { Folder } from '@shared/types/entities';
 import './AppLayout.css';
 
 // T016: Base layout component with sidebar/content/toolbar structure
@@ -116,10 +117,6 @@ const AppLayout: React.FC = () => {
       updateTabZoomLevel(activeTabId, newZoom);
     }
   }, [activeTabId]);
-
-  const toggleSidebar = useCallback(() => {
-    setShowSidebar(!showSidebar);
-  }, [showSidebar]);
 
   // T011: Implement handleSearch callback for FindBar
   const handleSearch = useCallback((query: string, options: { caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }) => {
@@ -642,7 +639,7 @@ const AppLayout: React.FC = () => {
 
   // Handle repository branch opened event from FolderSwitcher
   useEffect(() => {
-    const handleBranchOpened = async (event: CustomEvent) => {
+    const handleBranchOpened = async (event: CustomEvent<{ folderId: string; repositoryId: string; branchName: string }>) => {
       const { folderId, repositoryId, branchName } = event.detail;
 
       console.log('[AppLayout] Branch opened event received:', { folderId, repositoryId, branchName });
@@ -683,7 +680,7 @@ const AppLayout: React.FC = () => {
               const levelSize = queue.length;
               for (let i = 0; i < levelSize; i++) {
                 const node = queue.shift()!;
-                if (node.type === 'file' && node.isMarkdown) {
+                if (node.type === ItemType.FILE && node.isMarkdown) {
                   return node.path;
                 }
                 if (node.children) {
@@ -784,9 +781,9 @@ const AppLayout: React.FC = () => {
       }
     };
 
-    window.addEventListener('repository:branch-opened', handleBranchOpened as EventListener);
+    window.addEventListener('repository:branch-opened', handleBranchOpened as unknown as EventListener);
     return () => {
-      window.removeEventListener('repository:branch-opened', handleBranchOpened as EventListener);
+      window.removeEventListener('repository:branch-opened', handleBranchOpened as unknown as EventListener);
     };
   }, [setCurrentFile, setCurrentContent, setError]);
 
@@ -2049,7 +2046,7 @@ const AppLayout: React.FC = () => {
       const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
       await recentsFavoritesService.addRecent({
         path: filePath,
-        type: 'file',
+        type: ItemType.FILE,
         lastOpened: Date.now(),
         displayName: fileName
       });
@@ -2196,7 +2193,7 @@ const AppLayout: React.FC = () => {
               const node = queue.shift()!;
 
               // Check if this node is a markdown file
-              if (node.type === 'file' && /\.(md|markdown)$/i.test(node.name)) {
+              if (node.type === ItemType.FILE && /\.(md|markdown)$/i.test(node.name)) {
                 return node.path;
               }
 
@@ -2233,7 +2230,7 @@ const AppLayout: React.FC = () => {
               const { setActiveTab } = useTabsStore.getState();
               setActiveTab(existingTab.id);
               setShowHome(false); // Hide home page and show file viewer
-            } else {
+            } else if (folderId) {
               // Generate deterministic tab ID for this folder file
               const tabId = generateFolderFileTabId(folderId, firstFilePath);
               // Create new tab
@@ -2281,7 +2278,11 @@ const AppLayout: React.FC = () => {
             t.filePath === overviewPath && t.folderId === folderId
           );
 
-          if (!existingTab) {
+          if (existingTab) {
+            // Tab already exists, just set it as active
+            const { setActiveTab } = useTabsStore.getState();
+            setActiveTab(existingTab.id);
+          } else if (folderId) {
             // Generate deterministic tab ID for folder overview
             const tabId = generateFolderFileTabId(folderId, overviewPath);
             const newTab = {
@@ -2312,10 +2313,6 @@ const AppLayout: React.FC = () => {
             // Set the new tab as active so it's visible
             const { setActiveTab } = useTabsStore.getState();
             setActiveTab(newTab.id);
-          } else {
-            // Tab already exists, just set it as active
-            const { setActiveTab } = useTabsStore.getState();
-            setActiveTab(existingTab.id);
           }
 
           // Set empty content with a message
@@ -2335,7 +2332,7 @@ const AppLayout: React.FC = () => {
           const folderName = folderPath.split(/[/\\]/).pop() || 'Folder';
           await recentsFavoritesService.addRecent({
             path: folderPath,
-            type: 'folder',
+            type: ItemType.FOLDER,
             lastOpened: Date.now(),
             displayName: folderName
           });
@@ -2631,6 +2628,7 @@ const AppLayout: React.FC = () => {
                         id: `folder-${Date.now()}`,
                         path: folderPath,
                         displayName: folderName,
+                        type: 'local',
                         fileTreeState: {
                           expandedDirectories: new Set<string>(),
                           scrollPosition: 0,
@@ -2642,7 +2640,7 @@ const AppLayout: React.FC = () => {
                         recentFiles: [{
                           id: `recent-${Date.now()}`,
                           path: filePath,
-                          type: 'file',
+                          type: ItemType.FILE,
                           displayName: fileName,
                           lastAccessedAt: Date.now(),
                           folderId: null,
@@ -2842,7 +2840,7 @@ const AppLayout: React.FC = () => {
                             const { tabs: freshTabs } = useTabsStore.getState();
                             const freshTab = freshTabs.get(activeTabId);
                             if (freshTab) {
-                              const fileName = filePath.split(/[/\\\/]/).pop() || 'Untitled';
+                              const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
                               const updatedTab = {
                                 ...freshTab,
                                 filePath: filePath,
@@ -2999,7 +2997,7 @@ const AppLayout: React.FC = () => {
                       const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
                       await addRecent({
                         path: pathWithBranch,
-                        type: 'repo',
+                        type: ItemType.REPO,
                         displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
                       });
                     } catch (error) {
@@ -3009,8 +3007,8 @@ const AppLayout: React.FC = () => {
                     // Branch opening failed - remove from recents, favorites, and connection history
                     try {
                       const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                      await removeRecent(pathWithBranch, 'repo');
-                      await removeFavorite(pathWithBranch, 'repo');
+                      await removeRecent(pathWithBranch, ItemType.REPO);
+                      await removeFavorite(pathWithBranch, ItemType.REPO);
                       removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
                       console.log('[AppLayout] Removed unavailable repository branch from recents/favorites/history');
                     } catch (removeError) {
@@ -3056,8 +3054,16 @@ const AppLayout: React.FC = () => {
                   createdAt: Date.now(),
                   lastAccessedAt: Date.now(),
                   repositoryId: connectedRepository.repositoryId,
+                  repositoryUrl: connectedRepository.url,
                   currentBranch: connectedRepository.currentBranch,
-                  url: connectedRepository.url,
+                  defaultBranch: connectedRepository.defaultBranch,
+                  repositoryMetadata: {
+                    branches: connectedRepository.branches.map(b => ({
+                      name: b.name,
+                      isDefault: b.isDefault,
+                      sha: b.sha
+                    })),
+                  },
                 };
 
                 addFolder(repoFolder);
@@ -3092,7 +3098,7 @@ const AppLayout: React.FC = () => {
                           const node = queue.shift()!;
 
                           // Check if this node is a markdown file
-                          if (node.type === 'file' && node.isMarkdown) {
+                          if (node.type === ItemType.FILE && node.isMarkdown) {
                             return node.path;
                           }
 
@@ -3203,7 +3209,7 @@ const AppLayout: React.FC = () => {
                           const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
                           await addRecent({
                             path: pathWithBranch,
-                            type: 'repo',
+                            type: ItemType.REPO,
                             displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
                           });
                         } catch (error) {
@@ -3225,8 +3231,8 @@ const AppLayout: React.FC = () => {
                     // Remove from recents, favorites, and connection history
                     try {
                       const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                      await removeRecent(pathWithBranch, 'repo');
-                      await removeFavorite(pathWithBranch, 'repo');
+                      await removeRecent(pathWithBranch, ItemType.REPO);
+                      await removeFavorite(pathWithBranch, ItemType.REPO);
                       removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
                       console.log('[AppLayout] Home onRepositoryConnected - Removed unavailable repository from recents/favorites/history');
                     } catch (removeError) {
@@ -3252,8 +3258,8 @@ const AppLayout: React.FC = () => {
                   // Remove from recents, favorites, and connection history
                   try {
                     const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                    await removeRecent(pathWithBranch, 'repo');
-                    await removeFavorite(pathWithBranch, 'repo');
+                    await removeRecent(pathWithBranch, ItemType.REPO);
+                    await removeFavorite(pathWithBranch, ItemType.REPO);
                     removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
                     console.log('[AppLayout] Home onRepositoryConnected - Removed unavailable repository from recents/favorites/history');
                   } catch (removeError) {
@@ -3461,7 +3467,7 @@ const AppLayout: React.FC = () => {
                 const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
                 await addRecent({
                   path: pathWithBranch,
-                  type: 'repo',
+                  type: ItemType.REPO,
                   displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
                 });
                 console.log('[AppLayout] Repository branch tracked in recents:', { path: pathWithBranch });
@@ -3474,8 +3480,8 @@ const AppLayout: React.FC = () => {
               // Branch opening failed - remove from recents, favorites, and connection history
               try {
                 const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                await removeRecent(pathWithBranch, 'repo');
-                await removeFavorite(pathWithBranch, 'repo');
+                await removeRecent(pathWithBranch, ItemType.REPO);
+                await removeFavorite(pathWithBranch, ItemType.REPO);
                 removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
                 console.log('[AppLayout] Removed unavailable repository branch from recents/favorites/history');
               } catch (removeError) {
@@ -3532,8 +3538,6 @@ const AppLayout: React.FC = () => {
                 isDefault: b.isDefault,
                 sha: b.sha
               })),
-              owner: connectedRepository.owner,
-              name: connectedRepository.name,
             },
           };
 
@@ -3569,7 +3573,7 @@ const AppLayout: React.FC = () => {
                     const node = queue.shift()!;
 
                     // Check if this node is a markdown file
-                    if (node.type === 'file' && node.isMarkdown) {
+                    if (node.type === ItemType.FILE && node.isMarkdown) {
                       return node.path;
                     }
 
@@ -3680,7 +3684,7 @@ const AppLayout: React.FC = () => {
                     const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
                     await addRecent({
                       path: pathWithBranch,
-                      type: 'repo',
+                      type: ItemType.REPO,
                       displayName: `${connectedRepository.displayName} (${connectedRepository.currentBranch})`
                     });
                   } catch (error) {
@@ -3702,8 +3706,8 @@ const AppLayout: React.FC = () => {
               // Remove from recents, favorites, and connection history
               try {
                 const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                await removeRecent(pathWithBranch, 'repo');
-                await removeFavorite(pathWithBranch, 'repo');
+                await removeRecent(pathWithBranch, ItemType.REPO);
+                await removeFavorite(pathWithBranch, ItemType.REPO);
                 removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
                 console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
               } catch (removeError) {
@@ -3729,8 +3733,8 @@ const AppLayout: React.FC = () => {
             // Remove from recents, favorites, and connection history
             try {
               const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-              await removeRecent(pathWithBranch, 'repo');
-              await removeFavorite(pathWithBranch, 'repo');
+              await removeRecent(pathWithBranch, ItemType.REPO);
+              await removeFavorite(pathWithBranch, ItemType.REPO);
               removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
               console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
             } catch (removeError) {

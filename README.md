@@ -21,19 +21,27 @@
 - ⚡ **Fast & Offline** - Instant startup, no internet required, fully local operation
 - 🎯 **Developer-Focused** - Perfect for documentation in Git repositories and project folders
 
-## Installation
+## 💾 Installation
 
-### Via MSI Installer (Recommended)
+### Via NSIS Installer (Recommended)
 
-1. Download the latest MSI installer from [GitHub Releases](https://github.com/schalkje/markread/releases/latest)
-2. Run the installer
+1. Download the latest installer from [GitHub Releases](https://github.com/schalkje/markread/releases/latest)
+2. Run `MarkRead-Setup-{version}.exe`
 3. Follow the installation wizard
 
 The installer will:
-- Install MarkRead to `C:\Program Files\MarkRead`
+- Install MarkRead to your user directory (no admin rights required)
 - Create Start Menu and Desktop shortcuts
 - Associate `.md` and `.markdown` files with MarkRead
-- Add MarkRead to Windows Programs & Features for easy uninstallation
+- Enable automatic updates for new versions
+
+### Portable Version
+
+Download `MarkRead-{version}-portable.exe` for a no-installation option:
+- Runs from any location (USB drive, Downloads folder, etc.)
+- No registry modifications
+- Settings stored locally in `./portable-data/`
+- Perfect for restricted environments or testing
 
 ### System Requirements
 
@@ -164,8 +172,8 @@ npm run dev
 # Build the application
 npm run build
 
-# Build installer packages (Windows)
-npm run build:win
+# Package installer and portable .exe (Windows)
+npm run package
 
 # Run tests
 npm test

@@ -1,11 +1,11 @@
-import { app, BrowserWindow, protocol, net, session } from 'electron';
-import { extname } from 'path';
+import { app, BrowserWindow, net, session } from 'electron';
 
 import { createWindow } from './window-manager';
 import { registerIpcHandlers } from './ipc-handlers';
 import { initLogger } from './logger';
-import { stopAllWatchers } from './file-watcher';
-import { loadUIState, saveUIStateImmediate } from './ui-state-manager';
+import { loadUIState } from './ui-state-manager';
+import { initAutoUpdater, cleanupAutoUpdater } from './auto-updater';
+import { initFileAssociations, setupMacOSFileHandler, parseFileFromArgs, handleFileOpen } from './file-associations';
 
 // T019: Global error handler
 process.on('uncaughtException', (error) => {
@@ -45,45 +45,20 @@ protocol.registerSchemesAsPrivileged([
 console.log('[Main] Custom protocol "mdfile" registered with privileges');
 */
 
-// MIME type mapping for common image formats
-const getMimeType = (filepath: string): string => {
-  const ext = extname(filepath).toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.webp': 'image/webp',
-    '.bmp': 'image/bmp',
-    '.ico': 'image/x-icon',
-  };
-  return mimeTypes[ext] || 'application/octet-stream';
-};
+// T072-T074: Initialize file associations (single-instance, protocol handlers)
+// NOTE: Must be called before app.whenReady() but after app is available
+// For now, moved inside whenReady to ensure app is fully initialized
+// initFileAssociations(mainWindow);
 
-// Single instance lock (FR-028)
-// TEMPORARY: Commented out to allow app to launch (app module undefined at module level)
-const gotTheLock = true; // Bypass for now
-/*
-const gotTheLock = app.requestSingleInstanceLock();
+// T072: Set up macOS file handler
+// setupMacOSFileHandler(mainWindow);
 
-if (!gotTheLock) {
-  app.quit();
-} else {
-*/
-  // TEMPORARY: Comment out app.on at module level
-  /*
-  app.on('second-instance', () => {
-    // Someone tried to run a second instance, focus our window
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
-  */
-
-  app.whenReady().then(async () => {
+app.whenReady().then(async () => {
     console.log('[Main] App ready, registering protocol handler...');
+
+    // T072-T074: Initialize file associations after app is ready
+    initFileAssociations(mainWindow);
+    setupMacOSFileHandler(mainWindow);
 
     // Register protocol handler for mdfile:// URLs on the default session
     // CRITICAL: Must register on the session object, not the global protocol object
@@ -150,6 +125,15 @@ if (!gotTheLock) {
     // T011: Register all IPC handlers (must be done after window is created)
     registerIpcHandlers(mainWindow);
 
+    // T037: Initialize auto-updater (skip in dev mode, portable mode)
+    initAutoUpdater();
+
+    // T072: Handle file open on startup (if launched with file path argument)
+    const startupFilePath = parseFileFromArgs(process.argv);
+    if (startupFilePath && mainWindow) {
+      handleFileOpen(mainWindow, startupFilePath);
+    }
+
     app.on('activate', () => {
       // On macOS re-create window when dock icon is clicked
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -157,10 +141,7 @@ if (!gotTheLock) {
       }
     });
   });
-// } // End of single instance lock block (commented out)
 
-// TEMPORARY: Comment out module-level app.on calls
-/*
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -169,11 +150,18 @@ app.on('window-all-closed', () => {
 
 // T107: Cleanup file watchers on app quit
 // T167: Save UI state immediately before quitting
+// T037-T045: Cleanup auto-updater timers
 app.on('before-quit', async () => {
-  await stopAllWatchers();
+  // Cleanup auto-updater
+  cleanupAutoUpdater();
+
+  // TODO: Cleanup file watchers (when implemented)
+  // await stopAllWatchers();
 
   // Save window bounds immediately before quit
   if (mainWindow && !mainWindow.isDestroyed()) {
+    // TODO: Save UI state (when saveUIStateImmediate is implemented)
+    /*
     const bounds = mainWindow.getBounds();
     const isMaximized = mainWindow.isMaximized();
 
@@ -186,6 +174,6 @@ app.on('before-quit', async () => {
         isMaximized,
       },
     });
+    */
   }
 });
-*/

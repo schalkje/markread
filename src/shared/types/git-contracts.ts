@@ -293,6 +293,7 @@ export type CheckConnectivityIPCResponse = IPCResponse<CheckConnectivityResponse
 // Get Connectivity Status (cached)
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface GetConnectivityStatusRequest {
   // No parameters
 }

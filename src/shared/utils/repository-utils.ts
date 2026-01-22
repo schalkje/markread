@@ -3,7 +3,7 @@
  * Helper functions for repository ID generation and multi-branch management
  */
 
-import type { Folder } from '@shared/types/entities.d.ts';
+import type { Folder } from '@shared/types/entities';
 
 /**
  * Generate a deterministic folder ID for a repository branch

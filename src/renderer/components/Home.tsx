@@ -7,7 +7,8 @@ import { useRecentsFavorites } from '../hooks/useRecentsFavorites';
 import { useGitRepo } from '../hooks/useGitRepo';
 import { useFoldersStore } from '../stores/folders';
 import type { RecentItem, Favorite } from '@shared/types/recents-favorites';
-import type { Folder } from '@shared/types/entities.d.ts';
+import { ItemType } from '@shared/types/recents-favorites';
+import type { Folder } from '@shared/types/entities';
 import type { ConnectRepositoryRequest, ConnectRepositoryResponse } from '@shared/types/git-contracts';
 import './Home.css';
 import './home/styles.css';
@@ -20,7 +21,7 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConnectRepository, onRepositoryConnected }) => {
-  const { recents, favorites, removeRecent, removeFavorite, addFavorite, addRecent, isFavorite, loading, loadAll } = useRecentsFavorites();
+  const { recents, favorites, removeRecent, removeFavorite, addFavorite, addRecent, loading, loadAll } = useRecentsFavorites();
   const { connectRepository } = useGitRepo();
   const { addFolder } = useFoldersStore();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
         if (duration > 500) {
           console.warn(`[Home] Performance warning: Page load took ${duration.toFixed(2)}ms (target: <500ms)`);
         }
-      } catch (error) {
+      } catch {
         // Marks might not exist on first render, ignore
       }
     }
@@ -180,7 +181,7 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
 
             await addRecent({
               path: pathWithBranch, // Include branch in path for separate tracking
-              type: 'repo',
+              type: ItemType.REPO,
               displayName: `${repoName} (${branch})`
             });
 
@@ -262,7 +263,7 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
     const fileName = filePath.split(/[\\/]/).pop() || filePath;
     await addRecent({
       path: filePath,
-      type: 'file',
+      type: ItemType.FILE,
       displayName: fileName
     });
 
@@ -275,7 +276,7 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
     const folderName = folderPath.split(/[\\/]/).pop() || folderPath;
     await addRecent({
       path: folderPath,
-      type: 'folder',
+      type: ItemType.FOLDER,
       displayName: folderName
     });
 

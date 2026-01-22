@@ -63,7 +63,7 @@ export const useOfflineStatus = (options?: {
         setIsOnline(false);
         setLastConnectivityCheck(Date.now());
       }
-    } catch (error) {
+    } catch {
       // If check throws, assume offline
       setIsOnline(false);
       setLastConnectivityCheck(Date.now());

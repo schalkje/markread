@@ -172,7 +172,7 @@ export async function startWatching(
         debouncedSend('change', filePath);
       })
       .on('unlink', (filePath) => {
-        // Double-check file extension (should already be filtered by ignored function)
+        // Double-check file extension (should already be filtered by ignored function)s
         if (!isMarkdownFile(filePath)) return;
         console.log(`[file-watcher] File removed: ${filePath}`);
         debouncedSend('unlink', filePath);

@@ -224,9 +224,9 @@ export const CustomScrollbar: React.FC<CustomScrollbarProps> = ({
       onMouseLeave={handleMouseLeave}
       role="scrollbar"
       aria-orientation={orientation}
-      aria-valuenow={Math.round(scrollPosition).toString()}
-      aria-valuemin="0"
-      aria-valuemax={Math.round(maxScroll).toString()}
+      aria-valuenow={Math.round(scrollPosition)}
+      aria-valuemin={0}
+      aria-valuemax={Math.round(maxScroll)}
     >
       {/* Track */}
       <div

@@ -115,35 +115,35 @@ export const SettingsWindow: React.FC<SettingsWindowProps> = ({
         <div className="settings-window__content">
           {/* Sidebar tabs */}
           <div className="settings-window__sidebar">
-            <SettingsTab
+            <SettingsTabButton
               id="appearance"
               label="Appearance"
               icon="🎨"
               isActive={activeTab === 'appearance'}
               onClick={() => setActiveTab('appearance')}
             />
-            <SettingsTab
+            <SettingsTabButton
               id="behavior"
               label="Behavior"
               icon="⚙️"
               isActive={activeTab === 'behavior'}
               onClick={() => setActiveTab('behavior')}
             />
-            <SettingsTab
+            <SettingsTabButton
               id="search"
               label="Search"
               icon="🔍"
               isActive={activeTab === 'search'}
               onClick={() => setActiveTab('search')}
             />
-            <SettingsTab
+            <SettingsTabButton
               id="performance"
               label="Performance"
               icon="⚡"
               isActive={activeTab === 'performance'}
               onClick={() => setActiveTab('performance')}
             />
-            <SettingsTab
+            <SettingsTabButton
               id="keyboard"
               label="Keyboard"
               icon="⌨️"
@@ -204,7 +204,7 @@ interface SettingsTabProps {
   onClick: () => void;
 }
 
-const SettingsTab: React.FC<SettingsTabProps> = ({
+const SettingsTabButton: React.FC<SettingsTabProps> = ({
   id,
   label,
   icon,

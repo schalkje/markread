@@ -11,9 +11,9 @@ import { create } from 'zustand';
 import { recentsFavoritesService } from '../services/recents-favorites-service';
 import type {
   RecentItem,
-  Favorite,
-  ItemType
+  Favorite
 } from '@shared/types/recents-favorites';
+import { ItemType } from '@shared/types/recents-favorites';
 
 /**
  * Recents and Favorites store state interface
@@ -34,6 +34,9 @@ interface RecentsFavoritesState {
   addFavorite: (item: Omit<Favorite, 'dateAdded'>) => Promise<{ success: boolean; error?: string }>;
   removeFavorite: (path: string, type: ItemType) => Promise<void>;
   isFavorite: (path: string, type: ItemType) => boolean;
+
+  // Error handling
+  clearError: () => void;
 
   // Internal setters
   setRecents: (type: ItemType, items: RecentItem[]) => void;
@@ -82,12 +85,12 @@ export const useRecentsFavoritesStore = create<RecentsFavoritesState>((set, get)
         foldersFavorites,
         reposFavorites
       ] = await Promise.all([
-        recentsFavoritesService.getRecents('file'),
-        recentsFavoritesService.getRecents('folder'),
-        recentsFavoritesService.getRecents('repo'),
-        recentsFavoritesService.getFavorites('file'),
-        recentsFavoritesService.getFavorites('folder'),
-        recentsFavoritesService.getFavorites('repo')
+        recentsFavoritesService.getRecents(ItemType.FILE),
+        recentsFavoritesService.getRecents(ItemType.FOLDER),
+        recentsFavoritesService.getRecents(ItemType.REPO),
+        recentsFavoritesService.getFavorites(ItemType.FILE),
+        recentsFavoritesService.getFavorites(ItemType.FOLDER),
+        recentsFavoritesService.getFavorites(ItemType.REPO)
       ]);
 
       set({
@@ -124,9 +127,11 @@ export const useRecentsFavoritesStore = create<RecentsFavoritesState>((set, get)
       await recentsFavoritesService.addRecent(recentItem);
       const updated = await recentsFavoritesService.getRecents(item.type);
       get().setRecents(item.type, updated);
+      set({ error: null });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add recent';
       console.error('[RecentsFavoritesStore] Error adding recent:', error);
-      throw error;
+      set({ error: errorMessage });
     }
   },
 
@@ -155,9 +160,9 @@ export const useRecentsFavoritesStore = create<RecentsFavoritesState>((set, get)
       } else {
         // Clear all categories
         await Promise.all([
-          recentsFavoritesService.clearRecents('file'),
-          recentsFavoritesService.clearRecents('folder'),
-          recentsFavoritesService.clearRecents('repo')
+          recentsFavoritesService.clearRecents(ItemType.FILE),
+          recentsFavoritesService.clearRecents(ItemType.FOLDER),
+          recentsFavoritesService.clearRecents(ItemType.REPO)
         ]);
         set({
           recents: {
@@ -220,6 +225,11 @@ export const useRecentsFavoritesStore = create<RecentsFavoritesState>((set, get)
     const favorites = get().favorites[type];
     return favorites.some(fav => fav.path === path);
   },
+
+  /**
+   * Clear error state
+   */
+  clearError: () => set({ error: null }),
 
   // Internal setters
   setRecents: (type, items) => set((state) => ({

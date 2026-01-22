@@ -10,7 +10,8 @@
  * Source: specs/001-git-repo-integration/research.md (Section 3)
  */
 
-import { safeStorage } from 'electron';
+import * as electron from 'electron';
+const { safeStorage } = electron;
 import type Store from 'electron-store';
 
 /**
@@ -33,13 +34,25 @@ interface CredentialEntry {
  * - Tokens never logged or sent over IPC
  */
 export class CredentialStore {
-  private store: Store<{ credentials: CredentialEntry[] }> | null = null;
-  private storePromise: Promise<Store<{ credentials: CredentialEntry[] }>> | null = null;
+  private store: Store<{
+    credentials: CredentialEntry[];
+    'provider-token-github'?: string;
+    'provider-token-azure'?: string;
+  }> | null = null;
+  private storePromise: Promise<Store<{
+    credentials: CredentialEntry[];
+    'provider-token-github'?: string;
+    'provider-token-azure'?: string;
+  }>> | null = null;
 
   /**
    * Initialize the store (lazy loading with dynamic import)
    */
-  private async getStore(): Promise<Store<{ credentials: CredentialEntry[] }>> {
+  private async getStore(): Promise<Store<{
+    credentials: CredentialEntry[];
+    'provider-token-github'?: string;
+    'provider-token-azure'?: string;
+  }>> {
     if (this.store) {
       return this.store;
     }
@@ -221,7 +234,7 @@ export class CredentialStore {
       const encryptedBuffer = Buffer.from(encryptedToken, 'base64');
       const decrypted = safeStorage.decryptString(encryptedBuffer);
       return decrypted;
-    } catch (error) {
+    } catch {
       // If decryption fails, delete the corrupted token
       store.delete(`provider-token-${provider}`);
       return null;

@@ -12,7 +12,8 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { shell } from 'electron';
+import * as electron from 'electron';
+const { shell } = electron;
 import axios from 'axios';
 import { credentialStore } from '../storage/credential-store';
 import { azureOAuthService } from './azure-oauth-service';
@@ -249,55 +250,50 @@ export class OAuthService {
    * @param session - Device Flow session
    */
   private async pollForAccessToken(session: DeviceFlowSession): Promise<void> {
-    try {
-      const response = await axios.post(
-        'https://github.com/login/oauth/access_token',
-        {
-          client_id: GITHUB_CLIENT_ID,
-          device_code: session.deviceCode,
-          grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+    const response = await axios.post(
+      'https://github.com/login/oauth/access_token',
+      {
+        client_id: GITHUB_CLIENT_ID,
+        device_code: session.deviceCode,
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+      },
+      {
+        headers: {
+          Accept: 'application/json',
         },
-        {
-          headers: {
-            Accept: 'application/json',
-          },
-        }
-      );
-
-      const { access_token, error, error_description } = response.data;
-
-      if (error) {
-        // Handle specific error cases
-        if (error === 'authorization_pending') {
-          // User hasn't authorized yet - keep polling
-          throw new Error('Authorization pending');
-        } else if (error === 'slow_down') {
-          // We're polling too fast - increase interval by 5 seconds
-          session.interval += 5;
-          console.log(`[Device Flow] Slowing down polling - new interval: ${session.interval}s`);
-          throw new Error('Polling too fast - interval increased');
-        } else if (error === 'expired_token') {
-          // Device code expired
-          this.completeSession(session, false, 'Device code expired');
-          throw new Error('Device code expired');
-        } else if (error === 'access_denied') {
-          // User denied authorization
-          this.completeSession(session, false, 'Access denied by user');
-          throw new Error('Access denied');
-        } else {
-          // Other error
-          this.completeSession(session, false, error_description || error);
-          throw new Error(error_description || error);
-        }
       }
+    );
 
-      if (access_token) {
-        // Success! We got the access token
-        await this.completeAuthentication(session, access_token);
+    const { access_token, error, error_description } = response.data;
+
+    if (error) {
+      // Handle specific error cases
+      if (error === 'authorization_pending') {
+        // User hasn't authorized yet - keep polling
+        throw new Error('Authorization pending');
+      } else if (error === 'slow_down') {
+        // We're polling too fast - increase interval by 5 seconds
+        session.interval += 5;
+        console.log(`[Device Flow] Slowing down polling - new interval: ${session.interval}s`);
+        throw new Error('Polling too fast - interval increased');
+      } else if (error === 'expired_token') {
+        // Device code expired
+        this.completeSession(session, false, 'Device code expired');
+        throw new Error('Device code expired');
+      } else if (error === 'access_denied') {
+        // User denied authorization
+        this.completeSession(session, false, 'Access denied by user');
+        throw new Error('Access denied');
+      } else {
+        // Other error
+        this.completeSession(session, false, error_description || error);
+        throw new Error(error_description || error);
       }
-    } catch (error: any) {
-      // Re-throw to let caller know status
-      throw error;
+    }
+
+    if (access_token) {
+      // Success! We got the access token
+      await this.completeAuthentication(session, access_token);
     }
   }
 

@@ -216,7 +216,7 @@ export function registerGitHandlers(): void {
         ? [await service.check(request.provider)]
         : await service.checkAll();
 
-      const isOnline = results.some(r => r.isReachable);
+      const isOnline = results.some((r: { isReachable: boolean }) => r.isReachable);
 
       const response = {
         isOnline,

@@ -43,7 +43,20 @@
       "Bash(then echo \"$f\")",
       "Bash(fi)",
       "Bash(done)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx electron-builder:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm test:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(timeout:*)",
+      "Bash(move eslint.config.js eslint.config.mjs)",
+      "Bash(find:*)",
+      "Bash(npx eslint:*)",
+      "Bash(git -C c:/repo/markread rev-parse:*)",
+      "Bash(git clean:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

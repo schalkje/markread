@@ -11,7 +11,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFoldersStore } from '../../stores/folders';
-import { useTabsStore } from '../../stores/tabs';
 import type { TreeNode } from '../../../shared/types/repository';
 import { FileTreeContextMenu } from './FileTreeContextMenu';
 import './FileTree.css';
