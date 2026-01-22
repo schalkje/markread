@@ -9,6 +9,13 @@
     - Open repository button stays light
     - About box stays light, some text change
 
+- if a folder or repo/branch is opened, and the golder contains files open them in this order:
+  - README.md, index.md, first file alphabetically
+  
+
+## home page fixes
+- on the home page I sometimes see double entries of the same folder; only difference are the \ vs /
+- 
 
 # Clean up wpf
 Clean all files that are related to wpf or dotnet development. They should not be needed anymore in the electron solution.

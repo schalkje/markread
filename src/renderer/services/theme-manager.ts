@@ -69,6 +69,7 @@ class ThemeManager {
 
     root.style.setProperty('--color-content-bg', colorMappings.contentBackground);
     root.style.setProperty('--color-content-fg', colorMappings.contentForeground);
+    root.style.setProperty('--color-bg-editor', colorMappings.contentBackground);
 
     root.style.setProperty('--color-md-heading', colorMappings.markdownHeading);
     root.style.setProperty('--color-md-link', colorMappings.markdownLink);

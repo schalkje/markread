@@ -421,7 +421,7 @@
 }
 
 /* ============================================================================
- * Dark Theme Support
+ * Dark Theme Support - via system preference
  * ============================================================================ */
 
 @media (prefers-color-scheme: dark) {
@@ -460,4 +460,44 @@
   .empty-state {
     --empty-state-bg: #0d1117;
   }
+}
+
+/* ============================================================================
+ * Dark Theme Support - via manual theme selection
+ * ============================================================================ */
+
+[data-theme="dark"] .item-card,
+[data-theme="dark"] .repo-group {
+  --switcher-bg: #161b22;
+  --switcher-hover-bg: #21262d;
+  --switcher-active-bg: #1c4876;
+  --border-color: #30363d;
+  --border-hover-color: #6e7681;
+  --text-primary: #e6edf3;
+  --text-secondary: #8d96a0;
+  --text-tertiary: #6e7681;
+  --accent-color: #58a6ff;
+  --favorite-color: #fbbf24;
+  --favorite-color-hover: #f59e0b;
+  --favorite-bg: #422006;
+  --bg-primary: #0d1117;
+}
+
+[data-theme="dark"] .item-name,
+[data-theme="dark"] .repo-group__name {
+  color: var(--text-primary, #e6edf3);
+}
+
+[data-theme="dark"] .item-path,
+[data-theme="dark"] .repo-group__url {
+  color: var(--text-tertiary, #6e7681);
+}
+
+[data-theme="dark"] .repo-branch-item__button {
+  background-color: var(--bg-primary, #0d1117);
+  color: var(--text-primary, #e6edf3);
+}
+
+[data-theme="dark"] .empty-state {
+  --empty-state-bg: #0d1117;
 }
