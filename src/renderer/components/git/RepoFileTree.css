@@ -199,7 +199,7 @@
   background-color: var(--primary-hover, #0052a3);
 }
 
-/* Dark mode support */
+/* Dark mode support - via system preference */
 @media (prefers-color-scheme: dark) {
   .repo-file-tree {
     --bg-secondary: #1e1e1e;
@@ -215,4 +215,20 @@
     --error-color: #ff6b6b;
     --refresh-bg: #1a3a4a;
   }
+}
+
+/* Dark mode support - via manual theme selection */
+[data-theme="dark"] .repo-file-tree {
+  --bg-secondary: #1e1e1e;
+  --text-primary: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --text-tertiary: #808080;
+  --hover-bg: #2a2a2a;
+  --selected-bg: #2a4a6a;
+  --selected-hover-bg: #3a5a7a;
+  --border-color: #404040;
+  --primary-color: #4a9eff;
+  --primary-hover: #3a8eef;
+  --error-color: #ff6b6b;
+  --refresh-bg: #1a3a4a;
 }

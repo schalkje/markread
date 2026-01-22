@@ -300,7 +300,7 @@
   color: var(--warning-color, #d4a72c);
 }
 
-/* Dark theme support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .shortcuts-reference-backdrop {
     background: rgba(0, 0, 0, 0.7);
@@ -329,11 +329,39 @@
     --warning-bg-light: #2d2200;
     --warning-border: #9a6700;
     --warning-color: #d29922;
-  }
-
-  .shortcuts-reference {
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .shortcuts-reference-backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .shortcuts-reference {
+  --modal-bg: #161b22;
+  --header-bg: #0d1117;
+  --tabs-bg: #0d1117;
+  --border-color: #30363d;
+  --border-light: #21262d;
+  --text-primary: #e6edf3;
+  --text-secondary: #7d8590;
+  --text-tertiary: #484f58;
+  --input-bg: #0d1117;
+  --tab-hover-bg: #21262d;
+  --tab-active-bg: #161b22;
+  --item-bg: #0d1117;
+  --item-hover-bg: #21262d;
+  --button-hover-bg: #21262d;
+  --accent-color: #58a6ff;
+  --kbd-bg: #0d1117;
+  --scrollbar-thumb: #484f58;
+  --scrollbar-thumb-hover: #6e7681;
+  --warning-bg: #4d3800;
+  --warning-bg-light: #2d2200;
+  --warning-border: #9a6700;
+  --warning-color: #d29922;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
 }
 
 /* High contrast mode */

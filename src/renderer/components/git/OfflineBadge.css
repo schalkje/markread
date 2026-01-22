@@ -125,7 +125,7 @@
   transform: rotate(360deg);
 }
 
-/* Dark mode support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .offline-badge {
     --badge-bg: #2a2a2a;
@@ -144,4 +144,23 @@
     background-color: #1e1e1e;
     border-color: var(--border-color);
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .offline-badge {
+  --badge-bg: #2a2a2a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --text-tertiary: #808080;
+  --border-color: #404040;
+  --hover-bg: #3a3a3a;
+}
+
+[data-theme="dark"] .offline-badge--simple {
+  background-color: var(--badge-bg);
+}
+
+[data-theme="dark"] .offline-badge--detailed {
+  background-color: #1e1e1e;
+  border-color: var(--border-color);
 }

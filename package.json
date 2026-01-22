@@ -1,6 +1,6 @@
 {
   "name": "markread",
-  "version": "0.5.16",
+  "version": "0.6.1",
   "description": "Electron-based markdown viewer",
   "main": "./out/main/index.js",
   "author": "MarkRead",
@@ -35,6 +35,9 @@
     "highlightjs-copy": "^1.0.6",
     "isomorphic-dompurify": "^2.16.0",
     "markdown-it": "^14.1.0",
+    "markdown-it-container": "^4.0.0",
+    "markdown-it-deflist": "^3.0.0",
+    "markdown-it-footnote": "^4.0.0",
     "markdown-it-task-lists": "^2.1.1",
     "mermaid": "^11.12.2",
     "react": "18.3.1",

@@ -1,3 +1,36 @@
+
+# Small issues
+
+- Dark mode findings:
+    - home page stays white in dark mode
+        - header text changes font color
+        - explanation text does not
+        - branch icon stays light too, text changes to darm mode
+    - Open repository button stays light
+    - About box stays light, some text change
+
+- if a folder or repo/branch is opened, and the golder contains files open them in this order:
+  - README.md, index.md, first file alphabetically
+  
+
+## home page fixes
+- on the home page I sometimes see double entries of the same folder; only difference are the \ vs /
+- 
+
+## toggle full screen
+
+not working yet
+
+# Clean up wpf
+Clean all files that are related to wpf or dotnet development. They should not be needed anymore in the electron solution.
+
+Remove all references to wpf from the markdown documentation. Remove entire markdown files when they have become obsolete. Update files where the story changed because of the switch from wpf to electron.
+
+Files that can stay unchanged:
+- Changelog.md
+- All files in the .specify folder
+
+
 # Index
 
 Have an index file on a central location with the users favorites
@@ -40,25 +73,27 @@ in the root there is a markread.json file
 
 ---
 
+# refreshing
+I want a way of refreshing the visible page
+I want a way of refreshing the folderview for the current folder or repo/branch
 
+# ignore folders
+Ignoring folders:
+- A base list should be available of folders that are by default not read (open folder, open repo/branch)
+- there is a setting where this list can be seen and modified; there is also a button here to reset to the defaults
 
-# Home page
-## last x opened
-extend with last x opened, sort by last opened
-Make columns; just like the buttons:
-- Files
-- Folders
-- Repo's and branches
+# Export to pdf function
 
-Take some inspiratin for the ui from the folder selector
+# Export mermaid diagrams
+Export or copy to clipboard mermaid diagrams as svg.
 
-On mouse over, see when it was last opened
+have hoover buttons:
+- that copy as image
+- copy mermaid code
+- download image
 
-## favorites
-The user can add/remove favorites and even add a description to them. These favorites, stay on top of the last x opened; sort alphabetically
-
-
-
+## Open mermaid in new dedicated tab
+- open mermaid in new tab
 
 ---
 
@@ -100,43 +135,3 @@ Support split window: 2 documents horizontal / vertical
   - when starting with a /, it should take the folder root
 
 
-
-# Find
-Implement search and find, to locate specific text.
-
-## find in document
-CTRL+F
-Connect the option in the Edit menu
-
-- show a search bar above the text: search string, toggles, result hit nr of total; next, previous hit buttons; close search button
-- search a text in the current document
-- toggle to switch on/off case sensitivity (default off)
-- add the option to search using regexp
-
-Output:
-- mark the vertical scroll bar, make the results visible and clickable
-- give all found results a yellow background
-- navigate through the finds (use default shortcuts like vcode)
-
-## find in files
-SHIFT+CTRL+F
-Connect the option in the Edit menu
-
-Search in all files
-- ability to define the scope:
-  - current folder/repo-branch
-  - current folder/repo all branches
-  - all folders/repo's in the folder selector
-
-- toggle to switch on/off case sensitivity (default off)
-- add the option to search using regexp
-
-Output:
-- in the place of the filetree/history, add a pane for search results
-- show the results per folder / file
-- show stats at the folder level and at the file level of how many hits
-- take inspiration from the find in files of vscode
-
-
-the search in files seams to need the search in file box. What's the idea here?
-Currently the Find in page text is not filled; so it is not working. Shouldn't it be separate functionality, or do they need to use each other?

@@ -50,7 +50,7 @@ Download `MarkRead-{version}-portable.exe` for a no-installation option:
 - **Disk Space:** ~150 MB
 - **Memory:** ~100-200 MB (Electron + Chromium)
 
-## �🚀 Quick Start
+## 🚀 Quick Start
 
 ```powershell
 # Launch MarkRead and open a folder

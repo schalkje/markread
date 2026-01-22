@@ -69,7 +69,6 @@ const AppLayout: React.FC = () => {
   const activeTab = activeTabId ? tabs.get(activeTabId) : null;
   const { folders, activeFolderId } = useFoldersStore();
   const { addRecent, removeRecent, removeFavorite } = useRecentsFavorites();
-  const [fileTreeKey, setFileTreeKey] = useState(0); // Key to force FileTree re-render
   const [revealFilePath, setRevealFilePath] = useState<string | null>(null); // File to reveal in sidebar
 
   // Sidebar view state: 'files', 'history', or 'search'
@@ -1267,27 +1266,46 @@ const AppLayout: React.FC = () => {
 
   // T110: Auto-reload current file when it changes on disk
   const handleFileReload = useCallback(async (filePath: string) => {
+    console.log('[AppLayout] handleFileReload called for:', filePath);
     try {
       const result = await window.electronAPI?.file?.read({ filePath });
+      console.log('[AppLayout] File read result:', { success: result?.success, hasContent: !!result?.content });
       if (result?.success && result.content) {
         contentCacheRef.current.set(filePath, result.content);
         setCurrentContent(result.content);
-        console.log('File auto-reloaded:', filePath);
+
+        // Invalidate render cache for current tab to force re-render
+        if (activeTabId) {
+          const { invalidateTabCache } = useTabsStore.getState();
+          invalidateTabCache(activeTabId);
+          console.log('[AppLayout] Invalidated render cache for tab:', activeTabId);
+        }
+
+        // Extract filename for toast notification
+        const fileName = filePath.split(/[/\\]/).pop() || 'File';
+
+        // Show toast notification
+        setToast({
+          message: `${fileName} has been updated`,
+          type: 'info',
+        });
+
+        console.log('[AppLayout] File auto-reloaded successfully:', filePath);
       }
     } catch (err) {
-      console.error('Error reloading file:', err);
+      console.error('[AppLayout] Error reloading file:', err);
       setError('File was modified but failed to reload');
     }
-  }, []);
+  }, [setToast, activeTabId]);
 
   useFileAutoReload(currentFile, handleFileReload);
 
-  // T110: Handle file changes to refresh file tree
+  // T110: File tree updates are now handled incrementally by FileTree component
+  // No need to force remount - FileTree listens to file:changed events directly
   useFileWatcher(
     (event) => {
-      // Refresh file tree when files are added, changed, or removed
-      console.log(`File tree update triggered by: ${event.eventType} ${event.filePath}`);
-      setFileTreeKey((prev) => prev + 1); // Force FileTree to reload
+      // FileTree component handles add/unlink events incrementally
+      console.log(`File event received: ${event.eventType} ${event.filePath}`);
     },
     (error) => {
       console.error('File watch error:', error);
@@ -2432,8 +2450,8 @@ const AppLayout: React.FC = () => {
 
         // Only update content if this is still the current file being displayed
         if (loadingFileRef.current === fileToLoad && currentFile === fileToLoad) {
-          if (result?.success && (result.content || result.data?.content)) {
-            const content = result.content || result.data.content;
+          if (result?.success && (result.content !== undefined || result.data?.content !== undefined)) {
+            const content = result.content !== undefined ? result.content : result.data.content;
             // Cache the content by filePath
             contentCacheRef.current.set(fileToLoad, content);
             setCurrentContent(content);
@@ -2646,19 +2664,23 @@ const AppLayout: React.FC = () => {
                       folderId = newFolder.id;
 
                       // Start watching the folder
+                      console.log('[AppLayout] Starting folder watch setup for:', folderPath);
                       try {
                         const watchResult = await window.electronAPI?.file?.watchFolder({
                           folderPath,
-                          filePatterns: ['**/*.md', '**/*.markdown'],
+                          filePatterns: ['*.md', '*.markdown', '**/*.md', '**/*.markdown'],
                           ignorePatterns: ['**/node_modules/**', '**/.git/**'],
                           debounceMs: 300,
                         });
 
+                        console.log('[AppLayout] Watch result:', watchResult);
                         if (watchResult?.success && watchResult.watcherId) {
-                          console.log(`Started watching folder: ${folderPath} (ID: ${watchResult.watcherId})`);
+                          console.log(`[AppLayout] Started watching folder: ${folderPath} (ID: ${watchResult.watcherId})`);
+                        } else {
+                          console.error('[AppLayout] Watch failed:', watchResult);
                         }
                       } catch (err) {
-                        console.error('Failed to start watching folder:', err);
+                        console.error('[AppLayout] Failed to start watching folder:', err);
                       }
                     }
 
@@ -2682,9 +2704,6 @@ const AppLayout: React.FC = () => {
 
                     // Trigger a re-render by updating the store
                     useTabsStore.setState({ tabs: new Map(tabsStore.tabs) });
-
-                    // Force FileTree to reload
-                    setFileTreeKey((prev) => prev + 1);
 
                     console.log(`Opened folder for file: ${folderPath}, converted ${tabsToConvert.length} tab(s)`);
                   } catch (err) {
@@ -2743,14 +2762,13 @@ const AppLayout: React.FC = () => {
                 console.log('[AppLayout] Rendering FileTree for folder:', activeFolderId);
                 return (
                   <FileTree
-                    key={fileTreeKey}
                     folderId={activeFolderId}
                     revealFilePath={revealFilePath}
                     onFileSelect={async (filePath) => {
                       try {
                         // Single click: Navigate within current tab, add to history
                         const activeFolder = folders.find(f => f.id === activeFolderId);
-                        let fileContent: string | null = null;
+                        let fileContent: string | undefined = undefined;
 
                         console.log('[AppLayout] onFileSelect - navigating to:', filePath);
 
@@ -2762,18 +2780,18 @@ const AppLayout: React.FC = () => {
                             branch: activeFolder.currentBranch!,
                           });
 
-                          if (result?.success && result.data) {
+                          if (result?.success && result.data && result.data.content !== undefined) {
                             fileContent = result.data.content;
                           }
                         } else {
                           // Load file from local file system
                           const result = await window.electronAPI?.file?.read({ filePath });
-                          if (result?.success && result.content) {
+                          if (result?.success && result.content !== undefined) {
                             fileContent = result.content;
                           }
                         }
 
-                        if (fileContent) {
+                        if (fileContent !== undefined) {
                           contentLoadedManually.current = true;
                           setIsLoading(false);
                           setError(null);
@@ -3272,6 +3290,7 @@ const AppLayout: React.FC = () => {
               zoomLevel={activeTab?.zoomLevel || 100}
               scrollTop={activeTab?.scrollPosition}
               scrollLeft={activeTab?.scrollLeft}
+              modificationTimestamp={activeTab?.modificationTimestamp}
               onRenderComplete={handleRenderComplete}
               onFileLink={handleLinkClick}
               onScrollChange={(scrollTop, scrollLeft) => {

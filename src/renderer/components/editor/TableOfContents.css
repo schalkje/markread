@@ -236,7 +236,7 @@
   background: var(--scrollbar-thumb-hover, #afb8c1);
 }
 
-/* Dark theme support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .toc {
     --toc-bg: #1c1c1c;
@@ -254,6 +254,24 @@
     --scrollbar-thumb: #444;
     --scrollbar-thumb-hover: #555;
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .toc {
+  --toc-bg: #1c1c1c;
+  --toc-active-bg: #2d2d2d;
+  --toc-hover-bg: #2d2d2d;
+  --toc-footer-bg: #2d2d2d;
+  --border-color: #444;
+  --text-primary: #e6e6e6;
+  --text-secondary: #a0a0a0;
+  --text-tertiary: #666;
+  --input-bg: #2d2d2d;
+  --button-hover-bg: #3d3d3d;
+  --accent-color: #58a6ff;
+  --kbd-bg: #2d2d2d;
+  --scrollbar-thumb: #444;
+  --scrollbar-thumb-hover: #555;
 }
 
 /* Backdrop overlay */

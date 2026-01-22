@@ -15,6 +15,12 @@ import mermaid from 'mermaid';
 import DOMPurify from 'isomorphic-dompurify';
 // @ts-expect-error - markdown-it-task-lists may not have types
 import taskLists from 'markdown-it-task-lists';
+// @ts-expect-error - markdown-it-footnote may not have types
+import footnote from 'markdown-it-footnote';
+// @ts-expect-error - markdown-it-deflist may not have types
+import deflist from 'markdown-it-deflist';
+// @ts-expect-error - markdown-it-container may not have types
+import container from 'markdown-it-container';
 // @ts-expect-error - highlightjs-copy may not have types
 import CopyButtonPlugin from 'highlightjs-copy';
 
@@ -22,7 +28,7 @@ import CopyButtonPlugin from 'highlightjs-copy';
  * T025: Configure markdown-it v14.1.0 with GFM plugins
  */
 const md: MarkdownIt = new MarkdownIt({
-  html: false, // Disable raw HTML for security
+  html: true, // Enable raw HTML (sanitized by DOMPurify)
   xhtmlOut: true,
   breaks: true, // Convert \n to <br>
   linkify: true, // Auto-convert URLs to links
@@ -33,8 +39,7 @@ const md: MarkdownIt = new MarkdownIt({
    * We don't highlight here because highlightjs-copy needs DOM elements
    * Highlighting is applied in applySyntaxHighlighting() after render
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  highlight: (code: string, _language: string): string => {
+  highlight: (code: string): string => {
     // Just escape HTML - markdown-it will wrap this in <pre><code class="language-xxx">
     // The post-render applySyntaxHighlighting() will do actual highlighting
     return MarkdownIt().utils.escapeHtml(code);
@@ -54,6 +59,46 @@ md.use(taskLists, {
   enabled: true,
   label: true, // Wrap checkbox in label for better UX
   labelAfter: false, // Label before checkbox
+});
+
+// Enable footnotes plugin
+md.use(footnote);
+
+// Enable definition lists plugin
+md.use(deflist);
+
+/**
+ * Enable container plugin for callouts
+ * Supports info, warning, error, success, and note container types
+ */
+const containerTypes = [
+  { name: 'info', defaultTitle: 'Info' },
+  { name: 'warning', defaultTitle: 'Warning' },
+  { name: 'error', defaultTitle: 'Error' },
+  { name: 'success', defaultTitle: 'Success' },
+  { name: 'note', defaultTitle: 'Note' },
+];
+
+containerTypes.forEach(({ name, defaultTitle }) => {
+  md.use(container, name, {
+    render: function (
+      tokens: { nesting: number; info: string }[],
+      idx: number
+    ): string {
+      const token = tokens[idx];
+
+      if (token.nesting === 1) {
+        // Opening tag
+        const title = token.info.trim().slice(name.length).trim() || defaultTitle;
+        return `<div class="markdown-container markdown-container-${name}">
+<div class="markdown-container-title">${md.utils.escapeHtml(title)}</div>
+<div class="markdown-container-content">\n`;
+      } else {
+        // Closing tag
+        return '</div></div>\n';
+      }
+    },
+  });
 });
 
 /**
@@ -156,7 +201,13 @@ export function registerLanguage(lang: string): boolean {
  */
 const defaultFence = md.renderer.rules.fence!;
 
-md.renderer.rules.fence = (tokens: any, idx: number, options: any, env: any, self: any) => {
+md.renderer.rules.fence = (
+  tokens: any[],
+  idx: number,
+  options: any,
+  env: any,
+  self: any
+): string => {
   const token = tokens[idx];
   const info = token.info.trim();
   const lang = info.split(/\s+/)[0];
@@ -178,23 +229,59 @@ md.renderer.rules.fence = (tokens: any, idx: number, options: any, env: any, sel
 /**
  * T029: Configure Mermaid v11.12.2 with securityLevel: 'strict'
  * Prevents script execution in diagrams
+ * Uses base theme with themeVariables that can be updated dynamically
+ * 
+ * https://mermaid.js.org/config/theming.html
+ * lineColor: color of the connection in ERD diagrams  
+ * primaryTextColor: color of the entity titles in ERD diagrams, not the labels of the relations
+ * primaryBorderColor: border color of the entities in ERD diagrams, also the color of the label of the relations, BUT THIS IS OVERRIDDEN IN CSS
  */
-mermaid.initialize({
-  startOnLoad: false, // We'll manually trigger rendering
-  theme: 'default',
-  securityLevel: 'strict', // Disable script tags, prevent XSS
-  fontFamily: 'Segoe UI, system-ui, sans-serif',
-  themeVariables: {
-    fontSize: '14px',
-  },
-  flowchart: {
-    useMaxWidth: true,
-    htmlLabels: false, // Disable HTML in labels for security
-  },
-  sequence: {
-    useMaxWidth: true,
-  },
-});
+function initializeMermaidTheme(theme: 'light' | 'dark' = 'light'): void {
+  const isDark = theme === 'dark';
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base', // Base theme is the only one that accepts themeVariables
+    securityLevel: 'strict',
+    themeVariables: {
+      // ER Diagram: Row backgrounds (undocumented but functional)
+      attributeBackgroundColorOdd: isDark ? '#21262d' : '#f00',
+      attributeBackgroundColorEven: isDark ? '#161b22' : '#00f',
+
+      // General colors for entity headers and borders
+      primaryColor: isDark ? '#30363d' : '#e1e4e8',
+      primaryTextColor: isDark ? '#e6edf3' : '#24292f',
+      primaryBorderColor: isDark ? '#6e7681' : '#d0d7de',
+      lineColor: isDark ? '#8b949e' : '#6e7681',
+      textColor: isDark ? '#c9d1d9' : '#24292f',
+    },
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: false,
+    },
+    sequence: {
+      useMaxWidth: true,
+    },
+  });
+}
+
+// Initialize with light theme by default
+initializeMermaidTheme('light');
+
+/**
+ * Minimal cleanup for edge label backgrounds
+ * Only removes the purple background from edge labels
+ */
+function cleanupMermaidInlineStyles(diagram: HTMLElement): void {
+  // Edge labels often have hardcoded purple backgrounds - let CSS control them
+  const edgeLabels = diagram.querySelectorAll('.edgeLabel rect.background');
+  edgeLabels.forEach((rect) => {
+    const element = rect as SVGElement;
+    if (element.style.fill) {
+      element.style.removeProperty('fill');
+    }
+  });
+}
 
 /**
  * Render Mermaid diagrams in the DOM
@@ -223,6 +310,10 @@ export async function renderMermaidDiagrams(container: HTMLElement): Promise<voi
       // Replace text with SVG
       diagram.innerHTML = svg;
       diagram.classList.add('mermaid-rendered');
+
+      // Clean up inline !important styles that interfere with CSS
+      cleanupMermaidInlineStyles(diagram);
+
       console.log(`[Mermaid] Diagram ${i + 1} rendered successfully`);
     } catch (err) {
       console.error('Mermaid rendering error:', err);
@@ -271,7 +362,7 @@ export function sanitizeHtml(html: string): string {
       'img',
       'div',
       'span',
-      'input', // For task list checkboxes
+      'input', // For task list checkboxes 
       'label', // For task list labels
       'svg', // For Mermaid diagrams
       'g',
@@ -287,6 +378,9 @@ export function sanitizeHtml(html: string): string {
       'defs',
       'marker',
       'foreignObject',
+      'sup',
+      'sub',
+      's'
     ],
 
     ALLOWED_ATTR: [
@@ -302,6 +396,15 @@ export function sanitizeHtml(html: string): string {
       'data-*', // Allow data attributes for Mermaid
       'width',
       'height',
+      'style', // Allow inline CSS (DOMPurify sanitizes dangerous CSS)
+      'align', // Text/image alignment
+      'valign', // Vertical alignment in tables
+      'border', // Table borders
+      'cellpadding', // Table cell padding
+      'cellspacing', // Table cell spacing
+      'colspan', // Table column span
+      'rowspan', // Table row span
+      // SVG attributes for Mermaid diagrams
       'viewBox',
       'xmlns',
       'fill',
@@ -378,9 +481,7 @@ export function applySyntaxHighlighting(container: HTMLElement): void {
  * Called from theme store
  */
 export function updateMermaidTheme(theme: 'light' | 'dark'): void {
-  mermaid.initialize({
-    theme: theme === 'dark' ? 'dark' : 'default',
-  });
+  initializeMermaidTheme(theme);
 }
 
 export default {

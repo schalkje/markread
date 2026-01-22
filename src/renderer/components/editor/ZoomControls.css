@@ -81,7 +81,7 @@
   white-space: nowrap;
 }
 
-/* Dark theme support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .zoom-controls {
     --toolbar-background: #2d2d2d;
@@ -90,4 +90,13 @@
     --button-active-background: #4d4d4d;
     --text-color: #ccc;
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .zoom-controls {
+  --toolbar-background: #2d2d2d;
+  --border-color: #444;
+  --button-hover-background: #3d3d3d;
+  --button-active-background: #4d4d4d;
+  --text-color: #ccc;
 }

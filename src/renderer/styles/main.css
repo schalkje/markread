@@ -111,7 +111,7 @@ body {
 
 .welcome p {
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary, #666);
   margin-bottom: 24px;
 }
 

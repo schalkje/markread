@@ -58,9 +58,14 @@
   margin: 4px 8px;
 }
 
-/* Dark theme adjustments */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .tab-context-menu {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .tab-context-menu {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }

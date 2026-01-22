@@ -2,7 +2,7 @@
 
 .connect-repo-button {
   padding: 0.75rem 1.5rem;
-  background: #0969da;
+  background: var(--accent-color, #0969da);
   color: white;
   border: none;
   border-radius: 6px;
@@ -13,9 +13,9 @@
 }
 
 .connect-repo-button:hover {
-  background: #0860ca;
+  background: var(--accent-color-hover, #0860ca);
 }
 
 .connect-repo-button:active {
-  background: #0757ba;
+  background: var(--accent-color-active, #0757ba);
 }

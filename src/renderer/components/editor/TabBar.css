@@ -260,7 +260,7 @@
   background: var(--scrollbar-thumb-hover, #afb8c1);
 }
 
-/* Dark theme support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .tab-bar {
     --tab-bar-bg: #1c1c1c;
@@ -280,4 +280,24 @@
     --scrollbar-thumb: #444;
     --scrollbar-thumb-hover: #555;
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .tab-bar {
+  --tab-bar-bg: #1c1c1c;
+  --tab-bg: #2d2d2d;
+  --tab-hover-bg: #3d3d3d;
+  --tab-active-bg: #2d2d2d;
+  --border-color: #444;
+  --tab-separator: #3a3a3a;
+  --text-primary: #e6e6e6;
+  --text-secondary: #a0a0a0;
+  --text-tertiary: #666;
+  --accent-color: #58a6ff;
+  --button-hover-bg: #4d4d4d;
+  --shortcut-bg: #3d3d3d;
+  --warning-color: #d29922;
+  --warning-bg: #4d3800;
+  --scrollbar-thumb: #444;
+  --scrollbar-thumb-hover: #555;
 }

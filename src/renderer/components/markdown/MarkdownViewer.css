@@ -466,6 +466,35 @@
   display: block;
 }
 
+/* Mermaid edge labels - override default purple background */
+.markdown-viewer .mermaid-rendered .edgeLabel rect.background {
+  fill: var(--color-bg-primary, #ffffff);
+  fill-opacity: 0.8;
+}
+
+[data-theme="dark"] .markdown-viewer .mermaid-rendered .edgeLabel rect.background {
+  fill: var(--color-bg-primary, #0d1117);
+}
+
+.markdown-viewer .mermaid-rendered g.edgeLabel text {
+  fill: #24292f !important;
+}
+
+[data-theme="dark"] .markdown-viewer .mermaid-rendered g.edgeLabel text {
+  fill: #e6edf3 !important;
+}
+
+.markdown-viewer .mermaid-rendered .row-rect-even > path:nth-child(1) {
+  filter: brightness(1.8) !important;
+}
+
+
+/* ER Diagrams: Make even rows slightly lighter than odd rows */
+/* This works for both default theme colors and custom classDef colors */
+.markdown-viewer .mermaid-rendered g.row-rect-even > path {
+  opacity: 0.7;
+}
+
 .markdown-viewer .mermaid-error {
   background-color: #ffebe9;
   color: #cf222e;
@@ -550,4 +579,147 @@
   padding: 0 2px;
   border-radius: 2px;
   box-shadow: 0 0 0 2px rgba(255, 150, 50, 0.3);
+}
+
+/* Container callout styles */
+.markdown-viewer .markdown-container {
+  margin: 1em 0;
+  padding: 0;
+  border-left: 4px solid;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.markdown-viewer .markdown-container-title {
+  padding: 0.75em 1em;
+  font-weight: 600;
+  font-size: 0.95em;
+  border-bottom: 1px solid;
+}
+
+.markdown-viewer .markdown-container-content {
+  padding: 1em;
+}
+
+.markdown-viewer .markdown-container-content > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-viewer .markdown-container-content > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Info container (blue) */
+.markdown-viewer .markdown-container-info {
+  background-color: #e6f2ff;
+  border-left-color: #0969da;
+}
+
+.markdown-viewer .markdown-container-info .markdown-container-title {
+  background-color: #d0e8ff;
+  border-bottom-color: #b6dbff;
+  color: #0550ae;
+}
+
+[data-theme="dark"] .markdown-viewer .markdown-container-info {
+  background-color: #1c2d41;
+  border-left-color: #2f81f7;
+}
+
+[data-theme="dark"] .markdown-viewer .markdown-container-info .markdown-container-title {
+  background-color: #1a2734;
+  border-bottom-color: #2a3f5f;
+  color: #58a6ff;
+}
+
+/* Warning container (orange) */
+.markdown-viewer .markdown-container-warning {
+  background-color: #fff8e6;
+  border-left-color: #bf8700;
+}
+
+.markdown-viewer .markdown-container-warning .markdown-container-title {
+  background-color: #ffefd1;
+  border-bottom-color: #ffe4b8;
+  color: #9a6700;
+}
+
+[data-theme="dark"] .markdown-viewer .markdown-container-warning {
+  background-color: #3d2e1f;
+  border-left-color: #d29922;
+}
+
+[data-theme="dark"] .markdown-viewer .markdown-container-warning .markdown-container-title {
+  background-color: #342817;
+  border-bottom-color: #4d3a23;
+  color: #e6b450;
+}
+
+/* Error container (red) */
+.markdown-viewer .markdown-container-error {
+  background-color: #ffebe9;
+  border-left-color: #cf222e;
+}
+
+.markdown-viewer .markdown-container-error .markdown-container-title {
+  background-color: #ffd8d3;
+  border-bottom-color: #ffcdc7;
+  color: #a40e26;
+}
+
+[data-theme="dark"] .markdown-viewer .markdown-container-error {
+  background-color: #3d1f23;
+  border-left-color: #f85149;
+}
+
+[data-theme="dark"] .markdown-viewer .markdown-container-error .markdown-container-title {
+  background-color: #341a1f;
+  border-bottom-color: #4d282d;
+  color: #ff7b72;
+}
+
+/* Success container (green) */
+.markdown-viewer .markdown-container-success {
+  background-color: #dafbe1;
+  border-left-color: #1a7f37;
+}
+
+.markdown-viewer .markdown-container-success .markdown-container-title {
+  background-color: #c2f0cc;
+  border-bottom-color: #aee6bc;
+  color: #116329;
+}
+
+[data-theme="dark"] .markdown-viewer .markdown-container-success {
+  background-color: #1f3728;
+  border-left-color: #3fb950;
+}
+
+[data-theme="dark"] .markdown-viewer .markdown-container-success .markdown-container-title {
+  background-color: #1a2f21;
+  border-bottom-color: #28473a;
+  color: #56d364;
+}
+
+/* Note container (purple) */
+.markdown-viewer .markdown-container-note {
+  background-color: #f6f0ff;
+  border-left-color: #8250df;
+}
+
+.markdown-viewer .markdown-container-note .markdown-container-title {
+  background-color: #ebe4ff;
+  border-bottom-color: #dfd5ff;
+  color: #6639ba;
+}
+
+[data-theme="dark"] .markdown-viewer .markdown-container-note {
+  background-color: #2d2538;
+  border-left-color: #a371f7;
+}
+
+[data-theme="dark"] .markdown-viewer .markdown-container-note .markdown-container-title {
+  background-color: #271f31;
+  border-bottom-color: #3d3149;
+  color: #b392f0;
 }

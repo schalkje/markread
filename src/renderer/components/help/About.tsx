@@ -9,7 +9,7 @@
  * - Links to documentation/repository
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './About.css';
 
 // Import images
@@ -23,7 +23,35 @@ export interface AboutProps {
   onClose: () => void;
 }
 
+interface ChangelogEntry {
+  category: string;
+  items: string[];
+}
+
 export const About: React.FC<AboutProps> = ({ isOpen, onClose }) => {
+  const [version, setVersion] = useState<string>('');
+  const [releaseDate, setReleaseDate] = useState<string | null>(null);
+  const [changelog, setChangelog] = useState<ChangelogEntry[] | null>(null);
+  const [changelogExpanded, setChangelogExpanded] = useState(false);
+
+  // Fetch version and changelog from main process when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      window.electronAPI.app.getVersion().then((result) => {
+        if (result.success) {
+          setVersion(result.version);
+        }
+      });
+
+      window.electronAPI.app.getChangelog().then((result) => {
+        if (result.success && result.changes) {
+          setChangelog(result.changes);
+          setReleaseDate(result.date || null);
+        }
+      });
+    }
+  }, [isOpen]);
+
   // Handle backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -82,7 +110,7 @@ export const About: React.FC<AboutProps> = ({ isOpen, onClose }) => {
               MarkRead
             </h1>
             <div className="about-dialog__version">
-              Version 0.1.0
+              Version {version || '...'}
             </div>
           </div>
         </div>
@@ -142,6 +170,59 @@ export const About: React.FC<AboutProps> = ({ isOpen, onClose }) => {
               <strong>Author:</strong> MarkRead Team
             </div>
           </div>
+
+          {/* Changelog section */}
+          {changelog && changelog.length > 0 && (
+            <div className="about-dialog__changelog">
+              <button
+                className="about-dialog__changelog-toggle"
+                onClick={() => setChangelogExpanded(!changelogExpanded)}
+                type="button"
+              >
+                <span className="about-dialog__changelog-title">
+                  What&apos;s New in {version}
+                  {releaseDate && (
+                    <span className="about-dialog__changelog-date">
+                      {releaseDate}
+                    </span>
+                  )}
+                </span>
+                <svg
+                  className={`about-dialog__changelog-arrow ${changelogExpanded ? 'expanded' : ''}`}
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="currentColor"
+                >
+                  <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {changelogExpanded && (
+                <div className="about-dialog__changelog-content">
+                  {changelog.map((section, index) => (
+                    <div key={index} className="about-dialog__changelog-section">
+                      <h4 className="about-dialog__changelog-category">{section.category}</h4>
+                      <ul className="about-dialog__changelog-list">
+                        {section.items.map((item, itemIndex) => (
+                          <li key={itemIndex}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                  <button
+                    className="about-dialog__changelog-link"
+                    onClick={() => window.electronAPI.shell.openExternal('https://github.com/schalkje/markread/releases')}
+                    type="button"
+                  >
+                    View full changelog on GitHub
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                      <path d="M3.5 3a.5.5 0 0 0 0 1h3.793L2.146 9.146a.5.5 0 1 0 .708.708L8 4.707V8.5a.5.5 0 0 0 1 0v-5a.5.5 0 0 0-.5-.5h-5z" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Footer */}
           <div className="about-dialog__footer">

@@ -56,7 +56,7 @@
   margin: 0 4px;
 }
 
-/* Dark theme adjustments */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .statusbar {
     background: var(--color-surface, #1e1e1e);
@@ -71,4 +71,19 @@
   .statusbar__zoom-item:hover {
     background: rgba(255, 255, 255, 0.1);
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .statusbar {
+  background: var(--color-surface, #1e1e1e);
+  border-top-color: var(--color-border, #333);
+  color: var(--color-text-secondary, #aaa);
+}
+
+[data-theme="dark"] .statusbar__zoom-item {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .statusbar__zoom-item:hover {
+  background: rgba(255, 255, 255, 0.1);
 }

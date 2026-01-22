@@ -90,8 +90,8 @@ export const FileOpener: React.FC<FileOpenerProps> = ({ onFileOpened }) => {
           isDirty: false,
           renderCache: null,
           navigationHistory: [],
+          currentHistoryIndex: -1,
           forwardHistory: [],
-          currentHistoryIndex: 0,
           createdAt: Date.now(),
           folderId: null, // No folder for directly opened files
           isDirectFile: true, // T063g - Mark as direct file
@@ -105,6 +105,41 @@ export const FileOpener: React.FC<FileOpenerProps> = ({ onFileOpened }) => {
 
       // Notify parent
       onFileOpened?.(filePath, content);
+
+      // Start watching the parent directory for file changes
+      console.log('[FileOpener] Starting file watcher setup for:', filePath);
+      try {
+        // Extract parent directory from file path
+        const pathParts = filePath.split(/[\\/]/);
+        console.log('[FileOpener] Path parts:', pathParts);
+        pathParts.pop(); // Remove filename
+        const parentDir = pathParts.join(/\\/.test(filePath) ? '\\' : '/');
+        console.log('[FileOpener] Parent directory:', parentDir);
+
+        if (parentDir) {
+          console.log('[FileOpener] Calling watchFolder with config:', {
+            folderPath: parentDir,
+            filePatterns: ['**/*.md', '**/*.markdown'],
+            ignorePatterns: ['**/node_modules/**', '**/.git/**'],
+            debounceMs: 300,
+          });
+
+          const watchResult = await window.electronAPI?.file?.watchFolder({
+            folderPath: parentDir,
+            filePatterns: ['*.md', '*.markdown', '**/*.md', '**/*.markdown'],
+            ignorePatterns: ['**/node_modules/**', '**/.git/**'],
+            debounceMs: 300,
+          });
+
+          console.log('[FileOpener] Watch result:', watchResult);
+          console.log(`[FileOpener] Started watching parent directory: ${parentDir}`);
+        } else {
+          console.warn('[FileOpener] Parent directory is empty, not starting watcher');
+        }
+      } catch (watchErr) {
+        console.error('[FileOpener] Failed to start file watcher:', watchErr);
+        // Don't fail the file opening if watcher fails
+      }
 
       setIsOpening(false);
     } catch (err) {

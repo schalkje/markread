@@ -17,7 +17,7 @@ Term 2
 : Second definition for term 2
 ```
 
-**Note**: Definition list support varies by Markdown processor. MarkRead uses Markdig which supports them with the Definition Lists extension.
+**Note**: Definition list support varies by Markdown processor. MarkRead uses markdown-it with the `markdown-it-deflist` plugin for full support.
 
 ## Glossary Example
 
@@ -149,7 +149,8 @@ fontSize
 ## Compatibility
 
 Definition lists are supported by:
-- ✅ Markdig (used by MarkRead)
+- ✅ **markdown-it (used by MarkRead)** - via `markdown-it-deflist` plugin
+- ✅ Markdig (with Definition Lists extension)
 - ✅ Python-Markdown
 - ✅ PHP Markdown Extra
 - ❌ CommonMark (core spec)

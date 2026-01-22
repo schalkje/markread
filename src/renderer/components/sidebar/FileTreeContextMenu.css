@@ -67,11 +67,18 @@
   margin: 4px 0;
 }
 
-/* Dark theme adjustments */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .file-tree-context-menu {
     background: var(--color-surface-2, #161b22);
     border-color: var(--color-border, #30363d);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .file-tree-context-menu {
+  background: var(--color-surface-2, #161b22);
+  border-color: var(--color-border, #30363d);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }

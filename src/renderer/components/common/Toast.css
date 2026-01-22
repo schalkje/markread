@@ -89,7 +89,7 @@
   --toast-bg: #dafbe1;
 }
 
-/* Dark theme support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .toast {
     --toast-bg: #161b22;
@@ -118,4 +118,33 @@
     --toast-border: #3fb950;
     --toast-bg: #0a3a16;
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .toast {
+  --toast-bg: #161b22;
+  --toast-border: #30363d;
+  --toast-text: #e6edf3;
+  --toast-close: #8b949e;
+  --toast-close-hover: #e6edf3;
+  --toast-close-hover-bg: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .toast--info {
+  --toast-border: #1f6feb;
+}
+
+[data-theme="dark"] .toast--warning {
+  --toast-border: #d29922;
+  --toast-bg: #4a3900;
+}
+
+[data-theme="dark"] .toast--error {
+  --toast-border: #f85149;
+  --toast-bg: #490b0b;
+}
+
+[data-theme="dark"] .toast--success {
+  --toast-border: #3fb950;
+  --toast-bg: #0a3a16;
 }

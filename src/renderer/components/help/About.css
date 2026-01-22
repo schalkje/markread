@@ -274,7 +274,137 @@
   font-style: italic;
 }
 
-/* Dark theme support */
+/* Changelog Section */
+.about-dialog__changelog {
+  margin-bottom: 24px;
+  border: 1px solid var(--border-light, #eaeef2);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.about-dialog__changelog-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 20px;
+  background: var(--feature-bg, #f6f8fa);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.about-dialog__changelog-toggle:hover {
+  background: var(--changelog-hover-bg, #f0f3f6);
+}
+
+.about-dialog__changelog-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #24292f);
+}
+
+.about-dialog__changelog-date {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary, #57606a);
+  padding: 2px 8px;
+  background: var(--date-badge-bg, #e1e4e8);
+  border-radius: 10px;
+}
+
+.about-dialog__changelog-arrow {
+  color: var(--text-secondary, #57606a);
+  transition: transform 0.2s ease;
+}
+
+.about-dialog__changelog-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.about-dialog__changelog-content {
+  padding: 16px 20px;
+  background: var(--modal-bg, #ffffff);
+  border-top: 1px solid var(--border-light, #eaeef2);
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.about-dialog__changelog-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.about-dialog__changelog-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.about-dialog__changelog-content::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #d0d7de);
+  border-radius: 3px;
+}
+
+.about-dialog__changelog-section {
+  margin-bottom: 16px;
+}
+
+.about-dialog__changelog-section:last-child {
+  margin-bottom: 0;
+}
+
+.about-dialog__changelog-category {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--changelog-category, #667eea);
+}
+
+.about-dialog__changelog-list {
+  margin: 0;
+  padding: 0 0 0 20px;
+  list-style-type: disc;
+}
+
+.about-dialog__changelog-list li {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary, #57606a);
+  margin-bottom: 4px;
+}
+
+.about-dialog__changelog-list li:last-child {
+  margin-bottom: 0;
+}
+
+.about-dialog__changelog-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid var(--border-light, #eaeef2);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--changelog-category, #667eea);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.about-dialog__changelog-link:hover {
+  background: var(--feature-bg, #f6f8fa);
+  border-color: var(--changelog-category, #667eea);
+}
+
+.about-dialog__changelog-link svg {
+  opacity: 0.7;
+}
+
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .about-backdrop {
     background: rgba(0, 0, 0, 0.75);
@@ -290,6 +420,9 @@
     --feature-bg: #0d1117;
     --info-bg: #0d1117;
     --accent-color: #58a6ff;
+    --changelog-hover-bg: #1c2128;
+    --date-badge-bg: #21262d;
+    --changelog-category: #58a6ff;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
   }
 
@@ -305,6 +438,40 @@
   .about-dialog__close:hover {
     background: rgba(0, 0, 0, 0.5);
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .about-backdrop {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+[data-theme="dark"] .about-dialog {
+  --modal-bg: #161b22;
+  --border-color: #30363d;
+  --border-light: #21262d;
+  --text-primary: #e6edf3;
+  --text-secondary: #7d8590;
+  --text-tertiary: #484f58;
+  --feature-bg: #0d1117;
+  --info-bg: #0d1117;
+  --accent-color: #58a6ff;
+  --changelog-hover-bg: #1c2128;
+  --date-badge-bg: #21262d;
+  --changelog-category: #58a6ff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+}
+
+[data-theme="dark"] .about-dialog__hero {
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+}
+
+[data-theme="dark"] .about-dialog__close {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .about-dialog__close:hover {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 /* Responsive behavior */

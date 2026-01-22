@@ -168,7 +168,7 @@
   font-weight: 500;
 }
 
-/* Dark theme support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .history-panel {
     --tree-bg: #0d1117;
@@ -185,6 +185,23 @@
     --scrollbar-thumb: #484f58;
     --scrollbar-thumb-hover: #6e7681;
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .history-panel {
+  --tree-bg: #0d1117;
+  --text-primary: #e6edf3;
+  --text-secondary: #7d8590;
+  --text-tertiary: #484f58;
+  --item-bg: #161b22;
+  --item-hover-bg: #21262d;
+  --item-selected-bg: #1f6feb;
+  --accent-color: #58a6ff;
+  --past-color: #7d8590;
+  --future-color: #484f58;
+  --index-bg: rgba(255, 255, 255, 0.1);
+  --scrollbar-thumb: #484f58;
+  --scrollbar-thumb-hover: #6e7681;
 }
 
 /* High contrast mode */
