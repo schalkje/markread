@@ -209,6 +209,16 @@ export const About: React.FC<AboutProps> = ({ isOpen, onClose }) => {
                       </ul>
                     </div>
                   ))}
+                  <button
+                    className="about-dialog__changelog-link"
+                    onClick={() => window.electronAPI.shell.openExternal('https://github.com/schalkje/markread/releases')}
+                    type="button"
+                  >
+                    View full changelog on GitHub
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                      <path d="M3.5 3a.5.5 0 0 0 0 1h3.793L2.146 9.146a.5.5 0 1 0 .708.708L8 4.707V8.5a.5.5 0 0 0 1 0v-5a.5.5 0 0 0-.5-.5h-5z" />
+                    </svg>
+                  </button>
                 </div>
               )}
             </div>
