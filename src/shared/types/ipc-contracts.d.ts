@@ -484,7 +484,7 @@ export interface ElectronAPI {
     save: (payload: UIStateOperations.SaveUIStateRequest) => Promise<UIStateOperations.SaveUIStateResponse>;
   };
   recentsFavorites: RecentsFavoritesAPI;
-  on: (channel: string, callback: (event: any) => void) => void;
+  on: (channel: string, callback: (event: any, data: any) => void) => (() => void) | undefined;
 }
 
 // Extend Window interface to include electronAPI

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to PDF
 - Bookmarks
 
-## [0.6.0] - 2026-01-22
+## [0.6.1] - 2026-01-22
 - improved dark theme
 - enable html markup in the md files (purified)
 - last version changes in the about box
@@ -19,8 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - markdown footnotes
 - markdown containers (info, warning, error)
 
-## [0.6.0] - 2026-01-17
-
+## [0.5.16] - 2026-01-17
 
 ### Fixes
 - Update packaging to use GitHub action and not Electron publishing

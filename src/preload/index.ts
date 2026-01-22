@@ -105,7 +105,7 @@ export interface ElectronAPI {
     onRecentsUpdated: (callback: (event: RecentsUpdatedEvent) => void) => () => void;
     onFavoritesUpdated: (callback: (event: FavoritesUpdatedEvent) => void) => () => void;
   };
-  on: (channel: string, callback: (event: any, ...args: any[]) => void) => void;
+  on: (channel: string, callback: (event: any, ...args: any[]) => void) => (() => void) | undefined;
   // More APIs will be added in later phases
 }
 

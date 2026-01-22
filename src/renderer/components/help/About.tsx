@@ -180,7 +180,7 @@ export const About: React.FC<AboutProps> = ({ isOpen, onClose }) => {
                 type="button"
               >
                 <span className="about-dialog__changelog-title">
-                  What's New in {version}
+                  What&apos;s New in {version}
                   {releaseDate && (
                     <span className="about-dialog__changelog-date">
                       {releaseDate}

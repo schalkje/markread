@@ -159,25 +159,25 @@ export async function startWatching(
 
     // Watch for file changes (only markdown files due to ignored function)
     watcher
-      .on('add', (filePath) => {
+      .on('add', (filePath: string) => {
         // Double-check file extension (should already be filtered by ignored function)
         if (!isMarkdownFile(filePath)) return;
         console.log(`[file-watcher] File added: ${filePath}`);
         debouncedSend('add', filePath);
       })
-      .on('change', (filePath) => {
+      .on('change', (filePath: string) => {
         // Double-check file extension (should already be filtered by ignored function)
         if (!isMarkdownFile(filePath)) return;
         console.log(`[file-watcher] File changed: ${filePath}`);
         debouncedSend('change', filePath);
       })
-      .on('unlink', (filePath) => {
+      .on('unlink', (filePath: string) => {
         // Double-check file extension (should already be filtered by ignored function)s
         if (!isMarkdownFile(filePath)) return;
         console.log(`[file-watcher] File removed: ${filePath}`);
         debouncedSend('unlink', filePath);
       })
-      .on('error', (error) => {
+      .on('error', (error: Error) => {
         console.error(`[file-watcher] Watcher error for ${config.watcherId}:`, error);
         window.webContents.send('file:watchError', {
           watcherId: config.watcherId,

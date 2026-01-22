@@ -15,13 +15,13 @@ import mermaid from 'mermaid';
 import DOMPurify from 'isomorphic-dompurify';
 // @ts-expect-error - markdown-it-task-lists may not have types
 import taskLists from 'markdown-it-task-lists';
-// @ts-ignore - markdown-it-footnote may not have types
+// @ts-expect-error - markdown-it-footnote may not have types
 import footnote from 'markdown-it-footnote';
-// @ts-ignore - markdown-it-deflist may not have types
+// @ts-expect-error - markdown-it-deflist may not have types
 import deflist from 'markdown-it-deflist';
-// @ts-ignore - markdown-it-container may not have types
+// @ts-expect-error - markdown-it-container may not have types
 import container from 'markdown-it-container';
-// @ts-ignore - highlightjs-copy may not have types
+// @ts-expect-error - highlightjs-copy may not have types
 import CopyButtonPlugin from 'highlightjs-copy';
 
 /**
@@ -39,7 +39,7 @@ const md: MarkdownIt = new MarkdownIt({
    * We don't highlight here because highlightjs-copy needs DOM elements
    * Highlighting is applied in applySyntaxHighlighting() after render
    */
-  highlight: (code: string, _language: string): string => {
+  highlight: (code: string): string => {
     // Just escape HTML - markdown-it will wrap this in <pre><code class="language-xxx">
     // The post-render applySyntaxHighlighting() will do actual highlighting
     return MarkdownIt().utils.escapeHtml(code);
@@ -82,11 +82,8 @@ const containerTypes = [
 containerTypes.forEach(({ name, defaultTitle }) => {
   md.use(container, name, {
     render: function (
-      tokens: any[],
-      idx: number,
-      _options: any,
-      _env: any,
-      _self: any
+      tokens: { nesting: number; info: string }[],
+      idx: number
     ): string {
       const token = tokens[idx];
 
