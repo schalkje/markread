@@ -1,13 +1,6 @@
 
 # Small issues
 
-- Dark mode findings:
-    - home page stays white in dark mode
-        - header text changes font color
-        - explanation text does not
-        - branch icon stays light too, text changes to darm mode
-    - Open repository button stays light
-    - About box stays light, some text change
 
 - if a folder or repo/branch is opened, and the golder contains files open them in this order:
   - README.md, index.md, first file alphabetically
