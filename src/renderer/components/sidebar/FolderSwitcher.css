@@ -411,7 +411,7 @@
   font-weight: bold;
 }
 
-/* Dark theme support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .folder-switcher {
     --switcher-bg: #161b22;
@@ -443,6 +443,38 @@
   .folder-switcher__branch-picker-dropdown {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .folder-switcher {
+  --switcher-bg: #161b22;
+  --switcher-hover-bg: #21262d;
+  --switcher-active-bg: #1f6feb;
+  --dropdown-bg: #161b22;
+  --border-color: #30363d;
+  --border-light: #21262d;
+  --border-hover-color: #484f58;
+  --text-primary: #e6edf3;
+  --text-secondary: #7d8590;
+  --text-tertiary: #484f58;
+  --item-hover-bg: #21262d;
+  --item-active-bg: #1f6feb;
+  --accent-color: #58a6ff;
+  --close-hover-bg: #5a1e1e;
+  --danger-color: #ff7b72;
+  --scrollbar-thumb: #484f58;
+  --repo-header-bg: #0d1117;
+  --repo-header-hover-bg: #161b22;
+  --branch-nested-bg: #0d1117;
+  --input-bg: #0d1117;
+}
+
+[data-theme="dark"] .folder-switcher__dropdown {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .folder-switcher__branch-picker-dropdown {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* High contrast mode */

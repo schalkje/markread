@@ -124,7 +124,7 @@
   color: var(--accent-color, #0969da);
 }
 
-/* Dark theme support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .file-tree {
     --tree-bg: #0d1117;
@@ -139,6 +139,21 @@
     --scrollbar-thumb: #484f58;
     --scrollbar-thumb-hover: #6e7681;
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .file-tree {
+  --tree-bg: #0d1117;
+  --text-primary: #e6edf3;
+  --text-secondary: #7d8590;
+  --text-tertiary: #484f58;
+  --item-hover-bg: #161b22;
+  --item-selected-bg: #1f6feb;
+  --accent-color: #58a6ff;
+  --border-color: #30363d;
+  --notice-bg: #161b22;
+  --scrollbar-thumb: #484f58;
+  --scrollbar-thumb-hover: #6e7681;
 }
 
 /* High contrast mode */
@@ -314,7 +329,7 @@
   white-space: nowrap;
 }
 
-/* Dark theme for overlay */
+/* Dark theme for overlay - via system preference */
 @media (prefers-color-scheme: dark) {
   .file-tree__direct-file-overlay {
     --overlay-bg: rgba(13, 17, 23, 0.95);
@@ -336,4 +351,26 @@
     --file-item-active-bg: #1f6feb;
     --border-color: #30363d;
   }
+}
+
+/* Dark theme for overlay - via manual theme selection */
+[data-theme="dark"] .file-tree__direct-file-overlay {
+  --overlay-bg: rgba(13, 17, 23, 0.95);
+}
+
+[data-theme="dark"] .file-tree__open-folder-button {
+  --accent-color: #1f6feb;
+  --accent-color-hover: #388bfd;
+  --accent-color-active: #1a69db;
+}
+
+[data-theme="dark"] .file-tree__open-files {
+  --files-list-bg: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .file-tree__open-file-item {
+  --file-item-bg: #161b22;
+  --file-item-hover-bg: #21262d;
+  --file-item-active-bg: #1f6feb;
+  --border-color: #30363d;
 }

@@ -17,6 +17,10 @@
 - on the home page I sometimes see double entries of the same folder; only difference are the \ vs /
 - 
 
+## toggle full screen
+
+not working yet
+
 # Clean up wpf
 Clean all files that are related to wpf or dotnet development. They should not be needed anymore in the electron solution.
 

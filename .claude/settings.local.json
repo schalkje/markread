@@ -36,7 +36,13 @@
       "Bash(git fetch:*)",
       "Bash(git rev-parse:*)",
       "Bash(git -C C:/repo/markread.worktrees/001-search-find rev-parse:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(grep:*)",
+      "Bash(while read f)",
+      "Bash(do if ! grep -q 'data-theme=\"\"dark\"\"' \"$f\")",
+      "Bash(then echo \"$f\")",
+      "Bash(fi)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

@@ -202,7 +202,7 @@
   }
 }
 
-/* Dark theme support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .pane {
     --pane-bg: #0d1117;
@@ -225,6 +225,29 @@
   .pane__toc-panel {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .pane {
+  --pane-bg: #0d1117;
+  --border-color: #30363d;
+  --border-hover-color: #484f58;
+  --text-primary: #e6edf3;
+  --text-secondary: #7d8590;
+  --text-tertiary: #484f58;
+  --button-bg: #21262d;
+  --button-hover-bg: #30363d;
+  --button-active-bg: #161b22;
+  --panel-bg: #161b22;
+  --divider-bg: #30363d;
+  --divider-hover-bg: #58a6ff;
+  --accent-color: #58a6ff;
+  --divider-handle-bg: rgba(255, 255, 255, 0.1);
+  --divider-handle-hover-bg: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .pane__toc-panel {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 /* High contrast mode */

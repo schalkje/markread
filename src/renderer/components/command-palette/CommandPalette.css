@@ -206,7 +206,7 @@
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
 }
 
-/* Dark theme support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .command-palette-backdrop {
     background: rgba(0, 0, 0, 0.7);
@@ -234,6 +234,31 @@
   .command-palette {
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .command-palette-backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .command-palette {
+  --palette-bg: #161b22;
+  --palette-search-bg: #0d1117;
+  --palette-footer-bg: #0d1117;
+  --border-color: #30363d;
+  --border-light: #21262d;
+  --text-primary: #e6edf3;
+  --text-secondary: #7d8590;
+  --text-tertiary: #484f58;
+  --item-hover-bg: #21262d;
+  --item-selected-bg: #1f6feb;
+  --accent-color: #58a6ff;
+  --category-bg: #21262d;
+  --shortcut-bg: #21262d;
+  --kbd-bg: #0d1117;
+  --scrollbar-thumb: #484f58;
+  --scrollbar-thumb-hover: #6e7681;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
 }
 
 /* High contrast mode */

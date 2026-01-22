@@ -506,20 +506,92 @@
   width: 100%;
 }
 
-/* Dark mode support */
+/* Dark mode support - via system preference */
 @media (prefers-color-scheme: dark) {
   .repo-connect-dialog {
-    --bg-primary: #2a2a2a;
-    --bg-secondary: #1e1e1e;
-    --text-primary: #e0e0e0;
-    --text-secondary: #b0b0b0;
-    --text-tertiary: #808080;
-    --border-color: #404040;
-    --hover-bg: #3a3a3a;
-    --disabled-bg: #2a2a2a;
-    --btn-secondary-bg: #3a3a3a;
-    --btn-secondary-hover: #4a4a4a;
-    --primary-color: #4a9eff;
-    --primary-hover: #3a8eef;
+    --bg-primary: #161b22;
+    --bg-secondary: #0d1117;
+    --text-primary: #e6edf3;
+    --text-secondary: #7d8590;
+    --text-tertiary: #484f58;
+    --border-color: #30363d;
+    --hover-bg: #21262d;
+    --disabled-bg: #161b22;
+    --btn-secondary-bg: #21262d;
+    --btn-secondary-hover: #30363d;
+    --primary-color: #58a6ff;
+    --primary-hover: #388bfd;
   }
+
+  .repo-connect-dialog__device-flow-status {
+    background-color: #1c3a5e;
+    border-left-color: #58a6ff;
+  }
+
+  .repo-connect-dialog__device-flow-message {
+    color: #a5d6ff;
+  }
+
+  .repo-connect-dialog__device-code-box {
+    background-color: #0d1117;
+    border-color: #58a6ff;
+  }
+
+  .repo-connect-dialog__device-code-label {
+    color: #7d8590;
+  }
+
+  .repo-connect-dialog__device-code {
+    color: #a5d6ff;
+  }
+
+  .repo-connect-dialog__error {
+    background-color: #3d1a1a;
+    border-left-color: #f85149;
+    color: #f85149;
+  }
+}
+
+/* Dark mode support - via manual theme selection */
+[data-theme="dark"] .repo-connect-dialog {
+  --bg-primary: #161b22;
+  --bg-secondary: #0d1117;
+  --text-primary: #e6edf3;
+  --text-secondary: #7d8590;
+  --text-tertiary: #484f58;
+  --border-color: #30363d;
+  --hover-bg: #21262d;
+  --disabled-bg: #161b22;
+  --btn-secondary-bg: #21262d;
+  --btn-secondary-hover: #30363d;
+  --primary-color: #58a6ff;
+  --primary-hover: #388bfd;
+}
+
+[data-theme="dark"] .repo-connect-dialog__device-flow-status {
+  background-color: #1c3a5e;
+  border-left-color: #58a6ff;
+}
+
+[data-theme="dark"] .repo-connect-dialog__device-flow-message {
+  color: #a5d6ff;
+}
+
+[data-theme="dark"] .repo-connect-dialog__device-code-box {
+  background-color: #0d1117;
+  border-color: #58a6ff;
+}
+
+[data-theme="dark"] .repo-connect-dialog__device-code-label {
+  color: #7d8590;
+}
+
+[data-theme="dark"] .repo-connect-dialog__device-code {
+  color: #a5d6ff;
+}
+
+[data-theme="dark"] .repo-connect-dialog__error {
+  background-color: #3d1a1a;
+  border-left-color: #f85149;
+  color: #f85149;
 }

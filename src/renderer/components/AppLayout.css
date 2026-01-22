@@ -398,7 +398,7 @@
   display: block;
 }
 
-/* Dark theme support */
+/* Dark theme support - via system preference */
 @media (prefers-color-scheme: dark) {
   .sidebar-open-folder-button {
     --accent-color: #1f6feb;
@@ -416,4 +416,22 @@
     --file-item-active-bg: #1f6feb;
     --border-color: #30363d;
   }
+}
+
+/* Dark theme support - via manual theme selection */
+[data-theme="dark"] .sidebar-open-folder-button {
+  --accent-color: #1f6feb;
+  --accent-color-hover: #388bfd;
+  --accent-color-active: #1a69db;
+}
+
+[data-theme="dark"] .sidebar-open-files {
+  --files-list-bg: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .sidebar-open-file-item {
+  --file-item-bg: #161b22;
+  --file-item-hover-bg: #21262d;
+  --file-item-active-bg: #1f6feb;
+  --border-color: #30363d;
 }
