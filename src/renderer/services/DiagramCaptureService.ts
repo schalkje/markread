@@ -3,7 +3,6 @@
  * Handles capturing mermaid diagrams as PNG or SVG
  */
 
-import html2canvas from 'html2canvas';
 import { ClipboardError, ClipboardErrorCode } from '../../shared/types/clipboard';
 
 export interface CaptureOptions {
@@ -13,34 +12,82 @@ export interface CaptureOptions {
 
 export class DiagramCaptureService {
   /**
-   * Capture diagram as PNG using html2canvas
+   * Capture diagram as PNG by rendering SVG to canvas
    */
   async captureAsPNG(
     element: HTMLElement,
     options: CaptureOptions = {}
   ): Promise<Blob> {
+    const svgElement = element.querySelector('svg');
+    if (!svgElement) {
+      throw new ClipboardError(
+        ClipboardErrorCode.CAPTURE_FAILED,
+        'No SVG element found in diagram',
+        false
+      );
+    }
+
     try {
-      const canvas = await html2canvas(element, {
-        background: options.backgroundColor !== undefined ? options.backgroundColor : undefined,
-        scale: options.scale || 2, // High DPI for better quality
-        useCORS: true, // Handle external images
-        logging: false
-      } as any);
+      const scale = options.scale || 2;
+
+      // Clone SVG and prepare for standalone rendering
+      const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
+      this.inlineStyles(clonedSvg);
+      this.applyExportColors(clonedSvg);
+
+      // Ensure the SVG has explicit dimensions
+      const bbox = svgElement.getBoundingClientRect();
+      const width = bbox.width;
+      const height = bbox.height;
+      clonedSvg.setAttribute('width', `${width}`);
+      clonedSvg.setAttribute('height', `${height}`);
+
+      // Serialize SVG to data URL
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(clonedSvg);
+      const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+
+      // Draw SVG onto canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Failed to get canvas 2d context');
+      }
+
+      // Fill with white background
+      ctx.fillStyle = options.backgroundColor || '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale);
 
       return new Promise((resolve, reject) => {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new ClipboardError(
-              ClipboardErrorCode.CAPTURE_FAILED,
-              'Failed to capture diagram as PNG',
-              true
-            ));
-          }
-        }, 'image/png');
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new ClipboardError(
+                ClipboardErrorCode.CAPTURE_FAILED,
+                'Failed to convert canvas to PNG blob',
+                true
+              ));
+            }
+          }, 'image/png');
+        };
+        img.onerror = () => {
+          reject(new ClipboardError(
+            ClipboardErrorCode.CAPTURE_FAILED,
+            'Failed to load SVG as image',
+            true
+          ));
+        };
+        img.src = svgDataUrl;
       });
     } catch (error) {
+      if (error instanceof ClipboardError) throw error;
       throw new ClipboardError(
         ClipboardErrorCode.CAPTURE_FAILED,
         `Failed to capture diagram: ${error instanceof Error ? error.message : 'Unknown error'}`,
