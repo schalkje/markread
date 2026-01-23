@@ -17,6 +17,8 @@ import { renderMarkdown, renderMermaidDiagrams, applySyntaxHighlighting } from '
 import { CustomScrollbar, ScrollbarMarker } from '../scrollbar/CustomScrollbar';
 import { extractHeadingMarkers } from '../../utils/marker-extractor';
 import { useSearchStore } from '../../stores/search'; // T014: Import search store
+import { useDiagramHoverButtons } from '../DiagramHoverButtons'; // T032: Import diagram hover buttons
+import '../DiagramHoverButtons.css'; // T031: Import diagram hover buttons styles
 import './MarkdownViewer.css';
 
 export interface MarkdownViewerProps {
@@ -107,6 +109,29 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Track current zoom level without triggering re-renders (for smooth wheel zoom)
   const currentZoomRef = useRef<number>(zoomLevel);
   const zoomUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // T032: Diagram hover buttons - attaches action buttons to rendered mermaid diagrams
+  useDiagramHoverButtons({
+    containerRef: viewerRef,
+    onActionComplete: (action, success, errorMsg) => {
+      // Dispatch toast event for action results
+      if (success) {
+        const labels: Record<string, string> = {
+          'copy-png': 'Copied as PNG',
+          'copy-svg': 'Copied as SVG',
+          'copy-code': 'Code copied',
+          'download': 'Download started',
+        };
+        window.dispatchEvent(new CustomEvent('diagram:action-complete', {
+          detail: { message: labels[action] || 'Action completed', type: 'success' },
+        }));
+      } else {
+        window.dispatchEvent(new CustomEvent('diagram:action-complete', {
+          detail: { message: errorMsg || 'Action failed', type: 'error' },
+        }));
+      }
+    },
+  });
 
   // T014: Search store access for highlighting
   const {

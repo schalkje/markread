@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { exposeGitAPI } from './git-api';
 import { exposeSearchAPI } from './search-api';
+import { exposeExportAPI } from './export-api';
+import type { ExportAPI } from './export-api';
 import { IPC_CHANNELS } from '@shared/types/recents-favorites';
 import type {
   RecentItem,
@@ -195,6 +197,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       // T004: Search menu events
       'menu:find',
       'menu:find-in-files',
+      // T016: Export events
+      'export:progress',
+      'menu:export-pdf',
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, callback);
@@ -226,10 +231,25 @@ try {
   console.error('[Preload] Failed to expose Search API:', error);
 }
 
+// T015: Expose Export API
+try {
+  console.log('[Preload] Exposing Export API...');
+  exposeExportAPI();
+  console.log('[Preload] Export API exposed successfully');
+} catch (error) {
+  console.error('[Preload] Failed to expose Export API:', error);
+}
+
 // T006: Type declaration for global window object
 declare global {
   interface Window {
-    electronAPI: ElectronAPI;
+    electronAPI: ElectronAPI & {
+      export?: {
+        getSettings: () => Promise<any>;
+        updateSettings: (settings: any) => Promise<any>;
+      };
+    };
+    exportApi: ExportAPI;
     git: {
       repo: {
         connect: (request: any) => Promise<any>;

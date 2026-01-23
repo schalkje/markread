@@ -157,3 +157,83 @@ body {
   background: #b3d4fc;
   color: #000;
 }
+
+/* T021: Print styles for PDF export */
+@media print {
+  /* Hide non-content UI elements */
+  .title-bar,
+  .sidebar,
+  .tab-bar,
+  .statusbar,
+  .toolbar,
+  .toast,
+  .error-dialog-overlay,
+  .export-progress-overlay,
+  .find-bar,
+  .zoom-controls,
+  .mermaid-actions,
+  .diagram-actions,
+  .scrollbar-track,
+  .custom-scrollbar__track {
+    display: none !important;
+  }
+
+  /* Reset layout for print */
+  html, body, #root {
+    height: auto;
+    overflow: visible;
+  }
+
+  .app-layout {
+    display: block;
+    height: auto;
+  }
+
+  .main-content {
+    overflow: visible;
+  }
+
+  .editor-area {
+    overflow: visible;
+  }
+
+  /* Content styling for print */
+  .markdown-viewer {
+    padding: 0;
+    transform: none !important;
+  }
+
+  .markdown-viewer__content {
+    transform: none !important;
+  }
+
+  /* Page break handling */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  pre, code, table, figure, img {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Ensure links show URLs in print */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* Print-friendly code blocks */
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    border: 1px solid #ddd;
+  }
+}

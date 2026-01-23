@@ -511,6 +511,20 @@ export const FileTree: React.FC<FileTreeProps> = ({
     }));
   };
 
+  // T077: Export file to PDF from context menu
+  const handleContextMenuExportToPdf = (filePath: string) => {
+    window.dispatchEvent(new CustomEvent('export-file-to-pdf', {
+      detail: { filePath }
+    }));
+  };
+
+  // T072: Export folder to PDF from context menu
+  const handleContextMenuExportFolderToPdf = (folderPath: string) => {
+    window.dispatchEvent(new CustomEvent('export-folder-to-pdf', {
+      detail: { folderPath }
+    }));
+  };
+
   // Flatten tree for rendering (needed for virtualization)
   const flattenedNodes = useMemo(() => {
     const result: Array<FileTreeNode & { isExpanded: boolean }> = [];
@@ -586,6 +600,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
           onOpenInNewWindow={handleContextMenuOpenInNewWindow}
           onViewFolder={handleContextMenuViewFolder}
           onOpenAsNewFolder={handleContextMenuOpenAsNewFolder}
+          onExportToPdf={handleContextMenuExportToPdf}
+          onExportFolderToPdf={handleContextMenuExportFolderToPdf}
           onHide={() => setContextMenu(null)}
         />
       )}

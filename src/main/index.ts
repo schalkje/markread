@@ -2,6 +2,7 @@ import { app, BrowserWindow, net, session } from 'electron';
 
 import { createWindow } from './window-manager';
 import { registerIpcHandlers } from './ipc-handlers';
+import { registerExportHandlers } from './ipc/export-handlers';
 import { initLogger } from './logger';
 import { loadUIState } from './ui-state-manager';
 import { initAutoUpdater, cleanupAutoUpdater } from './auto-updater';
@@ -124,6 +125,9 @@ app.whenReady().then(async () => {
 
     // T011: Register all IPC handlers (must be done after window is created)
     registerIpcHandlers(mainWindow);
+
+    // T016: Register export IPC handlers
+    registerExportHandlers(mainWindow);
 
     // T037: Initialize auto-updater (skip in dev mode, portable mode)
     initAutoUpdater();

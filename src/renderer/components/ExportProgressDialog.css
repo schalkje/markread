@@ -1,0 +1,169 @@
+/**
+ * ExportProgressDialog Styles
+ * Task: T017
+ */
+
+.export-progress-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  animation: overlay-fade-in 0.15s ease-out;
+}
+
+.export-progress-dialog {
+  background: var(--dialog-bg, #ffffff);
+  border: 1px solid var(--dialog-border, #d0d7de);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 380px;
+  padding: 20px;
+  animation: dialog-slide-in 0.2s ease-out;
+}
+
+.export-progress__title {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dialog-title-color, #24292f);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-icon--success {
+  color: #1a7f37;
+}
+
+.progress-icon--error {
+  color: #cf222e;
+}
+
+.export-progress__content {
+  margin-bottom: 16px;
+}
+
+.export-progress__message {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--dialog-text-color, #24292f);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.export-progress__bar-container {
+  width: 100%;
+  height: 8px;
+  background: var(--progress-track, #eaeef2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.export-progress__bar {
+  height: 100%;
+  background: var(--progress-fill, #0969da);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.export-progress__percent {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--dialog-secondary-text, #57606a);
+  text-align: right;
+}
+
+.export-progress__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.export-progress__button {
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.export-progress__button--cancel {
+  background: var(--button-secondary-bg, #f6f8fa);
+  color: var(--button-secondary-text, #24292f);
+  border-color: var(--button-secondary-border, #d0d7de);
+}
+
+.export-progress__button--cancel:hover {
+  background: var(--button-secondary-hover-bg, #eaeef2);
+}
+
+.export-progress__button--close {
+  background: var(--button-primary-bg, #0969da);
+  color: var(--button-primary-text, #ffffff);
+  border-color: var(--button-primary-border, #0969da);
+}
+
+.export-progress__button--close:hover {
+  background: var(--button-primary-hover-bg, #0860c4);
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+  .export-progress-dialog {
+    --dialog-bg: #161b22;
+    --dialog-border: #30363d;
+    --dialog-title-color: #e6edf3;
+    --dialog-text-color: #e6edf3;
+    --dialog-secondary-text: #8b949e;
+    --progress-track: #21262d;
+    --progress-fill: #1f6feb;
+    --button-primary-bg: #1f6feb;
+    --button-primary-border: #1f6feb;
+    --button-primary-hover-bg: #388bfd;
+    --button-secondary-bg: #21262d;
+    --button-secondary-text: #c9d1d9;
+    --button-secondary-border: #30363d;
+    --button-secondary-hover-bg: #30363d;
+  }
+
+  .progress-icon--success {
+    color: #3fb950;
+  }
+
+  .progress-icon--error {
+    color: #f85149;
+  }
+}
+
+[data-theme="dark"] .export-progress-dialog {
+  --dialog-bg: #161b22;
+  --dialog-border: #30363d;
+  --dialog-title-color: #e6edf3;
+  --dialog-text-color: #e6edf3;
+  --dialog-secondary-text: #8b949e;
+  --progress-track: #21262d;
+  --progress-fill: #1f6feb;
+  --button-primary-bg: #1f6feb;
+  --button-primary-border: #1f6feb;
+  --button-primary-hover-bg: #388bfd;
+  --button-secondary-bg: #21262d;
+  --button-secondary-text: #c9d1d9;
+  --button-secondary-border: #30363d;
+  --button-secondary-hover-bg: #30363d;
+}
+
+[data-theme="dark"] .progress-icon--success {
+  color: #3fb950;
+}
+
+[data-theme="dark"] .progress-icon--error {
+  color: #f85149;
+}

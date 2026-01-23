@@ -76,6 +76,12 @@
   }
 }
 
+.file-tree-context-menu__separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--color-border, #d0d7de);
+}
+
 /* Dark theme support - via manual theme selection */
 [data-theme="dark"] .file-tree-context-menu {
   background: var(--color-surface-2, #161b22);

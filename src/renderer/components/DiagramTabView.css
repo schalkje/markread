@@ -1,0 +1,124 @@
+/**
+ * DiagramTabView Styles
+ * Task: T044
+ */
+
+.diagram-tab-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--diagram-bg, #fafbfc);
+}
+
+.diagram-tab-view__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--diagram-border, #d0d7de);
+  background: var(--toolbar-bg, #ffffff);
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.diagram-tab-view__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--diagram-title-color, #57606a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diagram-tab-view__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.diagram-tab-view__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--btn-text, #57606a);
+  background: var(--btn-bg, #f6f8fa);
+  border: 1px solid var(--btn-border, #d0d7de);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+  min-width: 28px;
+  height: 28px;
+}
+
+.diagram-tab-view__button:hover:not(:disabled) {
+  background: var(--btn-hover-bg, #eaeef2);
+  color: var(--btn-hover-text, #24292f);
+}
+
+.diagram-tab-view__button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.diagram-tab-view__zoom-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--diagram-title-color, #57606a);
+  min-width: 40px;
+  text-align: center;
+}
+
+.diagram-tab-view__canvas {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.diagram-tab-view__canvas--panning {
+  cursor: grabbing;
+}
+
+.diagram-tab-view__content {
+  transition: transform 0.1s ease-out;
+  will-change: transform;
+}
+
+.diagram-tab-view__content svg {
+  display: block;
+  max-width: none;
+  max-height: none;
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+  .diagram-tab-view {
+    --diagram-bg: #0d1117;
+    --diagram-border: #30363d;
+    --toolbar-bg: #161b22;
+    --diagram-title-color: #8b949e;
+    --btn-text: #8b949e;
+    --btn-bg: #21262d;
+    --btn-border: #30363d;
+    --btn-hover-bg: #30363d;
+    --btn-hover-text: #e6edf3;
+  }
+}
+
+[data-theme="dark"] .diagram-tab-view {
+  --diagram-bg: #0d1117;
+  --diagram-border: #30363d;
+  --toolbar-bg: #161b22;
+  --diagram-title-color: #8b949e;
+  --btn-text: #8b949e;
+  --btn-bg: #21262d;
+  --btn-border: #30363d;
+  --btn-hover-bg: #30363d;
+  --btn-hover-text: #e6edf3;
+}

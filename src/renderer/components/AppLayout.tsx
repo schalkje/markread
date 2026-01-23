@@ -41,6 +41,14 @@ import {
 } from '../services/keyboard-handler';
 import { ShortcutsReference } from './help/ShortcutsReference';
 import { About } from './help/About';
+import { ErrorDialog } from './ErrorDialog'; // T022: Import ErrorDialog
+import { ExportProgressDialog } from './ExportProgressDialog'; // T017: Import ExportProgressDialog
+import { DiagramTabView } from './DiagramTabView'; // T039: Import DiagramTabView
+import { CopyFormatPicker } from './CopyFormatPicker'; // T050: Import CopyFormatPicker
+import { CopyContextMenu } from './CopyContextMenu'; // T054: Import CopyContextMenu
+import { useCopyShortcuts } from '../hooks/useCopyShortcuts'; // T051: Import useCopyShortcuts
+import { getTextSelectionService } from '../services/TextSelectionService'; // T055: Import TextSelectionService
+import { useExport } from '../hooks/useExport'; // T018: Import useExport hook
 import { FindBar } from './search/FindBar'; // T008: Import FindBar component
 import { SearchResults } from './search/SearchResults'; // T035: Import SearchResults component
 import { useSearchStore } from '../stores/search'; // T009: Import search store
@@ -97,8 +105,52 @@ const AppLayout: React.FC = () => {
   // T009: Search bar visibility state
   const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
 
+  // T043: Diagram tab data (svgContent + mermaidCode for diagram tabs)
+  const diagramDataRef = useRef<Map<string, { svgContent: string; mermaidCode: string }>>(new Map());
+
+  // T055: Ref for the main content container (used by copy shortcuts)
+  const mainContentRef = useRef<HTMLDivElement>(null);
+
+  // T054: Context menu state for text selection copy
+  const [showCopyContextMenu, setShowCopyContextMenu] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+
+  // T051-T053: Copy shortcuts hook
+  const {
+    showFormatPicker,
+    pickerPosition,
+    closeFormatPicker,
+    copyAs,
+  } = useCopyShortcuts({
+    containerRef: mainContentRef,
+    onCopySuccess: (format) => {
+      const formatLabel = format === 'rich' ? 'Rich Text' : format === 'markdown' ? 'Markdown' : 'Plain Text';
+      setToast({ message: `Copied as ${formatLabel}`, type: 'success' });
+    },
+    onCopyError: (error) => {
+      setToast({ message: `Copy failed: ${error.message}`, type: 'error' });
+    },
+  });
+
   // T009: Access search store for find-in-page functionality
   const searchStore = useSearchStore();
+
+  // T018: Export hook for PDF export with progress tracking
+  const {
+    showProgressDialog: showExportProgress,
+    showErrorDialog: showExportError,
+    currentError: exportError,
+    progress: exportProgress,
+    status: exportStatus,
+    exportCurrentPage,
+    exportFolder,
+    exportFile,
+    cancelExport,
+    dismissProgress: dismissExportProgress,
+    dismissError: dismissExportError,
+    retryExport,
+    viewLogs: viewExportLogs,
+  } = useExport();
 
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
@@ -860,6 +912,153 @@ const AppLayout: React.FC = () => {
     window.addEventListener('menu:find-in-files', handleFindInFiles);
     return () => {
       window.removeEventListener('menu:find-in-files', handleFindInFiles);
+    };
+  }, []);
+
+  // T020: Listen for menu:export-pdf events to trigger PDF export
+  useEffect(() => {
+    const handleExportPdf = async () => {
+      // Get the rendered HTML content from the markdown viewer
+      const viewerContent = document.querySelector('.markdown-viewer__content');
+      if (!viewerContent) {
+        setToast({ message: 'No document content to export', type: 'warning' });
+        return;
+      }
+
+      // Get the rendered HTML and wrap in a full document
+      const renderedHtml = viewerContent.innerHTML;
+
+      const htmlDocument = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${activeTab?.title || 'Document'}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #24292f;
+      max-width: none;
+      padding: 20px 40px;
+      margin: 0;
+    }
+    img { max-width: 100%; }
+    pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    code { font-family: 'Cascadia Code', Consolas, monospace; font-size: 85%; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
+    th { background: #f6f8fa; font-weight: 600; }
+    blockquote { border-left: 4px solid #d0d7de; margin: 0; padding: 0 16px; color: #57606a; }
+    h1, h2, h3, h4, h5, h6 { margin-top: 24px; margin-bottom: 16px; font-weight: 600; line-height: 1.25; }
+    h1 { font-size: 2em; padding-bottom: 0.3em; border-bottom: 1px solid #d8dee4; }
+    h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #d8dee4; }
+    hr { border: none; border-top: 1px solid #d8dee4; margin: 24px 0; }
+    a { color: #0969da; text-decoration: none; }
+    @media print {
+      body { padding: 0; }
+      pre { white-space: pre-wrap; word-wrap: break-word; }
+      .mermaid-actions, .diagram-actions { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  ${renderedHtml}
+</body>
+</html>`;
+
+      // Derive default filename from current file path
+      const defaultFilename = currentFile
+        ? currentFile.replace(/\.[^.]+$/, '.pdf').split(/[/\\]/).pop()
+        : 'document.pdf';
+
+      await exportCurrentPage(htmlDocument, defaultFilename);
+    };
+
+    window.addEventListener('menu:export-pdf', handleExportPdf);
+    return () => {
+      window.removeEventListener('menu:export-pdf', handleExportPdf);
+    };
+  }, [activeTab, currentFile, exportCurrentPage]);
+
+  // T037: Listen for diagram action completion events (copy/download toasts)
+  useEffect(() => {
+    const handleDiagramAction = (e: Event) => {
+      const { message, type } = (e as CustomEvent).detail;
+      setToast({ message, type });
+    };
+
+    window.addEventListener('diagram:action-complete', handleDiagramAction);
+    return () => {
+      window.removeEventListener('diagram:action-complete', handleDiagramAction);
+    };
+  }, []);
+
+  // T072: Listen for export-folder-to-pdf events from file tree context menu
+  useEffect(() => {
+    const handleExportFolder = async (e: Event) => {
+      const { folderPath } = (e as CustomEvent).detail;
+      if (folderPath) {
+        await exportFolder(folderPath);
+      }
+    };
+
+    window.addEventListener('export-folder-to-pdf', handleExportFolder);
+    return () => {
+      window.removeEventListener('export-folder-to-pdf', handleExportFolder);
+    };
+  }, [exportFolder]);
+
+  // T077: Listen for export-file-to-pdf events from file tree context menu
+  useEffect(() => {
+    const handleExportFile = async (e: Event) => {
+      const { filePath } = (e as CustomEvent).detail;
+      if (filePath) {
+        await exportFile(filePath);
+      }
+    };
+
+    window.addEventListener('export-file-to-pdf', handleExportFile);
+    return () => {
+      window.removeEventListener('export-file-to-pdf', handleExportFile);
+    };
+  }, [exportFile]);
+
+  // T042-T043: Listen for diagram:open-tab events to open diagrams in dedicated tabs
+  useEffect(() => {
+    const handleOpenDiagramTab = (e: Event) => {
+      const { svgContent, mermaidCode } = (e as CustomEvent).detail;
+      if (!svgContent) return;
+
+      // Generate a unique tab ID for this diagram
+      const diagramTabId = `diagram-${Date.now()}`;
+
+      // Store diagram data
+      diagramDataRef.current.set(diagramTabId, { svgContent, mermaidCode });
+
+      // Create a new tab for the diagram
+      const { addTab } = useTabsStore.getState();
+      addTab({
+        id: diagramTabId,
+        filePath: `diagram://${diagramTabId}`,
+        title: 'Mermaid Diagram',
+        scrollPosition: 0,
+        zoomLevel: 100,
+        searchState: null,
+        modificationTimestamp: Date.now(),
+        isDirty: false,
+        renderCache: null,
+        navigationHistory: [],
+        currentHistoryIndex: -1,
+        forwardHistory: [],
+        createdAt: Date.now(),
+        folderId: null,
+        isDirectFile: true,
+      });
+    };
+
+    window.addEventListener('diagram:open-tab', handleOpenDiagramTab);
+    return () => {
+      window.removeEventListener('diagram:open-tab', handleOpenDiagramTab);
     };
   }, []);
 
@@ -2886,7 +3085,15 @@ const AppLayout: React.FC = () => {
           </div>
         )}
 
-        <div className="main-content">
+        <div className="main-content" ref={mainContentRef} onContextMenu={(e) => {
+          // T054: Show copy context menu on right-click when text is selected
+          const selectionService = getTextSelectionService();
+          if (selectionService.hasSelection(mainContentRef.current || undefined)) {
+            e.preventDefault();
+            setContextMenuPosition({ x: e.clientX, y: e.clientY });
+            setShowCopyContextMenu(true);
+          }
+        }}>
         {/* T060, T063a-T063o: TabBar with enhanced features - only show if there are tabs */}
         {hasTabs && (
           <TabBar
@@ -3280,6 +3487,12 @@ const AppLayout: React.FC = () => {
                   type: 'success',
                 });
               }}
+            />
+          ) : currentFile?.startsWith('diagram://') ? (
+            <DiagramTabView
+              svgContent={diagramDataRef.current.get(activeTabId || '')?.svgContent || ''}
+              mermaidCode={diagramDataRef.current.get(activeTabId || '')?.mermaidCode || ''}
+              title="Mermaid Diagram"
             />
           ) : (
             <MarkdownViewer
@@ -3757,6 +3970,45 @@ const AppLayout: React.FC = () => {
           });
         }}
       />
+
+      {/* T050: Copy Format Picker (Ctrl+Shift+C) */}
+      <CopyFormatPicker
+        isOpen={showFormatPicker}
+        position={pickerPosition}
+        onSelect={copyAs}
+        onClose={closeFormatPicker}
+      />
+
+      {/* T054: Copy Context Menu (right-click on selected text) */}
+      <CopyContextMenu
+        isOpen={showCopyContextMenu}
+        position={contextMenuPosition}
+        onSelect={(format) => {
+          copyAs(format);
+          setShowCopyContextMenu(false);
+        }}
+        onClose={() => setShowCopyContextMenu(false)}
+      />
+
+      {/* T017: Export Progress Dialog */}
+      <ExportProgressDialog
+        visible={showExportProgress}
+        progress={exportProgress}
+        status={exportStatus}
+        onCancel={cancelExport}
+        onClose={dismissExportProgress}
+      />
+
+      {/* T022: Export Error Dialog */}
+      {showExportError && exportError && (
+        <ErrorDialog
+          error={exportError}
+          title="Export Failed"
+          onRetry={retryExport}
+          onViewLogs={viewExportLogs}
+          onClose={dismissExportError}
+        />
+      )}
     </div>
   );
 };

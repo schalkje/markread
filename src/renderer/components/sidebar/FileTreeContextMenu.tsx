@@ -29,6 +29,10 @@ export interface FileTreeContextMenuProps {
   onViewFolder?: (path: string) => void;
   /** Callback when open as new folder is clicked */
   onOpenAsNewFolder?: (path: string) => void;
+  /** T077: Callback when export file to PDF is clicked */
+  onExportToPdf?: (path: string) => void;
+  /** T072: Callback when export folder to PDF is clicked */
+  onExportFolderToPdf?: (path: string) => void;
   /** Callback when menu should be hidden */
   onHide: () => void;
 }
@@ -46,6 +50,8 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
   onOpenInNewWindow,
   onViewFolder,
   onOpenAsNewFolder,
+  onExportToPdf,
+  onExportFolderToPdf,
   onHide,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -98,6 +104,16 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
     onHide();
   };
 
+  const handleExportToPdf = () => {
+    onExportToPdf?.(path);
+    onHide();
+  };
+
+  const handleExportFolderToPdf = () => {
+    onExportFolderToPdf?.(path);
+    onHide();
+  };
+
   return (
     <div
       ref={menuRef}
@@ -136,6 +152,17 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
             <span className="file-tree-context-menu__icon">🗔</span>
             <span className="file-tree-context-menu__label">Open in New Window</span>
           </button>
+
+          {/* T077: Export file to PDF */}
+          <div className="file-tree-context-menu__separator" />
+          <button
+            className="file-tree-context-menu__item"
+            onClick={handleExportToPdf}
+            data-testid="file-context-menu-export-pdf"
+          >
+            <span className="file-tree-context-menu__icon">📥</span>
+            <span className="file-tree-context-menu__label">Export to PDF</span>
+          </button>
         </>
       )}
 
@@ -167,6 +194,17 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
           >
             <span className="file-tree-context-menu__icon">🗔</span>
             <span className="file-tree-context-menu__label">Open in New Window</span>
+          </button>
+
+          {/* T072: Export folder to PDF */}
+          <div className="file-tree-context-menu__separator" />
+          <button
+            className="file-tree-context-menu__item"
+            onClick={handleExportFolderToPdf}
+            data-testid="folder-context-menu-export-pdf"
+          >
+            <span className="file-tree-context-menu__icon">📥</span>
+            <span className="file-tree-context-menu__label">Export Folder to PDF</span>
           </button>
         </>
       )}
