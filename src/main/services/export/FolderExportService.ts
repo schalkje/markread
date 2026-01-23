@@ -16,14 +16,13 @@ import type {
   FolderExportOptions,
   ExportError,
   MarkdownFile,
-  TOCEntry,
 } from '../../../shared/types/export';
 import { ExportErrorCode } from '../../../shared/types/export';
 import { getExportLogger } from './ExportLogger';
 import { getExportSettingsStore } from './ExportSettingsStore';
 
 // Maximum number of documents in a single folder export
-const MAX_DOCUMENTS = 50;
+const MAX_DOCUMENTS = 150;
 
 export class FolderExportService extends EventEmitter {
   private md: MarkdownIt;
@@ -350,24 +349,58 @@ export class FolderExportService extends EventEmitter {
   }
 
   /**
-   * T065: Generate table of contents with anchor links
+   * T065: Generate table of contents with folder hierarchy
    */
   private generateTableOfContents(files: MarkdownFile[]): string {
-    const entries: TOCEntry[] = files.map((file, index) => {
-      const anchor = `doc-${index}`;
-      const level = file.relativePath.split(path.sep).length - 1;
-      return {
+    // Build a tree structure from the flat file list
+    interface TocNode {
+      name: string;
+      anchor?: string;
+      title?: string;
+      children: TocNode[];
+    }
+
+    const root: TocNode = { name: '', children: [] };
+
+    files.forEach((file, index) => {
+      const parts = file.relativePath.split(path.sep);
+      let current = root;
+
+      // Navigate/create folder nodes
+      for (let i = 0; i < parts.length - 1; i++) {
+        let folder = current.children.find(c => c.name === parts[i] && !c.anchor);
+        if (!folder) {
+          folder = { name: parts[i], children: [] };
+          current.children.push(folder);
+        }
+        current = folder;
+      }
+
+      // Add file node
+      current.children.push({
+        name: parts[parts.length - 1],
+        anchor: `doc-${index}`,
         title: file.title,
-        level,
-        anchor,
         children: [],
-      };
+      });
     });
 
-    const tocItems = entries.map(entry => {
-      const indent = entry.level > 0 ? `padding-left: ${entry.level * 20}px;` : '';
-      return `<li style="${indent}"><a href="#${entry.anchor}">${this.escapeHtml(entry.title)}</a></li>`;
-    }).join('\n');
+    // Render the tree as nested lists
+    const renderNode = (node: TocNode, depth: number): string => {
+      if (node.anchor) {
+        // File entry
+        return `<li class="toc-file"><a href="#${node.anchor}">${this.escapeHtml(node.title || node.name)}</a></li>`;
+      }
+      // Folder entry
+      const childrenHtml = node.children.map(c => renderNode(c, depth + 1)).join('\n');
+      if (depth === 0 && !node.name) {
+        // Root node - just render children
+        return childrenHtml;
+      }
+      return `<li class="toc-folder"><span class="toc-folder-name">${this.escapeHtml(node.name)}</span><ol>${childrenHtml}</ol></li>`;
+    };
+
+    const tocItems = root.children.map(c => renderNode(c, 0)).join('\n');
 
     return `
       <div class="toc-page">
@@ -460,10 +493,28 @@ export class FolderExportService extends EventEmitter {
     .toc-list {
       list-style: none;
       padding: 0;
+      margin: 0;
     }
-    .toc-list li {
-      padding: 6px 0;
-      border-bottom: 1px solid #f0f0f0;
+    .toc-list ol {
+      list-style: none;
+      padding-left: 20px;
+      margin: 0;
+    }
+    .toc-file {
+      padding: 4px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .toc-folder {
+      padding: 0;
+      border: none;
+    }
+    .toc-folder-name {
+      display: block;
+      font-weight: 600;
+      font-size: 13px;
+      color: #555;
+      padding: 8px 0 4px;
+      margin-top: 4px;
     }
     .toc-list a {
       text-decoration: none;
@@ -554,6 +605,83 @@ export class FolderExportService extends EventEmitter {
       fill: rgba(255, 255, 255, 0.85) !important;
       stroke: #d0d7de !important;
     }
+
+    /* Container/callout styles */
+    .markdown-container {
+      margin: 16px 0;
+      border-radius: 6px;
+      border-left: 4px solid #d0d7de;
+      overflow: hidden;
+    }
+    .markdown-container-title {
+      padding: 8px 16px;
+      font-weight: 600;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    .markdown-container-content {
+      padding: 12px 16px;
+    }
+    .markdown-container-content > *:last-child {
+      margin-bottom: 0;
+    }
+    .markdown-container-info {
+      border-left-color: #0969da;
+      background: #e6f2ff;
+    }
+    .markdown-container-info .markdown-container-title {
+      color: #0969da;
+    }
+    .markdown-container-warning {
+      border-left-color: #bf8700;
+      background: #fff8e6;
+    }
+    .markdown-container-warning .markdown-container-title {
+      color: #bf8700;
+    }
+    .markdown-container-error {
+      border-left-color: #cf222e;
+      background: #ffebe9;
+    }
+    .markdown-container-error .markdown-container-title {
+      color: #cf222e;
+    }
+    .markdown-container-success {
+      border-left-color: #1a7f37;
+      background: #dafbe1;
+    }
+    .markdown-container-success .markdown-container-title {
+      color: #1a7f37;
+    }
+    .markdown-container-note {
+      border-left-color: #8250df;
+      background: #f6f0ff;
+    }
+    .markdown-container-note .markdown-container-title {
+      color: #8250df;
+    }
+    /* Syntax highlighting (GitHub light theme) */
+    .hljs { color: #24292e; background: #f6f8fa; }
+    .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword,
+    .hljs-template-tag, .hljs-template-variable, .hljs-type,
+    .hljs-variable.language_ { color: #d73a49; }
+    .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__,
+    .hljs-title.function_ { color: #6f42c1; }
+    .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta,
+    .hljs-number, .hljs-operator, .hljs-variable, .hljs-selector-attr,
+    .hljs-selector-class, .hljs-selector-id { color: #005cc5; }
+    .hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: #032f62; }
+    .hljs-built_in, .hljs-symbol { color: #e36209; }
+    .hljs-comment, .hljs-code, .hljs-formula { color: #6a737d; }
+    .hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: #22863a; }
+    .hljs-subst { color: #24292e; }
+    .hljs-section { color: #005cc5; font-weight: bold; }
+    .hljs-bullet { color: #735c0f; }
+    .hljs-emphasis { color: #24292e; font-style: italic; }
+    .hljs-strong { color: #24292e; font-weight: bold; }
+    .hljs-addition { color: #22863a; background-color: #f0fff4; }
+    .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
+    .hljs-copy-button { display: none !important; }
 
     @media print {
       .document-section { page-break-before: always; }

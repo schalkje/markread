@@ -51,6 +51,9 @@ export interface ExportAPI {
   getSettings: () => Promise<{ success: boolean; settings?: ExportSettings; error?: string }>;
   updateSettings: (settings: Partial<ExportSettings>) => Promise<{ success: boolean; error?: string }>;
 
+  // Open exported file
+  openExportedFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+
   // Logs
   getLogs: (limit?: number) => Promise<{ success: boolean; logs?: any[]; error?: string }>;
   openLogsFolder: () => Promise<{ success: boolean; error?: string }>;
@@ -75,6 +78,7 @@ export function exposeExportAPI(): void {
     cancelExport: (jobId) => ipcRenderer.invoke('export:cancel', { jobId }),
     getSettings: () => ipcRenderer.invoke('export:settings:get'),
     updateSettings: (settings) => ipcRenderer.invoke('export:settings:update', { settings }),
+    openExportedFile: (filePath) => ipcRenderer.invoke('export:open-file', { filePath }),
     getLogs: (limit) => ipcRenderer.invoke('export:logs:get', { limit }),
     openLogsFolder: () => ipcRenderer.invoke('export:logs:open-folder'),
     onProgress: (callback) => {

@@ -4,7 +4,7 @@
  * Handles IPC communication for export operations between main and renderer
  */
 
-import { ipcMain, dialog, BrowserWindow } from 'electron';
+import { ipcMain, dialog, shell, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import { z } from 'zod';
 import { getPdfExportService } from '../services/export/PdfExportService';
@@ -251,6 +251,17 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('export:logs:open-folder', async () => {
     try {
       await logger.openLogsFolder();
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // export:open-file - Open exported file with default application
+  ipcMain.handle('export:open-file', async (_event, payload) => {
+    try {
+      const { filePath } = payload as { filePath: string };
+      await shell.openPath(filePath);
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };

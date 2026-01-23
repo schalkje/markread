@@ -14,6 +14,7 @@ export interface ExportProgressDialogProps {
   status: string;
   onCancel?: () => void;
   onClose: () => void;
+  onOpenFile?: () => void;
 }
 
 export const ExportProgressDialog: React.FC<ExportProgressDialogProps> = ({
@@ -22,6 +23,7 @@ export const ExportProgressDialog: React.FC<ExportProgressDialogProps> = ({
   status,
   onCancel,
   onClose,
+  onOpenFile,
 }) => {
   if (!visible) return null;
 
@@ -111,6 +113,15 @@ export const ExportProgressDialog: React.FC<ExportProgressDialogProps> = ({
               onClick={onCancel}
             >
               Cancel
+            </button>
+          )}
+          {isComplete && onOpenFile && (
+            <button
+              type="button"
+              className="export-progress__button export-progress__button--open"
+              onClick={onOpenFile}
+            >
+              Open File
             </button>
           )}
           {isFinished && (

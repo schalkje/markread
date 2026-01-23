@@ -150,6 +150,7 @@ const AppLayout: React.FC = () => {
     dismissError: dismissExportError,
     retryExport,
     viewLogs: viewExportLogs,
+    openExportedFile,
   } = useExport();
 
   // Ref to track if content was manually set (to avoid double-loading)
@@ -966,6 +967,82 @@ const AppLayout: React.FC = () => {
       fill: rgba(255, 255, 255, 0.85) !important;
       stroke: #d0d7de !important;
     }
+    /* Container/callout styles */
+    .markdown-container {
+      margin: 16px 0;
+      border-radius: 6px;
+      border-left: 4px solid #d0d7de;
+      overflow: hidden;
+    }
+    .markdown-container-title {
+      padding: 8px 16px;
+      font-weight: 600;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    .markdown-container-content {
+      padding: 12px 16px;
+    }
+    .markdown-container-content > *:last-child {
+      margin-bottom: 0;
+    }
+    .markdown-container-info {
+      border-left-color: #0969da;
+      background: #e6f2ff;
+    }
+    .markdown-container-info .markdown-container-title {
+      color: #0969da;
+    }
+    .markdown-container-warning {
+      border-left-color: #bf8700;
+      background: #fff8e6;
+    }
+    .markdown-container-warning .markdown-container-title {
+      color: #bf8700;
+    }
+    .markdown-container-error {
+      border-left-color: #cf222e;
+      background: #ffebe9;
+    }
+    .markdown-container-error .markdown-container-title {
+      color: #cf222e;
+    }
+    .markdown-container-success {
+      border-left-color: #1a7f37;
+      background: #dafbe1;
+    }
+    .markdown-container-success .markdown-container-title {
+      color: #1a7f37;
+    }
+    .markdown-container-note {
+      border-left-color: #8250df;
+      background: #f6f0ff;
+    }
+    .markdown-container-note .markdown-container-title {
+      color: #8250df;
+    }
+    /* Syntax highlighting (GitHub light theme) */
+    .hljs { color: #24292e; background: #f6f8fa; }
+    .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword,
+    .hljs-template-tag, .hljs-template-variable, .hljs-type,
+    .hljs-variable.language_ { color: #d73a49; }
+    .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__,
+    .hljs-title.function_ { color: #6f42c1; }
+    .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta,
+    .hljs-number, .hljs-operator, .hljs-variable, .hljs-selector-attr,
+    .hljs-selector-class, .hljs-selector-id { color: #005cc5; }
+    .hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: #032f62; }
+    .hljs-built_in, .hljs-symbol { color: #e36209; }
+    .hljs-comment, .hljs-code, .hljs-formula { color: #6a737d; }
+    .hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: #22863a; }
+    .hljs-subst { color: #24292e; }
+    .hljs-section { color: #005cc5; font-weight: bold; }
+    .hljs-bullet { color: #735c0f; }
+    .hljs-emphasis { color: #24292e; font-style: italic; }
+    .hljs-strong { color: #24292e; font-weight: bold; }
+    .hljs-addition { color: #22863a; background-color: #f0fff4; }
+    .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
+    .hljs-copy-button { display: none !important; }
     @media print {
       body { padding: 0; }
       pre { white-space: pre-wrap; word-wrap: break-word; }
@@ -4008,6 +4085,7 @@ const AppLayout: React.FC = () => {
         status={exportStatus}
         onCancel={cancelExport}
         onClose={dismissExportProgress}
+        onOpenFile={openExportedFile}
       />
 
       {/* T022: Export Error Dialog */}

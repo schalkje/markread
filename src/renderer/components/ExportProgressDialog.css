@@ -105,6 +105,16 @@
   background: var(--button-secondary-hover-bg, #eaeef2);
 }
 
+.export-progress__button--open {
+  background: var(--button-secondary-bg, #f6f8fa);
+  color: var(--button-secondary-text, #24292f);
+  border-color: var(--button-secondary-border, #d0d7de);
+}
+
+.export-progress__button--open:hover {
+  background: var(--button-secondary-hover-bg, #eaeef2);
+}
+
 .export-progress__button--close {
   background: var(--button-primary-bg, #0969da);
   color: var(--button-primary-text, #ffffff);

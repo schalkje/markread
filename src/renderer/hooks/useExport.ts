@@ -16,6 +16,7 @@ interface UseExportResult {
   currentError: ReturnType<typeof useExportStore.getState>['currentError'];
   progress: { filesProcessed: number; totalFiles: number; percentComplete: number; currentFile?: string };
   status: string;
+  destination: string | null;
 
   // Actions
   exportCurrentPage: (htmlContent: string, defaultFilename?: string, options?: Partial<ExportOptions>) => Promise<void>;
@@ -26,6 +27,7 @@ interface UseExportResult {
   dismissError: () => void;
   retryExport: () => Promise<void>;
   viewLogs: () => Promise<void>;
+  openExportedFile: () => Promise<void>;
 }
 
 export function useExport(): UseExportResult {
@@ -47,6 +49,7 @@ export function useExport(): UseExportResult {
     currentFile?: string;
   }>({ filesProcessed: 0, totalFiles: 1, percentComplete: 0 });
   const [liveStatus, setLiveStatus] = useState<string>('pending');
+  const [destination, setDestination] = useState<string | null>(null);
 
   // Listen for progress events from main process
   useEffect(() => {
@@ -86,6 +89,7 @@ export function useExport(): UseExportResult {
     // Reset progress and show dialog
     setLiveProgress({ filesProcessed: 0, totalFiles: 1, percentComplete: 0 });
     setLiveStatus('pending');
+    setDestination(null);
     store.setShowProgressDialog(true);
 
     try {
@@ -117,6 +121,7 @@ export function useExport(): UseExportResult {
 
       if (result.job) {
         currentJobIdRef.current = result.job.id;
+        setDestination(result.job.destination);
         // Export completed (the IPC handler blocks until done)
         setLiveProgress({ filesProcessed: 1, totalFiles: 1, percentComplete: 100 });
         setLiveStatus('completed');
@@ -138,6 +143,7 @@ export function useExport(): UseExportResult {
   ): Promise<void> => {
     setLiveProgress({ filesProcessed: 0, totalFiles: 0, percentComplete: 0 });
     setLiveStatus('pending');
+    setDestination(null);
     store.setShowProgressDialog(true);
 
     try {
@@ -170,6 +176,7 @@ export function useExport(): UseExportResult {
 
       if (result.job) {
         currentJobIdRef.current = result.job.id;
+        setDestination(result.job.destination);
         // Export completed (the IPC handler blocks until done)
         setLiveProgress({
           filesProcessed: result.job.filesProcessed || 0,
@@ -277,6 +284,16 @@ document.getElementById('rendered').innerHTML=md.render(src);
     }
   }, []);
 
+  const openExportedFile = useCallback(async (): Promise<void> => {
+    if (destination) {
+      try {
+        await window.exportApi?.openExportedFile(destination);
+      } catch (error) {
+        console.error('Failed to open exported file:', error);
+      }
+    }
+  }, [destination]);
+
   return {
     isExporting: store.showProgressDialog,
     showProgressDialog: store.showProgressDialog,
@@ -284,6 +301,7 @@ document.getElementById('rendered').innerHTML=md.render(src);
     currentError: store.currentError,
     progress: liveProgress,
     status: liveStatus,
+    destination,
     exportCurrentPage,
     exportFolder,
     exportFile,
@@ -292,6 +310,7 @@ document.getElementById('rendered').innerHTML=md.render(src);
     dismissError,
     retryExport,
     viewLogs,
+    openExportedFile,
   };
 }
 
