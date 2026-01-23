@@ -11,9 +11,8 @@ import type { DiagramActionResult } from '../../shared/types/clipboard';
 
 interface UseDiagramActionsResult {
   copyAsPNG: (element: HTMLElement) => Promise<DiagramActionResult>;
-  copyAsSVG: (element: HTMLElement) => Promise<DiagramActionResult>;
   copyCode: (element: HTMLElement) => Promise<DiagramActionResult>;
-  downloadSVG: (element: HTMLElement, filename?: string) => Promise<DiagramActionResult>;
+  saveDiagram: (element: HTMLElement, filename?: string) => Promise<DiagramActionResult>;
   lastResult: DiagramActionResult | null;
 }
 
@@ -54,35 +53,6 @@ export function useDiagramActions(): UseDiagramActionsResult {
     }
   }, [captureService, clipboardService]);
 
-  const copyAsSVG = useCallback(async (element: HTMLElement): Promise<DiagramActionResult> => {
-    const startTime = performance.now();
-    try {
-      const svgString = captureService.captureAsSVG(element);
-
-      await clipboardService.copyMultiFormat([
-        { mimeType: 'text/plain', data: new Blob([svgString], { type: 'text/plain' }) },
-        { mimeType: 'text/html', data: new Blob([svgString], { type: 'text/html' }) },
-      ]);
-
-      const result: DiagramActionResult = {
-        success: true,
-        action: { id: 'copy-svg', type: 'copy-svg', label: 'Copy as SVG', icon: '', handler: async () => {}, enabled: true },
-        executionTime: performance.now() - startTime,
-      };
-      setLastResult(result);
-      return result;
-    } catch (error) {
-      const result: DiagramActionResult = {
-        success: false,
-        action: { id: 'copy-svg', type: 'copy-svg', label: 'Copy as SVG', icon: '', handler: async () => {}, enabled: true },
-        error: error instanceof Error ? error : new Error('Failed to copy as SVG'),
-        executionTime: performance.now() - startTime,
-      };
-      setLastResult(result);
-      return result;
-    }
-  }, [captureService, clipboardService]);
-
   const copyCode = useCallback(async (element: HTMLElement): Promise<DiagramActionResult> => {
     const startTime = performance.now();
     try {
@@ -113,25 +83,45 @@ export function useDiagramActions(): UseDiagramActionsResult {
     }
   }, [captureService, clipboardService]);
 
-  const downloadSVG = useCallback(async (element: HTMLElement, filename?: string): Promise<DiagramActionResult> => {
+  const saveDiagram = useCallback(async (element: HTMLElement, filename?: string): Promise<DiagramActionResult> => {
     const startTime = performance.now();
     try {
-      const svgString = captureService.captureAsSVG(element);
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
+      // Generate both SVG and PNG data for the save dialog
+      const svgData = captureService.captureAsSVG(element);
+      const pngBlob = await captureService.captureAsPNG(element);
 
-      // Create download link
-      const url = URL.createObjectURL(svgBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename || 'diagram.svg';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Convert PNG blob to base64
+      const pngArrayBuffer = await pngBlob.arrayBuffer();
+      const pngBytes = new Uint8Array(pngArrayBuffer);
+      let binary = '';
+      for (let i = 0; i < pngBytes.length; i++) {
+        binary += String.fromCharCode(pngBytes[i]);
+      }
+      const pngDataBase64 = btoa(binary);
+
+      const response = await window.exportApi.saveDiagram({
+        defaultFilename: filename || 'diagram.svg',
+        svgData,
+        pngDataBase64,
+      });
+
+      if (response.cancelled) {
+        const result: DiagramActionResult = {
+          success: true,
+          action: { id: 'download', type: 'download', label: 'Save Diagram', icon: '', handler: async () => {}, enabled: true },
+          executionTime: performance.now() - startTime,
+        };
+        setLastResult(result);
+        return result;
+      }
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to save diagram');
+      }
 
       const result: DiagramActionResult = {
         success: true,
-        action: { id: 'download', type: 'download', label: 'Download SVG', icon: '', handler: async () => {}, enabled: true },
+        action: { id: 'download', type: 'download', label: 'Save Diagram', icon: '', handler: async () => {}, enabled: true },
         executionTime: performance.now() - startTime,
       };
       setLastResult(result);
@@ -139,8 +129,8 @@ export function useDiagramActions(): UseDiagramActionsResult {
     } catch (error) {
       const result: DiagramActionResult = {
         success: false,
-        action: { id: 'download', type: 'download', label: 'Download SVG', icon: '', handler: async () => {}, enabled: true },
-        error: error instanceof Error ? error : new Error('Failed to download SVG'),
+        action: { id: 'download', type: 'download', label: 'Save Diagram', icon: '', handler: async () => {}, enabled: true },
+        error: error instanceof Error ? error : new Error('Failed to save diagram'),
         executionTime: performance.now() - startTime,
       };
       setLastResult(result);
@@ -148,7 +138,7 @@ export function useDiagramActions(): UseDiagramActionsResult {
     }
   }, [captureService]);
 
-  return { copyAsPNG, copyAsSVG, copyCode, downloadSVG, lastResult };
+  return { copyAsPNG, copyCode, saveDiagram, lastResult };
 }
 
 export default useDiagramActions;

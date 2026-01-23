@@ -32,6 +32,18 @@ export interface ExportAPI {
     error?: { code: string; message: string; retryable: boolean; details?: string };
   }>;
 
+  // Diagram Save
+  saveDiagram: (payload: {
+    defaultFilename?: string;
+    svgData: string;
+    pngDataBase64: string;
+  }) => Promise<{
+    success: boolean;
+    cancelled?: boolean;
+    filePath?: string;
+    error?: string;
+  }>;
+
   // Cancel Export
   cancelExport: (jobId: string) => Promise<{ success: boolean; error?: string }>;
 
@@ -59,6 +71,7 @@ export function exposeExportAPI(): void {
   const exportApi: ExportAPI = {
     exportToPdf: (payload) => ipcRenderer.invoke('export:pdf:single', payload),
     exportFolderToPdf: (payload) => ipcRenderer.invoke('export:pdf:folder', payload),
+    saveDiagram: (payload) => ipcRenderer.invoke('diagram:save', payload),
     cancelExport: (jobId) => ipcRenderer.invoke('export:cancel', { jobId }),
     getSettings: () => ipcRenderer.invoke('export:settings:get'),
     updateSettings: (settings) => ipcRenderer.invoke('export:settings:update', { settings }),

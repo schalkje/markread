@@ -31,15 +31,11 @@ function createButtonBarHTML(): string {
       ${ICONS.png}
       <span class="diagram-actions__label">PNG</span>
     </button>
-    <button class="diagram-actions__button" data-action="copy-svg" title="Copy as SVG" type="button">
-      ${ICONS.svg}
-      <span class="diagram-actions__label">SVG</span>
-    </button>
     <button class="diagram-actions__button" data-action="copy-code" title="Copy Code" type="button">
       ${ICONS.code}
       <span class="diagram-actions__label">Code</span>
     </button>
-    <button class="diagram-actions__button" data-action="download" title="Download SVG" type="button">
+    <button class="diagram-actions__button" data-action="download" title="Save diagram" type="button">
       ${ICONS.download}
       <span class="diagram-actions__label">Save</span>
     </button>
@@ -54,7 +50,7 @@ export function useDiagramHoverButtons({
   containerRef,
   onActionComplete,
 }: DiagramHoverButtonsProps): void {
-  const { copyAsPNG, copyAsSVG, copyCode, downloadSVG } = useDiagramActions();
+  const { copyAsPNG, copyCode, saveDiagram } = useDiagramActions();
   const observerRef = useRef<MutationObserver | null>(null);
   const timersRef = useRef<Map<HTMLElement, { show?: NodeJS.Timeout; hide?: NodeJS.Timeout }>>(new Map());
 
@@ -64,14 +60,11 @@ export function useDiagramHoverButtons({
       case 'copy-png':
         result = await copyAsPNG(diagramElement);
         break;
-      case 'copy-svg':
-        result = await copyAsSVG(diagramElement);
-        break;
       case 'copy-code':
         result = await copyCode(diagramElement);
         break;
       case 'download':
-        result = await downloadSVG(diagramElement);
+        result = await saveDiagram(diagramElement);
         break;
       case 'open-tab': {
         // T042: Dispatch event to open diagram in a new tab
@@ -99,7 +92,7 @@ export function useDiagramHoverButtons({
         result.error?.message
       );
     }
-  }, [copyAsPNG, copyAsSVG, copyCode, downloadSVG, onActionComplete]);
+  }, [copyAsPNG, copyCode, saveDiagram, onActionComplete]);
 
   const attachButtons = useCallback((diagram: HTMLElement) => {
     // Skip if already has buttons

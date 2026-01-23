@@ -5,6 +5,7 @@
  */
 
 import { ipcMain, dialog, BrowserWindow } from 'electron';
+import * as fs from 'fs';
 import { z } from 'zod';
 import { getPdfExportService } from '../services/export/PdfExportService';
 import { getFolderExportService } from '../services/export/FolderExportService';
@@ -253,6 +254,46 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };
+    }
+  });
+
+  // diagram:save - Show save dialog and write diagram file (SVG or PNG)
+  ipcMain.handle('diagram:save', async (_event, payload) => {
+    try {
+      const { defaultFilename, svgData, pngDataBase64 } = payload as {
+        defaultFilename?: string;
+        svgData: string;
+        pngDataBase64: string;
+      };
+
+      const saveResult = await dialog.showSaveDialog(mainWindow, {
+        title: 'Save Diagram',
+        defaultPath: defaultFilename || 'diagram.svg',
+        filters: [
+          { name: 'SVG Image', extensions: ['svg'] },
+          { name: 'PNG Image', extensions: ['png'] },
+        ],
+      });
+
+      if (saveResult.canceled || !saveResult.filePath) {
+        return { success: false, cancelled: true };
+      }
+
+      const filePath = saveResult.filePath;
+
+      if (filePath.endsWith('.png')) {
+        const buffer = Buffer.from(pngDataBase64, 'base64');
+        fs.writeFileSync(filePath, buffer);
+      } else {
+        fs.writeFileSync(filePath, svgData, 'utf-8');
+      }
+
+      return { success: true, filePath };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to save diagram',
+      };
     }
   });
 
