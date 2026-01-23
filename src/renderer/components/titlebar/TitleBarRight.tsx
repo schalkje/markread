@@ -206,6 +206,7 @@ export const TitleBarRight: React.FC = () => {
               <div className="title-bar__zoom-menu-divider"></div>
               <div className="title-bar__zoom-menu-section">
                 <button type="button" onClick={handleZoomReset}>Reset to 100%</button>
+                <button type="button" onClick={() => { window.dispatchEvent(new CustomEvent('zoom:fit')); setShowZoomMenu(false); }}>Fit</button>
               </div>
             </div>
           )}

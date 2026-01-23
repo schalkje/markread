@@ -135,6 +135,12 @@
   font-size: 12px;
 }
 
+.tab__diagram-icon {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.7;
+}
+
 /* T063m: Drag and drop */
 .tab--drag-over {
   border-left: 2px solid var(--tab-separator, #f0f0f0);

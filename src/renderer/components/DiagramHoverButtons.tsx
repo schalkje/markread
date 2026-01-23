@@ -73,8 +73,18 @@ export function useDiagramHoverButtons({
         const mermaidCode = diagramElement.dataset.mermaidCode
           ? decodeURIComponent(diagramElement.dataset.mermaidCode)
           : '';
+        // Find the nearest preceding heading for the tab title
+        let heading = '';
+        let el: Element | null = diagramElement;
+        while (el) {
+          el = el.previousElementSibling;
+          if (el && /^H[1-6]$/.test(el.tagName)) {
+            heading = el.textContent?.trim() || '';
+            break;
+          }
+        }
         window.dispatchEvent(new CustomEvent('diagram:open-tab', {
-          detail: { svgContent, mermaidCode },
+          detail: { svgContent, mermaidCode, heading },
         }));
         if (onActionComplete) {
           onActionComplete('open-tab', true);

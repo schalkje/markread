@@ -7,69 +7,9 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--diagram-bg, #fafbfc);
+  background: var(--color-bg-primary, #ffffff);
 }
 
-.diagram-tab-view__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--diagram-border, #d0d7de);
-  background: var(--toolbar-bg, #ffffff);
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.diagram-tab-view__title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--diagram-title-color, #57606a);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.diagram-tab-view__controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.diagram-tab-view__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 8px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--btn-text, #57606a);
-  background: var(--btn-bg, #f6f8fa);
-  border: 1px solid var(--btn-border, #d0d7de);
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.12s ease;
-  min-width: 28px;
-  height: 28px;
-}
-
-.diagram-tab-view__button:hover:not(:disabled) {
-  background: var(--btn-hover-bg, #eaeef2);
-  color: var(--btn-hover-text, #24292f);
-}
-
-.diagram-tab-view__button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.diagram-tab-view__zoom-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--diagram-title-color, #57606a);
-  min-width: 40px;
-  text-align: center;
-}
 
 .diagram-tab-view__canvas {
   flex: 1;
@@ -96,29 +36,22 @@
   max-height: none;
 }
 
-/* Dark theme */
-@media (prefers-color-scheme: dark) {
-  .diagram-tab-view {
-    --diagram-bg: #0d1117;
-    --diagram-border: #30363d;
-    --toolbar-bg: #161b22;
-    --diagram-title-color: #8b949e;
-    --btn-text: #8b949e;
-    --btn-bg: #21262d;
-    --btn-border: #30363d;
-    --btn-hover-bg: #30363d;
-    --btn-hover-text: #e6edf3;
-  }
+/* Mermaid edge labels - override default purple background */
+.diagram-tab-view__content .edgeLabel rect.background {
+  fill: var(--color-bg-primary, #ffffff);
+  fill-opacity: 0.8;
 }
 
-[data-theme="dark"] .diagram-tab-view {
-  --diagram-bg: #0d1117;
-  --diagram-border: #30363d;
-  --toolbar-bg: #161b22;
-  --diagram-title-color: #8b949e;
-  --btn-text: #8b949e;
-  --btn-bg: #21262d;
-  --btn-border: #30363d;
-  --btn-hover-bg: #30363d;
-  --btn-hover-text: #e6edf3;
+.diagram-tab-view__content .edgeLabel text {
+  fill: #24292f !important;
 }
+
+[data-theme="dark"] .diagram-tab-view__content .edgeLabel rect.background {
+  fill: var(--color-bg-primary, #0d1117);
+}
+
+[data-theme="dark"] .diagram-tab-view__content .edgeLabel text {
+  fill: #e6edf3 !important;
+}
+
+/* Dark theme - no custom vars needed, uses --color-bg-primary from theme */

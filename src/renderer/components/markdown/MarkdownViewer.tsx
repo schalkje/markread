@@ -570,6 +570,33 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     });
   }, [zoomLevel, activeBuffer]);
 
+  // Handle zoom:fit event — fit content width to viewport width
+  useEffect(() => {
+    const handleZoomFit = () => {
+      if (!onZoomChange) return;
+      const bufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+      const contentRef = activeBuffer === 'A' ? contentARef : contentBRef;
+      const bufferEl = bufferRef.current;
+      const contentEl = contentRef.current;
+      if (!bufferEl || !contentEl) return;
+
+      // Get the viewport width (the scrollable container)
+      const viewportWidth = bufferEl.clientWidth;
+
+      // Get the content's natural width (at 100% zoom)
+      const currentZoom = currentZoomRef.current || 100;
+      const naturalWidth = contentEl.scrollWidth / (currentZoom / 100);
+
+      if (naturalWidth <= 0) return;
+
+      const fitZoom = Math.max(10, Math.min(2000, Math.round((viewportWidth / naturalWidth) * 100)));
+      onZoomChange(fitZoom);
+    };
+
+    window.addEventListener('zoom:fit', handleZoomFit);
+    return () => window.removeEventListener('zoom:fit', handleZoomFit);
+  }, [activeBuffer, onZoomChange]);
+
   // Restore scroll position from history (when navigating back/forward)
   useEffect(() => {
     // Get the preparing buffer (or active buffer if not transitioning)

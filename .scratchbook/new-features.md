@@ -14,14 +14,6 @@
 
 not working yet
 
-# Clean up wpf
-Clean all files that are related to wpf or dotnet development. They should not be needed anymore in the electron solution.
-
-Remove all references to wpf from the markdown documentation. Remove entire markdown files when they have become obsolete. Update files where the story changed because of the switch from wpf to electron.
-
-Files that can stay unchanged:
-- Changelog.md
-- All files in the .specify folder
 
 
 # Index

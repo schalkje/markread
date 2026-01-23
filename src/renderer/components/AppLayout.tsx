@@ -1038,7 +1038,7 @@ const AppLayout: React.FC = () => {
   // T042-T043: Listen for diagram:open-tab events to open diagrams in dedicated tabs
   useEffect(() => {
     const handleOpenDiagramTab = (e: Event) => {
-      const { svgContent, mermaidCode } = (e as CustomEvent).detail;
+      const { svgContent, mermaidCode, heading } = (e as CustomEvent).detail;
       if (!svgContent) return;
 
       // Generate a unique tab ID for this diagram
@@ -1052,7 +1052,7 @@ const AppLayout: React.FC = () => {
       addTab({
         id: diagramTabId,
         filePath: `diagram://${diagramTabId}`,
-        title: 'Mermaid Diagram',
+        title: heading || 'Diagram',
         scrollPosition: 0,
         zoomLevel: 100,
         searchState: null,
@@ -3504,7 +3504,6 @@ const AppLayout: React.FC = () => {
             <DiagramTabView
               svgContent={diagramDataRef.current.get(activeTabId || '')?.svgContent || ''}
               mermaidCode={diagramDataRef.current.get(activeTabId || '')?.mermaidCode || ''}
-              title="Mermaid Diagram"
             />
           ) : (
             <MarkdownViewer

@@ -288,8 +288,17 @@ export const TabBar: React.FC<TabBarProps> = ({ onTabClick, onTabClose, onHomeCl
                 />
               )}
 
+              {/* Diagram tab indicator */}
+              {tab.filePath?.startsWith('diagram://') && (
+                <span className="tab__diagram-icon" title="Mermaid diagram">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M2 2a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1h2a2 2 0 0 1 2 2v1h1a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2v-1H5a2 2 0 0 1-2-2V9H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h2V5a2 2 0 0 1 2-2h1V2a1 1 0 0 0-1-1H4zm4 4a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h2V8a2 2 0 0 1 2-2h1V5a1 1 0 0 0-1-1H8zm4 4a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-3z"/>
+                  </svg>
+                </span>
+              )}
+
               {/* Direct file indicator */}
-              {tab.isDirectFile && (
+              {!tab.filePath?.startsWith('diagram://') && tab.isDirectFile && (
                 <span className="tab__direct-file-icon" title="Direct file (not from folder)">
                   📄
                 </span>
