@@ -70,6 +70,9 @@ export class DiagramCaptureService {
       // Inline styles for portability
       this.inlineStyles(clonedSvg);
 
+      // Force dark text and light backgrounds for exported SVG readability
+      this.applyExportColors(clonedSvg);
+
       // Serialize to string
       const serializer = new XMLSerializer();
       const svgString = serializer.serializeToString(clonedSvg);
@@ -142,6 +145,42 @@ export class DiagramCaptureService {
     } catch (error) {
       // If style inlining fails, continue without it
       console.warn('Failed to inline SVG styles:', error);
+    }
+  }
+
+  /**
+   * Force dark text and light backgrounds for exported diagrams,
+   * ensuring readability regardless of the current theme.
+   */
+  private applyExportColors(svgElement: SVGElement): void {
+    // Force all text to dark color
+    const textElements = svgElement.querySelectorAll('text');
+    textElements.forEach((el) => {
+      this.setStyleProperty(el, 'fill', '#24292f');
+    });
+
+    // Edge label backgrounds: white with slight transparency
+    const edgeLabelBgs = svgElement.querySelectorAll('.edgeLabel rect.background');
+    edgeLabelBgs.forEach((el) => {
+      this.setStyleProperty(el, 'fill', '#ffffff');
+      this.setStyleProperty(el, 'fill-opacity', '0.8');
+    });
+
+    // Entity boxes: light background
+    const entityBoxes = svgElement.querySelectorAll('.entityBox');
+    entityBoxes.forEach((el) => {
+      this.setStyleProperty(el, 'fill', 'rgba(255, 255, 255, 0.85)');
+      this.setStyleProperty(el, 'stroke', '#d0d7de');
+    });
+  }
+
+  private setStyleProperty(el: Element, prop: string, value: string): void {
+    const style = el.getAttribute('style') || '';
+    const regex = new RegExp(`${prop}:\\s*[^;]+`);
+    if (regex.test(style)) {
+      el.setAttribute('style', style.replace(regex, `${prop}: ${value}`));
+    } else {
+      el.setAttribute('style', style + (style ? '; ' : '') + `${prop}: ${value}`);
     }
   }
 
