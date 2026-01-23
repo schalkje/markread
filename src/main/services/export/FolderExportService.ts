@@ -542,6 +542,19 @@ export class FolderExportService extends EventEmitter {
     li { margin: 4px 0; }
     hr { border: none; border-top: 1px solid #ddd; margin: 24px 0; }
 
+    /* Mermaid diagrams: force dark text and light backgrounds for PDF */
+    .mermaid-rendered text {
+      fill: #24292f !important;
+    }
+    .mermaid-rendered .edgeLabel rect.background {
+      fill: #ffffff !important;
+      fill-opacity: 0.8 !important;
+    }
+    .mermaid-rendered .entityBox {
+      fill: rgba(255, 255, 255, 0.85) !important;
+      stroke: #d0d7de !important;
+    }
+
     @media print {
       .document-section { page-break-before: always; }
       .cover-page { page-break-after: always; }

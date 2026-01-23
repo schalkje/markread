@@ -954,6 +954,18 @@ const AppLayout: React.FC = () => {
     h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #d8dee4; }
     hr { border: none; border-top: 1px solid #d8dee4; margin: 24px 0; }
     a { color: #0969da; text-decoration: none; }
+    /* Mermaid diagrams: force dark text and light backgrounds for PDF */
+    .mermaid-rendered text {
+      fill: #24292f !important;
+    }
+    .mermaid-rendered .edgeLabel rect.background {
+      fill: #ffffff !important;
+      fill-opacity: 0.8 !important;
+    }
+    .mermaid-rendered .entityBox {
+      fill: rgba(255, 255, 255, 0.85) !important;
+      stroke: #d0d7de !important;
+    }
     @media print {
       body { padding: 0; }
       pre { white-space: pre-wrap; word-wrap: break-word; }
