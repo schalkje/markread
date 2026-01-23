@@ -9,8 +9,18 @@ import { BrowserWindow } from 'electron';
 import { EventEmitter } from 'events';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import * as os from 'os';
 import crypto from 'crypto';
 import MarkdownIt from 'markdown-it';
+import hljs from 'highlight.js';
+// @ts-expect-error - markdown-it-task-lists may not have types
+import taskLists from 'markdown-it-task-lists';
+// @ts-expect-error - markdown-it-footnote may not have types
+import footnote from 'markdown-it-footnote';
+// @ts-expect-error - markdown-it-deflist may not have types
+import deflist from 'markdown-it-deflist';
+// @ts-expect-error - markdown-it-container may not have types
+import container from 'markdown-it-container';
 import type {
   ExportJob,
   FolderExportOptions,
@@ -34,7 +44,60 @@ export class FolderExportService extends EventEmitter {
       html: true,
       linkify: true,
       typographer: true,
+      highlight: (code: string, lang: string): string => {
+        // Mermaid blocks handled by custom fence rule
+        if (lang === 'mermaid') return code;
+        if (lang && hljs.getLanguage(lang)) {
+          try {
+            return hljs.highlight(code, { language: lang }).value;
+          } catch { /* fall through */ }
+        }
+        return MarkdownIt().utils.escapeHtml(code);
+      },
     });
+
+    // Enable GFM features
+    this.md.enable(['table', 'strikethrough']);
+
+    // Plugins
+    this.md.use(taskLists, { enabled: true, label: true, labelAfter: false });
+    this.md.use(footnote);
+    this.md.use(deflist);
+
+    // Container/callout plugin
+    const containerTypes = [
+      { name: 'info', defaultTitle: 'Info' },
+      { name: 'warning', defaultTitle: 'Warning' },
+      { name: 'error', defaultTitle: 'Error' },
+      { name: 'success', defaultTitle: 'Success' },
+      { name: 'note', defaultTitle: 'Note' },
+    ];
+    containerTypes.forEach(({ name, defaultTitle }) => {
+      this.md.use(container, name, {
+        render: (tokens: { nesting: number; info: string }[], idx: number): string => {
+          const token = tokens[idx];
+          if (token.nesting === 1) {
+            const title = token.info.trim().slice(name.length).trim() || defaultTitle;
+            return `<div class="markdown-container markdown-container-${name}">
+<div class="markdown-container-title">${this.md.utils.escapeHtml(title)}</div>
+<div class="markdown-container-content">\n`;
+          }
+          return '</div></div>\n';
+        },
+      });
+    });
+
+    // Custom fence rule for mermaid blocks
+    const defaultFence = this.md.renderer.rules.fence!;
+    this.md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+      const token = tokens[idx];
+      const lang = token.info.trim().split(/\s+/)[0];
+      if (lang === 'mermaid') {
+        const code = token.content.trim();
+        return `<pre class="mermaid">${this.md.utils.escapeHtml(code)}</pre>\n`;
+      }
+      return defaultFence(tokens, idx, options, env, self);
+    };
   }
 
   /**
@@ -130,7 +193,8 @@ export class FolderExportService extends EventEmitter {
         // T071: Read file content and render to HTML
         const content = await fs.readFile(file.path, 'utf-8');
         file.content = content;
-        file.renderedHtml = this.md.render(content);
+        const rawHtml = this.md.render(content);
+        file.renderedHtml = this.resolveImagePaths(rawHtml, path.dirname(file.path));
         renderedFiles.push(file);
       }
 
@@ -154,7 +218,8 @@ export class FolderExportService extends EventEmitter {
         coverPageHtml,
         tocHtml,
         renderedFiles,
-        mergedOptions
+        mergedOptions,
+        job.id
       );
 
       job.progress.percentComplete = 75;
@@ -164,6 +229,15 @@ export class FolderExportService extends EventEmitter {
       const destDir = path.dirname(destination);
       await fs.mkdir(destDir, { recursive: true });
 
+      // Copy local mermaid library to temp dir (avoids CDN dependency)
+      const tempMermaidPath = path.join(os.tmpdir(), `markread-mermaid-${job.id}.min.js`);
+      const mermaidSrcPath = require.resolve('mermaid/dist/mermaid.min.js');
+      await fs.copyFile(mermaidSrcPath, tempMermaidPath);
+
+      // Write HTML to temp file (uses local mermaid script)
+      const tempHtmlPath = path.join(os.tmpdir(), `markread-export-${job.id}.html`);
+      await fs.writeFile(tempHtmlPath, combinedHtml, 'utf-8');
+
       // Create hidden window for PDF rendering
       pdfWindow = new BrowserWindow({
         show: false,
@@ -171,13 +245,12 @@ export class FolderExportService extends EventEmitter {
           nodeIntegration: false,
           contextIsolation: true,
           offscreen: true,
+          webSecurity: false, // Allow loading file:// images from any directory
         },
       });
 
-      // Load combined HTML
-      await pdfWindow.loadURL(
-        `data:text/html;charset=utf-8,${encodeURIComponent(combinedHtml)}`
-      );
+      // Load from temp file
+      await pdfWindow.loadFile(tempHtmlPath);
 
       // Wait for content to render
       await this.waitForContentReady(pdfWindow);
@@ -230,6 +303,11 @@ export class FolderExportService extends EventEmitter {
       if (pdfWindow && !pdfWindow.isDestroyed()) {
         pdfWindow.close();
       }
+      // Clean up temp files
+      const tempHtmlPath = path.join(os.tmpdir(), `markread-export-${job.id}.html`);
+      const tempMermaidPath = path.join(os.tmpdir(), `markread-mermaid-${job.id}.min.js`);
+      fs.unlink(tempHtmlPath).catch(() => {});
+      fs.unlink(tempMermaidPath).catch(() => {});
       this.activeJobs.delete(job.id);
     }
   }
@@ -419,7 +497,8 @@ export class FolderExportService extends EventEmitter {
     coverPage: string,
     toc: string,
     files: MarkdownFile[],
-    _options: FolderExportOptions
+    _options: FolderExportOptions,
+    jobId: string
   ): string {
     // T067: Build document sections with page breaks between them
     const documentSections = files.map((file, index) => {
@@ -594,14 +673,14 @@ export class FolderExportService extends EventEmitter {
     hr { border: none; border-top: 1px solid #ddd; margin: 24px 0; }
 
     /* Mermaid diagrams: force dark text and light backgrounds for PDF */
-    .mermaid-rendered text {
+    .mermaid-rendered text, .mermaid text {
       fill: #24292f !important;
     }
-    .mermaid-rendered .edgeLabel rect.background {
+    .mermaid-rendered .edgeLabel rect.background, .mermaid .edgeLabel rect.background {
       fill: #ffffff !important;
       fill-opacity: 0.8 !important;
     }
-    .mermaid-rendered .entityBox {
+    .mermaid-rendered .entityBox, .mermaid .entityBox {
       fill: rgba(255, 255, 255, 0.85) !important;
       stroke: #d0d7de !important;
     }
@@ -660,6 +739,22 @@ export class FolderExportService extends EventEmitter {
     .markdown-container-note .markdown-container-title {
       color: #8250df;
     }
+
+    /* Footnotes */
+    .footnote-ref { font-size: 0.75em; vertical-align: super; text-decoration: none; }
+    .footnotes { margin-top: 32px; border-top: 1px solid #ddd; padding-top: 16px; font-size: 13px; }
+    .footnotes-list { padding-left: 20px; }
+    .footnote-item { margin: 4px 0; }
+    .footnote-backref { text-decoration: none; margin-left: 4px; }
+
+    /* Task lists */
+    .task-list-item { list-style: none; margin-left: -24px; }
+    .task-list-item input[type="checkbox"] { margin-right: 8px; }
+
+    /* Mermaid diagrams */
+    pre.mermaid { background: none; border: none; padding: 16px 0; text-align: center; }
+    pre.mermaid svg { max-width: 100%; height: auto; }
+
     /* Syntax highlighting (GitHub light theme) */
     .hljs { color: #24292e; background: #f6f8fa; }
     .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword,
@@ -694,15 +789,62 @@ export class FolderExportService extends EventEmitter {
   ${coverPage}
   ${toc}
   ${documentSections}
+  <script src="markread-mermaid-${jobId}.min.js"><\/script>
+  <script>
+    try {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: false, theme: 'default' });
+        mermaid.run({ querySelector: 'pre.mermaid' }).then(function() {
+          window.__mermaidReady = true;
+        }).catch(function() {
+          window.__mermaidReady = true;
+        });
+      } else {
+        window.__mermaidReady = true;
+      }
+    } catch(e) {
+      window.__mermaidReady = true;
+    }
+    // Fallback in case no mermaid blocks exist
+    if (!document.querySelector('pre.mermaid')) {
+      window.__mermaidReady = true;
+    }
+  <\/script>
 </body>
 </html>`;
   }
 
   /**
-   * Wait for async content to render after loadURL has resolved.
+   * Wait for async content (including mermaid diagrams) to render.
    */
-  private waitForContentReady(_window: BrowserWindow): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, 1500));
+  private waitForContentReady(window: BrowserWindow): Promise<void> {
+    return new Promise((resolve) => {
+      const maxWait = 15000;
+      const interval = 200;
+      let elapsed = 0;
+
+      const check = () => {
+        elapsed += interval;
+        if (elapsed >= maxWait) {
+          resolve();
+          return;
+        }
+        window.webContents.executeJavaScript('window.__mermaidReady === true')
+          .then((ready) => {
+            if (ready) {
+              // Small additional delay for rendering to settle
+              setTimeout(resolve, 300);
+            } else {
+              setTimeout(check, interval);
+            }
+          })
+          .catch(() => {
+            setTimeout(check, interval);
+          });
+      };
+
+      setTimeout(check, 500); // Initial delay for scripts to load
+    });
   }
 
   private emitProgress(job: ExportJob): void {
@@ -758,6 +900,22 @@ export class FolderExportService extends EventEmitter {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  private resolveImagePaths(html: string, fileDir: string): string {
+    return html.replace(
+      /(<img\s[^>]*src=["'])([^"']+)(["'][^>]*>)/gi,
+      (match, prefix, src, suffix) => {
+        // Skip absolute URLs and data URIs
+        if (/^(https?:|data:|file:)/i.test(src)) {
+          return match;
+        }
+        // Resolve relative path against the markdown file's directory
+        const absolutePath = path.resolve(fileDir, src);
+        const fileUrl = `file:///${absolutePath.replace(/\\/g, '/')}`;
+        return `${prefix}${fileUrl}${suffix}`;
+      }
+    );
   }
 }
 

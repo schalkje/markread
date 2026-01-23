@@ -57,7 +57,7 @@ export function createWindow(options?: WindowOptions): BrowserWindow {
           "default-src 'none';",
           "script-src 'self' 'unsafe-inline';", // Mermaid requires inline scripts
           "style-src 'self' 'unsafe-inline';", // Syntax highlighting styles
-          "img-src 'self' mdfile: data: https:;", // mdfile: protocol for local images + external HTTPS images (badges, etc.)
+          "img-src 'self' file: mdfile: data: https:;", // file: and mdfile: for local images + external HTTPS images (badges, etc.)
           "font-src 'self' data:;",
           "connect-src 'none';",
         ].join(' '),

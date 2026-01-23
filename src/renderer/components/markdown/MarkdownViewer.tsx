@@ -1306,8 +1306,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       const src = img.getAttribute('src');
       if (!src) continue;
 
-      // Skip file:// and local:// URLs (already resolved)
-      if (src.startsWith('file://') || src.startsWith('local://')) continue;
+      // Skip already-resolved URLs and data URIs
+      if (src.startsWith('file://') || src.startsWith('mdfile://') || src.startsWith('local://') || src.startsWith('data:')) continue;
 
       // Handle external URLs (http/https) - CSP now allows HTTPS images
       if (src.startsWith('http://') || src.startsWith('https://')) {
@@ -1337,10 +1337,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         });
 
         if (result?.success && result.absolutePath && result.exists) {
-          // Use file:// protocol to load local images
+          // Use mdfile:// protocol to load local images (CSP-allowed, works in both dev and prod)
           console.log('[MarkdownViewer] Loading image from file path:', result.absolutePath);
           const imgElement = img as HTMLImageElement;
-          imgElement.src = `file:///${result.absolutePath.replace(/\\/g, '/')}`;
+          const normalizedPath = result.absolutePath.replace(/\\/g, '/');
+          imgElement.src = `mdfile:///${encodeURI(normalizedPath)}`;
         } else {
           // Image file doesn't exist - show placeholder
           console.warn(`Image not found: ${src}`, result);

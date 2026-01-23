@@ -95,6 +95,7 @@ export class PdfExportService extends EventEmitter {
           nodeIntegration: false,
           contextIsolation: true,
           offscreen: true,
+          webSecurity: false, // Allow loading file:// images from data: origin
         },
       });
 

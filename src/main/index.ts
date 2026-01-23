@@ -1,4 +1,5 @@
 import { app, BrowserWindow, net, session } from 'electron';
+import { pathToFileURL } from 'url';
 
 import { createWindow } from './window-manager';
 import { registerIpcHandlers } from './ipc-handlers';
@@ -86,9 +87,9 @@ app.whenReady().then(async () => {
 
         console.log('[Protocol] Serving file:', filePath);
 
-        // Use net.fetch to load the file - this is the recommended way in Electron
-        // net.fetch can handle file:// URLs internally
-        return await net.fetch('file://' + filePath);
+        // Use net.fetch to load the file - pathToFileURL handles encoding properly
+        const fileUrl = pathToFileURL(filePath).href;
+        return await net.fetch(fileUrl);
       } catch (error) {
         console.error('[Protocol] Error serving local file:', error);
         return new Response('File not found', { status: 404 });
