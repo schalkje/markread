@@ -4,6 +4,7 @@
 
 - if a folder or repo/branch is opened, and the golder contains files open them in this order:
   - README.md, index.md, first file alphabetically
+  Filter out
   
 
 ## home page fixes
@@ -65,6 +66,33 @@ I want a way of refreshing the folderview for the current folder or repo/branch
 # ignore folders
 Ignoring folders:
 - A base list should be available of folders that are by default not read (open folder, open repo/branch)
+    .git
+    node_modules
+    bin
+    obj
+    dist
+    build
+    out
+    venv
+    .venv
+    env
+    .env
+    __pycache__
+    logs
+    tmp
+    temp
+    .cache
+    .vscode
+    .idea
+    coverage
+    target
+    .vscode
+    .idea
+    .vs
+    .cache
+    .tmp
+    packages
+    .yarn
 - there is a setting where this list can be seen and modified; there is also a button here to reset to the defaults
 
 # Export to pdf function

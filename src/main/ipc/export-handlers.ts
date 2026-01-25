@@ -67,6 +67,11 @@ const ExportPdfFolderSchema = z.object({
       subtitle: z.string().optional(),
       author: z.string().optional(),
     }).optional(),
+    gitInfo: z.object({
+      repoName: z.string().optional(),
+      branch: z.string().optional(),
+    }).optional(),
+    subfolderPath: z.string().optional(),
   }).optional(),
 });
 

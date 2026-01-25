@@ -1097,6 +1097,40 @@ const AppLayout: React.FC = () => {
     };
   }, [exportFolder]);
 
+  // Listen for menu:export-folder-pdf events from File menu
+  useEffect(() => {
+    const handleExportFolderFromMenu = async () => {
+      // Get the active folder
+      const { folders, activeFolderId } = useFoldersStore.getState();
+      const activeFolder = activeFolderId ? folders.find(f => f.id === activeFolderId) : undefined;
+
+      if (!activeFolder) {
+        setToast({
+          message: 'No folder is open. Please open a folder first.',
+          type: 'warning',
+          duration: 3000,
+        });
+        return;
+      }
+
+      if (activeFolder.type === 'repository') {
+        setToast({
+          message: 'Repository folders cannot be exported to PDF. Please open a local folder.',
+          type: 'warning',
+          duration: 3000,
+        });
+        return;
+      }
+
+      await exportFolder(activeFolder.path);
+    };
+
+    window.addEventListener('menu:export-folder-pdf', handleExportFolderFromMenu);
+    return () => {
+      window.removeEventListener('menu:export-folder-pdf', handleExportFolderFromMenu);
+    };
+  }, [exportFolder, setToast]);
+
   // T077: Listen for export-file-to-pdf events from file tree context menu
   useEffect(() => {
     const handleExportFile = async (e: Event) => {
@@ -2670,6 +2704,11 @@ const AppLayout: React.FC = () => {
     // Skip loading if content was manually set (e.g., from link click)
     if (contentLoadedManually.current) {
       contentLoadedManually.current = false;
+      return;
+    }
+
+    // Skip loading for virtual paths (e.g., diagram:// tabs handled by DiagramTabView)
+    if (currentFile.startsWith('diagram://')) {
       return;
     }
 

@@ -51,6 +51,13 @@ export interface FolderExportOptions extends ExportOptions {
     subtitle?: string;
     author?: string;
   };
+  /** Git repository and branch info for the cover page */
+  gitInfo?: {
+    repoName?: string;
+    branch?: string;
+  };
+  /** When exporting a subfolder, this is the path relative to the root */
+  subfolderPath?: string;
 }
 
 export interface MarkdownFile {

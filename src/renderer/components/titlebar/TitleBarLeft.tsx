@@ -154,6 +154,12 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
         window.dispatchEvent(new CustomEvent('menu:export-pdf'));
       },
     },
+    {
+      label: 'Export Folder to PDF',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:export-folder-pdf'));
+      },
+    },
     { separator: true, label: '', action: () => {} },
     {
       label: 'Close Current',
