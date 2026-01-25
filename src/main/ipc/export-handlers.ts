@@ -33,6 +33,34 @@ const CancelExportSchema = z.object({
   jobId: z.string().min(1),
 });
 
+// PDF styling options schema
+const PdfStylingSchema = z.object({
+  coverPage: z.object({
+    showLogo: z.boolean().optional(),
+    showBackgroundImage: z.boolean().optional(),
+    customBackgroundImage: z.string().optional(),
+    backgroundOpacity: z.number().min(0).max(1).optional(),
+  }).optional(),
+  header: z.object({
+    enabled: z.boolean().optional(),
+    showFolderInfo: z.boolean().optional(),
+    showRelativePath: z.boolean().optional(),
+    customText: z.string().optional(),
+  }).optional(),
+  footer: z.object({
+    enabled: z.boolean().optional(),
+    showPageNumbers: z.boolean().optional(),
+    showBranding: z.boolean().optional(),
+    customText: z.string().optional(),
+  }).optional(),
+  toc: z.object({
+    showPageNumbers: z.boolean().optional(),
+  }).optional(),
+  sectionSeparators: z.object({
+    showPageNumbers: z.boolean().optional(),
+  }).optional(),
+}).optional();
+
 const UpdateSettingsSchema = z.object({
   settings: z.object({
     defaultPageSize: z.enum(['A4', 'Letter']).optional(),
@@ -45,6 +73,7 @@ const UpdateSettingsSchema = z.object({
     printBackground: z.boolean().optional(),
     defaultOutputDirectory: z.string().optional(),
     includeSubfoldersDefault: z.boolean().optional(),
+    pdfStyling: PdfStylingSchema,
   }),
 });
 
@@ -69,9 +98,11 @@ const ExportPdfFolderSchema = z.object({
     }).optional(),
     gitInfo: z.object({
       repoName: z.string().optional(),
+      repoUrl: z.string().optional(),
       branch: z.string().optional(),
     }).optional(),
     subfolderPath: z.string().optional(),
+    pdfStyling: PdfStylingSchema,
   }).optional(),
 });
 
@@ -166,6 +197,9 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
         return { success: false, cancelled: true };
       }
 
+      // Get default styling from settings
+      const settings = await settingsStore.getSettingsAsync();
+
       const folderOptions: Partial<FolderExportOptions> = {};
       if (options?.pageSize) folderOptions.pageSize = options.pageSize;
       if (options?.margins) folderOptions.margins = options.margins;
@@ -175,6 +209,16 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
       if (options?.coverPage) folderOptions.coverPage = options.coverPage;
       if (options?.gitInfo) folderOptions.gitInfo = options.gitInfo;
       if (options?.subfolderPath) folderOptions.subfolderPath = options.subfolderPath;
+      // Use provided styling or fall back to settings defaults (deep merge)
+      if (options?.pdfStyling || settings.pdfStyling) {
+        folderOptions.pdfStyling = {
+          coverPage: { ...settings.pdfStyling?.coverPage, ...options?.pdfStyling?.coverPage },
+          header: { ...settings.pdfStyling?.header, ...options?.pdfStyling?.header },
+          footer: { ...settings.pdfStyling?.footer, ...options?.pdfStyling?.footer },
+          toc: { ...settings.pdfStyling?.toc, ...options?.pdfStyling?.toc },
+          sectionSeparators: { ...settings.pdfStyling?.sectionSeparators, ...options?.pdfStyling?.sectionSeparators },
+        } as FolderExportOptions['pdfStyling'];
+      }
 
       const job = await folderExportService.exportFolderToPdf(
         folderPath,
@@ -236,7 +280,8 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('export:settings:update', async (_event, payload) => {
     try {
       const { settings } = UpdateSettingsSchema.parse(payload);
-      await settingsStore.updateSettings(settings);
+      // Cast to allow partial pdfStyling - the store handles the deep merge
+      await settingsStore.updateSettings(settings as Parameters<typeof settingsStore.updateSettings>[0]);
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };

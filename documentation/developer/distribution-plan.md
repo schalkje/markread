@@ -84,7 +84,7 @@ Add comprehensive metadata for packaging:
   <Description>Fast, modern desktop application for viewing and navigating Markdown files on Windows</Description>
   <Authors>schalkje</Authors>
   <Company>MarkRead Project</Company>
-  <Copyright>Copyright © 2025 MarkRead Project</Copyright>
+  <Copyright>Copyright © 2026 MarkRead Project</Copyright>
   
   <!-- Package Metadata -->
   <PackageId>MarkRead</PackageId>

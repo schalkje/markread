@@ -162,6 +162,14 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
     },
     { separator: true, label: '', action: () => {} },
     {
+      label: 'Settings',
+      shortcut: 'Ctrl+,',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:settings'));
+      },
+    },
+    { separator: true, label: '', action: () => {} },
+    {
       label: 'Close Current',
       shortcut: 'Ctrl+W',
       action: () => {

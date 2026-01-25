@@ -5,7 +5,7 @@
  * with cover page, table of contents, and page breaks between documents
  */
 
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, app } from 'electron';
 import { EventEmitter } from 'events';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -26,8 +26,9 @@ import type {
   FolderExportOptions,
   ExportError,
   MarkdownFile,
+  PdfStylingOptions,
 } from '../../../shared/types/export';
-import { ExportErrorCode } from '../../../shared/types/export';
+import { ExportErrorCode, DEFAULT_PDF_STYLING } from '../../../shared/types/export';
 import { getExportLogger } from './ExportLogger';
 import { getExportSettingsStore } from './ExportSettingsStore';
 
@@ -101,29 +102,40 @@ export class FolderExportService extends EventEmitter {
   }
 
   /**
+   * Get possible asset paths for a given filename
+   */
+  private getAssetPaths(filename: string): string[] {
+    const appPath = app.getAppPath();
+    return [
+      // Development paths
+      path.join(appPath, 'assets', filename),
+      path.join(appPath, '..', 'assets', filename),
+      path.join(__dirname, '../../../../assets', filename),
+      path.join(__dirname, '../../../assets', filename),
+      path.join(__dirname, '../../assets', filename),
+      // Production paths
+      path.join(process.resourcesPath || '', 'assets', filename),
+      path.join(process.resourcesPath || '', 'app', 'assets', filename),
+      path.join(process.resourcesPath || '', 'app.asar', 'assets', filename),
+    ];
+  }
+
+  /**
    * Load the MarkRead logo as a base64 data URL for embedding in PDF
    */
   private async loadLogoAsBase64(): Promise<string | undefined> {
-    try {
-      // Try multiple possible paths for the logo
-      const possiblePaths = [
-        path.join(__dirname, '../../../../assets/markread-logo.png'),
-        path.join(__dirname, '../../../assets/markread-logo.png'),
-        path.join(process.resourcesPath || '', 'assets/markread-logo.png'),
-      ];
+    const possiblePaths = this.getAssetPaths('markread-icon.png');
 
-      for (const logoPath of possiblePaths) {
-        try {
-          const logoBuffer = await fs.readFile(logoPath);
-          return `data:image/png;base64,${logoBuffer.toString('base64')}`;
-        } catch {
-          // Try next path
-        }
+    for (const logoPath of possiblePaths) {
+      try {
+        const logoBuffer = await fs.readFile(logoPath);
+        return `data:image/png;base64,${logoBuffer.toString('base64')}`;
+      } catch {
+        // Try next path
       }
-      return undefined;
-    } catch {
-      return undefined;
     }
+    console.warn('[FolderExportService] Could not find markread-icon.png in any expected location');
+    return undefined;
   }
 
   /**
@@ -144,6 +156,15 @@ export class FolderExportService extends EventEmitter {
       includeSubfolders: options.includeSubfolders ?? defaults.includeSubfoldersDefault,
       generateTOC: options.generateTOC ?? true,
       coverPage: options.coverPage,
+      gitInfo: options.gitInfo,
+      subfolderPath: options.subfolderPath,
+      pdfStyling: {
+        coverPage: { ...DEFAULT_PDF_STYLING.coverPage, ...defaults.pdfStyling?.coverPage, ...options.pdfStyling?.coverPage },
+        header: { ...DEFAULT_PDF_STYLING.header, ...defaults.pdfStyling?.header, ...options.pdfStyling?.header },
+        footer: { ...DEFAULT_PDF_STYLING.footer, ...defaults.pdfStyling?.footer, ...options.pdfStyling?.footer },
+        toc: { ...DEFAULT_PDF_STYLING.toc, ...defaults.pdfStyling?.toc, ...options.pdfStyling?.toc },
+        sectionSeparators: { ...DEFAULT_PDF_STYLING.sectionSeparators, ...defaults.pdfStyling?.sectionSeparators, ...options.pdfStyling?.sectionSeparators },
+      },
     };
 
     // Create job
@@ -227,8 +248,12 @@ export class FolderExportService extends EventEmitter {
       job.progress.percentComplete = 65;
       this.emitProgress(job);
 
-      // Load logo for cover page
-      const logoBase64 = await this.loadLogoAsBase64();
+      const styling = mergedOptions.pdfStyling!;
+
+      // Load logo for cover page (if enabled)
+      const logoBase64 = styling.coverPage.showLogo
+        ? await this.loadLogoAsBase64()
+        : undefined;
 
       // T064: Generate cover page with enhanced details
       const coverPageHtml = this.generateCoverPage(
@@ -238,17 +263,18 @@ export class FolderExportService extends EventEmitter {
         folderPath,
         mergedOptions.gitInfo,
         mergedOptions.subfolderPath,
-        logoBase64
+        logoBase64,
+        styling
       );
 
       // Generate subfolder separator pages
       const subfolderSeparators = mergedOptions.includeSubfolders
-        ? this.generateSubfolderSeparatorPages(renderedFiles, folderPath, logoBase64)
+        ? this.generateSubfolderSeparatorPages(renderedFiles, folderPath, styling)
         : new Map<string, string>();
 
       // T065: Generate table of contents with clickable subfolder links
       const tocHtml = mergedOptions.generateTOC
-        ? this.generateTableOfContents(renderedFiles, subfolderSeparators)
+        ? this.generateTableOfContents(renderedFiles, subfolderSeparators, styling)
         : '';
 
       // T066: Build combined HTML document with separator pages
@@ -258,7 +284,8 @@ export class FolderExportService extends EventEmitter {
         renderedFiles,
         mergedOptions,
         job.id,
-        subfolderSeparators
+        subfolderSeparators,
+        styling
       );
 
       job.progress.percentComplete = 75;
@@ -297,7 +324,9 @@ export class FolderExportService extends EventEmitter {
       job.progress.percentComplete = 85;
       this.emitProgress(job);
 
-      // Generate PDF
+      // Generate PDF with page numbering footer
+      const showPageNumbers = styling?.footer?.showPageNumbers ?? true;
+
       const pdfData = await pdfWindow.webContents.printToPDF({
         pageSize: mergedOptions.pageSize,
         printBackground: mergedOptions.printBackground,
@@ -308,6 +337,13 @@ export class FolderExportService extends EventEmitter {
           left: mergedOptions.margins.left,
         },
         landscape: false,
+        displayHeaderFooter: showPageNumbers,
+        footerTemplate: showPageNumbers
+          ? `<div style="width: 100%; font-size: 9px; color: #8b949e; text-align: right; padding-right: 0.75in;">
+              <span class="pageNumber"></span> / <span class="totalPages"></span>
+            </div>`
+          : '<div></div>',
+        headerTemplate: '<div></div>',
       });
 
       // Write PDF to file
@@ -449,9 +485,10 @@ export class FolderExportService extends EventEmitter {
     subtitle?: string,
     author?: string,
     folderPath?: string,
-    gitInfo?: { repoName?: string; branch?: string },
+    gitInfo?: { repoName?: string; repoUrl?: string; branch?: string },
     subfolderPath?: string,
-    logoBase64?: string
+    logoBase64?: string,
+    styling?: PdfStylingOptions
   ): string {
     const date = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
@@ -459,7 +496,31 @@ export class FolderExportService extends EventEmitter {
       day: 'numeric',
     });
 
-    const folderName = folderPath ? path.basename(folderPath) : '';
+    const appVersion = app.getVersion();
+    const showBranding = styling?.coverPage?.showBranding ?? true;
+
+    // Determine if this is a git repo export or regular folder export
+    const isGitRepo = !!gitInfo?.repoUrl || !!gitInfo?.repoName;
+
+    // For non-git folders, calculate base (root) and folder (relative path)
+    // If subfolderPath is set, derive root from folderPath by removing subfolderPath
+    // Otherwise, use parent directory as base and folder name as folder
+    let basePath = '';
+    let relativeFolderPath = '';
+    if (subfolderPath && folderPath) {
+      // subfolderPath is relative path from root, so root = folderPath - subfolderPath
+      const normalizedSubfolder = subfolderPath.replace(/\\/g, '/');
+      const normalizedFolderPath = folderPath.replace(/\\/g, '/');
+      if (normalizedFolderPath.endsWith(normalizedSubfolder)) {
+        basePath = folderPath.slice(0, folderPath.length - subfolderPath.length).replace(/[/\\]+$/, '');
+      } else {
+        basePath = path.dirname(folderPath);
+      }
+      relativeFolderPath = subfolderPath;
+    } else if (folderPath) {
+      basePath = path.dirname(folderPath);
+      relativeFolderPath = path.basename(folderPath);
+    }
 
     return `
       <div class="cover-page">
@@ -469,24 +530,44 @@ export class FolderExportService extends EventEmitter {
           ${subtitle ? `<p class="cover-subtitle">${this.escapeHtml(subtitle)}</p>` : ''}
 
           <div class="cover-details">
-            ${folderName ? `
-              <div class="cover-detail-row">
-                <span class="cover-detail-label">Base Folder</span>
-                <span class="cover-detail-value">${this.escapeHtml(folderName)}</span>
-              </div>
-            ` : ''}
-            ${gitInfo?.repoName ? `
-              <div class="cover-detail-row">
-                <span class="cover-detail-label">Repository</span>
-                <span class="cover-detail-value">${this.escapeHtml(gitInfo.repoName)}${gitInfo.branch ? ` <span class="cover-branch">${this.escapeHtml(gitInfo.branch)}</span>` : ''}</span>
-              </div>
-            ` : ''}
-            ${subfolderPath ? `
-              <div class="cover-detail-row">
-                <span class="cover-detail-label">Subfolder</span>
-                <span class="cover-detail-value">${this.escapeHtml(subfolderPath)}</span>
-              </div>
-            ` : ''}
+            ${isGitRepo ? `
+              ${gitInfo?.repoUrl ? `
+                <div class="cover-detail-row">
+                  <span class="cover-detail-label">Repo</span>
+                  <span class="cover-detail-value">${this.escapeHtml(gitInfo.repoUrl)}</span>
+                </div>
+              ` : gitInfo?.repoName ? `
+                <div class="cover-detail-row">
+                  <span class="cover-detail-label">Repo</span>
+                  <span class="cover-detail-value">${this.escapeHtml(gitInfo.repoName)}</span>
+                </div>
+              ` : ''}
+              ${gitInfo?.branch ? `
+                <div class="cover-detail-row">
+                  <span class="cover-detail-label">Branch</span>
+                  <span class="cover-detail-value"><span class="cover-branch">${this.escapeHtml(gitInfo.branch)}</span></span>
+                </div>
+              ` : ''}
+              ${subfolderPath ? `
+                <div class="cover-detail-row">
+                  <span class="cover-detail-label">Folder</span>
+                  <span class="cover-detail-value">${this.escapeHtml(subfolderPath)}</span>
+                </div>
+              ` : ''}
+            ` : `
+              ${basePath ? `
+                <div class="cover-detail-row">
+                  <span class="cover-detail-label">Base</span>
+                  <span class="cover-detail-value">${this.escapeHtml(basePath)}</span>
+                </div>
+              ` : ''}
+              ${relativeFolderPath ? `
+                <div class="cover-detail-row">
+                  <span class="cover-detail-label">Folder</span>
+                  <span class="cover-detail-value">${this.escapeHtml(relativeFolderPath)}</span>
+                </div>
+              ` : ''}
+            `}
           </div>
 
           <div class="cover-meta">
@@ -494,9 +575,14 @@ export class FolderExportService extends EventEmitter {
             <p class="cover-date">${date}</p>
           </div>
         </div>
+        ${showBranding ? `
         <div class="cover-footer">
-          <span>Generated by MarkRead</span>
+          <div class="cover-branding">
+            <span class="cover-branding-app">MarkRead ${appVersion}</span>
+            <span class="cover-branding-site">schalken.net</span>
+          </div>
         </div>
+        ` : ''}
       </div>
     `;
   }
@@ -506,9 +592,12 @@ export class FolderExportService extends EventEmitter {
    */
   private generateTableOfContents(
     files: MarkdownFile[],
-    subfolderSeparators: Map<string, string> = new Map()
+    subfolderSeparators: Map<string, string> = new Map(),
+    _styling?: PdfStylingOptions
   ): string {
     // Build a tree structure from the flat file list
+    // Note: Page numbers are removed because we can't accurately predict them
+    // before PDF generation (documents may span multiple pages)
     interface TocNode {
       name: string;
       fullPath: string;
@@ -536,7 +625,7 @@ export class FolderExportService extends EventEmitter {
         current = folder;
       }
 
-      // Add file node
+      // Add file node (no page numbers - they can't be accurately predicted)
       current.children.push({
         name: parts[parts.length - 1],
         fullPath: file.relativePath,
@@ -550,8 +639,8 @@ export class FolderExportService extends EventEmitter {
     // Render the tree as nested lists with clickable folder links
     const renderNode = (node: TocNode, depth: number): string => {
       if (node.anchor) {
-        // File entry
-        return `<li class="toc-file"><a href="#${node.anchor}">${this.escapeHtml(node.title || node.name)}</a></li>`;
+        // File entry (no page numbers - see footer for actual page numbers)
+        return `<li class="toc-file"><a href="#${node.anchor}"><span class="toc-file-title">${this.escapeHtml(node.title || node.name)}</span></a></li>`;
       }
       // Folder entry - make it clickable if there's a separator page
       const folderAnchor = subfolderSeparators.has(node.fullPath)
@@ -597,9 +686,11 @@ export class FolderExportService extends EventEmitter {
   private generateSubfolderSeparatorPages(
     files: MarkdownFile[],
     _rootPath: string,
-    logoBase64?: string
+    _styling?: PdfStylingOptions
   ): Map<string, string> {
     const separators = new Map<string, string>();
+    // Note: Page numbers are removed because we can't accurately predict them
+    // before PDF generation (documents may span multiple pages)
 
     // Collect unique folder paths
     const folderData = new Map<string, {
@@ -643,40 +734,35 @@ export class FolderExportService extends EventEmitter {
       }
     });
 
-    // Generate separator page for each folder
+    // Generate separator page for each folder (no page numbers - see footer)
     folderData.forEach((data, folderPath) => {
       const anchor = `folder-${this.slugify(folderPath)}`;
       const folderName = folderPath.split('/').pop() || folderPath;
 
-      // Build submenu of files and subfolders
+      // Build submenu of files and subfolders (no page numbers)
       const subfolderLinks = Array.from(data.subfolders).sort().map(sf => {
         const sfPath = `${folderPath}/${sf}`;
         const sfAnchor = `folder-${this.slugify(sfPath)}`;
-        return `<li class="separator-submenu-folder"><a href="#${sfAnchor}"><span class="folder-icon">📁</span> ${this.escapeHtml(sf)}</a></li>`;
+        return `<li class="separator-submenu-folder"><a href="#${sfAnchor}"><span class="folder-icon">📁</span> <span class="separator-item-title">${this.escapeHtml(sf)}</span></a></li>`;
       });
 
       const fileLinks = data.files
         .sort((a, b) => a.title.localeCompare(b.title))
         .map(f => {
-          return `<li class="separator-submenu-file"><a href="#doc-${f.order}"><span class="file-icon">📄</span> ${this.escapeHtml(f.title)}</a></li>`;
+          return `<li class="separator-submenu-file"><a href="#doc-${f.order}"><span class="file-icon">📄</span> <span class="separator-item-title">${this.escapeHtml(f.title)}</span></a></li>`;
         });
 
       const separatorHtml = `
         <div class="separator-page" id="${anchor}">
           <div class="separator-content">
-            ${logoBase64 ? `<img src="${logoBase64}" alt="MarkRead" class="separator-logo" />` : ''}
-            <div class="separator-header">
-              <span class="separator-label">Section</span>
-              <h1 class="separator-title">${this.escapeHtml(folderName)}</h1>
-              <p class="separator-path">${this.escapeHtml(folderPath)}</p>
+            <div class="separator-header-compact">
+              <span class="separator-icon">📁</span>
+              <h1 class="separator-title-compact">${this.escapeHtml(folderName)}</h1>
             </div>
-            <div class="separator-submenu">
-              <h3 class="separator-submenu-title">Contents</h3>
-              <ul class="separator-submenu-list">
-                ${subfolderLinks.join('\n')}
-                ${fileLinks.join('\n')}
-              </ul>
-            </div>
+            <ul class="separator-contents-list">
+              ${subfolderLinks.join('\n')}
+              ${fileLinks.join('\n')}
+            </ul>
           </div>
         </div>
       `;
@@ -696,7 +782,8 @@ export class FolderExportService extends EventEmitter {
     files: MarkdownFile[],
     _options: FolderExportOptions,
     jobId: string,
-    subfolderSeparators: Map<string, string> = new Map()
+    subfolderSeparators: Map<string, string> = new Map(),
+    _styling?: PdfStylingOptions
   ): string {
     // T067: Build document sections with page breaks between them
     // Insert separator pages before the first file of each subfolder
@@ -718,6 +805,7 @@ export class FolderExportService extends EventEmitter {
       }
 
       const anchor = `doc-${index}`;
+
       documentSections.push(`
         <div class="document-section" id="${anchor}">
           <div class="document-header">
@@ -774,20 +862,10 @@ export class FolderExportService extends EventEmitter {
     }
 
     /* ============================================
-       Page Header & Footer (Print)
+       Page Margins
        ============================================ */
     @page {
-      margin: 1in 0.75in;
-      @top-center {
-        content: "MarkRead Export";
-        font-size: 10px;
-        color: #8b949e;
-      }
-      @bottom-center {
-        content: counter(page);
-        font-size: 10px;
-        color: #8b949e;
-      }
+      margin: 0.75in;
     }
 
     /* ============================================
@@ -801,12 +879,14 @@ export class FolderExportService extends EventEmitter {
       min-height: 100vh;
       page-break-after: always;
       text-align: center;
-      background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      background-color: var(--bg-primary);
       padding: 60px 40px;
       position: relative;
+      overflow: hidden;
     }
 
     .cover-content {
+      position: relative;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -848,10 +928,10 @@ export class FolderExportService extends EventEmitter {
 
     .cover-detail-row {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      align-items: baseline;
       padding: 8px 0;
       border-bottom: 1px solid var(--border-light);
+      gap: 16px;
     }
 
     .cover-detail-row:last-child {
@@ -859,17 +939,20 @@ export class FolderExportService extends EventEmitter {
     }
 
     .cover-detail-label {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      min-width: 60px;
+      flex-shrink: 0;
     }
 
     .cover-detail-value {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-primary);
       font-weight: 500;
+      word-break: break-word;
     }
 
     .cover-branch {
@@ -880,7 +963,6 @@ export class FolderExportService extends EventEmitter {
       border-radius: 12px;
       font-size: 12px;
       font-weight: 600;
-      margin-left: 8px;
     }
 
     .cover-meta {
@@ -903,9 +985,30 @@ export class FolderExportService extends EventEmitter {
     .cover-footer {
       position: absolute;
       bottom: 40px;
+      left: 40px;
+    }
+
+    .cover-branding {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .cover-branding-app {
       font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .cover-branding-site {
+      font-size: 10px;
       color: var(--text-muted);
     }
+
+    /* Note: The PDF footer (page numbers) appears in the margin area which
+       cannot be easily hidden on specific pages with CSS alone. The footer
+       will appear on all pages including the title page. */
 
     /* ============================================
        Table of Contents
@@ -942,7 +1045,9 @@ export class FolderExportService extends EventEmitter {
     }
 
     .toc-file a {
-      display: block;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       text-decoration: none;
       color: var(--text-primary);
       transition: color 0.15s;
@@ -950,6 +1055,19 @@ export class FolderExportService extends EventEmitter {
 
     .toc-file a:hover {
       color: var(--primary-color);
+    }
+
+    .toc-file-title {
+      flex: 1;
+    }
+
+    .toc-page-num {
+      flex-shrink: 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-left: 16px;
+      min-width: 30px;
+      text-align: right;
     }
 
     .toc-folder {
@@ -982,88 +1100,40 @@ export class FolderExportService extends EventEmitter {
     }
 
     /* ============================================
-       Separator Pages (Subfolder)
+       Separator Pages (Subfolder) - Compact Layout
        ============================================ */
     .separator-page {
       page-break-before: always;
       page-break-after: always;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 40px;
-      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      padding: 40px 20px;
     }
 
     .separator-content {
-      text-align: center;
-      max-width: 600px;
+      max-width: 100%;
     }
 
-    .separator-logo {
-      width: 80px;
-      height: auto;
-      margin-bottom: 32px;
-      opacity: 0.7;
+    .separator-header-compact {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 3px solid var(--primary-color);
     }
 
-    .separator-header {
-      margin-bottom: 40px;
+    .separator-icon {
+      font-size: 24px;
+      flex-shrink: 0;
     }
 
-    .separator-label {
-      display: inline-block;
-      background: var(--primary-color);
-      color: white;
-      padding: 4px 16px;
-      border-radius: 16px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 16px;
-    }
-
-    .separator-title {
-      font-size: 36px;
+    .separator-title-compact {
+      font-size: 24px;
       font-weight: 700;
-      margin: 0 0 12px 0;
+      margin: 0;
       color: var(--text-primary);
     }
 
-    .separator-path {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin: 0;
-      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-      background: var(--bg-tertiary);
-      padding: 8px 16px;
-      border-radius: 6px;
-      display: inline-block;
-    }
-
-    .separator-submenu {
-      text-align: left;
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-
-    .separator-submenu-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin: 0 0 16px 0;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border-light);
-    }
-
-    .separator-submenu-list {
+    .separator-contents-list {
       list-style: none;
       padding: 0;
       margin: 0;
@@ -1071,7 +1141,7 @@ export class FolderExportService extends EventEmitter {
 
     .separator-submenu-folder,
     .separator-submenu-file {
-      padding: 8px 0;
+      padding: 6px 0;
       border-bottom: 1px solid var(--border-light);
     }
 
@@ -1096,8 +1166,22 @@ export class FolderExportService extends EventEmitter {
 
     .folder-icon,
     .file-icon {
+      flex-shrink: 0;
       margin-right: 10px;
-      font-size: 16px;
+      font-size: 14px;
+    }
+
+    .separator-item-title {
+      flex: 1;
+    }
+
+    .separator-page-num {
+      flex-shrink: 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-left: 16px;
+      min-width: 30px;
+      text-align: right;
     }
 
     .separator-submenu-folder a {
@@ -1110,6 +1194,8 @@ export class FolderExportService extends EventEmitter {
     .document-section {
       page-break-before: always;
       padding: 20px 0;
+      position: relative;
+      min-height: calc(100vh - 80px);
     }
 
     .document-section:first-of-type {
@@ -1117,6 +1203,7 @@ export class FolderExportService extends EventEmitter {
     }
 
     .document-header {
+      margin-top: 40px;
       margin-bottom: 32px;
       padding-bottom: 16px;
       border-bottom: 2px solid var(--border-color);
@@ -1142,6 +1229,7 @@ export class FolderExportService extends EventEmitter {
 
     .document-content {
       margin-top: 24px;
+      padding-bottom: 40px;
     }
 
     /* ============================================

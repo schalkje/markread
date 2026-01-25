@@ -17,6 +17,7 @@ import { BehaviorPanel } from './BehaviorPanel';
 import { SearchPanel } from './SearchPanel';
 import { PerformancePanel } from './PerformancePanel';
 import { KeyboardPanel } from './KeyboardPanel';
+import { ExportPanel } from './ExportPanel';
 import './SettingsWindow.css';
 
 export interface SettingsWindowProps {
@@ -28,7 +29,7 @@ export interface SettingsWindowProps {
   initialTab?: SettingsTab;
 }
 
-export type SettingsTab = 'appearance' | 'behavior' | 'search' | 'performance' | 'keyboard';
+export type SettingsTab = 'appearance' | 'behavior' | 'search' | 'performance' | 'keyboard' | 'export';
 
 /**
  * T137: Settings Window with 5 tabs
@@ -150,6 +151,13 @@ export const SettingsWindow: React.FC<SettingsWindowProps> = ({
               isActive={activeTab === 'keyboard'}
               onClick={() => setActiveTab('keyboard')}
             />
+            <SettingsTabButton
+              id="export"
+              label="Export"
+              icon="📄"
+              isActive={activeTab === 'export'}
+              onClick={() => setActiveTab('export')}
+            />
           </div>
 
           {/* Panel area */}
@@ -159,6 +167,7 @@ export const SettingsWindow: React.FC<SettingsWindowProps> = ({
             {activeTab === 'search' && <SearchPanel />}
             {activeTab === 'performance' && <PerformancePanel />}
             {activeTab === 'keyboard' && <KeyboardPanel />}
+            {activeTab === 'export' && <ExportPanel />}
           </div>
         </div>
 

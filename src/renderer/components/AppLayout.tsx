@@ -41,6 +41,7 @@ import {
 } from '../services/keyboard-handler';
 import { ShortcutsReference } from './help/ShortcutsReference';
 import { About } from './help/About';
+import { SettingsWindow } from './settings/SettingsWindow';
 import { ErrorDialog } from './ErrorDialog'; // T022: Import ErrorDialog
 import { ExportProgressDialog } from './ExportProgressDialog'; // T017: Import ExportProgressDialog
 import { DiagramTabView } from './DiagramTabView'; // T039: Import DiagramTabView
@@ -98,6 +99,9 @@ const AppLayout: React.FC = () => {
 
   // About dialog state
   const [showAbout, setShowAbout] = useState(false);
+
+  // Settings window state
+  const [showSettings, setShowSettings] = useState(false);
 
   // Repository connect dialog state
   const [showRepoConnect, setShowRepoConnect] = useState(false);
@@ -877,6 +881,18 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
+  // Listen for menu:settings events from File menu
+  useEffect(() => {
+    const handleShowSettings = () => {
+      setShowSettings(true);
+    };
+
+    window.addEventListener('menu:settings', handleShowSettings);
+    return () => {
+      window.removeEventListener('menu:settings', handleShowSettings);
+    };
+  }, []);
+
   // Listen for connect-repository events from File Menu and Folder Switcher
   useEffect(() => {
     const handleConnectRepository = () => {
@@ -1087,7 +1103,59 @@ const AppLayout: React.FC = () => {
     const handleExportFolder = async (e: Event) => {
       const { folderPath } = (e as CustomEvent).detail;
       if (folderPath) {
-        await exportFolder(folderPath);
+        // Get the active folder (root) to calculate relative path
+        const { folders, activeFolderId } = useFoldersStore.getState();
+        const activeFolder = activeFolderId ? folders.find(f => f.id === activeFolderId) : undefined;
+
+        // Calculate subfolderPath and gitInfo based on folder type
+        let subfolderPath: string | undefined;
+        let gitInfo: { repoName?: string; repoUrl?: string; branch?: string } | undefined;
+
+        if (activeFolder?.type === 'repository') {
+          // For repository folders, folderPath is the virtual path from repo root
+          // Use it directly as the subfolderPath
+          subfolderPath = folderPath;
+
+          // Extract git info from the repository folder
+          gitInfo = {
+            repoUrl: activeFolder.repositoryUrl,
+            repoName: activeFolder.repositoryMetadata?.owner && activeFolder.repositoryMetadata?.name
+              ? `${activeFolder.repositoryMetadata.owner}/${activeFolder.repositoryMetadata.name}`
+              : activeFolder.displayName?.replace(/\s*\([^)]+\)\s*$/, ''),
+            branch: activeFolder.currentBranch,
+          };
+        } else if (activeFolder && folderPath !== activeFolder.path && folderPath.startsWith(activeFolder.path)) {
+          // For local folders, remove root path and leading separator to get relative path
+          subfolderPath = folderPath.slice(activeFolder.path.length).replace(/^[/\\]+/, '');
+        }
+
+        // Title should be the name of the folder being exported, not the root folder
+        const exportTitle = folderPath.split(/[/\\]/).pop() || 'Export';
+
+        // Generate default filename based on folder type
+        // Format: {rootName}-{folderName}-{YYYYMMDD}[-{branch}].pdf
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const exportedFolderName = folderPath.split(/[/\\]/).pop() || 'export';
+        let defaultFilename: string;
+
+        if (activeFolder?.type === 'repository') {
+          // For repos: repoName-folderName-date-branch.pdf
+          const repoName = activeFolder.repositoryMetadata?.name || activeFolder.displayName?.replace(/\s*\([^)]+\)\s*$/, '') || 'repo';
+          const branch = activeFolder.currentBranch || 'main';
+          defaultFilename = `${repoName}-${exportedFolderName}-${dateStr}-${branch}.pdf`;
+        } else {
+          // For local: rootFolderName-exportedFolderName-date.pdf
+          const rootFolderName = activeFolder?.path?.split(/[/\\]/).pop() || 'folder';
+          defaultFilename = `${rootFolderName}-${exportedFolderName}-${dateStr}.pdf`;
+        }
+
+        await exportFolder(folderPath, {
+          subfolderPath,
+          gitInfo,
+          coverPage: {
+            title: exportTitle,
+          },
+        }, defaultFilename);
       }
     };
 
@@ -1122,7 +1190,12 @@ const AppLayout: React.FC = () => {
         return;
       }
 
-      await exportFolder(activeFolder.path);
+      // Generate default filename: rootFolderName-date.pdf
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const rootFolderName = activeFolder.path.split(/[/\\]/).pop() || 'folder';
+      const defaultFilename = `${rootFolderName}-${dateStr}.pdf`;
+
+      await exportFolder(activeFolder.path, undefined, defaultFilename);
     };
 
     window.addEventListener('menu:export-folder-pdf', handleExportFolderFromMenu);
@@ -1401,7 +1474,7 @@ const AppLayout: React.FC = () => {
         console.log('Command palette not implemented yet');
       },
       onOpenSettings: () => {
-        console.log('Settings not implemented yet');
+        setShowSettings(true);
       },
       onShowShortcuts: () => {
         setShowShortcuts(true);
@@ -3717,6 +3790,12 @@ const AppLayout: React.FC = () => {
       <About
         isOpen={showAbout}
         onClose={() => setShowAbout(false)}
+      />
+
+      {/* Settings Window */}
+      <SettingsWindow
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
       />
 
       {/* Repository Connect Dialog */}

@@ -20,7 +20,7 @@ interface UseExportResult {
 
   // Actions
   exportCurrentPage: (htmlContent: string, defaultFilename?: string, options?: Partial<ExportOptions>) => Promise<void>;
-  exportFolder: (folderPath: string, options?: Partial<FolderExportOptions>) => Promise<void>;
+  exportFolder: (folderPath: string, options?: Partial<FolderExportOptions>, defaultFilename?: string) => Promise<void>;
   exportFile: (filePath: string) => Promise<void>;
   cancelExport: () => Promise<void>;
   dismissProgress: () => void;
@@ -139,7 +139,8 @@ export function useExport(): UseExportResult {
   // T072: Export folder to PDF
   const exportFolder = useCallback(async (
     folderPath: string,
-    options?: Partial<FolderExportOptions>
+    options?: Partial<FolderExportOptions>,
+    defaultFilename?: string
   ): Promise<void> => {
     setLiveProgress({ filesProcessed: 0, totalFiles: 0, percentComplete: 0 });
     setLiveStatus('pending');
@@ -150,7 +151,7 @@ export function useExport(): UseExportResult {
       const folderName = folderPath.split(/[/\\]/).pop() || 'folder';
       const result = await window.exportApi?.exportFolderToPdf({
         folderPath,
-        defaultFilename: `${folderName}-export.pdf`,
+        defaultFilename: defaultFilename || `${folderName}-export.pdf`,
         options,
       });
 

@@ -4,7 +4,8 @@
  */
 
 import type Store from 'electron-store';
-import type { ExportSettings, RecentExport } from '../../../shared/types/export';
+import type { ExportSettings, RecentExport, PdfStylingOptions } from '../../../shared/types/export';
+import { DEFAULT_PDF_STYLING } from '../../../shared/types/export';
 
 interface StoreSchema {
   export: {
@@ -17,8 +18,26 @@ const DEFAULT_SETTINGS: ExportSettings = {
   defaultMargins: { top: 1, bottom: 1, left: 1, right: 1 },
   printBackground: true,
   includeSubfoldersDefault: true,
-  recentExports: []
+  recentExports: [],
+  pdfStyling: DEFAULT_PDF_STYLING,
 };
+
+/**
+ * Deep merge PDF styling options with defaults
+ */
+function mergePdfStyling(
+  current: Partial<PdfStylingOptions> | undefined,
+  defaults: PdfStylingOptions
+): PdfStylingOptions {
+  if (!current) return defaults;
+  return {
+    coverPage: { ...defaults.coverPage, ...current.coverPage },
+    header: { ...defaults.header, ...current.header },
+    footer: { ...defaults.footer, ...current.footer },
+    toc: { ...defaults.toc, ...current.toc },
+    sectionSeparators: { ...defaults.sectionSeparators, ...current.sectionSeparators },
+  };
+}
 
 export class ExportSettingsStore {
   private store: Store<StoreSchema> | null = null;
@@ -75,8 +94,25 @@ export class ExportSettingsStore {
   async updateSettings(partial: Partial<ExportSettings>): Promise<void> {
     const store = await this.getStore();
     const current = store.get('export.settings', DEFAULT_SETTINGS);
-    const updated = { ...current, ...partial };
+    const updated: ExportSettings = {
+      ...current,
+      ...partial,
+      // Deep merge PDF styling options
+      pdfStyling: partial.pdfStyling
+        ? mergePdfStyling(partial.pdfStyling, current.pdfStyling || DEFAULT_PDF_STYLING)
+        : current.pdfStyling || DEFAULT_PDF_STYLING,
+    };
     store.set('export.settings', updated);
+  }
+
+  /**
+   * Update PDF styling options specifically
+   */
+  async updatePdfStyling(partial: Partial<PdfStylingOptions>): Promise<void> {
+    const store = await this.getStore();
+    const current = store.get('export.settings', DEFAULT_SETTINGS);
+    const updatedStyling = mergePdfStyling(partial, current.pdfStyling || DEFAULT_PDF_STYLING);
+    store.set('export.settings', { ...current, pdfStyling: updatedStyling });
   }
 
   /**
