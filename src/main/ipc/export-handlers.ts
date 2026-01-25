@@ -173,6 +173,8 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
       if (options?.includeSubfolders !== undefined) folderOptions.includeSubfolders = options.includeSubfolders;
       if (options?.generateTOC !== undefined) folderOptions.generateTOC = options.generateTOC;
       if (options?.coverPage) folderOptions.coverPage = options.coverPage;
+      if (options?.gitInfo) folderOptions.gitInfo = options.gitInfo;
+      if (options?.subfolderPath) folderOptions.subfolderPath = options.subfolderPath;
 
       const job = await folderExportService.exportFolderToPdf(
         folderPath,
