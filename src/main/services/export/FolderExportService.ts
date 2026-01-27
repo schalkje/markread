@@ -29,6 +29,7 @@ import type {
   PdfStylingOptions,
 } from '../../../shared/types/export';
 import { ExportErrorCode, DEFAULT_PDF_STYLING } from '../../../shared/types/export';
+import { DEFAULT_EXCLUDED_FOLDERS } from '../../../shared/constants/folderExclusions';
 import { getExportLogger } from './ExportLogger';
 import { getExportSettingsStore } from './ExportSettingsStore';
 
@@ -441,8 +442,8 @@ export class FolderExportService extends EventEmitter {
       const fullPath = path.join(currentPath, entry.name);
 
       if (entry.isDirectory() && recurse) {
-        // T074: Skip hidden directories and node_modules
-        if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+        // T074: Skip hidden directories and excluded folders from default list
+        if (entry.name.startsWith('.') || DEFAULT_EXCLUDED_FOLDERS.includes(entry.name)) continue;
         currentOrder = await this.walkDirectory(fullPath, rootPath, files, recurse, currentOrder);
       } else if (entry.isFile() && this.isMarkdownFile(entry.name)) {
         const relativePath = path.relative(rootPath, fullPath);

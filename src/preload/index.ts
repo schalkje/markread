@@ -53,6 +53,7 @@ export interface ElectronAPI {
       folderPath: string;
       includeHidden: boolean;
       maxDepth?: number;
+      excludedFolders?: string[];
     }) => Promise<any>;
     watchFolder: (payload: {
       folderPath: string;

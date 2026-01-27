@@ -8,6 +8,7 @@ import { loadUIState, saveUIState } from './ui-state-manager';
 import { registerGitHandlers } from './ipc/git-handlers';
 import { registerRecentsFavoritesHandlers } from './ipc/recents-favorites-handlers';
 import { registerSearchHandlers } from './ipc/search-handlers';
+import { registerSettingsHandlers } from './ipc/settings-handlers';
 
 // T011: IPC handler registration system with Zod validation (research.md Section 6)
 
@@ -330,9 +331,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         folderPath: z.string().min(1),
         includeHidden: z.boolean(),
         maxDepth: z.number().optional(),
+        excludedFolders: z.array(z.string()).optional(),
       });
 
-      const { folderPath, includeHidden, maxDepth } = validatePayload(
+      const { folderPath, includeHidden, maxDepth, excludedFolders = [] } = validatePayload(
         GetFolderTreeSchema,
         payload
       );
@@ -385,6 +387,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             const fullPath = path.join(dirPath, entry.name);
 
             if (entry.isDirectory()) {
+              // Skip excluded folders
+              if (excludedFolders.includes(entry.name)) {
+                continue;
+              }
               // Recursively process subdirectories
               const childNode = await buildTree(fullPath, currentDepth + 1);
               if (childNode.children && childNode.children.length > 0) {
@@ -898,6 +904,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
   // T007: Register Search IPC handlers
   registerSearchHandlers();
+
+  // Register Settings IPC handlers
+  registerSettingsHandlers();
 
   console.log('IPC handlers registered');
 }

@@ -215,6 +215,7 @@ export interface BehaviorSettings {
   showFileTree: boolean;
   scrollBehavior: 'smooth' | 'instant';
   externalLinksBehavior: 'browser' | 'ask' | 'copy';
+  folderExclusionPatterns: FolderExclusionPattern[]; // Folders to exclude when browsing
 }
 
 export interface FolderExclusionPattern {

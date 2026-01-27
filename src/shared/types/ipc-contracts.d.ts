@@ -84,6 +84,7 @@ export namespace FileOperations {
     folderPath: string;
     includeHidden: boolean;
     maxDepth?: number;
+    excludedFolders?: string[];  // Folder names to exclude from tree
   }
 
   export interface GetFolderTreeResponse {

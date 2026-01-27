@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { useFoldersStore } from '../stores/folders';
+import { useSettingsStore } from '../stores/settings';
 import { recentsFavoritesService } from '../services/recents-favorites-service';
 import { useRecentsFavorites } from '../hooks/useRecentsFavorites';
 import { ItemType } from '@shared/types/recents-favorites';
@@ -77,6 +78,7 @@ const AppLayout: React.FC = () => {
   const { tabs, activeTabId } = useTabsStore();
   const activeTab = activeTabId ? tabs.get(activeTabId) : null;
   const { folders, activeFolderId } = useFoldersStore();
+  const folderExclusionPatterns = useSettingsStore((state) => state.settings.behavior.folderExclusionPatterns);
   const { addRecent, removeRecent, removeFavorite } = useRecentsFavorites();
   const [revealFilePath, setRevealFilePath] = useState<string | null>(null); // File to reveal in sidebar
 
@@ -2568,10 +2570,16 @@ const AppLayout: React.FC = () => {
 
       // Get the folder tree to find the first markdown file
       // Limit depth to 5 levels to prevent hanging on large directories
+      // Get enabled exclusion patterns as folder names
+      const excludedFolders = folderExclusionPatterns
+        .filter((p) => p.isEnabled)
+        .map((p) => p.pattern);
+
       const result = await window.electronAPI?.file?.getFolderTree({
         folderPath,
         includeHidden: false,
         maxDepth: 5,
+        excludedFolders,
       });
 
       if (result?.success && result.tree) {

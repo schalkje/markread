@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import type { Settings } from '@shared/types/entities';
 import { LogLevel } from '@shared/types/entities';
+import { createDefaultExclusionPatterns } from '@shared/constants/folderExclusions';
 
 // Default settings
 const createDefaultSettings = (): Settings => ({
@@ -33,6 +34,7 @@ const createDefaultSettings = (): Settings => ({
     showFileTree: true,
     scrollBehavior: 'smooth',
     externalLinksBehavior: 'browser',
+    folderExclusionPatterns: createDefaultExclusionPatterns(),
   },
   search: {
     caseSensitiveDefault: false,
@@ -78,6 +80,7 @@ interface SettingsState {
   updatePerformance: (updates: Partial<Settings['performance']>) => void;
   updateAdvanced: (updates: Partial<Settings['advanced']>) => void;
   resetSettings: () => Promise<boolean>;
+  resetFolderExclusions: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -186,5 +189,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       console.error('Error resetting settings:', error);
       return false;
     }
+  },
+
+  resetFolderExclusions: () => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        behavior: {
+          ...state.settings.behavior,
+          folderExclusionPatterns: createDefaultExclusionPatterns(),
+        },
+      },
+      isDirty: true,
+    }));
   },
 }));

@@ -95,6 +95,14 @@ Ignoring folders:
     .yarn
 - there is a setting where this list can be seen and modified; there is also a button here to reset to the defaults
 
+# default file to open
+When a folder or repo/branch opens here should be an order in opening a file.
+1. README.md
+2. INDEX.md
+3. ROOT.md
+
+These file names are case insensitive.
+
 # Export to pdf function
 
 # Export mermaid diagrams

@@ -11,6 +11,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFoldersStore } from '../../stores/folders';
+import { useSettingsStore } from '../../stores/settings';
 import type { TreeNode } from '../../../shared/types/repository';
 import { FileTreeContextMenu } from './FileTreeContextMenu';
 import './FileTree.css';
@@ -191,6 +192,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const updateFileTreeState = useFoldersStore(
     (state) => state.updateFileTreeState
   );
+  const folderExclusionPatterns = useSettingsStore(
+    (state) => state.settings.behavior.folderExclusionPatterns
+  );
 
   console.log('[FileTree] Component rendered/mounted:', {
     folderId,
@@ -270,10 +274,16 @@ export const FileTree: React.FC<FileTreeProps> = ({
         } else {
           // Load local folder tree from file system
           // Limit depth to prevent hanging on very deep directory structures
+          // Get enabled exclusion patterns as folder names
+          const excludedFolders = folderExclusionPatterns
+            .filter((p) => p.isEnabled)
+            .map((p) => p.pattern);
+
           const result = await window.electronAPI?.file?.getFolderTree({
             folderPath: folder.path,
             includeHidden: false,
             maxDepth: 20,
+            excludedFolders,
           });
 
           if (!result?.success || !result.tree) {
@@ -312,7 +322,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
       setExpandedDirs(new Set(folder.fileTreeState.expandedDirectories));
     }
     setSelectedPath(folder.fileTreeState.selectedPath);
-  }, [folder]);
+  }, [folder, folderExclusionPatterns]);
 
   // T110: Listen for file change events and update tree incrementally
   useEffect(() => {
