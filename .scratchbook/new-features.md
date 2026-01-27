@@ -98,10 +98,14 @@ Ignoring folders:
 # default file to open
 When a folder or repo/branch opens here should be an order in opening a file.
 1. README.md
-2. INDEX.md
-3. ROOT.md
-
+2. index.md
+3. home.md
+4. overview.md
 These file names are case insensitive.
+Add these to the settings as defaults; allow the user to add/remove and change the order.
+
+When there are no files in the root, show the folder page instead
+When there are no files in the root, and no subfolders: show a custom page: empty folder
 
 # Export to pdf function
 

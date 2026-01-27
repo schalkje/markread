@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import type { Settings } from '@shared/types/entities';
 import { LogLevel } from '@shared/types/entities';
 import { createDefaultExclusionPatterns } from '@shared/constants/folderExclusions';
+import { createDefaultFileEntries } from '@shared/constants/defaultFiles';
 
 // Default settings
 const createDefaultSettings = (): Settings => ({
@@ -35,6 +36,7 @@ const createDefaultSettings = (): Settings => ({
     scrollBehavior: 'smooth',
     externalLinksBehavior: 'browser',
     folderExclusionPatterns: createDefaultExclusionPatterns(),
+    defaultFilesToOpen: createDefaultFileEntries(),
   },
   search: {
     caseSensitiveDefault: false,
@@ -81,6 +83,8 @@ interface SettingsState {
   updateAdvanced: (updates: Partial<Settings['advanced']>) => void;
   resetSettings: () => Promise<boolean>;
   resetFolderExclusions: () => void;
+  resetDefaultFiles: () => void;
+  reorderDefaultFile: (fromIndex: number, toIndex: number) => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -202,5 +206,37 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       },
       isDirty: true,
     }));
+  },
+
+  resetDefaultFiles: () => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        behavior: {
+          ...state.settings.behavior,
+          defaultFilesToOpen: createDefaultFileEntries(),
+        },
+      },
+      isDirty: true,
+    }));
+  },
+
+  reorderDefaultFile: (fromIndex, toIndex) => {
+    set((state) => {
+      const entries = [...state.settings.behavior.defaultFilesToOpen];
+      const [movedEntry] = entries.splice(fromIndex, 1);
+      entries.splice(toIndex, 0, movedEntry);
+
+      return {
+        settings: {
+          ...state.settings,
+          behavior: {
+            ...state.settings.behavior,
+            defaultFilesToOpen: entries,
+          },
+        },
+        isDirty: true,
+      };
+    });
   },
 }));

@@ -62,6 +62,7 @@ import {
   registerApplicationCommands,
 } from '../services/command-service';
 import { generateDirectFileTabId, generateFolderFileTabId, generateRepoFileTabId } from '../utils/tab-id';
+import { findDefaultFile } from '@shared/constants/defaultFiles';
 import { removeFromConnectionHistory } from '../utils/connection-history';
 import type { Folder } from '@shared/types/entities';
 import './AppLayout.css';
@@ -2583,34 +2584,59 @@ const AppLayout: React.FC = () => {
       });
 
       if (result?.success && result.tree) {
-        // Find the first markdown file using breadth-first search
-        // This checks root folder first, then first-level subfolders, etc.
-        const findFirstMarkdownFile = (rootNode: any): string | null => {
-          const queue = [rootNode];
+        // Get default files settings for priority-based file opening
+        const { settings } = useSettingsStore.getState();
+        const defaultFilesToOpen = settings.behavior.defaultFilesToOpen;
 
-          while (queue.length > 0) {
-            const levelSize = queue.length;
+        // Extract root-level markdown files from the tree
+        const rootFiles = (result.tree.children || [])
+          .filter((node: any) => node.type === ItemType.FILE && /\.(md|markdown)$/i.test(node.name))
+          .map((node: any) => ({ name: node.name, path: node.path }));
 
-            // Process all nodes at current level before going deeper
-            for (let i = 0; i < levelSize; i++) {
-              const node = queue.shift()!;
+        // Try to find a matching default file using priority list (case-insensitive)
+        const matchedFilename = findDefaultFile(
+          rootFiles.map((f: { name: string }) => f.name),
+          defaultFilesToOpen
+        );
 
-              // Check if this node is a markdown file
-              if (node.type === ItemType.FILE && /\.(md|markdown)$/i.test(node.name)) {
-                return node.path;
-              }
+        let firstFilePath: string | null = null;
+        if (matchedFilename) {
+          // Found a priority match in root
+          const matchedFile = rootFiles.find(
+            (f: { name: string; path: string }) => f.name.toLowerCase() === matchedFilename.toLowerCase()
+          );
+          firstFilePath = matchedFile?.path || null;
+        }
 
-              // Add children to queue for next level
-              if (node.children) {
-                queue.push(...node.children);
+        // Fallback: If no priority match, use BFS for first markdown file
+        if (!firstFilePath) {
+          const findFirstMarkdownFile = (rootNode: any): string | null => {
+            const queue = [rootNode];
+
+            while (queue.length > 0) {
+              const levelSize = queue.length;
+
+              // Process all nodes at current level before going deeper
+              for (let i = 0; i < levelSize; i++) {
+                const node = queue.shift()!;
+
+                // Check if this node is a markdown file
+                if (node.type === ItemType.FILE && /\.(md|markdown)$/i.test(node.name)) {
+                  return node.path;
+                }
+
+                // Add children to queue for next level
+                if (node.children) {
+                  queue.push(...node.children);
+                }
               }
             }
-          }
 
-          return null;
-        };
+            return null;
+          };
 
-        const firstFilePath = findFirstMarkdownFile(result.tree);
+          firstFilePath = findFirstMarkdownFile(result.tree);
+        }
         const { tabs, addTab } = useTabsStore.getState();
 
         if (firstFilePath) {
@@ -2718,9 +2744,27 @@ const AppLayout: React.FC = () => {
             setActiveTab(newTab.id);
           }
 
-          // Set empty content with a message
+          // Set content based on whether folder is truly empty or just has no markdown files
           setCurrentFile(overviewPath);
-          setCurrentContent(`# ${folderName}\n\n*This folder contains no markdown files.*\n\nCreate a markdown file to get started.`);
+
+          // Check if folder has any subfolders (directories)
+          const hasSubfolders = (result.tree.children || []).some(
+            (node: any) => node.type === 'directory'
+          );
+
+          // Check if folder has any files at all (not just markdown)
+          const hasAnyFiles = (result.tree.children || []).length > 0;
+
+          if (!hasAnyFiles) {
+            // Truly empty folder
+            setCurrentContent(`# ${folderName}\n\n*This folder is empty.*\n\nAdd files to get started.`);
+          } else if (hasSubfolders) {
+            // Has subfolders but no markdown files in root or subfolders
+            setCurrentContent(`# ${folderName}\n\n*This folder contains no markdown files.*\n\nCreate a markdown file to get started.`);
+          } else {
+            // Has files but no markdown files
+            setCurrentContent(`# ${folderName}\n\n*This folder contains no markdown files.*\n\nCreate a markdown file to get started.`);
+          }
           setError(null);
         }
       }

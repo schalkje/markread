@@ -19,6 +19,7 @@ import { PerformancePanel } from './PerformancePanel';
 import { KeyboardPanel } from './KeyboardPanel';
 import { ExportPanel } from './ExportPanel';
 import { FolderExclusionPanel } from './FolderExclusionPanel';
+import { DefaultFilesPanel } from './DefaultFilesPanel';
 import './SettingsWindow.css';
 
 export interface SettingsWindowProps {
@@ -172,7 +173,13 @@ export const SettingsWindow: React.FC<SettingsWindowProps> = ({
           <div className="settings-window__panel">
             {activeTab === 'appearance' && <AppearancePanel />}
             {activeTab === 'behavior' && <BehaviorPanel />}
-            {activeTab === 'folders' && <FolderExclusionPanel />}
+            {activeTab === 'folders' && (
+              <>
+                <DefaultFilesPanel />
+                <div className="settings-panel-divider" />
+                <FolderExclusionPanel />
+              </>
+            )}
             {activeTab === 'search' && <SearchPanel />}
             {activeTab === 'performance' && <PerformancePanel />}
             {activeTab === 'keyboard' && <KeyboardPanel />}

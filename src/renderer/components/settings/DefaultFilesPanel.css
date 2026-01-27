@@ -1,0 +1,218 @@
+/**
+ * Default Files Panel Styles
+ */
+
+.default-files__add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.default-files__add .settings-input {
+  flex: 1;
+}
+
+.default-files__list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 6px;
+  background: var(--input-bg, #ffffff);
+}
+
+.default-files__empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary, #57606a);
+  font-size: 14px;
+}
+
+.default-files__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-light, #eaeef2);
+  transition: background-color 0.15s ease;
+  cursor: grab;
+}
+
+.default-files__item:last-child {
+  border-bottom: none;
+}
+
+.default-files__item:hover {
+  background: var(--item-hover-bg, #f6f8fa);
+}
+
+.default-files__item--disabled {
+  opacity: 0.5;
+}
+
+.default-files__item--disabled .default-files__filename {
+  text-decoration: line-through;
+}
+
+.default-files__item--dragging {
+  opacity: 0.5;
+  background: var(--item-hover-bg, #f6f8fa);
+}
+
+.default-files__item--drag-over {
+  border-top: 2px solid var(--accent-color, #0969da);
+  margin-top: -1px;
+}
+
+.default-files__drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #57606a);
+  cursor: grab;
+  padding: 4px;
+}
+
+.default-files__drag-handle:active {
+  cursor: grabbing;
+}
+
+.default-files__priority {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #57606a);
+  background: var(--priority-bg, #f6f8fa);
+  border-radius: 4px;
+}
+
+.default-files__toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  cursor: pointer;
+}
+
+.default-files__toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.default-files__filename {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  color: var(--text-primary, #24292f);
+}
+
+.default-files__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary, #57606a);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.default-files__remove:hover {
+  background: var(--danger-bg, #ffebe9);
+  color: var(--danger-color, #cf222e);
+}
+
+.default-files__actions {
+  margin-top: 16px;
+}
+
+.default-files__confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--warning-bg, #fff8c5);
+  border-radius: 6px;
+}
+
+.default-files__confirm span {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary, #24292f);
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .default-files__list {
+    --border-color: #30363d;
+    --input-bg: #0d1117;
+    --border-light: #21262d;
+  }
+
+  .default-files__item:hover {
+    --item-hover-bg: #21262d;
+  }
+
+  .default-files__priority {
+    --priority-bg: #21262d;
+    --text-secondary: #7d8590;
+  }
+
+  .default-files__filename {
+    --text-primary: #e6edf3;
+  }
+
+  .default-files__remove {
+    --text-secondary: #7d8590;
+  }
+
+  .default-files__remove:hover {
+    --danger-bg: #3d1b20;
+    --danger-color: #f85149;
+  }
+
+  .default-files__confirm {
+    --warning-bg: #3d2e00;
+    --text-primary: #e6edf3;
+  }
+}
+
+[data-theme="dark"] .default-files__list {
+  --border-color: #30363d;
+  --input-bg: #0d1117;
+  --border-light: #21262d;
+}
+
+[data-theme="dark"] .default-files__item:hover {
+  --item-hover-bg: #21262d;
+}
+
+[data-theme="dark"] .default-files__priority {
+  --priority-bg: #21262d;
+  --text-secondary: #7d8590;
+}
+
+[data-theme="dark"] .default-files__filename {
+  --text-primary: #e6edf3;
+}
+
+[data-theme="dark"] .default-files__remove {
+  --text-secondary: #7d8590;
+}
+
+[data-theme="dark"] .default-files__remove:hover {
+  --danger-bg: #3d1b20;
+  --danger-color: #f85149;
+}
+
+[data-theme="dark"] .default-files__confirm {
+  --warning-bg: #3d2e00;
+  --text-primary: #e6edf3;
+}

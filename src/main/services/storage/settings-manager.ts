@@ -8,6 +8,7 @@ import type Store from 'electron-store';
 import type { Settings, BehaviorSettings } from '@shared/types/entities';
 import { LogLevel } from '@shared/types/entities';
 import { createDefaultExclusionPatterns } from '@shared/constants/folderExclusions';
+import { createDefaultFileEntries } from '@shared/constants/defaultFiles';
 
 /**
  * Create default settings object
@@ -39,6 +40,7 @@ function createDefaultSettings(): Settings {
       scrollBehavior: 'smooth',
       externalLinksBehavior: 'browser',
       folderExclusionPatterns: createDefaultExclusionPatterns(),
+      defaultFilesToOpen: createDefaultFileEntries(),
     },
     search: {
       caseSensitiveDefault: false,
@@ -125,6 +127,12 @@ export class SettingsManager {
       if (!settings.behavior.folderExclusionPatterns || settings.behavior.folderExclusionPatterns.length === 0) {
         settings.behavior.folderExclusionPatterns = createDefaultExclusionPatterns();
         warnings.push('Folder exclusion patterns were missing, restored defaults');
+      }
+
+      // Ensure default files to open exist (migration for existing users)
+      if (!settings.behavior.defaultFilesToOpen || settings.behavior.defaultFilesToOpen.length === 0) {
+        settings.behavior.defaultFilesToOpen = createDefaultFileEntries();
+        warnings.push('Default files to open were missing, restored defaults');
       }
 
       return { settings, warnings };

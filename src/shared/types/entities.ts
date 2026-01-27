@@ -216,6 +216,7 @@ export interface BehaviorSettings {
   scrollBehavior: 'smooth' | 'instant';
   externalLinksBehavior: 'browser' | 'ask' | 'copy';
   folderExclusionPatterns: FolderExclusionPattern[]; // Folders to exclude when browsing
+  defaultFilesToOpen: DefaultFileEntry[]; // Priority-ordered list of default files to open
 }
 
 export interface FolderExclusionPattern {
@@ -223,6 +224,12 @@ export interface FolderExclusionPattern {
   pattern: string;                   // Glob or regex pattern
   isEnabled: boolean;                // Pattern is active
   description?: string;              // Human-readable description
+}
+
+export interface DefaultFileEntry {
+  id: string;                        // UUID v4
+  filename: string;                  // File name to match (e.g., "README.md")
+  isEnabled: boolean;                // Whether this entry is active
 }
 
 export interface SearchSettings {
