@@ -3,6 +3,7 @@ import { FileOpener } from './FileOpener';
 import { FolderOpener } from './FolderOpener';
 import { CategoryList } from './home/CategoryList';
 import { Toast } from './common/Toast';
+import { ConfirmDialog } from './common/ConfirmDialog';
 import { useRecentsFavorites } from '../hooks/useRecentsFavorites';
 import { useGitRepo } from '../hooks/useGitRepo';
 import { useFoldersStore } from '../stores/folders';
@@ -25,6 +26,12 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
   const { connectRepository } = useGitRepo();
   const { addFolder } = useFoldersStore();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    show: boolean;
+    item: RecentItem | Favorite | null;
+    message: string;
+    isFavorite: boolean;
+  }>({ show: false, item: null, message: '', isFavorite: false });
 
   // Load recents and favorites on mount
   useEffect(() => {
@@ -188,41 +195,55 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
             console.log('[Home] Repository added to recents successfully');
           }
         } catch (repoError) {
-          // If connection fails, show error and remove from recents/favorites
+          // If connection fails, show confirm dialog to remove from recents/favorites
           console.error('[Home] Error connecting to repository:', repoError);
           const errMsg = repoError instanceof Error ? repoError.message : 'Failed to connect to repository';
-          setErrorMessage(`This branch has been removed. ${errMsg}`);
 
-          // Auto-remove item from both recents and favorites
-          try {
-            await removeRecent(item.path, item.type);
-            // Also check if it's a favorite and remove it
-            if ('dateAdded' in item) {
-              await removeFavorite(item.path, item.type);
-            }
-            console.log('[Home] Removed unavailable repository from recents/favorites');
-          } catch (removeError) {
-            console.error('[Home] Failed to remove unavailable repository:', removeError);
-          }
-
-          setTimeout(() => setErrorMessage(null), 5000);
+          // Show confirm dialog asking user if they want to remove the item
+          setConfirmDialog({
+            show: true,
+            item: item,
+            message: `Cannot connect to repository "${item.displayName}". ${errMsg}\n\nWould you like to remove it from your recent items?`,
+            isFavorite: 'dateAdded' in item,
+          });
         }
       }
     } catch (err) {
-      // T021: Show error and auto-remove unavailable items
+      // T021: Show confirm dialog for unavailable items
       const errMsg = err instanceof Error ? err.message : 'Item no longer exists';
-      setErrorMessage(`Cannot open "${item.displayName}": ${errMsg}`);
+      const itemTypeLabel = item.type === 'folder' ? 'folder' : 'file';
 
-      // Auto-remove item from recents if it's no longer accessible
-      try {
-        await removeRecent(item.path, item.type);
-      } catch (removeError) {
-        console.error('Failed to remove unavailable item:', removeError);
-      }
-
-      // Clear error after 5 seconds
-      setTimeout(() => setErrorMessage(null), 5000);
+      // Show confirm dialog asking user if they want to remove the item
+      setConfirmDialog({
+        show: true,
+        item: item,
+        message: `Cannot open ${itemTypeLabel} "${item.displayName}": ${errMsg}\n\nWould you like to remove it from your recent items?`,
+        isFavorite: 'dateAdded' in item,
+      });
     }
+  };
+
+  // Handle confirm dialog actions
+  const handleConfirmRemove = async () => {
+    if (confirmDialog.item) {
+      try {
+        await removeRecent(confirmDialog.item.path, confirmDialog.item.type);
+        // Also remove from favorites if it was a favorite
+        if (confirmDialog.isFavorite) {
+          await removeFavorite(confirmDialog.item.path, confirmDialog.item.type);
+        }
+        console.log('[Home] Removed unavailable item from recents/favorites');
+      } catch (removeError) {
+        console.error('[Home] Failed to remove unavailable item:', removeError);
+        setErrorMessage('Failed to remove item from recents');
+        setTimeout(() => setErrorMessage(null), 5000);
+      }
+    }
+    setConfirmDialog({ show: false, item: null, message: '', isFavorite: false });
+  };
+
+  const handleCancelRemove = () => {
+    setConfirmDialog({ show: false, item: null, message: '', isFavorite: false });
   };
 
   const handleItemRemove = async (item: RecentItem | Favorite) => {
@@ -295,6 +316,19 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
           message={errorMessage}
           type="error"
           onClose={() => setErrorMessage(null)}
+        />
+      )}
+
+      {/* Confirm dialog for removing unavailable items */}
+      {confirmDialog.show && (
+        <ConfirmDialog
+          title="Item Not Accessible"
+          message={confirmDialog.message}
+          confirmLabel="Remove from Recents"
+          cancelLabel="Keep"
+          onConfirm={handleConfirmRemove}
+          onCancel={handleCancelRemove}
+          variant="warning"
         />
       )}
 

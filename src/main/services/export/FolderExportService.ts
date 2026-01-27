@@ -321,6 +321,9 @@ export class FolderExportService extends EventEmitter {
       // Wait for content to render
       await this.waitForContentReady(pdfWindow);
 
+      // Calculate and inject page numbers into TOC and separator pages
+      await this.injectPageNumbers(pdfWindow, mergedOptions.pageSize, mergedOptions.margins);
+
       job.progress.percentComplete = 85;
       this.emitProgress(job);
 
@@ -596,8 +599,7 @@ export class FolderExportService extends EventEmitter {
     _styling?: PdfStylingOptions
   ): string {
     // Build a tree structure from the flat file list
-    // Note: Page numbers are removed because we can't accurately predict them
-    // before PDF generation (documents may span multiple pages)
+    // Page numbers are calculated via JavaScript after render and before PDF generation
     interface TocNode {
       name: string;
       fullPath: string;
@@ -625,7 +627,7 @@ export class FolderExportService extends EventEmitter {
         current = folder;
       }
 
-      // Add file node (no page numbers - they can't be accurately predicted)
+      // Add file node with page number placeholder
       current.children.push({
         name: parts[parts.length - 1],
         fullPath: file.relativePath,
@@ -636,11 +638,11 @@ export class FolderExportService extends EventEmitter {
       });
     });
 
-    // Render the tree as nested lists with clickable folder links
+    // Render the tree as nested lists with clickable folder links and page numbers
     const renderNode = (node: TocNode, depth: number): string => {
       if (node.anchor) {
-        // File entry (no page numbers - see footer for actual page numbers)
-        return `<li class="toc-file"><a href="#${node.anchor}"><span class="toc-file-title">${this.escapeHtml(node.title || node.name)}</span></a></li>`;
+        // File entry with page number placeholder
+        return `<li class="toc-file"><a href="#${node.anchor}"><span class="toc-file-title">${this.escapeHtml(node.title || node.name)}</span><span class="toc-page-num" data-target="${node.anchor}"></span></a></li>`;
       }
       // Folder entry - make it clickable if there's a separator page
       const folderAnchor = subfolderSeparators.has(node.fullPath)
@@ -652,7 +654,7 @@ export class FolderExportService extends EventEmitter {
         return childrenHtml;
       }
       const folderNameHtml = folderAnchor
-        ? `<a href="#${folderAnchor}" class="toc-folder-link">${this.escapeHtml(node.name)}</a>`
+        ? `<a href="#${folderAnchor}" class="toc-folder-link">${this.escapeHtml(node.name)}<span class="toc-page-num" data-target="${folderAnchor}"></span></a>`
         : `<span class="toc-folder-name">${this.escapeHtml(node.name)}</span>`;
       return `<li class="toc-folder">${folderNameHtml}<ol>${childrenHtml}</ol></li>`;
     };
@@ -734,22 +736,22 @@ export class FolderExportService extends EventEmitter {
       }
     });
 
-    // Generate separator page for each folder (no page numbers - see footer)
+    // Generate separator page for each folder with page number placeholders
     folderData.forEach((data, folderPath) => {
       const anchor = `folder-${this.slugify(folderPath)}`;
       const folderName = folderPath.split('/').pop() || folderPath;
 
-      // Build submenu of files and subfolders (no page numbers)
+      // Build submenu of files and subfolders with page numbers
       const subfolderLinks = Array.from(data.subfolders).sort().map(sf => {
         const sfPath = `${folderPath}/${sf}`;
         const sfAnchor = `folder-${this.slugify(sfPath)}`;
-        return `<li class="separator-submenu-folder"><a href="#${sfAnchor}"><span class="folder-icon">📁</span> <span class="separator-item-title">${this.escapeHtml(sf)}</span></a></li>`;
+        return `<li class="separator-submenu-folder"><a href="#${sfAnchor}"><span class="folder-icon">📁</span> <span class="separator-item-title">${this.escapeHtml(sf)}</span><span class="separator-page-num" data-target="${sfAnchor}"></span></a></li>`;
       });
 
       const fileLinks = data.files
         .sort((a, b) => a.title.localeCompare(b.title))
         .map(f => {
-          return `<li class="separator-submenu-file"><a href="#doc-${f.order}"><span class="file-icon">📄</span> <span class="separator-item-title">${this.escapeHtml(f.title)}</span></a></li>`;
+          return `<li class="separator-submenu-file"><a href="#doc-${f.order}"><span class="file-icon">📄</span> <span class="separator-item-title">${this.escapeHtml(f.title)}</span><span class="separator-page-num" data-target="doc-${f.order}"></span></a></li>`;
         });
 
       const separatorHtml = `
@@ -1078,7 +1080,9 @@ export class FolderExportService extends EventEmitter {
 
     .toc-folder-name,
     .toc-folder-link {
-      display: block;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-weight: 600;
       font-size: 14px;
       color: var(--text-secondary);
@@ -1097,6 +1101,10 @@ export class FolderExportService extends EventEmitter {
     .toc-folder-link:hover {
       background: var(--primary-light);
       color: var(--primary-color);
+    }
+
+    .toc-folder-link .toc-page-num {
+      font-weight: 400;
     }
 
     /* ============================================
@@ -1699,6 +1707,106 @@ export class FolderExportService extends EventEmitter {
 
       setTimeout(check, 500); // Initial delay for scripts to load
     });
+  }
+
+  /**
+   * Calculate and inject page numbers into TOC and separator page placeholders.
+   * This must be called after content is fully rendered.
+   *
+   * The calculation accounts for:
+   * 1. Forced page breaks (page-break-before/after: always)
+   * 2. Content height per page
+   * 3. Margin space
+   */
+  private async injectPageNumbers(
+    window: BrowserWindow,
+    pageSize: 'A4' | 'Letter',
+    margins: { top: number; bottom: number }
+  ): Promise<void> {
+    // Page dimensions in pixels at 96 DPI (standard screen DPI)
+    // A4: 210mm x 297mm = ~794 x 1123 pixels
+    // Letter: 8.5in x 11in = 816 x 1056 pixels
+    const pageHeightPx = pageSize === 'A4' ? 1123 : 1056;
+    const marginTopPx = margins.top * 96; // inches to pixels
+    const marginBottomPx = margins.bottom * 96;
+    const contentHeightPx = pageHeightPx - marginTopPx - marginBottomPx;
+
+    const script = `
+      (function() {
+        const contentHeight = ${contentHeightPx};
+
+        // Collect all elements that force page breaks in document order
+        // These are: cover page, TOC page, separator pages, document sections
+        const pageBreakElements = [];
+
+        // Cover page always takes page 1
+        const coverPage = document.querySelector('.cover-page');
+        if (coverPage) {
+          pageBreakElements.push({ element: coverPage, startPage: 1, endPage: 1 });
+        }
+
+        // TOC page - starts on page 2
+        const tocPage = document.querySelector('.toc-page');
+        if (tocPage) {
+          // TOC may span multiple pages - calculate based on its height
+          const tocRect = tocPage.getBoundingClientRect();
+          const tocPages = Math.max(1, Math.ceil(tocRect.height / contentHeight));
+          const tocStartPage = pageBreakElements.length > 0
+            ? pageBreakElements[pageBreakElements.length - 1].endPage + 1
+            : 1;
+          pageBreakElements.push({ element: tocPage, startPage: tocStartPage, endPage: tocStartPage + tocPages - 1 });
+        }
+
+        // Separator pages and document sections - each starts on a new page
+        const contentElements = document.querySelectorAll('.separator-page, .document-section');
+        let currentPage = pageBreakElements.length > 0
+          ? pageBreakElements[pageBreakElements.length - 1].endPage + 1
+          : 1;
+
+        contentElements.forEach(el => {
+          const rect = el.getBoundingClientRect();
+          const elementPages = Math.max(1, Math.ceil(rect.height / contentHeight));
+          pageBreakElements.push({
+            element: el,
+            id: el.id,
+            startPage: currentPage,
+            endPage: currentPage + elementPages - 1
+          });
+          currentPage += elementPages;
+        });
+
+        // Now inject page numbers based on the calculated pages
+        const pageNumElements = document.querySelectorAll('[data-target]');
+
+        pageNumElements.forEach(el => {
+          const targetId = el.getAttribute('data-target');
+
+          // Find the element with this ID in our page break list
+          const pageInfo = pageBreakElements.find(p => p.id === targetId);
+
+          if (pageInfo) {
+            el.textContent = pageInfo.startPage.toString();
+          } else {
+            // Fallback: find the element directly and look for its container
+            const target = document.getElementById(targetId);
+            if (target) {
+              // Find which page break container this element is in
+              let container = target.closest('.document-section, .separator-page');
+              if (container) {
+                const containerInfo = pageBreakElements.find(p => p.element === container);
+                if (containerInfo) {
+                  el.textContent = containerInfo.startPage.toString();
+                }
+              }
+            }
+          }
+        });
+
+        return true;
+      })();
+    `;
+
+    await window.webContents.executeJavaScript(script);
   }
 
   private emitProgress(job: ExportJob): void {
