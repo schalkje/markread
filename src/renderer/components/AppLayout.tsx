@@ -38,7 +38,9 @@ import {
   registerHelpShortcuts,
   unregisterHelpShortcuts,
   registerSearchShortcuts,
-  unregisterSearchShortcuts
+  unregisterSearchShortcuts,
+  registerRefreshShortcuts,
+  unregisterRefreshShortcuts
 } from '../services/keyboard-handler';
 import { ShortcutsReference } from './help/ShortcutsReference';
 import { About } from './help/About';
@@ -1635,12 +1637,66 @@ const AppLayout: React.FC = () => {
       setGlobalZoom(zoom);
     };
 
+    // Handler for Refresh menu command (F5)
+    const handleMenuRefresh = async () => {
+      console.log('[AppLayout] Refresh triggered');
+
+      // 1. Refresh current file content if a file is open
+      const { activeTabId, tabs, invalidateTabCache } = useTabsStore.getState();
+      const activeTab = activeTabId ? tabs.get(activeTabId) : null;
+
+      if (activeTab?.filePath) {
+        try {
+          // Check if it's a git repository file or local file
+          const folder = useFoldersStore.getState().folders.find(f => f.id === activeTab.folderId);
+
+          if (folder?.type === 'repository') {
+            // Refresh git file
+            const result = await window.git?.repo?.fetchFile({
+              repositoryId: folder.repositoryId!,
+              filePath: activeTab.filePath,
+              branch: folder.currentBranch!,
+            });
+
+            if (result?.success && result.data) {
+              setCurrentContent(result.data.content);
+              contentCacheRef.current.set(activeTab.filePath, result.data.content);
+              invalidateTabCache(activeTabId!);
+              console.log('[AppLayout] Git file refreshed:', activeTab.filePath);
+            }
+          } else {
+            // Refresh local file
+            const result = await window.electronAPI?.file?.read({ filePath: activeTab.filePath });
+
+            if (result?.success && result.content) {
+              setCurrentContent(result.content);
+              contentCacheRef.current.set(activeTab.filePath, result.content);
+              invalidateTabCache(activeTabId!);
+              console.log('[AppLayout] Local file refreshed:', activeTab.filePath);
+            }
+          }
+        } catch (err) {
+          console.error('[AppLayout] Error refreshing file:', err);
+        }
+      }
+
+      // 2. Dispatch event for folder tree to refresh
+      window.dispatchEvent(new CustomEvent('refresh-folder-tree'));
+
+      // 3. Show toast notification
+      setToast({
+        message: 'Refreshed',
+        type: 'info',
+      });
+    };
+
     // Register event listeners for menu commands
     window.addEventListener('menu:open-file', handleMenuOpenFile);
     window.addEventListener('menu:open-folder', handleMenuOpenFolder);
     window.addEventListener('menu:close-current', handleMenuCloseCurrent);
     window.addEventListener('menu:close-folder', handleMenuCloseFolder);
     window.addEventListener('menu:close-all', handleMenuCloseAll);
+    window.addEventListener('menu:refresh', handleMenuRefresh);
 
     // T051k-view: Register zoom menu event listeners
     window.electronAPI?.on('menu:content-zoom-in', handleContentZoomIn);
@@ -1659,6 +1715,7 @@ const AppLayout: React.FC = () => {
       window.removeEventListener('menu:close-current', handleMenuCloseCurrent);
       window.removeEventListener('menu:close-folder', handleMenuCloseFolder);
       window.removeEventListener('menu:close-all', handleMenuCloseAll);
+      window.removeEventListener('menu:refresh', handleMenuRefresh);
     };
   }, [activeFolderId]);
 
@@ -2184,6 +2241,13 @@ const AppLayout: React.FC = () => {
       },
     });
 
+    // Register refresh shortcuts (F5, Ctrl+Shift+R)
+    registerRefreshShortcuts({
+      onRefresh: () => {
+        window.dispatchEvent(new CustomEvent('menu:refresh'));
+      },
+    });
+
     // Listen for navigate-to-history events (for Home navigation)
     window.addEventListener('navigate-to-history', handleNavigateToHistory);
     // Listen for directory listing events
@@ -2303,6 +2367,7 @@ const AppLayout: React.FC = () => {
       unregisterFileShortcuts();
       unregisterHelpShortcuts();
       unregisterSearchShortcuts();
+      unregisterRefreshShortcuts();
       window.removeEventListener('mouseup', handleMouseButtons);
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);

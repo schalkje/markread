@@ -214,6 +214,14 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
 
   const viewMenuItems = [
     {
+      label: 'Refresh',
+      shortcut: 'F5',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:refresh'));
+      },
+    },
+    { separator: true, label: '', action: () => {} },
+    {
       label: 'Back',
       action: () => goBack(),
       disabled: !canGoBack,  // Now a boolean, not a function!

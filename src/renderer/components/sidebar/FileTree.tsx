@@ -370,6 +370,81 @@ export const FileTree: React.FC<FileTreeProps> = ({
     };
   }, [folder]);
 
+  // Listen for refresh-folder-tree events to force a full tree reload
+  useEffect(() => {
+    if (!folder) return;
+
+    const handleRefreshTree = async () => {
+      console.log('[FileTree] Refresh tree triggered for folder:', folder.path);
+
+      try {
+        let treeWithDepth: FileTreeNode[] = [];
+
+        if (folder.type === 'repository') {
+          // Reload repository file tree from Git API
+          const result = await window.git?.repo?.fetchTree({
+            repositoryId: folder.repositoryId!,
+            branch: folder.currentBranch!,
+            markdownOnly: true,
+          });
+
+          if (result?.success && result.data) {
+            // Convert Git TreeNode to FileTreeNode with depth
+            const convertGitNode = (node: TreeNode, depth: number = 0): FileTreeNode => ({
+              name: node.path.split('/').pop() || node.path,
+              path: node.path,
+              type: node.type === 'directory' ? 'directory' : 'file',
+              depth,
+              children: node.children?.map((child) => convertGitNode(child, depth + 1)),
+            });
+
+            treeWithDepth = result.data.tree.map((node: TreeNode) => convertGitNode(node, 0));
+          }
+        } else {
+          // Reload local folder tree from file system
+          const excludedFolders = folderExclusionPatterns
+            .filter((p) => p.isEnabled)
+            .map((p) => p.pattern);
+
+          const result = await window.electronAPI?.file?.getFolderTree({
+            folderPath: folder.path,
+            includeHidden: false,
+            maxDepth: 20,
+            excludedFolders,
+          });
+
+          if (result?.success && result.tree) {
+            // Convert the tree structure to include depth for rendering
+            const addDepth = (node: any, depth: number = 0): FileTreeNode => ({
+              name: node.name,
+              path: node.path,
+              type: node.type,
+              depth,
+              children: node.children?.map((child: any) => addDepth(child, depth + 1)),
+            });
+
+            treeWithDepth = result.tree.children?.map((child: any) =>
+              addDepth(child, 0)
+            ) || [];
+          }
+        }
+
+        // Sort tree: files first, then folders, both alphabetically
+        const sortedTree = sortTreeNodes(treeWithDepth);
+        setTreeData(sortedTree);
+        console.log('[FileTree] Tree refreshed successfully');
+      } catch (error) {
+        console.error('[FileTree] Error refreshing tree:', error);
+      }
+    };
+
+    window.addEventListener('refresh-folder-tree', handleRefreshTree);
+
+    return () => {
+      window.removeEventListener('refresh-folder-tree', handleRefreshTree);
+    };
+  }, [folder, folderExclusionPatterns]);
+
   // Handle reveal file path - expand parents and scroll into view
   useEffect(() => {
     if (!revealFilePath || !folder) return;
