@@ -11,6 +11,7 @@ import { getPdfExportService } from '../services/export/PdfExportService';
 import { getFolderExportService } from '../services/export/FolderExportService';
 import { getExportSettingsStore } from '../services/export/ExportSettingsStore';
 import { getExportLogger } from '../services/export/ExportLogger';
+import { SettingsManager } from '../services/storage/settings-manager';
 import type { ExportOptions, FolderExportOptions } from '../../shared/types/export';
 
 // Validation schemas
@@ -200,6 +201,10 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
       // Get default styling from settings
       const settings = await settingsStore.getSettingsAsync();
 
+      // Get default files configuration for priority ordering
+      const settingsManager = SettingsManager.getInstance();
+      const { settings: appSettings } = await settingsManager.loadSettings();
+
       const folderOptions: Partial<FolderExportOptions> = {};
       if (options?.pageSize) folderOptions.pageSize = options.pageSize;
       if (options?.margins) folderOptions.margins = options.margins;
@@ -218,6 +223,10 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
           toc: { ...settings.pdfStyling?.toc, ...options?.pdfStyling?.toc },
           sectionSeparators: { ...settings.pdfStyling?.sectionSeparators, ...options?.pdfStyling?.sectionSeparators },
         } as FolderExportOptions['pdfStyling'];
+      }
+      // Pass default files configuration for priority ordering in export
+      if (appSettings.behavior.defaultFilesToOpen) {
+        folderOptions.defaultFilesToOpen = appSettings.behavior.defaultFilesToOpen;
       }
 
       const job = await folderExportService.exportFolderToPdf(

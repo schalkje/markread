@@ -28,6 +28,7 @@ import type {
   MarkdownFile,
   PdfStylingOptions,
 } from '../../../shared/types/export';
+import type { DefaultFileEntry } from '../../../shared/types/entities';
 import { ExportErrorCode, DEFAULT_PDF_STYLING } from '../../../shared/types/export';
 import { DEFAULT_EXCLUDED_FOLDERS } from '../../../shared/constants/folderExclusions';
 import { getExportLogger } from './ExportLogger';
@@ -166,6 +167,7 @@ export class FolderExportService extends EventEmitter {
         toc: { ...DEFAULT_PDF_STYLING.toc, ...defaults.pdfStyling?.toc, ...options.pdfStyling?.toc },
         sectionSeparators: { ...DEFAULT_PDF_STYLING.sectionSeparators, ...defaults.pdfStyling?.sectionSeparators, ...options.pdfStyling?.sectionSeparators },
       },
+      defaultFilesToOpen: options.defaultFilesToOpen,
     };
 
     // Create job
@@ -198,7 +200,8 @@ export class FolderExportService extends EventEmitter {
       // T062: Collect markdown files from folder
       const files = await this.collectMarkdownFiles(
         folderPath,
-        mergedOptions.includeSubfolders
+        mergedOptions.includeSubfolders,
+        mergedOptions.defaultFilesToOpen
       );
 
       // T075: Enforce file count limit
@@ -414,10 +417,11 @@ export class FolderExportService extends EventEmitter {
    */
   private async collectMarkdownFiles(
     folderPath: string,
-    includeSubfolders: boolean
+    includeSubfolders: boolean,
+    defaultFilesToOpen?: DefaultFileEntry[]
   ): Promise<MarkdownFile[]> {
     const files: MarkdownFile[] = [];
-    await this.walkDirectory(folderPath, folderPath, files, includeSubfolders, 0);
+    await this.walkDirectory(folderPath, folderPath, files, includeSubfolders, 0, defaultFilesToOpen);
     return files;
   }
 
@@ -426,39 +430,97 @@ export class FolderExportService extends EventEmitter {
     rootPath: string,
     files: MarkdownFile[],
     recurse: boolean,
-    order: number
+    order: number,
+    defaultFilesToOpen?: DefaultFileEntry[]
   ): Promise<number> {
     let currentOrder = order;
     const entries = await fs.readdir(currentPath, { withFileTypes: true });
 
-    // Sort entries: directories first, then files, alphabetically within each group
-    const sorted = entries.sort((a, b) => {
-      if (a.isDirectory() && !b.isDirectory()) return -1;
-      if (!a.isDirectory() && b.isDirectory()) return 1;
-      return a.name.localeCompare(b.name);
-    });
+    // Separate files and directories
+    const fileEntries = entries.filter(e => e.isFile() && this.isMarkdownFile(e.name));
+    const dirEntries = entries.filter(e => e.isDirectory());
 
-    for (const entry of sorted) {
+    // Sort files: priority files first (by their order in defaultFilesToOpen), then alphabetically
+    const sortedFiles = this.sortFilesByPriority(fileEntries, defaultFilesToOpen);
+
+    // Sort directories alphabetically
+    const sortedDirs = dirEntries.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Process files first
+    for (const entry of sortedFiles) {
       const fullPath = path.join(currentPath, entry.name);
+      const relativePath = path.relative(rootPath, fullPath);
+      const title = this.extractTitle(entry.name);
+      files.push({
+        path: fullPath,
+        relativePath,
+        title,
+        content: '',
+        order: currentOrder++,
+      });
+    }
 
-      if (entry.isDirectory() && recurse) {
+    // Then process directories
+    if (recurse) {
+      for (const entry of sortedDirs) {
+        const fullPath = path.join(currentPath, entry.name);
         // T074: Skip hidden directories and excluded folders from default list
         if (entry.name.startsWith('.') || DEFAULT_EXCLUDED_FOLDERS.includes(entry.name)) continue;
-        currentOrder = await this.walkDirectory(fullPath, rootPath, files, recurse, currentOrder);
-      } else if (entry.isFile() && this.isMarkdownFile(entry.name)) {
-        const relativePath = path.relative(rootPath, fullPath);
-        const title = this.extractTitle(entry.name);
-        files.push({
-          path: fullPath,
-          relativePath,
-          title,
-          content: '',
-          order: currentOrder++,
-        });
+        currentOrder = await this.walkDirectory(fullPath, rootPath, files, recurse, currentOrder, defaultFilesToOpen);
       }
     }
 
     return currentOrder;
+  }
+
+  /**
+   * Sort file entries by priority: files matching defaultFilesToOpen come first (in order),
+   * then remaining files alphabetically
+   */
+  private sortFilesByPriority(
+    fileEntries: import('fs').Dirent[],
+    defaultFilesToOpen?: DefaultFileEntry[]
+  ): import('fs').Dirent[] {
+    console.log('[FolderExport] sortFilesByPriority - input files:', fileEntries.map(f => f.name));
+    console.log('[FolderExport] sortFilesByPriority - defaultFilesToOpen:', defaultFilesToOpen);
+
+    if (!defaultFilesToOpen || defaultFilesToOpen.length === 0) {
+      // No priority config, just sort alphabetically
+      console.log('[FolderExport] No priority config, sorting alphabetically');
+      return fileEntries.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    // Create a map of lowercase filename to priority index (only enabled entries)
+    const priorityMap = new Map<string, number>();
+    defaultFilesToOpen.forEach((entry, index) => {
+      if (entry.isEnabled) {
+        priorityMap.set(entry.filename.toLowerCase(), index);
+      }
+    });
+    console.log('[FolderExport] Priority map:', Array.from(priorityMap.entries()));
+
+    const sorted = fileEntries.sort((a, b) => {
+      const aPriority = priorityMap.get(a.name.toLowerCase());
+      const bPriority = priorityMap.get(b.name.toLowerCase());
+
+      // Both have priority: sort by priority index
+      if (aPriority !== undefined && bPriority !== undefined) {
+        return aPriority - bPriority;
+      }
+      // Only a has priority: a comes first
+      if (aPriority !== undefined) {
+        return -1;
+      }
+      // Only b has priority: b comes first
+      if (bPriority !== undefined) {
+        return 1;
+      }
+      // Neither has priority: sort alphabetically
+      return a.name.localeCompare(b.name);
+    });
+
+    console.log('[FolderExport] Sorted files:', sorted.map(f => f.name));
+    return sorted;
   }
 
   private isMarkdownFile(filename: string): boolean {

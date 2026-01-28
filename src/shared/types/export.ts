@@ -3,6 +3,8 @@
  * Defines interfaces for PDF export operations, progress tracking, and error handling
  */
 
+import type { DefaultFileEntry } from './entities';
+
 export type ExportJobType = 'single-pdf' | 'folder-pdf';
 export type ExportJobStatus = 'pending' | 'in-progress' | 'completed' | 'failed' | 'cancelled';
 export type PageSize = 'A4' | 'Letter';
@@ -61,6 +63,8 @@ export interface FolderExportOptions extends ExportOptions {
   subfolderPath?: string;
   /** PDF styling and layout options */
   pdfStyling?: PdfStylingOptions;
+  /** Default files configuration for priority ordering in export */
+  defaultFilesToOpen?: DefaultFileEntry[];
 }
 
 /** PDF styling and layout configuration */
