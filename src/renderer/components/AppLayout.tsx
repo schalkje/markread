@@ -975,6 +975,22 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
+  // Listen for menu:toggle-fullscreen events from View menu
+  useEffect(() => {
+    const handleToggleFullScreen = async () => {
+      try {
+        await window.electronAPI?.window.toggleFullScreen();
+      } catch (error) {
+        console.error('Failed to toggle fullscreen:', error);
+      }
+    };
+
+    window.addEventListener('menu:toggle-fullscreen', handleToggleFullScreen);
+    return () => {
+      window.removeEventListener('menu:toggle-fullscreen', handleToggleFullScreen);
+    };
+  }, []);
+
   // T020: Listen for menu:export-pdf events to trigger PDF export
   useEffect(() => {
     const handleExportPdf = async () => {

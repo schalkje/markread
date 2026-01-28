@@ -608,6 +608,23 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     }
   });
 
+  // Toggle fullscreen mode
+  ipcMain.handle('window:toggleFullScreen', async () => {
+    try {
+      const isFullScreen = mainWindow.isFullScreen();
+      mainWindow.setFullScreen(!isFullScreen);
+      return {
+        success: true,
+        isFullScreen: !isFullScreen,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
   // T163b: window:createNew IPC handler for spawning new windows
   ipcMain.handle('window:createNew', async (_event, payload) => {
     try {

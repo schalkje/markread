@@ -82,6 +82,7 @@ export interface ElectronAPI {
     maximize: () => Promise<any>;
     close: () => Promise<any>;
     isMaximized: () => Promise<any>;
+    toggleFullScreen: () => Promise<any>;
     createNew: (payload?: {
       filePath?: string;
       folderPath?: string;
@@ -142,6 +143,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     maximize: () => ipcRenderer.invoke('window:maximize'),
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    toggleFullScreen: () => ipcRenderer.invoke('window:toggleFullScreen'),
     createNew: (payload: any) => ipcRenderer.invoke('window:createNew', payload),
     setGlobalZoom: (payload: any) => ipcRenderer.invoke('window:setGlobalZoom', payload), // T051b
     getGlobalZoom: () => ipcRenderer.invoke('window:getGlobalZoom'), // T051b

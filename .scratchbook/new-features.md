@@ -2,8 +2,11 @@
 # Small issues
 
   
-  - in the pdf export put the files first, then the sub folders (for each folder)
-  - use the order of the files in the default folder configuration to pick the first folder, after those, it is alphabetically
+- in the pdf export put the files first, then the sub folders (for each folder)
+- use the order of the files in the default folder configuration to pick the first folder, after those, it is alphabetically
+
+- When showing a page, go to the next; press Home in the View menu, the page does not change to the first page in the history; looks like only the page in the active tab is not refreshed, because history (forward/back) is changing position
+
 
 ## home page fixes
 - on the home page I sometimes see double entries of the same folder; only difference are the \ vs /
@@ -12,6 +15,9 @@
 ## toggle full screen
 
 not working yet
+
+Full screen should hide the titlebar, and the tab bar; only when the mouse get't near the top they should flow down into view, over the page
+Same with side panel; should hide by default, show when the mouse nears the left side
 
 
 
