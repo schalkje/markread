@@ -195,6 +195,7 @@ export class FolderExportService extends EventEmitter {
       job.status = 'in-progress';
       job.startedAt = new Date();
       job.progress.percentComplete = 5;
+      job.progress.currentStage = 'Scanning folder...';
       this.emitProgress(job);
 
       // T062: Collect markdown files from folder
@@ -223,6 +224,7 @@ export class FolderExportService extends EventEmitter {
 
       job.progress.totalFiles = files.length;
       job.progress.percentComplete = 10;
+      job.progress.currentStage = `Found ${files.length} files`;
       this.emitProgress(job);
 
       // T063: Order files by hierarchy
@@ -237,6 +239,7 @@ export class FolderExportService extends EventEmitter {
 
         const file = orderedFiles[i];
         job.progress.currentFile = file.relativePath;
+        job.progress.currentStage = 'Rendering markdown...';
         job.progress.filesProcessed = i;
         job.progress.percentComplete = 10 + Math.floor((i / orderedFiles.length) * 50);
         this.emitProgress(job);
@@ -250,6 +253,8 @@ export class FolderExportService extends EventEmitter {
       }
 
       job.progress.percentComplete = 65;
+      job.progress.currentFile = undefined;
+      job.progress.currentStage = 'Building document structure...';
       this.emitProgress(job);
 
       const styling = mergedOptions.pdfStyling!;
@@ -273,7 +278,7 @@ export class FolderExportService extends EventEmitter {
 
       // Generate subfolder separator pages
       const subfolderSeparators = mergedOptions.includeSubfolders
-        ? this.generateSubfolderSeparatorPages(renderedFiles, folderPath, styling)
+        ? this.generateSubfolderSeparatorPages(renderedFiles, folderPath, styling, mergedOptions.defaultFilesToOpen)
         : new Map<string, string>();
 
       // T065: Generate table of contents with clickable subfolder links
@@ -292,7 +297,8 @@ export class FolderExportService extends EventEmitter {
         styling
       );
 
-      job.progress.percentComplete = 75;
+      job.progress.percentComplete = 70;
+      job.progress.currentStage = 'Generating table of contents...';
       this.emitProgress(job);
 
       // Ensure destination directory exists
@@ -322,13 +328,22 @@ export class FolderExportService extends EventEmitter {
       // Load from temp file
       await pdfWindow.loadFile(tempHtmlPath);
 
+      job.progress.percentComplete = 75;
+      job.progress.currentStage = 'Rendering diagrams...';
+      this.emitProgress(job);
+
       // Wait for content to render
       await this.waitForContentReady(pdfWindow);
+
+      job.progress.percentComplete = 80;
+      job.progress.currentStage = 'Calculating page numbers...';
+      this.emitProgress(job);
 
       // Calculate and inject page numbers into TOC and separator pages
       await this.injectPageNumbers(pdfWindow, mergedOptions.pageSize, mergedOptions.margins);
 
       job.progress.percentComplete = 85;
+      job.progress.currentStage = 'Generating PDF...';
       this.emitProgress(job);
 
       // Generate PDF with page numbering footer
@@ -353,6 +368,10 @@ export class FolderExportService extends EventEmitter {
         headerTemplate: '<div></div>',
       });
 
+      job.progress.percentComplete = 95;
+      job.progress.currentStage = 'Saving file...';
+      this.emitProgress(job);
+
       // Write PDF to file
       await fs.writeFile(destination, pdfData);
 
@@ -361,6 +380,7 @@ export class FolderExportService extends EventEmitter {
       job.completedAt = new Date();
       job.progress.filesProcessed = renderedFiles.length;
       job.progress.percentComplete = 100;
+      job.progress.currentStage = undefined;
       this.emitProgress(job);
 
       await this.logExport(job);
@@ -751,7 +771,8 @@ export class FolderExportService extends EventEmitter {
   private generateSubfolderSeparatorPages(
     files: MarkdownFile[],
     _rootPath: string,
-    _styling?: PdfStylingOptions
+    _styling?: PdfStylingOptions,
+    defaultFilesToOpen?: DefaultFileEntry[]
   ): Map<string, string> {
     const separators = new Map<string, string>();
     // Note: Page numbers are removed because we can't accurately predict them
@@ -804,19 +825,20 @@ export class FolderExportService extends EventEmitter {
       const anchor = `folder-${this.slugify(folderPath)}`;
       const folderName = folderPath.split('/').pop() || folderPath;
 
-      // Build submenu of files and subfolders with page numbers
+      // Build submenu of subfolders (sorted alphabetically)
       const subfolderLinks = Array.from(data.subfolders).sort().map(sf => {
         const sfPath = `${folderPath}/${sf}`;
         const sfAnchor = `folder-${this.slugify(sfPath)}`;
         return `<li class="separator-submenu-folder"><a href="#${sfAnchor}"><span class="folder-icon">📁</span> <span class="separator-item-title">${this.escapeHtml(sf)}</span><span class="separator-page-num" data-target="${sfAnchor}"></span></a></li>`;
       });
 
-      const fileLinks = data.files
-        .sort((a, b) => a.title.localeCompare(b.title))
-        .map(f => {
-          return `<li class="separator-submenu-file"><a href="#doc-${f.order}"><span class="file-icon">📄</span> <span class="separator-item-title">${this.escapeHtml(f.title)}</span><span class="separator-page-num" data-target="doc-${f.order}"></span></a></li>`;
-        });
+      // Sort files by priority (matching defaultFilesToOpen first), then alphabetically
+      const sortedFiles = this.sortMarkdownFilesByPriority(data.files, defaultFilesToOpen);
+      const fileLinks = sortedFiles.map(f => {
+        return `<li class="separator-submenu-file"><a href="#doc-${f.order}"><span class="file-icon">📄</span> <span class="separator-item-title">${this.escapeHtml(f.title)}</span><span class="separator-page-num" data-target="doc-${f.order}"></span></a></li>`;
+      });
 
+      // Files first, then subfolders
       const separatorHtml = `
         <div class="separator-page" id="${anchor}">
           <div class="separator-content">
@@ -825,8 +847,8 @@ export class FolderExportService extends EventEmitter {
               <h1 class="separator-title-compact">${this.escapeHtml(folderName)}</h1>
             </div>
             <ul class="separator-contents-list">
-              ${subfolderLinks.join('\n')}
               ${fileLinks.join('\n')}
+              ${subfolderLinks.join('\n')}
             </ul>
           </div>
         </div>
@@ -836,6 +858,51 @@ export class FolderExportService extends EventEmitter {
     });
 
     return separators;
+  }
+
+  /**
+   * Sort MarkdownFile array by priority: files matching defaultFilesToOpen come first,
+   * then remaining files alphabetically by title
+   */
+  private sortMarkdownFilesByPriority(
+    files: MarkdownFile[],
+    defaultFilesToOpen?: DefaultFileEntry[]
+  ): MarkdownFile[] {
+    if (!defaultFilesToOpen || defaultFilesToOpen.length === 0) {
+      return files.sort((a, b) => a.title.localeCompare(b.title));
+    }
+
+    // Create a map of lowercase filename to priority index (only enabled entries)
+    const priorityMap = new Map<string, number>();
+    defaultFilesToOpen.forEach((entry, index) => {
+      if (entry.isEnabled) {
+        priorityMap.set(entry.filename.toLowerCase(), index);
+      }
+    });
+
+    return files.sort((a, b) => {
+      // Extract filename from relativePath
+      const aFilename = path.basename(a.relativePath).toLowerCase();
+      const bFilename = path.basename(b.relativePath).toLowerCase();
+
+      const aPriority = priorityMap.get(aFilename);
+      const bPriority = priorityMap.get(bFilename);
+
+      // Both have priority: sort by priority index
+      if (aPriority !== undefined && bPriority !== undefined) {
+        return aPriority - bPriority;
+      }
+      // Only a has priority: a comes first
+      if (aPriority !== undefined) {
+        return -1;
+      }
+      // Only b has priority: b comes first
+      if (bPriority !== undefined) {
+        return 1;
+      }
+      // Neither has priority: sort alphabetically by title
+      return a.title.localeCompare(b.title);
+    });
   }
 
   /**

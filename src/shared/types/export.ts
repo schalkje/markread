@@ -33,6 +33,7 @@ export interface ExportOptions {
 
 export interface ExportProgress {
   currentFile?: string;
+  currentStage?: string;
   filesProcessed: number;
   totalFiles: number;
   percentComplete: number;

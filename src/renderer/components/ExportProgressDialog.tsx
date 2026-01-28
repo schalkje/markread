@@ -37,6 +37,9 @@ export const ExportProgressDialog: React.FC<ExportProgressDialogProps> = ({
       case 'pending':
         return 'Preparing export...';
       case 'in-progress':
+        if (progress.currentStage) {
+          return progress.currentStage;
+        }
         if (progress.currentFile) {
           return `Exporting: ${progress.currentFile}`;
         }
@@ -50,6 +53,14 @@ export const ExportProgressDialog: React.FC<ExportProgressDialogProps> = ({
       default:
         return 'Exporting...';
     }
+  };
+
+  const getDetailMessage = (): string | null => {
+    if (status !== 'in-progress') return null;
+    if (progress.currentFile && progress.currentStage) {
+      return progress.currentFile;
+    }
+    return null;
   };
 
   const getStatusIcon = (): React.ReactNode => {
@@ -86,6 +97,9 @@ export const ExportProgressDialog: React.FC<ExportProgressDialogProps> = ({
 
         <div className="export-progress__content">
           <p className="export-progress__message">{getStatusMessage()}</p>
+          {getDetailMessage() && (
+            <p className="export-progress__detail">{getDetailMessage()}</p>
+          )}
 
           {!isFinished && (
             <div className="export-progress__bar-container">
