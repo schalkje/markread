@@ -230,6 +230,9 @@ export class FolderExportService extends EventEmitter {
       // T063: Order files by hierarchy
       const orderedFiles = this.orderFilesByHierarchy(files, folderPath);
 
+      // Build file path map for link transformation
+      const filePathMap = this.buildFilePathMap(orderedFiles);
+
       // Read and render each file
       const renderedFiles: MarkdownFile[] = [];
       for (let i = 0; i < orderedFiles.length; i++) {
@@ -1492,6 +1495,20 @@ export class FolderExportService extends EventEmitter {
       text-decoration: underline;
     }
 
+    /* Broken link styling for out-of-scope links */
+    .document-content a.broken-link {
+      color: #cf222e;
+      text-decoration: line-through;
+      cursor: not-allowed;
+    }
+
+    .document-content a.broken-link::after {
+      content: " [broken]";
+      font-size: 0.85em;
+      font-style: italic;
+      text-decoration: none;
+    }
+
     /* ============================================
        Mermaid Diagrams
        ============================================ */
@@ -2006,6 +2023,123 @@ export class FolderExportService extends EventEmitter {
         const absolutePath = path.resolve(fileDir, src);
         const fileUrl = `file:///${absolutePath.replace(/\\/g, '/')}`;
         return `${prefix}${fileUrl}${suffix}`;
+      }
+    );
+  }
+
+  /**
+   * Build a lookup map from normalized relative paths to file indices
+   * Handles various path formats: ./file.md, file.md, subfolder/file.md
+   */
+  private buildFilePathMap(files: MarkdownFile[]): Map<string, number> {
+    const pathMap = new Map<string, number>();
+    files.forEach((file, index) => {
+      // Normalize path separators and remove leading ./
+      const normalizedPath = file.relativePath
+        .replace(/\\/g, '/')
+        .replace(/^\.\//, '');
+      pathMap.set(normalizedPath, index);
+      // Also add lowercase version for case-insensitive matching
+      pathMap.set(normalizedPath.toLowerCase(), index);
+    });
+    return pathMap;
+  }
+
+  /**
+   * Prefix header IDs with document anchor to ensure uniqueness across combined PDF
+   * Transforms: <h2 id="intro"> -> <h2 id="doc-0-intro">
+   */
+  private prefixHeaderIds(html: string, docIndex: number): string {
+    const docPrefix = `doc-${docIndex}-`;
+    return html.replace(
+      /(<h[1-6][^>]*\s)id=(["'])([^"']+)\2/gi,
+      (match, tagStart, quote, id) => {
+        // Don't prefix if already prefixed
+        if (id.startsWith('doc-')) {
+          return match;
+        }
+        return `${tagStart}id=${quote}${docPrefix}${id}${quote}`;
+      }
+    );
+  }
+
+  /**
+   * Transform markdown links for PDF export:
+   * - Within-page anchor links: prefix with current doc anchor
+   * - Cross-file links: transform to internal #doc-X anchors
+   * - Out-of-scope links: mark as broken with visual indicator
+   */
+  private transformLinks(
+    html: string,
+    currentFileIndex: number,
+    currentFile: MarkdownFile,
+    filePathMap: Map<string, number>,
+    folderPath: string
+  ): string {
+    const docPrefix = `doc-${currentFileIndex}-`;
+    const currentFileDir = path.dirname(currentFile.relativePath);
+
+    return html.replace(
+      /(<a\s[^>]*href=["'])([^"']+)(["'][^>]*>)([\s\S]*?)(<\/a>)/gi,
+      (match, prefix, href, suffix, linkText, closeTag) => {
+        // Skip absolute URLs, mailto, javascript, etc.
+        if (/^(https?:|mailto:|javascript:|tel:|file:|data:)/i.test(href)) {
+          return match;
+        }
+
+        // Handle anchor-only links (within-page)
+        if (href.startsWith('#')) {
+          const anchor = href.slice(1);
+          // Prefix with current document anchor for uniqueness
+          return `${prefix}#${docPrefix}${anchor}${suffix}${linkText}${closeTag}`;
+        }
+
+        // Handle relative file links
+        // Parse the href to separate file path from fragment
+        const fragmentIndex = href.indexOf('#');
+        const filePath = fragmentIndex >= 0 ? href.slice(0, fragmentIndex) : href;
+        const fragment = fragmentIndex >= 0 ? href.slice(fragmentIndex + 1) : '';
+
+        // Skip non-markdown file links (images, etc.)
+        if (filePath && !filePath.toLowerCase().endsWith('.md')) {
+          return match;
+        }
+
+        // Normalize the target path relative to the export folder
+        let normalizedTarget = filePath
+          .replace(/\\/g, '/')
+          .replace(/^\.\//, '');
+
+        // If target is relative to current file's directory, resolve it
+        if (currentFileDir && currentFileDir !== '.') {
+          normalizedTarget = path.posix.normalize(
+            path.posix.join(currentFileDir.replace(/\\/g, '/'), normalizedTarget)
+          );
+        }
+
+        // Look up target file in the export
+        let targetIndex = filePathMap.get(normalizedTarget);
+        if (targetIndex === undefined) {
+          // Try case-insensitive match
+          targetIndex = filePathMap.get(normalizedTarget.toLowerCase());
+        }
+
+        if (targetIndex !== undefined) {
+          // File is in the export - transform to internal anchor
+          let newHref = `#doc-${targetIndex}`;
+          if (fragment) {
+            // Link to specific section within the target document
+            newHref = `#doc-${targetIndex}-${fragment}`;
+          }
+          return `${prefix}${newHref}${suffix}${linkText}${closeTag}`;
+        }
+
+        // File is not in the export - mark as broken
+        // Remove href and add broken link class
+        const brokenPrefix = prefix
+          .replace(/href=["']/, 'data-original-href="')
+          .replace(/<a\s/, '<a class="broken-link" ');
+        return `${brokenPrefix}#broken${suffix}${linkText}${closeTag}`;
       }
     );
   }

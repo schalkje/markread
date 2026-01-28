@@ -468,6 +468,22 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
       console.log('[ipc-handlers] Validated payload:', { folderPath, filePatterns, ignorePatterns, debounceMs });
 
+      // Validate that the folder path exists
+      try {
+        const stats = await stat(folderPath);
+        if (!stats.isDirectory()) {
+          return {
+            success: false,
+            error: 'Path is not a directory',
+          };
+        }
+      } catch (error: any) {
+        return {
+          success: false,
+          error: `Folder not found: ${error.message}`,
+        };
+      }
+
       // Generate unique watcher ID
       const watcherId = `watcher-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
       console.log('[ipc-handlers] Generated watcherId:', watcherId);

@@ -2,23 +2,25 @@
 # Small issues
 
   
-- in the pdf export put the files first, then the sub folders (for each folder)
-- use the order of the files in the default folder configuration to pick the first folder, after those, it is alphabetically
 
 - When showing a page, go to the next; press Home in the View menu, the page does not change to the first page in the history; looks like only the page in the active tab is not refreshed, because history (forward/back) is changing position
 
 
 ## home page fixes
 - on the home page I sometimes see double entries of the same folder; only difference are the \ vs /
-- 
+- I cannot seem to remove the ones with a \
+- when I open a folder that is not there anymore, I want a dialog that asks if I want the remove this folder from the recents list; remove it when the user confirms this
 
 ## toggle full screen
-
-not working yet
 
 Full screen should hide the titlebar, and the tab bar; only when the mouse get't near the top they should flow down into view, over the page
 Same with side panel; should hide by default, show when the mouse nears the left side
 
+## Folder pdf export
+In the folder eport to pdf and the file export to pdf (more limited), make sure the links keep on working:
+- links within a page shoud stay working and jump to the right header
+- links to other files within the folder export should work
+- links to other files inside the loaded markdown folder, but not part of the export, should be clearly not working; either remove the link and mark as broken link, or show a popup that the link is outside the scope of the export and can thus not work
 
 
 # Index

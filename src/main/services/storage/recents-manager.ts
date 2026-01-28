@@ -121,8 +121,39 @@ export class RecentsManager {
     const key = this.getTypeKey(type);
     const items = store.get(key, []);
 
+    // Normalize all paths and deduplicate (handles legacy data with backslashes)
+    const normalizedItems = this.normalizeAndDeduplicate(items);
+
+    // If we found duplicates, update storage
+    if (normalizedItems.length !== items.length) {
+      store.set(key, normalizedItems);
+    }
+
     // Sort by lastOpened descending (most recent first)
-    return items.sort((a, b) => b.lastOpened - a.lastOpened);
+    return normalizedItems.sort((a, b) => b.lastOpened - a.lastOpened);
+  }
+
+  /**
+   * Normalize paths and remove duplicates (same path with different separators)
+   * Keeps the most recently opened version when duplicates are found
+   */
+  private normalizeAndDeduplicate(items: RecentItem[]): RecentItem[] {
+    const seen = new Map<string, RecentItem>();
+
+    for (const item of items) {
+      const normalizedPath = this.normalizePath(item.path);
+      const existing = seen.get(normalizedPath);
+
+      // Keep the entry with the most recent lastOpened timestamp
+      if (!existing || item.lastOpened > existing.lastOpened) {
+        seen.set(normalizedPath, {
+          ...item,
+          path: normalizedPath
+        });
+      }
+    }
+
+    return Array.from(seen.values());
   }
 
   /**
@@ -168,8 +199,15 @@ export class RecentsManager {
     const key = this.getTypeKey(type);
     const items = store.get(key, []);
 
-    const normalizedPath = this.normalizePath(itemPath);
-    const filtered = items.filter(r => r.path !== normalizedPath);
+    const normalizedInputPath = this.normalizePath(itemPath);
+
+    // Filter out items matching either:
+    // - The exact path as provided (handles backslash paths in storage)
+    // - The normalized version of the stored path (handles forward slash comparison)
+    const filtered = items.filter(r => {
+      const normalizedStoredPath = this.normalizePath(r.path);
+      return r.path !== itemPath && normalizedStoredPath !== normalizedInputPath;
+    });
 
     store.set(key, filtered);
   }
@@ -197,7 +235,11 @@ export class RecentsManager {
     const key = this.getTypeKey(type);
     const items = store.get(key, []);
 
-    const normalizedPath = this.normalizePath(itemPath);
-    return items.some(r => r.path === normalizedPath);
+    const normalizedInputPath = this.normalizePath(itemPath);
+    // Check against both exact match and normalized version
+    return items.some(r => {
+      const normalizedStoredPath = this.normalizePath(r.path);
+      return r.path === itemPath || normalizedStoredPath === normalizedInputPath;
+    });
   }
 }

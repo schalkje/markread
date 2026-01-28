@@ -116,6 +116,29 @@ export class FavoritesManager {
   }
 
   /**
+   * Normalize paths and remove duplicates (same path with different separators)
+   * Keeps the most recently added version when duplicates are found
+   */
+  private normalizeAndDeduplicate(items: Favorite[]): Favorite[] {
+    const seen = new Map<string, Favorite>();
+
+    for (const item of items) {
+      const normalizedPath = this.normalizePath(item.path);
+      const existing = seen.get(normalizedPath);
+
+      // Keep the entry with the most recent dateAdded timestamp
+      if (!existing || item.dateAdded > existing.dateAdded) {
+        seen.set(normalizedPath, {
+          ...item,
+          path: normalizedPath
+        });
+      }
+    }
+
+    return Array.from(seen.values());
+  }
+
+  /**
    * Get all favorites for a specific type
    *
    * @param type - Item type (file, folder, or repo)
@@ -126,7 +149,15 @@ export class FavoritesManager {
     const key = this.getTypeKey(type);
     const items = store.get(key, []);
 
-    return this.sortAlphabetically(items);
+    // Normalize all paths and deduplicate (handles legacy data with backslashes)
+    const normalizedItems = this.normalizeAndDeduplicate(items);
+
+    // If we found duplicates, update storage
+    if (normalizedItems.length !== items.length) {
+      store.set(key, normalizedItems);
+    }
+
+    return this.sortAlphabetically(normalizedItems);
   }
 
   /**
@@ -143,10 +174,14 @@ export class FavoritesManager {
     // Normalize the path
     const normalizedPath = this.normalizePath(item.path);
 
-    // Check if already favorited (update if exists)
-    const existingIndex = items.findIndex(f => f.path === normalizedPath);
+    // Check if already favorited (update if exists) - check both exact and normalized paths
+    const existingIndex = items.findIndex(f => {
+      const normalizedStoredPath = this.normalizePath(f.path);
+      return f.path === item.path || normalizedStoredPath === normalizedPath;
+    });
+
     if (existingIndex >= 0) {
-      // Update existing favorite
+      // Update existing favorite (also normalize the stored path)
       items[existingIndex] = {
         ...item,
         path: normalizedPath
@@ -180,8 +215,15 @@ export class FavoritesManager {
     const key = this.getTypeKey(type);
     const items = store.get(key, []);
 
-    const normalizedPath = this.normalizePath(itemPath);
-    const filtered = items.filter(f => f.path !== normalizedPath);
+    const normalizedInputPath = this.normalizePath(itemPath);
+
+    // Filter out items matching either:
+    // - The exact path as provided (handles backslash paths in storage)
+    // - The normalized version of the stored path (handles forward slash comparison)
+    const filtered = items.filter(f => {
+      const normalizedStoredPath = this.normalizePath(f.path);
+      return f.path !== itemPath && normalizedStoredPath !== normalizedInputPath;
+    });
 
     store.set(key, filtered);
   }
@@ -198,8 +240,12 @@ export class FavoritesManager {
     const key = this.getTypeKey(type);
     const items = store.get(key, []);
 
-    const normalizedPath = this.normalizePath(itemPath);
-    return items.some(f => f.path === normalizedPath);
+    const normalizedInputPath = this.normalizePath(itemPath);
+    // Check against both exact match and normalized version
+    return items.some(f => {
+      const normalizedStoredPath = this.normalizePath(f.path);
+      return f.path === itemPath || normalizedStoredPath === normalizedInputPath;
+    });
   }
 
   /**

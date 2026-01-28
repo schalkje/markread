@@ -94,7 +94,24 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
         const folderPath = item.path;
         const folderName = folderPath.split(/[\\/]/).pop() || 'Untitled';
 
-        // Create folder object
+        // First, check if the folder exists by trying to watch it
+        console.log('[Home] Starting folder watch setup for:', folderPath);
+        const watchResult = await window.electronAPI?.file?.watchFolder({
+          folderPath,
+          filePatterns: ['*.md', '*.markdown', '**/*.md', '**/*.markdown'],
+          ignorePatterns: ['**/node_modules/**', '**/.git/**'],
+          debounceMs: 300,
+        });
+
+        console.log('[Home] Watch result:', watchResult);
+        if (!watchResult?.success) {
+          // Folder doesn't exist or can't be accessed - throw error to trigger confirm dialog
+          throw new Error(watchResult?.error || 'Folder no longer exists or cannot be accessed');
+        }
+
+        console.log(`[Home] Started watching folder: ${folderPath} (ID: ${watchResult.watcherId})`);
+
+        // Create folder object only after confirming folder exists
         const newFolder: Folder = {
           id: `folder-${Date.now()}`,
           path: folderPath,
@@ -126,27 +143,6 @@ export const Home: React.FC<HomeProps> = ({ onFileOpened, onFolderOpened, onConn
 
         // Add folder to store
         addFolder(newFolder);
-
-        // Start watching the folder
-        console.log('[Home] Starting folder watch setup for:', folderPath);
-        try {
-          const watchResult = await window.electronAPI?.file?.watchFolder({
-            folderPath,
-            filePatterns: ['*.md', '*.markdown', '**/*.md', '**/*.markdown'],
-            ignorePatterns: ['**/node_modules/**', '**/.git/**'],
-            debounceMs: 300,
-          });
-
-          console.log('[Home] Watch result:', watchResult);
-          if (watchResult?.success && watchResult.watcherId) {
-            console.log(`[Home] Started watching folder: ${folderPath} (ID: ${watchResult.watcherId})`);
-          } else {
-            console.error('[Home] Watch failed:', watchResult);
-          }
-        } catch (err) {
-          console.error('[Home] Failed to start watching folder:', err);
-          // Non-fatal error - folder still opens, just without watching
-        }
 
         // Call parent handler to open first file
         onFolderOpened(folderPath);
