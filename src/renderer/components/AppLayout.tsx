@@ -46,6 +46,7 @@ import { ShortcutsReference } from './help/ShortcutsReference';
 import { About } from './help/About';
 import { SettingsWindow } from './settings/SettingsWindow';
 import { ErrorDialog } from './ErrorDialog'; // T022: Import ErrorDialog
+import { ConfirmDialog } from './common/ConfirmDialog'; // Confirmation for removing failed repos
 import { ExportProgressDialog } from './ExportProgressDialog'; // T017: Import ExportProgressDialog
 import { DiagramTabView } from './DiagramTabView'; // T039: Import DiagramTabView
 import { CopyFormatPicker } from './CopyFormatPicker'; // T050: Import CopyFormatPicker
@@ -110,6 +111,16 @@ const AppLayout: React.FC = () => {
 
   // Repository connect dialog state
   const [showRepoConnect, setShowRepoConnect] = useState(false);
+
+  // Confirmation dialog state for removing failed repository branches
+  const [repoRemoveConfirm, setRepoRemoveConfirm] = useState<{
+    show: boolean;
+    url: string;
+    branch: string;
+    displayName: string;
+    errorMessage: string;
+    folderId?: string;
+  } | null>(null);
 
   // T009: Search bar visibility state
   const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
@@ -735,25 +746,52 @@ const AppLayout: React.FC = () => {
         });
 
         if (treeResult?.success && treeResult.data?.tree) {
-          // Find the first markdown file
-          const findFirstMarkdownFile = (nodes: any[]): string | null => {
-            const queue = [...nodes];
-            while (queue.length > 0) {
-              const levelSize = queue.length;
-              for (let i = 0; i < levelSize; i++) {
-                const node = queue.shift()!;
-                if (node.type === ItemType.FILE && node.isMarkdown) {
-                  return node.path;
-                }
-                if (node.children) {
-                  queue.push(...node.children);
+          // Get default files settings for priority-based file opening
+          const { settings } = useSettingsStore.getState();
+          const defaultFilesToOpen = settings.behavior.defaultFilesToOpen;
+
+          // Extract root-level markdown files from the tree
+          // Root files are those without '/' in the path (at repository root)
+          const rootFiles = treeResult.data.tree
+            .filter((node: any) => node.type === ItemType.FILE && node.isMarkdown && !node.path.includes('/'))
+            .map((node: any) => ({ name: node.path.split('/').pop() || node.path, path: node.path }));
+
+          // Try to find a matching default file using priority list (case-insensitive)
+          const matchedFilename = findDefaultFile(
+            rootFiles.map((f: { name: string }) => f.name),
+            defaultFilesToOpen
+          );
+
+          let firstFilePath: string | null = null;
+          if (matchedFilename) {
+            // Found a priority match in root
+            const matchedFile = rootFiles.find(
+              (f: { name: string; path: string }) => f.name.toLowerCase() === matchedFilename.toLowerCase()
+            );
+            firstFilePath = matchedFile?.path || null;
+          }
+
+          // Fallback: If no priority match, use BFS for first markdown file
+          if (!firstFilePath) {
+            const findFirstMarkdownFile = (nodes: any[]): string | null => {
+              const queue = [...nodes];
+              while (queue.length > 0) {
+                const levelSize = queue.length;
+                for (let i = 0; i < levelSize; i++) {
+                  const node = queue.shift()!;
+                  if (node.type === ItemType.FILE && node.isMarkdown) {
+                    return node.path;
+                  }
+                  if (node.children) {
+                    queue.push(...node.children);
+                  }
                 }
               }
-            }
-            return null;
-          };
+              return null;
+            };
 
-          const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+            firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+          }
           console.log('[AppLayout] First markdown file:', firstFilePath);
 
           if (firstFilePath) {
@@ -2653,10 +2691,10 @@ const AppLayout: React.FC = () => {
         const { settings } = useSettingsStore.getState();
         const defaultFilesToOpen = settings.behavior.defaultFilesToOpen;
 
-        // Extract root-level markdown files from the tree
+        // Extract root-level markdown files from the tree (filter out undefined names)
         const rootFiles = (result.tree.children || [])
-          .filter((node: any) => node.type === ItemType.FILE && /\.(md|markdown)$/i.test(node.name))
-          .map((node: any) => ({ name: node.name, path: node.path }));
+          .filter((node: any) => node.type === ItemType.FILE && node.name && /\.(md|markdown)$/i.test(node.name))
+          .map((node: any) => ({ name: node.name as string, path: node.path as string }));
 
         // Try to find a matching default file using priority list (case-insensitive)
         const matchedFilename = findDefaultFile(
@@ -3529,21 +3567,13 @@ const AppLayout: React.FC = () => {
                       console.error('[AppLayout] Failed to track repository branch in recents:', error);
                     }
                   } else {
-                    // Branch opening failed - remove from recents, favorites, and connection history
-                    try {
-                      const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                      await removeRecent(pathWithBranch, ItemType.REPO);
-                      await removeFavorite(pathWithBranch, ItemType.REPO);
-                      removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-                      console.log('[AppLayout] Removed unavailable repository branch from recents/favorites/history');
-                    } catch (removeError) {
-                      console.error('[AppLayout] Failed to remove unavailable repository branch:', removeError);
-                    }
-
-                    // Show error toast
-                    setToast({
-                      message: `This branch has been removed. Failed to load repository branch.`,
-                      type: 'error',
+                    // Branch opening failed - show confirmation dialog instead of auto-removing
+                    setRepoRemoveConfirm({
+                      show: true,
+                      url: connectedRepository.url,
+                      branch: connectedRepository.currentBranch,
+                      displayName: connectedRepository.displayName,
+                      errorMessage: 'Failed to load repository branch',
                     });
                   }
 
@@ -3611,33 +3641,60 @@ const AppLayout: React.FC = () => {
                   });
 
                   if (treeResult?.success && treeResult.data?.tree) {
-                    // Find the first markdown file using breadth-first search
-                    const findFirstMarkdownFile = (nodes: any[]): string | null => {
-                      const queue = [...nodes];
+                    // Get default files settings for priority-based file opening
+                    const { settings } = useSettingsStore.getState();
+                    const defaultFilesToOpen = settings.behavior.defaultFilesToOpen;
 
-                      while (queue.length > 0) {
-                        const levelSize = queue.length;
+                    // Extract root-level markdown files from the tree
+                    // Root files are those without '/' in the path (at repository root)
+                    const rootFiles = treeResult.data.tree
+                      .filter((node: any) => node.type === ItemType.FILE && node.isMarkdown && !node.path.includes('/'))
+                      .map((node: any) => ({ name: node.path.split('/').pop() || node.path, path: node.path }));
 
-                        // Process all nodes at current level before going deeper
-                        for (let i = 0; i < levelSize; i++) {
-                          const node = queue.shift()!;
+                    // Try to find a matching default file using priority list (case-insensitive)
+                    const matchedFilename = findDefaultFile(
+                      rootFiles.map((f: { name: string }) => f.name),
+                      defaultFilesToOpen
+                    );
 
-                          // Check if this node is a markdown file
-                          if (node.type === ItemType.FILE && node.isMarkdown) {
-                            return node.path;
-                          }
+                    let firstFilePath: string | null = null;
+                    if (matchedFilename) {
+                      // Found a priority match in root
+                      const matchedFile = rootFiles.find(
+                        (f: { name: string; path: string }) => f.name.toLowerCase() === matchedFilename.toLowerCase()
+                      );
+                      firstFilePath = matchedFile?.path || null;
+                    }
 
-                          // Add children to queue for next level
-                          if (node.children) {
-                            queue.push(...node.children);
+                    // Fallback: If no priority match, use BFS for first markdown file
+                    if (!firstFilePath) {
+                      const findFirstMarkdownFile = (nodes: any[]): string | null => {
+                        const queue = [...nodes];
+
+                        while (queue.length > 0) {
+                          const levelSize = queue.length;
+
+                          // Process all nodes at current level before going deeper
+                          for (let i = 0; i < levelSize; i++) {
+                            const node = queue.shift()!;
+
+                            // Check if this node is a markdown file
+                            if (node.type === ItemType.FILE && node.isMarkdown) {
+                              return node.path;
+                            }
+
+                            // Add children to queue for next level
+                            if (node.children) {
+                              queue.push(...node.children);
+                            }
                           }
                         }
-                      }
 
-                      return null;
-                    };
+                        return null;
+                      };
 
-                    const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+                      firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+                    }
 
                     console.log('[AppLayout] Home onRepositoryConnected - First markdown file:', firstFilePath);
 
@@ -3749,26 +3806,18 @@ const AppLayout: React.FC = () => {
                   } else {
                     console.warn('[AppLayout] Home onRepositoryConnected - Tree fetch failed or no data:', treeResult?.error);
 
-                    // Tree fetch failed - clean up the failed connection
+                    // Tree fetch failed - clean up the folder but ask user about removal from recents
                     const { removeFolder } = useFoldersStore.getState();
                     removeFolder(repoFolder.id);
 
-                    // Remove from recents, favorites, and connection history
-                    try {
-                      const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                      await removeRecent(pathWithBranch, ItemType.REPO);
-                      await removeFavorite(pathWithBranch, ItemType.REPO);
-                      removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-                      console.log('[AppLayout] Home onRepositoryConnected - Removed unavailable repository from recents/favorites/history');
-                    } catch (removeError) {
-                      console.error('[AppLayout] Home onRepositoryConnected - Failed to remove unavailable repository:', removeError);
-                    }
-
-                    // Show error toast
+                    // Show confirmation dialog instead of auto-removing
                     const errorMsg = treeResult?.error?.message || 'Failed to load repository';
-                    setToast({
-                      message: `This branch has been removed. ${errorMsg}`,
-                      type: 'error',
+                    setRepoRemoveConfirm({
+                      show: true,
+                      url: connectedRepository.url,
+                      branch: connectedRepository.currentBranch,
+                      displayName: connectedRepository.displayName,
+                      errorMessage: errorMsg,
                     });
 
                     return; // Don't show success toast
@@ -3776,25 +3825,18 @@ const AppLayout: React.FC = () => {
                 } catch (err) {
                   console.error('[AppLayout] Home onRepositoryConnected - Error loading first repository file:', err);
 
-                  // Clean up on error
+                  // Clean up the folder but ask user about removal from recents
                   const { removeFolder } = useFoldersStore.getState();
                   removeFolder(repoFolder.id);
 
-                  // Remove from recents, favorites, and connection history
-                  try {
-                    const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                    await removeRecent(pathWithBranch, ItemType.REPO);
-                    await removeFavorite(pathWithBranch, ItemType.REPO);
-                    removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-                    console.log('[AppLayout] Home onRepositoryConnected - Removed unavailable repository from recents/favorites/history');
-                  } catch (removeError) {
-                    console.error('[AppLayout] Home onRepositoryConnected - Failed to remove unavailable repository:', removeError);
-                  }
-
-                  // Show error toast
-                  setToast({
-                    message: `This branch has been removed. ${err instanceof Error ? err.message : 'Unknown error'}`,
-                    type: 'error',
+                  // Show confirmation dialog instead of auto-removing
+                  const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+                  setRepoRemoveConfirm({
+                    show: true,
+                    url: connectedRepository.url,
+                    branch: connectedRepository.currentBranch,
+                    displayName: connectedRepository.displayName,
+                    errorMessage: errorMsg,
                   });
 
                   return; // Don't show success toast
@@ -4013,21 +4055,13 @@ const AppLayout: React.FC = () => {
             } else {
               console.error('[AppLayout] Failed to open repository branch via openRepositoryBranch');
 
-              // Branch opening failed - remove from recents, favorites, and connection history
-              try {
-                const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                await removeRecent(pathWithBranch, ItemType.REPO);
-                await removeFavorite(pathWithBranch, ItemType.REPO);
-                removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-                console.log('[AppLayout] Removed unavailable repository branch from recents/favorites/history');
-              } catch (removeError) {
-                console.error('[AppLayout] Failed to remove unavailable repository branch:', removeError);
-              }
-
-              // Show error toast
-              setToast({
-                message: `This branch has been removed. Failed to load repository branch.`,
-                type: 'error',
+              // Branch opening failed - show confirmation dialog instead of auto-removing
+              setRepoRemoveConfirm({
+                show: true,
+                url: connectedRepository.url,
+                branch: connectedRepository.currentBranch,
+                displayName: connectedRepository.displayName,
+                errorMessage: 'Failed to load repository branch',
               });
             }
 
@@ -4097,33 +4131,60 @@ const AppLayout: React.FC = () => {
             });
 
             if (treeResult?.success && treeResult.data?.tree) {
-              // Find the first markdown file using breadth-first search
-              const findFirstMarkdownFile = (nodes: any[]): string | null => {
-                const queue = [...nodes];
+              // Get default files settings for priority-based file opening
+              const { settings } = useSettingsStore.getState();
+              const defaultFilesToOpen = settings.behavior.defaultFilesToOpen;
 
-                while (queue.length > 0) {
-                  const levelSize = queue.length;
+              // Extract root-level markdown files from the tree
+              // Root files are those without '/' in the path (at repository root)
+              const rootFiles = treeResult.data.tree
+                .filter((node: any) => node.type === ItemType.FILE && node.isMarkdown && !node.path.includes('/'))
+                .map((node: any) => ({ name: node.path.split('/').pop() || node.path, path: node.path }));
 
-                  // Process all nodes at current level before going deeper
-                  for (let i = 0; i < levelSize; i++) {
-                    const node = queue.shift()!;
+              // Try to find a matching default file using priority list (case-insensitive)
+              const matchedFilename = findDefaultFile(
+                rootFiles.map((f: { name: string }) => f.name),
+                defaultFilesToOpen
+              );
 
-                    // Check if this node is a markdown file
-                    if (node.type === ItemType.FILE && node.isMarkdown) {
-                      return node.path;
-                    }
+              let firstFilePath: string | null = null;
+              if (matchedFilename) {
+                // Found a priority match in root
+                const matchedFile = rootFiles.find(
+                  (f: { name: string; path: string }) => f.name.toLowerCase() === matchedFilename.toLowerCase()
+                );
+                firstFilePath = matchedFile?.path || null;
+              }
 
-                    // Add children to queue for next level
-                    if (node.children) {
-                      queue.push(...node.children);
+              // Fallback: If no priority match, use BFS for first markdown file
+              if (!firstFilePath) {
+                const findFirstMarkdownFile = (nodes: any[]): string | null => {
+                  const queue = [...nodes];
+
+                  while (queue.length > 0) {
+                    const levelSize = queue.length;
+
+                    // Process all nodes at current level before going deeper
+                    for (let i = 0; i < levelSize; i++) {
+                      const node = queue.shift()!;
+
+                      // Check if this node is a markdown file
+                      if (node.type === ItemType.FILE && node.isMarkdown) {
+                        return node.path;
+                      }
+
+                      // Add children to queue for next level
+                      if (node.children) {
+                        queue.push(...node.children);
+                      }
                     }
                   }
-                }
 
-                return null;
-              };
+                  return null;
+                };
 
-              const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+                firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+              }
 
               console.log('[AppLayout] onConnected - First markdown file:', firstFilePath);
 
@@ -4235,26 +4296,18 @@ const AppLayout: React.FC = () => {
             } else {
               console.warn('[AppLayout] onConnected - Tree fetch failed or no data:', treeResult?.error);
 
-              // Tree fetch failed - clean up the failed connection
+              // Tree fetch failed - clean up the folder but ask user about removal from recents
               const { removeFolder } = useFoldersStore.getState();
               removeFolder(repoFolder.id);
 
-              // Remove from recents, favorites, and connection history
-              try {
-                const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                await removeRecent(pathWithBranch, ItemType.REPO);
-                await removeFavorite(pathWithBranch, ItemType.REPO);
-                removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-                console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
-              } catch (removeError) {
-                console.error('[AppLayout] Failed to remove unavailable repository:', removeError);
-              }
-
-              // Show error toast
+              // Show confirmation dialog instead of auto-removing
               const errorMsg = treeResult?.error?.message || 'Failed to load repository';
-              setToast({
-                message: `This branch has been removed. ${errorMsg}`,
-                type: 'error',
+              setRepoRemoveConfirm({
+                show: true,
+                url: connectedRepository.url,
+                branch: connectedRepository.currentBranch,
+                displayName: connectedRepository.displayName,
+                errorMessage: errorMsg,
               });
 
               return; // Don't show success toast
@@ -4262,25 +4315,18 @@ const AppLayout: React.FC = () => {
           } catch (err) {
             console.error('[AppLayout] Error loading first repository file:', err);
 
-            // Clean up on error
+            // Clean up the folder but ask user about removal from recents
             const { removeFolder } = useFoldersStore.getState();
             removeFolder(repoFolder.id);
 
-            // Remove from recents, favorites, and connection history
-            try {
-              const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-              await removeRecent(pathWithBranch, ItemType.REPO);
-              await removeFavorite(pathWithBranch, ItemType.REPO);
-              removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-              console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
-            } catch (removeError) {
-              console.error('[AppLayout] Failed to remove unavailable repository:', removeError);
-            }
-
-            // Show error toast
-            setToast({
-              message: `This branch has been removed. ${err instanceof Error ? err.message : 'Unknown error'}`,
-              type: 'error',
+            // Show confirmation dialog instead of auto-removing
+            const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+            setRepoRemoveConfirm({
+              show: true,
+              url: connectedRepository.url,
+              branch: connectedRepository.currentBranch,
+              displayName: connectedRepository.displayName,
+              errorMessage: errorMsg,
             });
 
             return; // Don't show success toast
@@ -4331,6 +4377,30 @@ const AppLayout: React.FC = () => {
           onRetry={retryExport}
           onViewLogs={viewExportLogs}
           onClose={dismissExportError}
+        />
+      )}
+
+      {/* Confirmation dialog for removing failed repository branch from recents */}
+      {repoRemoveConfirm?.show && (
+        <ConfirmDialog
+          title="Repository Branch Not Accessible"
+          message={`Cannot open "${repoRemoveConfirm.displayName}" (${repoRemoveConfirm.branch}).\n\n${repoRemoveConfirm.errorMessage}\n\nWould you like to remove it from your recent items?`}
+          confirmLabel="Remove from Recents"
+          cancelLabel="Keep"
+          variant="warning"
+          onConfirm={async () => {
+            try {
+              const pathWithBranch = `${repoRemoveConfirm.url}#${repoRemoveConfirm.branch}`;
+              await removeRecent(pathWithBranch, ItemType.REPO);
+              await removeFavorite(pathWithBranch, ItemType.REPO);
+              removeFromConnectionHistory(repoRemoveConfirm.url, repoRemoveConfirm.branch);
+              console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
+            } catch (removeError) {
+              console.error('[AppLayout] Failed to remove unavailable repository:', removeError);
+            }
+            setRepoRemoveConfirm(null);
+          }}
+          onCancel={() => setRepoRemoveConfirm(null)}
         />
       )}
     </div>
