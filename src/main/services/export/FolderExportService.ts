@@ -35,7 +35,7 @@ import { getExportLogger } from './ExportLogger';
 import { getExportSettingsStore } from './ExportSettingsStore';
 
 // Maximum number of documents in a single folder export
-const MAX_DOCUMENTS = 150;
+const MAX_DOCUMENTS = 500;
 
 export class FolderExportService extends EventEmitter {
   private md: MarkdownIt;
@@ -251,7 +251,11 @@ export class FolderExportService extends EventEmitter {
         const content = await fs.readFile(file.path, 'utf-8');
         file.content = content;
         const rawHtml = this.md.render(content);
-        file.renderedHtml = this.resolveImagePaths(rawHtml, path.dirname(file.path));
+        // Resolve image paths, prefix header IDs for uniqueness, and transform links
+        let processedHtml = this.resolveImagePaths(rawHtml, path.dirname(file.path));
+        processedHtml = this.prefixHeaderIds(processedHtml, i);
+        processedHtml = this.transformLinks(processedHtml, i, file, filePathMap);
+        file.renderedHtml = processedHtml;
         renderedFiles.push(file);
       }
 
@@ -1497,16 +1501,14 @@ export class FolderExportService extends EventEmitter {
 
     /* Broken link styling for out-of-scope links */
     .document-content a.broken-link {
-      color: #cf222e;
-      text-decoration: line-through;
+      color: var(--primary-color);
       cursor: not-allowed;
     }
 
-    .document-content a.broken-link::after {
-      content: " [broken]";
-      font-size: 0.85em;
-      font-style: italic;
-      text-decoration: none;
+    .document-content a.broken-link > span {
+      text-decoration: line-through;
+      text-decoration-style: wavy;
+      text-decoration-color: #cf222eaa;
     }
 
     /* ============================================
@@ -2073,8 +2075,7 @@ export class FolderExportService extends EventEmitter {
     html: string,
     currentFileIndex: number,
     currentFile: MarkdownFile,
-    filePathMap: Map<string, number>,
-    folderPath: string
+    filePathMap: Map<string, number>
   ): string {
     const docPrefix = `doc-${currentFileIndex}-`;
     const currentFileDir = path.dirname(currentFile.relativePath);
@@ -2099,6 +2100,25 @@ export class FolderExportService extends EventEmitter {
         const fragmentIndex = href.indexOf('#');
         const filePath = fragmentIndex >= 0 ? href.slice(0, fragmentIndex) : href;
         const fragment = fragmentIndex >= 0 ? href.slice(fragmentIndex + 1) : '';
+
+        // Handle "." links - reference to the folder's index/separator page
+        if (filePath === '.' || filePath === './') {
+          // Get the folder path of the current file
+          const folderPath = currentFileDir && currentFileDir !== '.'
+            ? currentFileDir.replace(/\\/g, '/')
+            : '';
+
+          if (folderPath) {
+            // Link to the subfolder's separator page (use same slugify as separator generation)
+            const folderAnchor = `folder-${this.slugify(folderPath)}`;
+            const newHref = fragment ? `#${folderAnchor}-${fragment}` : `#${folderAnchor}`;
+            return `${prefix}${newHref}${suffix}${linkText}${closeTag}`;
+          } else {
+            // Root folder - link to first document (doc-0)
+            const newHref = fragment ? `#doc-0-${fragment}` : '#doc-0';
+            return `${prefix}${newHref}${suffix}${linkText}${closeTag}`;
+          }
+        }
 
         // Skip non-markdown file links (images, etc.)
         if (filePath && !filePath.toLowerCase().endsWith('.md')) {
@@ -2135,11 +2155,11 @@ export class FolderExportService extends EventEmitter {
         }
 
         // File is not in the export - mark as broken
-        // Remove href and add broken link class
+        // Wrap link text in span for selective strikethrough, add broken-link class
         const brokenPrefix = prefix
           .replace(/href=["']/, 'data-original-href="')
           .replace(/<a\s/, '<a class="broken-link" ');
-        return `${brokenPrefix}#broken${suffix}${linkText}${closeTag}`;
+        return `${brokenPrefix}#broken${suffix}<span>${linkText}</span>${closeTag}`;
       }
     );
   }
