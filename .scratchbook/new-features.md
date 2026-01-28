@@ -1,11 +1,9 @@
 
 # Small issues
 
-
-- if a folder or repo/branch is opened, and the golder contains files open them in this order:
-  - README.md, index.md, first file alphabetically
-  Filter out
   
+  - in the pdf export put the files first, then the sub folders (for each folder)
+  - use the order of the files in the default folder configuration to pick the first folder, after those, it is alphabetically
 
 ## home page fixes
 - on the home page I sometimes see double entries of the same folder; only difference are the \ vs /
@@ -62,63 +60,6 @@ in the root there is a markread.json file
 # refreshing
 I want a way of refreshing the visible page
 I want a way of refreshing the folderview for the current folder or repo/branch
-
-# ignore folders
-Ignoring folders:
-- A base list should be available of folders that are by default not read (open folder, open repo/branch)
-    .git
-    node_modules
-    bin
-    obj
-    dist
-    build
-    out
-    venv
-    .venv
-    env
-    .env
-    __pycache__
-    logs
-    tmp
-    temp
-    .cache
-    .vscode
-    .idea
-    coverage
-    target
-    .vscode
-    .idea
-    .vs
-    .cache
-    .tmp
-    packages
-    .yarn
-- there is a setting where this list can be seen and modified; there is also a button here to reset to the defaults
-
-# default file to open
-When a folder or repo/branch opens here should be an order in opening a file.
-1. README.md
-2. index.md
-3. home.md
-4. overview.md
-These file names are case insensitive.
-Add these to the settings as defaults; allow the user to add/remove and change the order.
-
-When there are no files in the root, show the folder page instead
-When there are no files in the root, and no subfolders: show a custom page: empty folder
-
-# Export to pdf function
-
-# Export mermaid diagrams
-Export or copy to clipboard mermaid diagrams as svg.
-
-have hoover buttons:
-- that copy as image
-- copy mermaid code
-- download image
-
-## Open mermaid in new dedicated tab
-- open mermaid in new tab
 
 ---
 
