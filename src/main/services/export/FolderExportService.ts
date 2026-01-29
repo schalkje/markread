@@ -1501,14 +1501,35 @@ export class FolderExportService extends EventEmitter {
 
     /* Broken link styling for out-of-scope links */
     .document-content a.broken-link {
-      color: var(--primary-color);
+      color: var(--secondary-color);
       cursor: not-allowed;
     }
 
     .document-content a.broken-link > span {
-      text-decoration: line-through;
+      text-decoration: underline;
       text-decoration-style: wavy;
-      text-decoration-color: #cf222eaa;
+      text-decoration-color: #cf222e;
+    }
+
+    .document-content .broken-link-ref {
+      color: #cf222e;
+      font-size: 0.75em;
+      margin-left: 1px;
+      text-decoration: none;
+    }
+
+    /* Broken links footnote section */
+    .broken-links-footnote {
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-light);
+      font-size: 0.9em;
+      color: var(--text-secondary);
+    }
+
+    .broken-links-footnote .footnote-marker {
+      color: #cf222e;
+      font-weight: 600;
     }
 
     /* ============================================
@@ -1800,6 +1821,7 @@ export class FolderExportService extends EventEmitter {
   ${coverPage}
   ${toc}
   ${documentSections.join('\n')}
+  ${this.generateBrokenLinksFootnote(files)}
   <script src="markread-mermaid-${jobId}.min.js"><\/script>
   <script>
     try {
@@ -2005,6 +2027,24 @@ export class FolderExportService extends EventEmitter {
     return { code, message, retryable, details };
   }
 
+  /**
+   * Generate footnote section for broken links if any exist in the document
+   */
+  private generateBrokenLinksFootnote(files: MarkdownFile[]): string {
+    // Check if any file contains broken links
+    const hasBrokenLinks = files.some(f => f.renderedHtml?.includes('class="broken-link"'));
+
+    if (!hasBrokenLinks) {
+      return '';
+    }
+
+    return `
+      <div class="broken-links-footnote" id="broken-link-footnote">
+        <p><span class="footnote-marker">[X]</span> This link has been removed as it refers to a location in the original folder that is not part of the export.</p>
+      </div>
+    `;
+  }
+
   private escapeHtml(text: string): string {
     return text
       .replace(/&/g, '&amp;')
@@ -2155,11 +2195,11 @@ export class FolderExportService extends EventEmitter {
         }
 
         // File is not in the export - mark as broken
-        // Wrap link text in span for selective strikethrough, add broken-link class
+        // Wrap link text in span for styling, add broken-link class and footnote reference
         const brokenPrefix = prefix
-          .replace(/href=["']/, 'data-original-href="')
+          .replace(/href=["']/, 'href="')
           .replace(/<a\s/, '<a class="broken-link" ');
-        return `${brokenPrefix}#broken${suffix}<span>${linkText}</span>${closeTag}`;
+        return `${brokenPrefix}#broken-link-footnote${suffix}<span>${linkText}</span><sup class="broken-link-ref">[X]</sup>${closeTag}`;
       }
     );
   }
