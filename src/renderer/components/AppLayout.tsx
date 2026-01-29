@@ -1235,7 +1235,6 @@ const AppLayout: React.FC = () => {
         setToast({
           message: 'No folder is open. Please open a folder first.',
           type: 'warning',
-          duration: 3000,
         });
         return;
       }
@@ -1244,7 +1243,6 @@ const AppLayout: React.FC = () => {
         setToast({
           message: 'Repository folders cannot be exported to PDF. Please open a local folder.',
           type: 'warning',
-          duration: 3000,
         });
         return;
       }
