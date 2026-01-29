@@ -21,13 +21,13 @@ export class ClipboardService {
   /**
    * Check clipboard permission state
    */
-  async checkPermission(): Promise<PermissionState> {
+  async checkPermission(): Promise<globalThis.PermissionState> {
     if (!this.canCopy()) {
       return 'denied';
     }
 
     try {
-      const permission = await navigator.permissions.query({ name: 'clipboard-write' as PermissionName });
+      const permission = await navigator.permissions.query({ name: 'clipboard-write' as globalThis.PermissionName });
       return permission.state;
     } catch {
       // If permission API not available, assume granted if clipboard exists

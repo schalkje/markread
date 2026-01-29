@@ -4,7 +4,7 @@
  * Handles keyboard shortcuts for multi-format text copying
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { getTextSelectionService } from '../services/TextSelectionService';
 import { getClipboardService } from '../services/ClipboardService';
 import type { CopyFormat } from '../components/CopyFormatPicker';

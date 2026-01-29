@@ -103,7 +103,7 @@ export const FolderExclusionPanel: React.FC = () => {
         <div className="folder-exclusion__list">
           {folderExclusionPatterns.length === 0 ? (
             <div className="folder-exclusion__empty">
-              No folder exclusions configured. Click "Reset to Defaults" to restore the default list.
+              No folder exclusions configured. Click &quot;Reset to Defaults&quot; to restore the default list.
             </div>
           ) : (
             folderExclusionPatterns.map((pattern) => (

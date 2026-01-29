@@ -228,7 +228,7 @@ export class FolderExportService extends EventEmitter {
       this.emitProgress(job);
 
       // T063: Order files by hierarchy
-      const orderedFiles = this.orderFilesByHierarchy(files, folderPath);
+      const orderedFiles = this.orderFilesByHierarchy(files);
 
       // Build file path map for link transformation
       const filePathMap = this.buildFilePathMap(orderedFiles);
@@ -290,7 +290,7 @@ export class FolderExportService extends EventEmitter {
 
       // T065: Generate table of contents with clickable subfolder links
       const tocHtml = mergedOptions.generateTOC
-        ? this.generateTableOfContents(renderedFiles, subfolderSeparators, styling)
+        ? this.generateTableOfContents(renderedFiles, subfolderSeparators)
         : '';
 
       // T066: Build combined HTML document with separator pages
@@ -298,10 +298,8 @@ export class FolderExportService extends EventEmitter {
         coverPageHtml,
         tocHtml,
         renderedFiles,
-        mergedOptions,
         job.id,
-        subfolderSeparators,
-        styling
+        subfolderSeparators
       );
 
       job.progress.percentComplete = 70;
@@ -564,7 +562,7 @@ export class FolderExportService extends EventEmitter {
   /**
    * T063: Order files by directory hierarchy
    */
-  private orderFilesByHierarchy(files: MarkdownFile[], _rootPath: string): MarkdownFile[] {
+  private orderFilesByHierarchy(files: MarkdownFile[]): MarkdownFile[] {
     // Files are already ordered by the walk function (directories first, alphabetical)
     // Just ensure consistent ordering
     return files.sort((a, b) => a.order - b.order);
@@ -685,8 +683,7 @@ export class FolderExportService extends EventEmitter {
    */
   private generateTableOfContents(
     files: MarkdownFile[],
-    subfolderSeparators: Map<string, string> = new Map(),
-    _styling?: PdfStylingOptions
+    subfolderSeparators: Map<string, string> = new Map()
   ): string {
     // Build a tree structure from the flat file list
     // Page numbers are calculated via JavaScript after render and before PDF generation
@@ -919,10 +916,8 @@ export class FolderExportService extends EventEmitter {
     coverPage: string,
     toc: string,
     files: MarkdownFile[],
-    _options: FolderExportOptions,
     jobId: string,
-    subfolderSeparators: Map<string, string> = new Map(),
-    _styling?: PdfStylingOptions
+    subfolderSeparators: Map<string, string> = new Map()
   ): string {
     // T067: Build document sections with page breaks between them
     // Insert separator pages before the first file of each subfolder
@@ -1822,7 +1817,7 @@ export class FolderExportService extends EventEmitter {
   ${toc}
   ${documentSections.join('\n')}
   ${this.generateBrokenLinksFootnote(files)}
-  <script src="markread-mermaid-${jobId}.min.js"><\/script>
+  <script src="markread-mermaid-${jobId}.min.js"></script>
   <script>
     try {
       if (typeof mermaid !== 'undefined') {
@@ -1842,7 +1837,7 @@ export class FolderExportService extends EventEmitter {
     if (!document.querySelector('pre.mermaid')) {
       window.__mermaidReady = true;
     }
-  <\/script>
+  </script>
 </body>
 </html>`;
   }

@@ -79,7 +79,7 @@ export class ExportLogger {
 
       // Return most recent entries
       return entries.slice(-limit).reverse();
-    } catch (error) {
+    } catch {
       // Log file doesn't exist or can't be read
       return [];
     }
@@ -106,7 +106,7 @@ export class ExportLogger {
 
         console.log(`Rotated export log to: ${backupFile}`);
       }
-    } catch (error) {
+    } catch {
       // File doesn't exist yet or stats failed - ignore
     }
   }

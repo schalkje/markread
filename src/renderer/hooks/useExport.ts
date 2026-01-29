@@ -224,7 +224,7 @@ th,td{border:1px solid #d0d7de;padding:8px 12px}
 blockquote{border-left:4px solid #d0d7de;margin:0;padding:0 16px;color:#57606a}
 img{max-width:100%}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js"></script>
 </head><body>
 <div id="md-content" style="display:none">${result.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
 <div id="rendered"></div>
@@ -232,7 +232,7 @@ img{max-width:100%}
 var src=document.getElementById('md-content').textContent;
 var md=window.markdownit({html:true,linkify:true});
 document.getElementById('rendered').innerHTML=md.render(src);
-<\/script>
+</script>
 </body></html>`;
 
       await exportCurrentPage(htmlDocument, `${baseName}.pdf`);

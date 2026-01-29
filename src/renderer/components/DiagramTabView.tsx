@@ -18,7 +18,6 @@ const ZOOM_STEP = 10;
 
 export const DiagramTabView: React.FC<DiagramTabViewProps> = ({
   svgContent,
-  mermaidCode: _mermaidCode,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);

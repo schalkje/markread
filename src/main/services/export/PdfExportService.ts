@@ -108,7 +108,7 @@ export class PdfExportService extends EventEmitter {
       );
 
       // Wait for content to finish rendering (including async elements like diagrams)
-      await this.waitForContentReady(pdfWindow);
+      await this.waitForContentReady();
 
       job.progress.percentComplete = 50;
       this.emitProgress(job);
@@ -208,7 +208,7 @@ export class PdfExportService extends EventEmitter {
    * loadURL() already resolves after the page finishes loading,
    * so we just need a delay for async content (images, scripts) to render.
    */
-  private waitForContentReady(_window: BrowserWindow): Promise<void> {
+  private waitForContentReady(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, 1500));
   }
 

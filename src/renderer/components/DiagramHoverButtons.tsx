@@ -5,7 +5,7 @@
  * Uses a hook-based approach to inject and manage buttons on rendered diagrams
  */
 
-import { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useDiagramActions } from '../hooks/useDiagramActions';
 
 interface DiagramHoverButtonsProps {

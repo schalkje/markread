@@ -137,7 +137,7 @@ export const DefaultFilesPanel: React.FC = () => {
         <div className="default-files__list">
           {defaultFilesToOpen.length === 0 ? (
             <div className="default-files__empty">
-              No default files configured. Click "Reset to Defaults" to restore the default list.
+              No default files configured. Click &quot;Reset to Defaults&quot; to restore the default list.
             </div>
           ) : (
             defaultFilesToOpen.map((entry, index) => (
