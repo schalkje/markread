@@ -39,6 +39,10 @@ compression: maximum  # LZMA compression for <100MB target
 
 asar: true  # Bundle app source
 
+extraResources:
+  - from: "assets/markread-icon.png"
+    to: "assets/markread-icon.png"
+
 fileAssociations:
   - ext: md
     name: Markdown File

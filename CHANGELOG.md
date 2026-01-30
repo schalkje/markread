@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bookmarks
 - Split screen and multiple windows
 
+## [0.7.4] - 2026-01-30
+
+### Fixes
+- resize installer banner for nsis
+- support opening branches on Azure DevOps
+- package markread logo for pdf generation
+
 ## [0.7.3] - 2026-01-30
 
 ### Fixes
