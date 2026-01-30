@@ -32,6 +32,7 @@ export const About: React.FC<AboutProps> = ({ isOpen, onClose }) => {
   const [version, setVersion] = useState<string>('');
   const [releaseDate, setReleaseDate] = useState<string | null>(null);
   const [changelog, setChangelog] = useState<ChangelogEntry[] | null>(null);
+  const [includedVersions, setIncludedVersions] = useState<string[]>([]);
   const [changelogExpanded, setChangelogExpanded] = useState(false);
 
   // Fetch version and changelog from main process when dialog opens
@@ -47,10 +48,24 @@ export const About: React.FC<AboutProps> = ({ isOpen, onClose }) => {
         if (result.success && result.changes) {
           setChangelog(result.changes);
           setReleaseDate(result.date || null);
+          setIncludedVersions(result.includedVersions || []);
         }
       });
     }
   }, [isOpen]);
+
+  // Format version display for changelog title
+  const getChangelogVersionTitle = () => {
+    if (includedVersions.length <= 1) {
+      return version;
+    }
+    // Get the minor version prefix (e.g., "0.7" from "0.7.2")
+    const versionParts = version.split('.');
+    if (versionParts.length >= 2) {
+      return `${versionParts[0]}.${versionParts[1]}.x`;
+    }
+    return version;
+  };
 
   // Handle backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -180,10 +195,15 @@ export const About: React.FC<AboutProps> = ({ isOpen, onClose }) => {
                 type="button"
               >
                 <span className="about-dialog__changelog-title">
-                  What&apos;s New in {version}
+                  What&apos;s New in {getChangelogVersionTitle()}
                   {releaseDate && (
                     <span className="about-dialog__changelog-date">
                       {releaseDate}
+                    </span>
+                  )}
+                  {includedVersions.length > 1 && (
+                    <span className="about-dialog__changelog-versions">
+                      ({includedVersions.join(', ')})
                     </span>
                   )}
                 </span>

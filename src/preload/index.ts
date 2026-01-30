@@ -37,6 +37,7 @@ export interface ChangelogResponse {
   version?: string;
   date?: string | null;
   changes?: ChangelogEntry[] | null;
+  includedVersions?: string[];
   error?: string;
 }
 

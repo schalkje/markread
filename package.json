@@ -1,6 +1,6 @@
 {
   "name": "markread",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Electron-based markdown viewer",
   "main": "./out/main/index.js",
   "author": "MarkRead",
