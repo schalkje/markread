@@ -889,7 +889,7 @@ export class FolderExportService extends EventEmitter {
     const root: TocNode = { name: '', fullPath: '', children: [], isFolder: true };
 
     files.forEach((file, index) => {
-      const parts = file.relativePath.split(path.sep);
+      const parts = file.relativePath.split(/[/\\]/);
       let current = root;
       let currentPath = '';
 
@@ -979,7 +979,7 @@ export class FolderExportService extends EventEmitter {
     }>();
 
     files.forEach((file, index) => {
-      const parts = file.relativePath.split(path.sep);
+      const parts = file.relativePath.split(/[/\\]/);
       if (parts.length > 1) {
         // File is in a subfolder
         let currentPath = '';
@@ -1115,7 +1115,7 @@ export class FolderExportService extends EventEmitter {
     const documentSections: string[] = [];
 
     files.forEach((file, index) => {
-      const parts = file.relativePath.split(path.sep);
+      const parts = file.relativePath.split(/[/\\]/);
       if (parts.length > 1) {
         // Check if we need to insert separator pages for parent folders
         let currentPath = '';
