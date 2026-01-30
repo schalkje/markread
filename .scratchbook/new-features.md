@@ -92,3 +92,11 @@ Support split window: 2 documents horizontal / vertical
   - when starting with a /, it should take the folder root
 
 
+# deep links
+
+When I have a deep link:
+e.g.: [deep link](./documantiation/readme.md#second)
+
+I expect it to open the page and go to the heading with the name "second". 
+
+If the heading does not exist; go to the page top and do a toast message that the heading does not exist, but the page has ben opened.
