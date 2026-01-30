@@ -8,22 +8,23 @@ Complete reference of all keyboard shortcuts in MarkRead. All shortcuts are cust
 
 | Action | Windows |
 |--------|---------|
-| Open folder | `Ctrl+O` |
+| Open file | `Ctrl+O` |
+| Open folder | `Ctrl+Shift+O` |
 | New tab | `Ctrl+T` |
 | Close tab | `Ctrl+W` |
 | Find in page | `Ctrl+F` |
 | Settings | `Ctrl+,` |
-| Refresh | `F5` or `Ctrl+R` |
+| Refresh | `F5` or `Ctrl+Shift+R` |
 
 ## File Operations
 
 | Action | Shortcut |
 |--------|----------|
-| Open folder | `Ctrl+O` |
-| Reveal in Explorer | `Ctrl+Shift+R` |
+| Open file | `Ctrl+O` |
+| Open folder | `Ctrl+Shift+O` |
+| Open repository | `Ctrl+R` |
 | Copy file path | `Ctrl+Shift+C` |
-| Refresh current | `F5` or `Ctrl+R` |
-| Refresh all tabs | `Ctrl+Shift+R` |
+| Refresh | `F5` or `Ctrl+Shift+R` |
 
 ## Tab Management
 
@@ -31,11 +32,13 @@ Complete reference of all keyboard shortcuts in MarkRead. All shortcuts are cust
 |--------|----------|
 | New tab | `Ctrl+T` |
 | Close tab | `Ctrl+W` |
-| Close other tabs | `Ctrl+Shift+W` |
+| Close all tabs | `Ctrl+Shift+W` |
 | Reopen closed tab | `Ctrl+Shift+T` |
 | Next tab | `Ctrl+Tab` |
 | Previous tab | `Ctrl+Shift+Tab` |
 | Jump to tab 1-9 | `Ctrl+1` through `Ctrl+9` |
+| Move tab left | `Ctrl+Shift+Left` |
+| Move tab right | `Ctrl+Shift+Right` |
 | Duplicate tab | `Ctrl+Shift+D` |
 
 ## Navigation
@@ -44,6 +47,7 @@ Complete reference of all keyboard shortcuts in MarkRead. All shortcuts are cust
 |--------|----------|
 | Go back | `Alt+Left` or `Backspace` or `Mouse Button 4` |
 | Go forward | `Alt+Right` or `Shift+Backspace` or `Mouse Button 5` |
+| Table of contents | `Ctrl+G` |
 | Scroll to top | `Home` or `Ctrl+Home` |
 | Scroll to bottom | `End` or `Ctrl+End` |
 | Page down | `Space` or `Page Down` |
@@ -76,11 +80,14 @@ Complete reference of all keyboard shortcuts in MarkRead. All shortcuts are cust
 | Toggle sidebar | `Ctrl+B` |
 | Focus sidebar | `Alt+1` |
 | Focus document | `Alt+2` |
-| Zoom in | `Ctrl++` or `Ctrl+=` |
-| Zoom out | `Ctrl+-` |
-| Reset zoom | `Ctrl+0` |
-| Zoom to 100% | `Ctrl+1` |
-| Fit to width | `Ctrl+2` |
+| Zoom in (document) | `Ctrl++` or `Ctrl+=` |
+| Zoom out (document) | `Ctrl+-` |
+| Reset zoom (document) | `Ctrl+0` |
+| Zoom in (application) | `Ctrl+Alt++` or `Ctrl+Alt+=` |
+| Zoom out (application) | `Ctrl+Alt+-` |
+| Reset zoom (application) | `Ctrl+Alt+0` |
+| Split vertically | `Ctrl+\` |
+| Split horizontally | `Ctrl+K Ctrl+\` |
 | Toggle fullscreen | `F11` |
 
 ## Selection and Editing
@@ -139,7 +146,6 @@ Complete reference of all keyboard shortcuts in MarkRead. All shortcuts are cust
 | Action | Shortcut |
 |--------|----------|
 | Toggle DevTools | `F12` or `Ctrl+Shift+I` |
-| Reload (hard) | `Ctrl+Shift+R` |
 | Show logs | `Ctrl+Shift+L` |
 
 ## Customizing Shortcuts
@@ -253,7 +259,7 @@ MarkRead shortcuts avoid conflicts with:
 - `Alt+Letter` - Search toggles (case, regex, word)
 
 ### Function Keys
-- `F1` - Help
+- `F1` - Help / Keyboard shortcuts
 - `F3` - Find next
 - `F5` - Refresh
 - `F11` - Fullscreen
@@ -265,23 +271,24 @@ MarkRead shortcuts avoid conflicts with:
 ┌─────────────────── MARKREAD SHORTCUTS ────────────────────┐
 │                                                            │
 │  ESSENTIAL                  │  NAVIGATION                 │
-│  Ctrl+O    Open folder      │  Alt+Left    Back          │
-│  Ctrl+T    New tab          │  Alt+Right   Forward       │
+│  Ctrl+O    Open file        │  Alt+Left    Back          │
+│  Ctrl+Shift+O Open folder   │  Alt+Right   Forward       │
+│  Ctrl+T    New tab          │  Ctrl+G      TOC           │
 │  Ctrl+W    Close tab        │  Ctrl+B      Sidebar       │
-│  Ctrl+F    Find in page     │  Ctrl+↑↓     Headings      │
-│  Ctrl+,    Settings         │  Home/End    Top/Bottom    │
+│  Ctrl+F    Find in page     │  Home/End    Top/Bottom    │
+│  F5        Refresh          │                            │
 │                                                            │
 │  SEARCH                     │  VIEW                       │
 │  Ctrl+F        In-page      │  Ctrl++      Zoom in       │
 │  Ctrl+Shift+F  Global       │  Ctrl+-      Zoom out      │
 │  F3            Next         │  Ctrl+0      Reset zoom    │
-│  Shift+F3      Previous     │  F11         Fullscreen    │
+│  Shift+F3      Previous     │  Ctrl+\      Split         │
 │                                                            │
 │  TABS                       │  QUICK ACCESS               │
 │  Ctrl+T        New          │  Ctrl+P      Jump to file  │
 │  Ctrl+W        Close        │  Ctrl+Shift+E Recent files │
 │  Ctrl+Shift+T  Reopen       │  Ctrl+Shift+P Commands     │
-│  Ctrl+Tab      Next tab     │                            │
+│  Ctrl+Tab      Next tab     │  F1          Help          │
 │  Ctrl+1-9      Jump to #    │                            │
 └────────────────────────────────────────────────────────────┘
 ```

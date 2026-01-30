@@ -100,3 +100,12 @@ e.g.: [deep link](./documantiation/readme.md#second)
 I expect it to open the page and go to the heading with the name "second". 
 
 If the heading does not exist; go to the page top and do a toast message that the heading does not exist, but the page has ben opened.
+
+# open in file explorer
+
+The open in file explore / gitub functionality is not working yet.
+It should be an option on the filetree menu, both on files and on folders.
+If local: open file explorer on the location of the folder / file
+If repo/branch: open the repo/branch in the default browser at the right location
+
+If local also add an open in vscode option
