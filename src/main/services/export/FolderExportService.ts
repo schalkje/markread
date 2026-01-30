@@ -540,37 +540,89 @@ export class FolderExportService extends EventEmitter {
           (subfolderPath && !nodePath.includes(subfolderPath.replace(/\\/g, '/')));
 
         if (shouldRecurse || !subfolderPath) {
-          // Sort children: files first, then directories
-          const sortedChildren = [...node.children].sort((a, b) => {
-            if (a.type === 'file' && b.type === 'directory') return -1;
-            if (a.type === 'directory' && b.type === 'file') return 1;
-            return a.path.localeCompare(b.path);
-          });
+          // Separate files and directories
+          const fileChildren = node.children.filter(c => c.type === 'file');
+          const dirChildren = node.children.filter(c => c.type === 'directory');
 
-          for (const child of sortedChildren) {
+          // Sort files with priority ordering (matching local folder behavior)
+          const sortedFiles = this.sortTreeNodesByPriority(fileChildren, defaultFilesToOpen);
+          // Sort directories alphabetically
+          const sortedDirs = [...dirChildren].sort((a, b) => a.path.localeCompare(b.path));
+
+          // Process files first, then directories
+          for (const child of sortedFiles) {
+            processNode(child, nodePath);
+          }
+          for (const child of sortedDirs) {
             processNode(child, nodePath);
           }
         }
       }
     };
 
-    // Process root level nodes
-    const sortedRootNodes = [...treeResponse.tree].sort((a, b) => {
-      if (a.type === 'file' && b.type === 'directory') return -1;
-      if (a.type === 'directory' && b.type === 'file') return 1;
-      return a.path.localeCompare(b.path);
-    });
+    // Process root level nodes - separate files and directories
+    const rootFiles = treeResponse.tree.filter(n => n.type === 'file');
+    const rootDirs = treeResponse.tree.filter(n => n.type === 'directory');
 
-    for (const node of sortedRootNodes) {
+    // Sort root files with priority ordering
+    const sortedRootFiles = this.sortTreeNodesByPriority(rootFiles, defaultFilesToOpen);
+    // Sort root directories alphabetically
+    const sortedRootDirs = [...rootDirs].sort((a, b) => a.path.localeCompare(b.path));
+
+    // Process root files first (with priority ordering), then directories
+    for (const node of sortedRootFiles) {
+      processNode(node);
+    }
+    for (const node of sortedRootDirs) {
       processNode(node);
     }
 
-    // Sort by priority if defaultFilesToOpen is provided
-    if (defaultFilesToOpen && defaultFilesToOpen.length > 0) {
-      return this.sortMarkdownFilesByPriority(files, defaultFilesToOpen);
+    return files;
+  }
+
+  /**
+   * Sort tree nodes by priority: files matching defaultFilesToOpen come first (in order),
+   * then remaining files alphabetically
+   */
+  private sortTreeNodesByPriority(
+    nodes: TreeNode[],
+    defaultFilesToOpen?: DefaultFileEntry[]
+  ): TreeNode[] {
+    if (!defaultFilesToOpen || defaultFilesToOpen.length === 0) {
+      // No priority config, just sort alphabetically
+      return [...nodes].sort((a, b) => a.path.localeCompare(b.path));
     }
 
-    return files;
+    // Create a map of lowercase filename to priority index (only enabled entries)
+    const priorityMap = new Map<string, number>();
+    defaultFilesToOpen.forEach((entry, index) => {
+      if (entry.isEnabled) {
+        priorityMap.set(entry.filename.toLowerCase(), index);
+      }
+    });
+
+    return [...nodes].sort((a, b) => {
+      const aFilename = a.path.split('/').pop()?.toLowerCase() || '';
+      const bFilename = b.path.split('/').pop()?.toLowerCase() || '';
+
+      const aPriority = priorityMap.get(aFilename);
+      const bPriority = priorityMap.get(bFilename);
+
+      // Both have priority: sort by priority index
+      if (aPriority !== undefined && bPriority !== undefined) {
+        return aPriority - bPriority;
+      }
+      // Only a has priority: a comes first
+      if (aPriority !== undefined) {
+        return -1;
+      }
+      // Only b has priority: b comes first
+      if (bPriority !== undefined) {
+        return 1;
+      }
+      // Neither has priority: sort alphabetically
+      return a.path.localeCompare(b.path);
+    });
   }
 
   /**
