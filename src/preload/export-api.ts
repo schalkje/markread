@@ -24,7 +24,7 @@ export interface ExportAPI {
   exportFolderToPdf: (payload: {
     folderPath: string;
     defaultFilename?: string;
-    options?: Partial<Pick<FolderExportOptions, 'pageSize' | 'margins' | 'printBackground' | 'includeSubfolders' | 'generateTOC' | 'coverPage' | 'gitInfo' | 'subfolderPath' | 'pdfStyling'>>;
+    options?: Partial<Pick<FolderExportOptions, 'pageSize' | 'margins' | 'printBackground' | 'includeSubfolders' | 'generateTOC' | 'coverPage' | 'gitInfo' | 'subfolderPath' | 'pdfStyling' | 'repositoryInfo'>>;
   }) => Promise<{
     success: boolean;
     cancelled?: boolean;

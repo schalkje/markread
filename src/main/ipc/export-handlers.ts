@@ -104,6 +104,16 @@ const ExportPdfFolderSchema = z.object({
     }).optional(),
     subfolderPath: z.string().optional(),
     pdfStyling: PdfStylingSchema,
+    repositoryInfo: z.object({
+      repositoryId: z.string(),
+      branch: z.string(),
+      provider: z.enum(['github', 'azure']),
+      owner: z.string().optional(),
+      name: z.string().optional(),
+      organization: z.string().optional(),
+      project: z.string().optional(),
+      azureRepositoryId: z.string().optional(),
+    }).optional(),
   }).optional(),
 });
 
@@ -185,7 +195,9 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
   // T068: export:pdf:folder - Export folder of markdown files to single PDF
   ipcMain.handle('export:pdf:folder', async (_event, payload) => {
     try {
+      console.log('[Export] Received folder export payload:', JSON.stringify(payload, null, 2));
       const { folderPath, defaultFilename, options } = ExportPdfFolderSchema.parse(payload);
+      console.log('[Export] Parsed options.repositoryInfo:', options?.repositoryInfo);
 
       // Show save dialog for destination
       const saveResult = await dialog.showSaveDialog(mainWindow, {
@@ -227,6 +239,10 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
       // Pass default files configuration for priority ordering in export
       if (appSettings.behavior.defaultFilesToOpen) {
         folderOptions.defaultFilesToOpen = appSettings.behavior.defaultFilesToOpen;
+      }
+      // Pass repository info for git repository exports
+      if (options?.repositoryInfo) {
+        folderOptions.repositoryInfo = options.repositoryInfo;
       }
 
       const job = await folderExportService.exportFolderToPdf(

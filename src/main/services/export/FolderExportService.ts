@@ -33,6 +33,8 @@ import { ExportErrorCode, DEFAULT_PDF_STYLING } from '../../../shared/types/expo
 import { DEFAULT_EXCLUDED_FOLDERS } from '../../../shared/constants/folderExclusions';
 import { getExportLogger } from './ExportLogger';
 import { getExportSettingsStore } from './ExportSettingsStore';
+import { repositoryService } from '../git/repository-service';
+import type { TreeNode } from '../../../shared/types/repository';
 
 // Maximum number of documents in a single folder export
 const MAX_DOCUMENTS = 500;
@@ -168,6 +170,7 @@ export class FolderExportService extends EventEmitter {
         sectionSeparators: { ...DEFAULT_PDF_STYLING.sectionSeparators, ...defaults.pdfStyling?.sectionSeparators, ...options.pdfStyling?.sectionSeparators },
       },
       defaultFilesToOpen: options.defaultFilesToOpen,
+      repositoryInfo: options.repositoryInfo,
     };
 
     // Create job
@@ -191,19 +194,28 @@ export class FolderExportService extends EventEmitter {
 
     let pdfWindow: BrowserWindow | null = null;
 
+    const isRepositoryExport = !!mergedOptions.repositoryInfo;
+
     try {
       job.status = 'in-progress';
       job.startedAt = new Date();
       job.progress.percentComplete = 5;
-      job.progress.currentStage = 'Scanning folder...';
+      job.progress.currentStage = isRepositoryExport ? 'Fetching repository tree...' : 'Scanning folder...';
       this.emitProgress(job);
 
-      // T062: Collect markdown files from folder
-      const files = await this.collectMarkdownFiles(
-        folderPath,
-        mergedOptions.includeSubfolders,
-        mergedOptions.defaultFilesToOpen
-      );
+      // T062: Collect markdown files from folder or repository
+      const files = isRepositoryExport
+        ? await this.collectMarkdownFilesFromRepository(
+            mergedOptions.repositoryInfo!,
+            mergedOptions.subfolderPath,
+            mergedOptions.includeSubfolders,
+            mergedOptions.defaultFilesToOpen
+          )
+        : await this.collectMarkdownFiles(
+            folderPath,
+            mergedOptions.includeSubfolders,
+            mergedOptions.defaultFilesToOpen
+          );
 
       // T075: Enforce file count limit
       if (files.length === 0) {
@@ -248,11 +260,16 @@ export class FolderExportService extends EventEmitter {
         this.emitProgress(job);
 
         // T071: Read file content and render to HTML
-        const content = await fs.readFile(file.path, 'utf-8');
+        const content = isRepositoryExport
+          ? await this.readRepositoryFileContent(mergedOptions.repositoryInfo!, file.path)
+          : await fs.readFile(file.path, 'utf-8');
         file.content = content;
         const rawHtml = this.md.render(content);
-        // Resolve image paths, prefix header IDs for uniqueness, and transform links
-        let processedHtml = this.resolveImagePaths(rawHtml, path.dirname(file.path));
+        // Resolve image paths (skip for repository exports as images are remote),
+        // prefix header IDs for uniqueness, and transform links
+        let processedHtml = isRepositoryExport
+          ? rawHtml
+          : this.resolveImagePaths(rawHtml, path.dirname(file.path));
         processedHtml = this.prefixHeaderIds(processedHtml, i);
         processedHtml = this.transformLinks(processedHtml, i, file, filePathMap);
         file.renderedHtml = processedHtml;
@@ -272,11 +289,15 @@ export class FolderExportService extends EventEmitter {
         : undefined;
 
       // T064: Generate cover page with enhanced details
+      // For repository exports, use repo name as fallback title
+      const defaultTitle = isRepositoryExport
+        ? (mergedOptions.gitInfo?.repoName || mergedOptions.repositoryInfo?.name || 'Repository')
+        : path.basename(folderPath);
       const coverPageHtml = this.generateCoverPage(
-        mergedOptions.coverPage?.title || path.basename(folderPath),
+        mergedOptions.coverPage?.title || defaultTitle,
         mergedOptions.coverPage?.subtitle,
         mergedOptions.coverPage?.author,
-        folderPath,
+        isRepositoryExport ? undefined : folderPath, // Don't show local path for repo exports
         mergedOptions.gitInfo,
         mergedOptions.subfolderPath,
         logoBase64,
@@ -448,6 +469,123 @@ export class FolderExportService extends EventEmitter {
     const files: MarkdownFile[] = [];
     await this.walkDirectory(folderPath, folderPath, files, includeSubfolders, 0, defaultFilesToOpen);
     return files;
+  }
+
+  /**
+   * Collect markdown files from a git repository
+   */
+  private async collectMarkdownFilesFromRepository(
+    repositoryInfo: NonNullable<FolderExportOptions['repositoryInfo']>,
+    subfolderPath: string | undefined,
+    includeSubfolders: boolean,
+    defaultFilesToOpen?: DefaultFileEntry[]
+  ): Promise<MarkdownFile[]> {
+    // Fetch the repository tree
+    const treeResponse = await repositoryService.fetchTree({
+      repositoryId: repositoryInfo.repositoryId,
+      branch: repositoryInfo.branch,
+      markdownOnly: true,
+    });
+
+    if (!treeResponse.tree) {
+      return [];
+    }
+
+    // Flatten the tree to get all markdown files
+    const files: MarkdownFile[] = [];
+    let order = 0;
+
+    const processNode = (node: TreeNode, currentPath: string = '') => {
+      const nodePath = currentPath ? `${currentPath}/${node.path.split('/').pop()}` : node.path;
+
+      // If we have a subfolder filter, check if this path is within it
+      if (subfolderPath) {
+        const normalizedSubfolder = subfolderPath.replace(/\\/g, '/').replace(/^\/+/, '');
+        const normalizedNodePath = nodePath.replace(/\\/g, '/');
+
+        if (node.type === 'directory') {
+          // For directories, check if it's the subfolder or a parent/child of it
+          if (!normalizedNodePath.startsWith(normalizedSubfolder) &&
+              !normalizedSubfolder.startsWith(normalizedNodePath)) {
+            return; // Skip this branch
+          }
+        } else {
+          // For files, check if it's within the subfolder
+          if (!normalizedNodePath.startsWith(normalizedSubfolder + '/') &&
+              normalizedNodePath !== normalizedSubfolder) {
+            return; // Skip this file
+          }
+        }
+      }
+
+      if (node.type === 'file' && this.isMarkdownFile(node.path)) {
+        // Calculate relative path from subfolder root if applicable
+        let relativePath = nodePath;
+        if (subfolderPath) {
+          const normalizedSubfolder = subfolderPath.replace(/\\/g, '/').replace(/^\/+/, '');
+          relativePath = nodePath.replace(normalizedSubfolder + '/', '').replace(/^\/+/, '');
+        }
+
+        files.push({
+          path: nodePath, // Virtual path within repo
+          relativePath,
+          title: this.extractTitle(path.basename(node.path)),
+          content: '', // Will be fetched later
+          order: order++,
+        });
+      } else if (node.type === 'directory' && node.children) {
+        // Only recurse into subdirectories if includeSubfolders is true
+        // or if we haven't reached the target subfolder yet
+        const shouldRecurse = includeSubfolders ||
+          (subfolderPath && !nodePath.includes(subfolderPath.replace(/\\/g, '/')));
+
+        if (shouldRecurse || !subfolderPath) {
+          // Sort children: files first, then directories
+          const sortedChildren = [...node.children].sort((a, b) => {
+            if (a.type === 'file' && b.type === 'directory') return -1;
+            if (a.type === 'directory' && b.type === 'file') return 1;
+            return a.path.localeCompare(b.path);
+          });
+
+          for (const child of sortedChildren) {
+            processNode(child, nodePath);
+          }
+        }
+      }
+    };
+
+    // Process root level nodes
+    const sortedRootNodes = [...treeResponse.tree].sort((a, b) => {
+      if (a.type === 'file' && b.type === 'directory') return -1;
+      if (a.type === 'directory' && b.type === 'file') return 1;
+      return a.path.localeCompare(b.path);
+    });
+
+    for (const node of sortedRootNodes) {
+      processNode(node);
+    }
+
+    // Sort by priority if defaultFilesToOpen is provided
+    if (defaultFilesToOpen && defaultFilesToOpen.length > 0) {
+      return this.sortMarkdownFilesByPriority(files, defaultFilesToOpen);
+    }
+
+    return files;
+  }
+
+  /**
+   * Read file content from repository
+   */
+  private async readRepositoryFileContent(
+    repositoryInfo: NonNullable<FolderExportOptions['repositoryInfo']>,
+    filePath: string
+  ): Promise<string> {
+    const response = await repositoryService.fetchFile({
+      repositoryId: repositoryInfo.repositoryId,
+      filePath,
+      branch: repositoryInfo.branch,
+    });
+    return response.content;
   }
 
   private async walkDirectory(

@@ -66,6 +66,25 @@ export interface FolderExportOptions extends ExportOptions {
   pdfStyling?: PdfStylingOptions;
   /** Default files configuration for priority ordering in export */
   defaultFilesToOpen?: DefaultFileEntry[];
+  /** Repository info for exporting from git repositories (GitHub/Azure DevOps) */
+  repositoryInfo?: {
+    /** Internal repository ID */
+    repositoryId: string;
+    /** Branch to export from */
+    branch: string;
+    /** Git provider type */
+    provider: 'github' | 'azure';
+    /** GitHub: owner, Azure: organization */
+    owner?: string;
+    /** GitHub: repo name, Azure: project */
+    name?: string;
+    /** Azure DevOps organization */
+    organization?: string;
+    /** Azure DevOps project */
+    project?: string;
+    /** Azure DevOps repository ID */
+    azureRepositoryId?: string;
+  };
 }
 
 /** PDF styling and layout configuration */

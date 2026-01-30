@@ -1197,11 +1197,32 @@ const AppLayout: React.FC = () => {
         const exportedFolderName = folderPath.split(/[/\\]/).pop() || 'export';
         let defaultFilename: string;
 
+        // Build repository info if this is a repository export
+        let repositoryInfo: {
+          repositoryId: string;
+          branch: string;
+          provider: 'github' | 'azure';
+          owner?: string;
+          name?: string;
+        } | undefined;
+
         if (activeFolder?.type === 'repository') {
           // For repos: repoName-folderName-date-branch.pdf
           const repoName = activeFolder.repositoryMetadata?.name || activeFolder.displayName?.replace(/\s*\([^)]+\)\s*$/, '') || 'repo';
           const branch = activeFolder.currentBranch || 'main';
           defaultFilename = `${repoName}-${exportedFolderName}-${dateStr}-${branch}.pdf`;
+
+          // Determine provider from URL
+          const isAzure = activeFolder.repositoryUrl?.includes('dev.azure.com') ||
+                          activeFolder.repositoryUrl?.includes('visualstudio.com');
+
+          repositoryInfo = {
+            repositoryId: activeFolder.repositoryId!,
+            branch,
+            provider: isAzure ? 'azure' : 'github',
+            owner: activeFolder.repositoryMetadata?.owner,
+            name: activeFolder.repositoryMetadata?.name,
+          };
         } else {
           // For local: rootFolderName-exportedFolderName-date.pdf
           const rootFolderName = activeFolder?.path?.split(/[/\\]/).pop() || 'folder';
@@ -1211,6 +1232,7 @@ const AppLayout: React.FC = () => {
         await exportFolder(folderPath, {
           subfolderPath,
           gitInfo,
+          repositoryInfo,
           coverPage: {
             title: exportTitle,
           },
@@ -1239,20 +1261,53 @@ const AppLayout: React.FC = () => {
         return;
       }
 
-      if (activeFolder.type === 'repository') {
-        setToast({
-          message: 'Repository folders cannot be exported to PDF. Please open a local folder.',
-          type: 'warning',
-        });
-        return;
-      }
-
-      // Generate default filename: rootFolderName-date.pdf
+      // Generate default filename and prepare export options
       const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const rootFolderName = activeFolder.path.split(/[/\\]/).pop() || 'folder';
-      const defaultFilename = `${rootFolderName}-${dateStr}.pdf`;
 
-      await exportFolder(activeFolder.path, undefined, defaultFilename);
+      if (activeFolder.type === 'repository') {
+        // For repository folders, export the whole repo
+        const repoName = activeFolder.repositoryMetadata?.name || activeFolder.displayName?.replace(/\s*\([^)]+\)\s*$/, '') || 'repo';
+        const branch = activeFolder.currentBranch || 'main';
+        const defaultFilename = `${repoName}-${dateStr}-${branch}.pdf`;
+
+        // Extract git info from the repository folder
+        const gitInfo = {
+          repoUrl: activeFolder.repositoryUrl,
+          repoName: activeFolder.repositoryMetadata?.owner && activeFolder.repositoryMetadata?.name
+            ? `${activeFolder.repositoryMetadata.owner}/${activeFolder.repositoryMetadata.name}`
+            : activeFolder.displayName?.replace(/\s*\([^)]+\)\s*$/, ''),
+          branch: activeFolder.currentBranch,
+        };
+
+        // Determine provider from URL
+        const isAzure = activeFolder.repositoryUrl?.includes('dev.azure.com') ||
+                        activeFolder.repositoryUrl?.includes('visualstudio.com');
+        const provider = isAzure ? 'azure' : 'github';
+
+        // Build repository info for the export service
+        const repositoryInfo = {
+          repositoryId: activeFolder.repositoryId!,
+          branch,
+          provider: provider as 'github' | 'azure',
+          owner: activeFolder.repositoryMetadata?.owner,
+          name: activeFolder.repositoryMetadata?.name,
+        };
+
+        // Use repository root path (virtual path '/')
+        await exportFolder('/', {
+          gitInfo,
+          repositoryInfo,
+          coverPage: {
+            title: gitInfo.repoName || repoName,
+          },
+        }, defaultFilename);
+      } else {
+        // For local folders
+        const rootFolderName = activeFolder.path.split(/[/\\]/).pop() || 'folder';
+        const defaultFilename = `${rootFolderName}-${dateStr}.pdf`;
+
+        await exportFolder(activeFolder.path, undefined, defaultFilename);
+      }
     };
 
     window.addEventListener('menu:export-folder-pdf', handleExportFolderFromMenu);
