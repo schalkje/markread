@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bookmarks
 - Split screen and multiple windows
 
+## [0.7.3] - 2026-01-30
+
+### Fixes
+- Export branch/repo to pdf
+- Disable menu items when context is not applicable
+
 ## [0.7.2] - 2026-01-30
 
 ### Fixes
