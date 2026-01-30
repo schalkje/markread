@@ -12,15 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Split screen and multiple windows
 
 ## [0.7.1] - 2026-01-29
+
+### Added
 - Export to pdf for one file or an entire folder of files
 - Export mermaid diagram
-- Open mermaid inseparate tab
-- Home page fix: remove deprecated folders and repo/branches
-- Make full-screen toggle work
+- Open mermaid in separate tab
 - Settings pages
 - On open folder or Repo/branch show default file (e.g. README.md)
 - Add ignore folders
 
+### Fixes
+- Home page fix: remove deprecated folders and repo/branches
+- Make full-screen toggle work
 
 ## [0.6.1] - 2026-01-22
 - improved dark theme

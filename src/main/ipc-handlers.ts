@@ -893,6 +893,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
       const changes: { category: string; items: string[] }[] = [];
       let currentCategory = '';
       let currentItems: string[] = [];
+      let uncategorizedItems: string[] = [];
 
       for (const line of lines) {
         if (line.startsWith('### ')) {
@@ -902,13 +903,24 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
           currentCategory = line.replace('### ', '').trim();
           currentItems = [];
         } else if (line.startsWith('- ')) {
-          currentItems.push(line.replace('- ', '').trim());
+          const item = line.replace('- ', '').trim();
+          if (currentCategory) {
+            currentItems.push(item);
+          } else {
+            // Items without a category header
+            uncategorizedItems.push(item);
+          }
         }
       }
 
       // Don't forget the last category
       if (currentCategory && currentItems.length > 0) {
         changes.push({ category: currentCategory, items: currentItems });
+      }
+
+      // Add uncategorized items under "Changes" if no categories were found
+      if (uncategorizedItems.length > 0) {
+        changes.unshift({ category: 'Changes', items: uncategorizedItems });
       }
 
       // Extract date from header
