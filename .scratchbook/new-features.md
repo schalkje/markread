@@ -1,8 +1,6 @@
 
 # Small issues
 
-  
-
 - When showing a page, go to the next; press Home in the View menu, the page does not change to the first page in the history; looks like only the page in the active tab is not refreshed, because history (forward/back) is changing position
 
 
@@ -109,7 +107,3 @@ If local: open file explorer on the location of the folder / file
 If repo/branch: open the repo/branch in the default browser at the right location
 
 If local also add an open in vscode option
-
-# (De)activate menu items
-
-In the menu's a lot of items are dependend on a a file or a folder being loaded; please disable the items when they are not applicable.
