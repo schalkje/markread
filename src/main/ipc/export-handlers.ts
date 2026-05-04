@@ -62,6 +62,27 @@ const PdfStylingSchema = z.object({
   }).optional(),
 }).optional();
 
+const ExportPdfSingleFileSchema = z.object({
+  filePath: z.string().min(1),
+  defaultFilename: z.string().optional(),
+  options: z.object({
+    pageSize: z.enum(['A4', 'Letter']).optional(),
+    margins: z.object({
+      top: z.number().min(0),
+      bottom: z.number().min(0),
+      left: z.number().min(0),
+      right: z.number().min(0),
+    }).optional(),
+    printBackground: z.boolean().optional(),
+    coverPage: z.object({
+      title: z.string(),
+      subtitle: z.string().optional(),
+      author: z.string().optional(),
+    }).optional(),
+    pdfStyling: PdfStylingSchema,
+  }).optional(),
+});
+
 const UpdateSettingsSchema = z.object({
   settings: z.object({
     defaultPageSize: z.enum(['A4', 'Letter']).optional(),
@@ -177,6 +198,72 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
           id: job.id,
           status: job.status,
           destination: job.destination,
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: {
+          code: error.code || 'EXPORT_UNKNOWN',
+          message: error.message || 'Export failed',
+          retryable: error.retryable ?? true,
+          details: error.details || error.stack,
+        },
+      };
+    }
+  });
+
+  // export:pdf:singleFile - Export a single markdown file to PDF (with cover page).
+  // Routes through FolderExportService so the result has a header page and
+  // server-side rendered content (fixes empty-PDF bug from CDN/DOM-grab paths).
+  ipcMain.handle('export:pdf:singleFile', async (_event, payload) => {
+    try {
+      const { filePath, defaultFilename, options } = ExportPdfSingleFileSchema.parse(payload);
+
+      const fileName = filePath.split(/[/\\]/).pop() || 'document';
+      const baseName = fileName.replace(/\.(md|markdown|mdown|mkd)$/i, '');
+
+      const saveResult = await dialog.showSaveDialog(mainWindow, {
+        title: 'Export to PDF',
+        defaultPath: defaultFilename || `${baseName}.pdf`,
+        filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+      });
+
+      if (saveResult.canceled || !saveResult.filePath) {
+        return { success: false, cancelled: true };
+      }
+
+      const settings = await settingsStore.getSettingsAsync();
+
+      const fileOptions: Partial<import('../../shared/types/export').FolderExportOptions> = {};
+      if (options?.pageSize) fileOptions.pageSize = options.pageSize;
+      if (options?.margins) fileOptions.margins = options.margins;
+      if (options?.printBackground !== undefined) fileOptions.printBackground = options.printBackground;
+      if (options?.coverPage) fileOptions.coverPage = options.coverPage;
+      // Inherit styling defaults from settings, allow per-call overrides
+      if (options?.pdfStyling || settings.pdfStyling) {
+        fileOptions.pdfStyling = {
+          coverPage: { ...settings.pdfStyling?.coverPage, ...options?.pdfStyling?.coverPage },
+          header: { ...settings.pdfStyling?.header, ...options?.pdfStyling?.header },
+          footer: { ...settings.pdfStyling?.footer, ...options?.pdfStyling?.footer },
+          toc: { ...settings.pdfStyling?.toc, ...options?.pdfStyling?.toc },
+          sectionSeparators: { ...settings.pdfStyling?.sectionSeparators, ...options?.pdfStyling?.sectionSeparators },
+        } as import('../../shared/types/export').FolderExportOptions['pdfStyling'];
+      }
+
+      const job = await folderExportService.exportSingleFileToPdf(
+        filePath,
+        saveResult.filePath,
+        fileOptions
+      );
+
+      return {
+        success: true,
+        job: {
+          id: job.id,
+          status: job.status,
+          destination: job.destination,
+          filesProcessed: job.progress.filesProcessed,
         },
       };
     } catch (error: any) {

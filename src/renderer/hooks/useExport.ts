@@ -196,46 +196,51 @@ export function useExport(): UseExportResult {
     }
   }, [store]);
 
-  // T077-T079: Export single file from file tree (without opening it)
+  // T077-T079: Export single file from file tree (without opening it).
+  // Routes through the folder-export pipeline so the resulting PDF has a
+  // cover page and the markdown is rendered server-side (fixes empty PDF
+  // when the previous CDN-script approach didn't render in time).
   const exportFile = useCallback(async (filePath: string): Promise<void> => {
+    setLiveProgress({ filesProcessed: 0, totalFiles: 1, percentComplete: 0 });
+    setLiveStatus('pending');
+    setDestination(null);
     store.setShowProgressDialog(true);
 
     try {
-      // Read the file content via the file system API
-      const result = await (window as any).electronAPI?.file?.read({ filePath });
-      if (!result?.success || !result?.content) {
-        throw new Error('Could not read file');
-      }
-
       const fileName = filePath.split(/[/\\]/).pop() || 'document';
       const baseName = fileName.replace(/\.(md|markdown|mdown|mkd)$/i, '');
 
-      // Build a simple HTML wrapper - the markdown content will be rendered
-      // in the hidden BrowserWindow by the PdfExportService using markdown-it CDN
-      const htmlDocument = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${baseName}</title>
-<style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.6;color:#24292f;padding:20px 40px;margin:0}
-h1,h2,h3{margin-top:24px;margin-bottom:16px;font-weight:600}
-pre{background:#f6f8fa;padding:16px;border-radius:6px;overflow-x:auto}
-code{font-family:Consolas,monospace;font-size:85%}
-table{border-collapse:collapse;width:100%}
-th,td{border:1px solid #d0d7de;padding:8px 12px}
-blockquote{border-left:4px solid #d0d7de;margin:0;padding:0 16px;color:#57606a}
-img{max-width:100%}
-</style>
-<script src="https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js"></script>
-</head><body>
-<div id="md-content" style="display:none">${result.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-<div id="rendered"></div>
-<script>
-var src=document.getElementById('md-content').textContent;
-var md=window.markdownit({html:true,linkify:true});
-document.getElementById('rendered').innerHTML=md.render(src);
-</script>
-</body></html>`;
+      const result = await window.exportApi?.exportSingleFileToPdf({
+        filePath,
+        defaultFilename: `${baseName}.pdf`,
+      });
 
-      await exportCurrentPage(htmlDocument, `${baseName}.pdf`);
+      if (!result) {
+        throw new Error('Export API not available');
+      }
+
+      if (result.cancelled) {
+        store.setShowProgressDialog(false);
+        return;
+      }
+
+      if (!result.success && result.error) {
+        store.setCurrentError({
+          code: result.error.code,
+          message: result.error.message,
+          retryable: result.error.retryable,
+          details: result.error.details,
+        });
+        store.setShowProgressDialog(false);
+        return;
+      }
+
+      if (result.job) {
+        currentJobIdRef.current = result.job.id;
+        setDestination(result.job.destination);
+        setLiveProgress({ filesProcessed: 1, totalFiles: 1, percentComplete: 100 });
+        setLiveStatus('completed');
+      }
     } catch (error) {
       store.setCurrentError({
         code: 'EXPORT_UNKNOWN',
@@ -244,7 +249,7 @@ document.getElementById('rendered').innerHTML=md.render(src);
       });
       store.setShowProgressDialog(false);
     }
-  }, [store, exportCurrentPage]);
+  }, [store]);
 
   const cancelExport = useCallback(async (): Promise<void> => {
     if (currentJobIdRef.current) {

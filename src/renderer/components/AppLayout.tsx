@@ -994,8 +994,26 @@ const AppLayout: React.FC = () => {
   // T020: Listen for menu:export-pdf events to trigger PDF export
   useEffect(() => {
     const handleExportPdf = async () => {
-      // Get the rendered HTML content from the markdown viewer
-      const viewerContent = document.querySelector('.markdown-viewer__content');
+      // Preferred path: when a markdown file is open, route through the
+      // single-file export pipeline. This produces a cover page followed by
+      // server-side rendered content (fixes empty-PDF caused by querying the
+      // wrong dual-buffer in the renderer).
+      const filePath = activeTab?.filePath || currentFile;
+      if (filePath) {
+        try {
+          await exportFile(filePath);
+        } catch (error) {
+          console.error('[AppLayout] Single-file PDF export failed:', error);
+          setToast({ message: 'PDF export failed', type: 'error' });
+        }
+        return;
+      }
+
+      // Fallback: no file path (e.g., diagram tab) — grab the active buffer's
+      // rendered HTML and use the legacy raw-HTML export path.
+      const viewerContent = document.querySelector(
+        '.markdown-viewer__buffer--active .markdown-viewer__content'
+      ) || document.querySelector('.markdown-viewer__content');
       if (!viewerContent) {
         setToast({ message: 'No document content to export', type: 'warning' });
         return;
@@ -1142,7 +1160,7 @@ const AppLayout: React.FC = () => {
     return () => {
       window.removeEventListener('menu:export-pdf', handleExportPdf);
     };
-  }, [activeTab, currentFile, exportCurrentPage]);
+  }, [activeTab, currentFile, exportCurrentPage, exportFile, setToast]);
 
   // T037: Listen for diagram action completion events (copy/download toasts)
   useEffect(() => {

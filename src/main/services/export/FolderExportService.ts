@@ -441,6 +441,233 @@ export class FolderExportService extends EventEmitter {
   }
 
   /**
+   * Export a single markdown file to PDF with a cover page,
+   * mirroring the folder-export pipeline (server-side rendering,
+   * cover page, local mermaid). This avoids the empty-PDF bug
+   * caused by the previous CDN-script / DOM-grab paths.
+   */
+  async exportSingleFileToPdf(
+    filePath: string,
+    destination: string,
+    options: Partial<FolderExportOptions> = {}
+  ): Promise<ExportJob> {
+    const settingsStore = getExportSettingsStore();
+    const defaults = settingsStore.getSettings();
+
+    const mergedOptions: FolderExportOptions = {
+      pageSize: options.pageSize || defaults.defaultPageSize,
+      margins: options.margins || defaults.defaultMargins,
+      printBackground: options.printBackground ?? defaults.printBackground,
+      includeSubfolders: false,
+      generateTOC: false,
+      coverPage: options.coverPage,
+      gitInfo: options.gitInfo,
+      subfolderPath: options.subfolderPath,
+      pdfStyling: {
+        coverPage: { ...DEFAULT_PDF_STYLING.coverPage, ...defaults.pdfStyling?.coverPage, ...options.pdfStyling?.coverPage },
+        header: { ...DEFAULT_PDF_STYLING.header, ...defaults.pdfStyling?.header, ...options.pdfStyling?.header },
+        footer: { ...DEFAULT_PDF_STYLING.footer, ...defaults.pdfStyling?.footer, ...options.pdfStyling?.footer },
+        toc: { ...DEFAULT_PDF_STYLING.toc, ...defaults.pdfStyling?.toc, ...options.pdfStyling?.toc },
+        sectionSeparators: { ...DEFAULT_PDF_STYLING.sectionSeparators, ...defaults.pdfStyling?.sectionSeparators, ...options.pdfStyling?.sectionSeparators },
+      },
+    };
+
+    const job: ExportJob = {
+      id: crypto.randomUUID(),
+      type: 'single-pdf',
+      status: 'pending',
+      source: filePath,
+      destination,
+      options: mergedOptions,
+      progress: {
+        filesProcessed: 0,
+        totalFiles: 1,
+        percentComplete: 0,
+      },
+      createdAt: new Date(),
+    };
+
+    this.activeJobs.set(job.id, job);
+    this.emitProgress(job);
+
+    let pdfWindow: BrowserWindow | null = null;
+
+    try {
+      job.status = 'in-progress';
+      job.startedAt = new Date();
+      job.progress.percentComplete = 10;
+      job.progress.currentStage = 'Reading file...';
+      this.emitProgress(job);
+
+      // Read the file from disk
+      const content = await fs.readFile(filePath, 'utf-8');
+      const fileName = path.basename(filePath);
+      const fileDir = path.dirname(filePath);
+      const title = this.extractTitle(fileName);
+
+      // Build a single MarkdownFile entry
+      const file: MarkdownFile = {
+        path: filePath,
+        relativePath: fileName,
+        title,
+        content,
+        order: 0,
+      };
+
+      job.progress.percentComplete = 30;
+      job.progress.currentFile = fileName;
+      job.progress.currentStage = 'Rendering markdown...';
+      this.emitProgress(job);
+
+      // Render markdown server-side using the shared markdown-it instance
+      const rawHtml = this.md.render(content);
+      let processedHtml = this.resolveImagePaths(rawHtml, fileDir);
+      processedHtml = this.prefixHeaderIds(processedHtml, 0);
+      // No cross-file link transformation for single-file export; preserve
+      // anchor links by prefixing them with the document anchor so they keep
+      // working inside the combined document.
+      processedHtml = processedHtml.replace(
+        /(<a\s[^>]*href=["'])#([^"']+)(["'])/gi,
+        (_m, prefix, anchor, suffix) => `${prefix}#doc-0-${anchor}${suffix}`
+      );
+      file.renderedHtml = processedHtml;
+
+      const styling = mergedOptions.pdfStyling!;
+
+      const logoBase64 = styling.coverPage.showLogo
+        ? await this.loadLogoAsBase64()
+        : undefined;
+
+      // Cover page: use the file's parent folder as the location;
+      // title comes from the explicit override (if any) or the prettified
+      // filename.
+      const coverPageHtml = this.generateCoverPage(
+        mergedOptions.coverPage?.title || title,
+        mergedOptions.coverPage?.subtitle,
+        mergedOptions.coverPage?.author,
+        fileDir,
+        mergedOptions.gitInfo,
+        undefined,
+        logoBase64,
+        styling
+      );
+
+      // Build the combined document with cover page + this single file.
+      // No TOC, no subfolder separators.
+      const combinedHtml = this.buildCombinedDocument(
+        coverPageHtml,
+        '',
+        [file],
+        job.id,
+        new Map<string, string>()
+      );
+
+      job.progress.percentComplete = 60;
+      job.progress.currentStage = 'Generating PDF...';
+      this.emitProgress(job);
+
+      // Ensure destination directory exists
+      const destDir = path.dirname(destination);
+      await fs.mkdir(destDir, { recursive: true });
+
+      // Copy local mermaid library to temp dir
+      const tempMermaidPath = path.join(os.tmpdir(), `markread-mermaid-${job.id}.min.js`);
+      const mermaidSrcPath = require.resolve('mermaid/dist/mermaid.min.js');
+      await fs.copyFile(mermaidSrcPath, tempMermaidPath);
+
+      // Write HTML to temp file
+      const tempHtmlPath = path.join(os.tmpdir(), `markread-export-${job.id}.html`);
+      await fs.writeFile(tempHtmlPath, combinedHtml, 'utf-8');
+
+      // Hidden window for PDF rendering
+      pdfWindow = new BrowserWindow({
+        show: false,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          offscreen: true,
+          webSecurity: false,
+        },
+      });
+
+      await pdfWindow.loadFile(tempHtmlPath);
+
+      job.progress.percentComplete = 75;
+      job.progress.currentStage = 'Rendering diagrams...';
+      this.emitProgress(job);
+
+      await this.waitForContentReady(pdfWindow);
+
+      job.progress.percentComplete = 85;
+      job.progress.currentStage = 'Generating PDF...';
+      this.emitProgress(job);
+
+      const showPageNumbers = styling?.footer?.showPageNumbers ?? true;
+
+      const pdfData = await pdfWindow.webContents.printToPDF({
+        pageSize: mergedOptions.pageSize,
+        printBackground: mergedOptions.printBackground,
+        margins: {
+          top: mergedOptions.margins.top,
+          right: mergedOptions.margins.right,
+          bottom: mergedOptions.margins.bottom,
+          left: mergedOptions.margins.left,
+        },
+        landscape: false,
+        displayHeaderFooter: showPageNumbers,
+        footerTemplate: showPageNumbers
+          ? `<div style="width: 100%; font-size: 9px; color: #8b949e; text-align: right; padding-right: 0.75in;">
+              <span class="pageNumber"></span> / <span class="totalPages"></span>
+            </div>`
+          : '<div></div>',
+        headerTemplate: '<div></div>',
+      });
+
+      job.progress.percentComplete = 95;
+      job.progress.currentStage = 'Saving file...';
+      this.emitProgress(job);
+
+      await fs.writeFile(destination, pdfData);
+
+      job.status = 'completed';
+      job.completedAt = new Date();
+      job.progress.filesProcessed = 1;
+      job.progress.percentComplete = 100;
+      job.progress.currentStage = undefined;
+      job.progress.currentFile = undefined;
+      this.emitProgress(job);
+
+      await this.logExport(job);
+
+      settingsStore.addRecentExport({
+        source: filePath,
+        destination,
+        timestamp: new Date(),
+        type: 'single-pdf',
+      });
+
+      return job;
+    } catch (error) {
+      const exportError = this.handleError(error);
+      job.status = 'failed';
+      job.completedAt = new Date();
+      job.error = exportError;
+      this.emitProgress(job);
+      await this.logExport(job);
+      throw exportError;
+    } finally {
+      if (pdfWindow && !pdfWindow.isDestroyed()) {
+        pdfWindow.close();
+      }
+      const tempHtmlPath = path.join(os.tmpdir(), `markread-export-${job.id}.html`);
+      const tempMermaidPath = path.join(os.tmpdir(), `markread-mermaid-${job.id}.min.js`);
+      fs.unlink(tempHtmlPath).catch(() => {});
+      fs.unlink(tempMermaidPath).catch(() => {});
+      this.activeJobs.delete(job.id);
+    }
+  }
+
+  /**
    * Cancel an active export job
    */
   async cancelExport(jobId: string): Promise<void> {

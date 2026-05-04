@@ -32,6 +32,18 @@ export interface ExportAPI {
     error?: { code: string; message: string; retryable: boolean; details?: string };
   }>;
 
+  // Single-file PDF Export (with cover page) — reads file from disk
+  exportSingleFileToPdf: (payload: {
+    filePath: string;
+    defaultFilename?: string;
+    options?: Partial<Pick<FolderExportOptions, 'pageSize' | 'margins' | 'printBackground' | 'coverPage' | 'pdfStyling'>>;
+  }) => Promise<{
+    success: boolean;
+    cancelled?: boolean;
+    job?: { id: string; status: string; destination: string; filesProcessed?: number };
+    error?: { code: string; message: string; retryable: boolean; details?: string };
+  }>;
+
   // Diagram Save
   saveDiagram: (payload: {
     defaultFilename?: string;
@@ -74,6 +86,7 @@ export function exposeExportAPI(): void {
   const exportApi: ExportAPI = {
     exportToPdf: (payload) => ipcRenderer.invoke('export:pdf:single', payload),
     exportFolderToPdf: (payload) => ipcRenderer.invoke('export:pdf:folder', payload),
+    exportSingleFileToPdf: (payload) => ipcRenderer.invoke('export:pdf:singleFile', payload),
     saveDiagram: (payload) => ipcRenderer.invoke('diagram:save', payload),
     cancelExport: (jobId) => ipcRenderer.invoke('export:cancel', { jobId }),
     getSettings: () => ipcRenderer.invoke('export:settings:get'),
