@@ -269,7 +269,7 @@ export class FolderExportService extends EventEmitter {
         // prefix header IDs for uniqueness, and transform links
         let processedHtml = isRepositoryExport
           ? rawHtml
-          : this.resolveImagePaths(rawHtml, path.dirname(file.path));
+          : await this.resolveImagePaths(rawHtml, path.dirname(file.path));
         processedHtml = this.prefixHeaderIds(processedHtml, i);
         processedHtml = this.transformLinks(processedHtml, i, file, filePathMap);
         file.renderedHtml = processedHtml;
@@ -347,7 +347,7 @@ export class FolderExportService extends EventEmitter {
           nodeIntegration: false,
           contextIsolation: true,
           offscreen: true,
-          webSecurity: false, // Allow loading file:// images from any directory
+          webSecurity: true, // Images are inlined as base64 data: URIs (see resolveImagePaths)
         },
       });
 
@@ -521,7 +521,7 @@ export class FolderExportService extends EventEmitter {
 
       // Render markdown server-side using the shared markdown-it instance
       const rawHtml = this.md.render(content);
-      let processedHtml = this.resolveImagePaths(rawHtml, fileDir);
+      let processedHtml = await this.resolveImagePaths(rawHtml, fileDir);
       processedHtml = this.prefixHeaderIds(processedHtml, 0);
       // No cross-file link transformation for single-file export; preserve
       // anchor links by prefixing them with the document anchor so they keep
@@ -586,7 +586,7 @@ export class FolderExportService extends EventEmitter {
           nodeIntegration: false,
           contextIsolation: true,
           offscreen: true,
-          webSecurity: false,
+          webSecurity: true, // Images are inlined as base64 data: URIs (see resolveImagePaths)
         },
       });
 
@@ -2465,20 +2465,71 @@ export class FolderExportService extends EventEmitter {
       .replace(/"/g, '&quot;');
   }
 
-  private resolveImagePaths(html: string, fileDir: string): string {
-    return html.replace(
-      /(<img\s[^>]*src=["'])([^"']+)(["'][^>]*>)/gi,
-      (match, prefix, src, suffix) => {
-        // Skip absolute URLs and data URIs
-        if (/^(https?:|data:|file:)/i.test(src)) {
-          return match;
-        }
-        // Resolve relative path against the markdown file's directory
-        const absolutePath = path.resolve(fileDir, src);
-        const fileUrl = `file:///${absolutePath.replace(/\\/g, '/')}`;
-        return `${prefix}${fileUrl}${suffix}`;
+  /**
+   * Inline local images referenced from the markdown into the HTML as
+   * base64 data: URIs. This avoids relying on `webSecurity: false` in the
+   * offscreen export window, since cross-origin file:// loads from a
+   * data:/file: temp document are otherwise blocked by Chromium.
+   */
+  private async resolveImagePaths(html: string, fileDir: string): Promise<string> {
+    const imgRegex = /(<img\s[^>]*src=["'])([^"']+)(["'][^>]*>)/gi;
+    const matches: { match: string; prefix: string; src: string; suffix: string; index: number }[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = imgRegex.exec(html)) !== null) {
+      matches.push({ match: m[0], prefix: m[1], src: m[2], suffix: m[3], index: m.index });
+    }
+    if (matches.length === 0) return html;
+
+    const replacements = await Promise.all(matches.map(async (entry) => {
+      const { src } = entry;
+      if (/^(https?:|data:)/i.test(src)) {
+        return { ...entry, replacement: entry.match };
       }
-    );
+      let absolutePath: string;
+      if (/^file:/i.test(src)) {
+        try {
+          absolutePath = path.normalize(
+            decodeURIComponent(src.replace(/^file:\/\/\//i, '').replace(/^file:\/\//i, ''))
+          );
+        } catch {
+          return { ...entry, replacement: entry.match };
+        }
+      } else {
+        absolutePath = path.resolve(fileDir, src);
+      }
+      try {
+        const data = await fs.readFile(absolutePath);
+        const mime = this.mimeTypeFromExtension(path.extname(absolutePath));
+        const dataUri = `data:${mime};base64,${data.toString('base64')}`;
+        return { ...entry, replacement: `${entry.prefix}${dataUri}${entry.suffix}` };
+      } catch {
+        // Leave the original tag intact if the image can't be read; it will
+        // simply render as a broken image, matching previous behavior.
+        return { ...entry, replacement: entry.match };
+      }
+    }));
+
+    let out = html;
+    for (let i = replacements.length - 1; i >= 0; i--) {
+      const r = replacements[i];
+      out = out.slice(0, r.index) + r.replacement + out.slice(r.index + r.match.length);
+    }
+    return out;
+  }
+
+  private mimeTypeFromExtension(ext: string): string {
+    switch (ext.toLowerCase()) {
+      case '.png': return 'image/png';
+      case '.jpg':
+      case '.jpeg': return 'image/jpeg';
+      case '.gif': return 'image/gif';
+      case '.webp': return 'image/webp';
+      case '.svg': return 'image/svg+xml';
+      case '.bmp': return 'image/bmp';
+      case '.ico': return 'image/x-icon';
+      case '.avif': return 'image/avif';
+      default: return 'application/octet-stream';
+    }
   }
 
   /**

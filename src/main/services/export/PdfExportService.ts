@@ -95,7 +95,7 @@ export class PdfExportService extends EventEmitter {
           nodeIntegration: false,
           contextIsolation: true,
           offscreen: true,
-          webSecurity: false, // Allow loading file:// images from data: origin
+          webSecurity: true, // Images are inlined as base64 data: URIs (see inlineFileImages)
         },
       });
 
@@ -104,7 +104,7 @@ export class PdfExportService extends EventEmitter {
 
       // Load HTML content
       await pdfWindow.loadURL(
-        `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
+        `data:text/html;charset=utf-8,${encodeURIComponent(await this.inlineFileImages(htmlContent))}`
       );
 
       // Wait for content to finish rendering (including async elements like diagrams)
@@ -210,6 +210,51 @@ export class PdfExportService extends EventEmitter {
    */
   private waitForContentReady(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+
+  /**
+   * Inline any `<img src="file://...">` references as base64 data: URIs so
+   * the offscreen export window doesn't need `webSecurity: false` to load
+   * local image files from a `data:` HTML host.
+   */
+  private async inlineFileImages(html: string): Promise<string> {
+    const imgRegex = /(<img\s[^>]*src=["'])(file:\/\/[^"']+)(["'][^>]*>)/gi;
+    const matches: { match: string; prefix: string; src: string; suffix: string; index: number }[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = imgRegex.exec(html)) !== null) {
+      matches.push({ match: m[0], prefix: m[1], src: m[2], suffix: m[3], index: m.index });
+    }
+    if (matches.length === 0) return html;
+
+    const replacements = await Promise.all(matches.map(async (entry) => {
+      try {
+        const abs = path.normalize(
+          decodeURIComponent(entry.src.replace(/^file:\/\/\//i, '').replace(/^file:\/\//i, ''))
+        );
+        const data = await fs.readFile(abs);
+        const ext = path.extname(abs).toLowerCase();
+        const mime =
+          ext === '.png' ? 'image/png' :
+          ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
+          ext === '.gif' ? 'image/gif' :
+          ext === '.webp' ? 'image/webp' :
+          ext === '.svg' ? 'image/svg+xml' :
+          ext === '.bmp' ? 'image/bmp' :
+          ext === '.ico' ? 'image/x-icon' :
+          ext === '.avif' ? 'image/avif' :
+          'application/octet-stream';
+        return { ...entry, replacement: `${entry.prefix}data:${mime};base64,${data.toString('base64')}${entry.suffix}` };
+      } catch {
+        return { ...entry, replacement: entry.match };
+      }
+    }));
+
+    let out = html;
+    for (let i = replacements.length - 1; i >= 0; i--) {
+      const r = replacements[i];
+      out = out.slice(0, r.index) + r.replacement + out.slice(r.index + r.match.length);
+    }
+    return out;
   }
 
   /**
