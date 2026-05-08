@@ -1,0 +1,88 @@
+/**
+ * DiagramHoverButtons Styles
+ * Task: T031
+ * Styles for diagram action buttons with hover animations
+ */
+
+.mermaid-diagram {
+  position: relative;
+}
+
+.diagram-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--actions-bg, rgba(255, 255, 255, 0.95));
+  border: 1px solid var(--actions-border, #d0d7de);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
+  z-index: 10;
+}
+
+.diagram-actions--visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.diagram-actions__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--action-text, #57606a);
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.diagram-actions__button:hover {
+  background: var(--action-hover-bg, rgba(0, 0, 0, 0.06));
+  color: var(--action-hover-text, #24292f);
+}
+
+.diagram-actions__button:active {
+  background: var(--action-active-bg, rgba(0, 0, 0, 0.1));
+}
+
+.diagram-actions__button svg {
+  flex-shrink: 0;
+}
+
+.diagram-actions__label {
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+  .diagram-actions {
+    --actions-bg: rgba(22, 27, 34, 0.95);
+    --actions-border: #30363d;
+    --action-text: #8b949e;
+    --action-hover-bg: rgba(255, 255, 255, 0.08);
+    --action-hover-text: #e6edf3;
+    --action-active-bg: rgba(255, 255, 255, 0.12);
+  }
+}
+
+[data-theme="dark"] .diagram-actions {
+  --actions-bg: rgba(22, 27, 34, 0.95);
+  --actions-border: #30363d;
+  --action-text: #8b949e;
+  --action-hover-bg: rgba(255, 255, 255, 0.08);
+  --action-hover-text: #e6edf3;
+  --action-active-bg: rgba(255, 255, 255, 0.12);
+}

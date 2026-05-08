@@ -17,6 +17,8 @@ import { renderMarkdown, renderMermaidDiagrams, applySyntaxHighlighting } from '
 import { CustomScrollbar, ScrollbarMarker } from '../scrollbar/CustomScrollbar';
 import { extractHeadingMarkers } from '../../utils/marker-extractor';
 import { useSearchStore } from '../../stores/search'; // T014: Import search store
+import { useDiagramHoverButtons } from '../DiagramHoverButtons'; // T032: Import diagram hover buttons
+import '../DiagramHoverButtons.css'; // T031: Import diagram hover buttons styles
 import './MarkdownViewer.css';
 
 export interface MarkdownViewerProps {
@@ -107,6 +109,29 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Track current zoom level without triggering re-renders (for smooth wheel zoom)
   const currentZoomRef = useRef<number>(zoomLevel);
   const zoomUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // T032: Diagram hover buttons - attaches action buttons to rendered mermaid diagrams
+  useDiagramHoverButtons({
+    containerRef: viewerRef,
+    onActionComplete: (action, success, errorMsg) => {
+      // Dispatch toast event for action results
+      if (success) {
+        const labels: Record<string, string> = {
+          'copy-png': 'Copied as PNG',
+          'copy-svg': 'Copied as SVG',
+          'copy-code': 'Code copied',
+          'download': 'Download started',
+        };
+        window.dispatchEvent(new CustomEvent('diagram:action-complete', {
+          detail: { message: labels[action] || 'Action completed', type: 'success' },
+        }));
+      } else {
+        window.dispatchEvent(new CustomEvent('diagram:action-complete', {
+          detail: { message: errorMsg || 'Action failed', type: 'error' },
+        }));
+      }
+    },
+  });
 
   // T014: Search store access for highlighting
   const {
@@ -544,6 +569,33 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       }
     });
   }, [zoomLevel, activeBuffer]);
+
+  // Handle zoom:fit event — fit content width to viewport width
+  useEffect(() => {
+    const handleZoomFit = () => {
+      if (!onZoomChange) return;
+      const bufferRef = activeBuffer === 'A' ? bufferARef : bufferBRef;
+      const contentRef = activeBuffer === 'A' ? contentARef : contentBRef;
+      const bufferEl = bufferRef.current;
+      const contentEl = contentRef.current;
+      if (!bufferEl || !contentEl) return;
+
+      // Get the viewport width (the scrollable container)
+      const viewportWidth = bufferEl.clientWidth;
+
+      // Get the content's natural width (at 100% zoom)
+      const currentZoom = currentZoomRef.current || 100;
+      const naturalWidth = contentEl.scrollWidth / (currentZoom / 100);
+
+      if (naturalWidth <= 0) return;
+
+      const fitZoom = Math.max(10, Math.min(2000, Math.round((viewportWidth / naturalWidth) * 100)));
+      onZoomChange(fitZoom);
+    };
+
+    window.addEventListener('zoom:fit', handleZoomFit);
+    return () => window.removeEventListener('zoom:fit', handleZoomFit);
+  }, [activeBuffer, onZoomChange]);
 
   // Restore scroll position from history (when navigating back/forward)
   useEffect(() => {
@@ -1254,8 +1306,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       const src = img.getAttribute('src');
       if (!src) continue;
 
-      // Skip file:// and local:// URLs (already resolved)
-      if (src.startsWith('file://') || src.startsWith('local://')) continue;
+      // Skip already-resolved URLs and data URIs
+      if (src.startsWith('file://') || src.startsWith('mdfile://') || src.startsWith('local://') || src.startsWith('data:')) continue;
 
       // Handle external URLs (http/https) - CSP now allows HTTPS images
       if (src.startsWith('http://') || src.startsWith('https://')) {
@@ -1285,10 +1337,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         });
 
         if (result?.success && result.absolutePath && result.exists) {
-          // Use file:// protocol to load local images
+          // Use mdfile:// protocol to load local images (CSP-allowed, works in both dev and prod)
           console.log('[MarkdownViewer] Loading image from file path:', result.absolutePath);
           const imgElement = img as HTMLImageElement;
-          imgElement.src = `file:///${result.absolutePath.replace(/\\/g, '/')}`;
+          const normalizedPath = result.absolutePath.replace(/\\/g, '/');
+          imgElement.src = `mdfile:///${encodeURI(normalizedPath)}`;
         } else {
           // Image file doesn't exist - show placeholder
           console.warn(`Image not found: ${src}`, result);

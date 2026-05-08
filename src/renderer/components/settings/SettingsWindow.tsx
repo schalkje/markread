@@ -17,6 +17,9 @@ import { BehaviorPanel } from './BehaviorPanel';
 import { SearchPanel } from './SearchPanel';
 import { PerformancePanel } from './PerformancePanel';
 import { KeyboardPanel } from './KeyboardPanel';
+import { ExportPanel } from './ExportPanel';
+import { FolderExclusionPanel } from './FolderExclusionPanel';
+import { DefaultFilesPanel } from './DefaultFilesPanel';
 import './SettingsWindow.css';
 
 export interface SettingsWindowProps {
@@ -28,7 +31,7 @@ export interface SettingsWindowProps {
   initialTab?: SettingsTab;
 }
 
-export type SettingsTab = 'appearance' | 'behavior' | 'search' | 'performance' | 'keyboard';
+export type SettingsTab = 'appearance' | 'behavior' | 'folders' | 'search' | 'performance' | 'keyboard' | 'export';
 
 /**
  * T137: Settings Window with 5 tabs
@@ -130,6 +133,13 @@ export const SettingsWindow: React.FC<SettingsWindowProps> = ({
               onClick={() => setActiveTab('behavior')}
             />
             <SettingsTabButton
+              id="folders"
+              label="Folders"
+              icon="📁"
+              isActive={activeTab === 'folders'}
+              onClick={() => setActiveTab('folders')}
+            />
+            <SettingsTabButton
               id="search"
               label="Search"
               icon="🔍"
@@ -150,15 +160,30 @@ export const SettingsWindow: React.FC<SettingsWindowProps> = ({
               isActive={activeTab === 'keyboard'}
               onClick={() => setActiveTab('keyboard')}
             />
+            <SettingsTabButton
+              id="export"
+              label="Export"
+              icon="📄"
+              isActive={activeTab === 'export'}
+              onClick={() => setActiveTab('export')}
+            />
           </div>
 
           {/* Panel area */}
           <div className="settings-window__panel">
             {activeTab === 'appearance' && <AppearancePanel />}
             {activeTab === 'behavior' && <BehaviorPanel />}
+            {activeTab === 'folders' && (
+              <>
+                <DefaultFilesPanel />
+                <div className="settings-panel-divider" />
+                <FolderExclusionPanel />
+              </>
+            )}
             {activeTab === 'search' && <SearchPanel />}
             {activeTab === 'performance' && <PerformancePanel />}
             {activeTab === 'keyboard' && <KeyboardPanel />}
+            {activeTab === 'export' && <ExportPanel />}
           </div>
         </div>
 

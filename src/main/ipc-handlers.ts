@@ -8,6 +8,7 @@ import { loadUIState, saveUIState } from './ui-state-manager';
 import { registerGitHandlers } from './ipc/git-handlers';
 import { registerRecentsFavoritesHandlers } from './ipc/recents-favorites-handlers';
 import { registerSearchHandlers } from './ipc/search-handlers';
+import { registerSettingsHandlers } from './ipc/settings-handlers';
 
 // T011: IPC handler registration system with Zod validation (research.md Section 6)
 
@@ -330,9 +331,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         folderPath: z.string().min(1),
         includeHidden: z.boolean(),
         maxDepth: z.number().optional(),
+        excludedFolders: z.array(z.string()).optional(),
       });
 
-      const { folderPath, includeHidden, maxDepth } = validatePayload(
+      const { folderPath, includeHidden, maxDepth, excludedFolders = [] } = validatePayload(
         GetFolderTreeSchema,
         payload
       );
@@ -385,6 +387,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             const fullPath = path.join(dirPath, entry.name);
 
             if (entry.isDirectory()) {
+              // Skip excluded folders
+              if (excludedFolders.includes(entry.name)) {
+                continue;
+              }
               // Recursively process subdirectories
               const childNode = await buildTree(fullPath, currentDepth + 1);
               if (childNode.children && childNode.children.length > 0) {
@@ -461,6 +467,22 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
       );
 
       console.log('[ipc-handlers] Validated payload:', { folderPath, filePatterns, ignorePatterns, debounceMs });
+
+      // Validate that the folder path exists
+      try {
+        const stats = await stat(folderPath);
+        if (!stats.isDirectory()) {
+          return {
+            success: false,
+            error: 'Path is not a directory',
+          };
+        }
+      } catch (error: any) {
+        return {
+          success: false,
+          error: `Folder not found: ${error.message}`,
+        };
+      }
 
       // Generate unique watcher ID
       const watcherId = `watcher-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
@@ -593,6 +615,23 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
       return {
         success: true,
         isMaximized: mainWindow.isMaximized(),
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  // Toggle fullscreen mode
+  ipcMain.handle('window:toggleFullScreen', async () => {
+    try {
+      const isFullScreen = mainWindow.isFullScreen();
+      mainWindow.setFullScreen(!isFullScreen);
+      return {
+        success: true,
+        isFullScreen: !isFullScreen,
       };
     } catch (error: any) {
       return {
@@ -818,7 +857,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     };
   });
 
-  // app:getChangelog IPC handler - returns changelog for current version
+  // app:getChangelog IPC handler - returns changelog for current minor version series
+  // e.g., for version 0.7.2, returns combined changes from 0.7.1, 0.7.2, etc.
   ipcMain.handle('app:getChangelog', async () => {
     try {
       const version = app.getVersion();
@@ -826,11 +866,36 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
       const content = await readFile(changelogPath, 'utf-8');
 
-      // Parse changelog to extract current version's section
-      const versionHeader = `## [${version}]`;
-      const startIndex = content.indexOf(versionHeader);
+      // Parse version to get minor version prefix (e.g., "0.7" from "0.7.2")
+      const versionParts = version.split('.');
+      if (versionParts.length < 2) {
+        return {
+          success: true,
+          version,
+          changes: null,
+        };
+      }
+      const minorVersionPrefix = `${versionParts[0]}.${versionParts[1]}`;
 
-      if (startIndex === -1) {
+      // Find all version headers in the changelog that match the minor version
+      const versionHeaderRegex = /## \[(\d+\.\d+\.\d+)\](?: - ([\d-]+))?/g;
+      const matchingVersions: { version: string; date: string | null; startIndex: number }[] = [];
+
+      let match;
+      while ((match = versionHeaderRegex.exec(content)) !== null) {
+        const foundVersion = match[1];
+        const foundDate = match[2] || null;
+        // Check if this version belongs to the same minor version series
+        if (foundVersion.startsWith(minorVersionPrefix + '.')) {
+          matchingVersions.push({
+            version: foundVersion,
+            date: foundDate,
+            startIndex: match.index,
+          });
+        }
+      }
+
+      if (matchingVersions.length === 0) {
         return {
           success: true,
           version,
@@ -838,49 +903,109 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         };
       }
 
-      // Find the next version header or end of relevant content
-      const afterHeader = content.substring(startIndex + versionHeader.length);
-      const nextVersionMatch = afterHeader.match(/\n## \[/);
-      const endIndex = nextVersionMatch
-        ? startIndex + versionHeader.length + nextVersionMatch.index!
-        : content.indexOf('\n## Release Notes', startIndex);
+      // Sort by version number descending (newest first)
+      matchingVersions.sort((a, b) => {
+        const aParts = a.version.split('.').map(Number);
+        const bParts = b.version.split('.').map(Number);
+        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+          const aVal = aParts[i] || 0;
+          const bVal = bParts[i] || 0;
+          if (bVal !== aVal) return bVal - aVal;
+        }
+        return 0;
+      });
 
-      const versionSection = endIndex !== -1
-        ? content.substring(startIndex, endIndex)
-        : content.substring(startIndex);
+      // Extract the included version numbers for display
+      const includedVersions = matchingVersions.map(v => v.version);
 
-      // Parse the section into structured data
-      const lines = versionSection.split('\n');
-      const changes: { category: string; items: string[] }[] = [];
-      let currentCategory = '';
-      let currentItems: string[] = [];
+      // Combined changes map: category -> items
+      const combinedChanges = new Map<string, string[]>();
+      let latestDate: string | null = null;
 
-      for (const line of lines) {
-        if (line.startsWith('### ')) {
-          if (currentCategory && currentItems.length > 0) {
-            changes.push({ category: currentCategory, items: [...currentItems] });
+      // Process each matching version section
+      for (const versionInfo of matchingVersions) {
+        // Use the date from the newest version
+        if (!latestDate && versionInfo.date) {
+          latestDate = versionInfo.date;
+        }
+
+        // Find the end of this version's section
+        const versionHeader = `## [${versionInfo.version}]`;
+        const afterHeader = content.substring(versionInfo.startIndex + versionHeader.length);
+        const nextVersionMatch = afterHeader.match(/\n## \[/);
+        const releaseNotesIndex = afterHeader.indexOf('\n## Release Notes');
+
+        let endOffset: number;
+        if (nextVersionMatch && (releaseNotesIndex === -1 || nextVersionMatch.index! < releaseNotesIndex)) {
+          endOffset = nextVersionMatch.index!;
+        } else if (releaseNotesIndex !== -1) {
+          endOffset = releaseNotesIndex;
+        } else {
+          endOffset = afterHeader.length;
+        }
+
+        const versionSection = content.substring(
+          versionInfo.startIndex,
+          versionInfo.startIndex + versionHeader.length + endOffset
+        );
+
+        // Parse this version's changes
+        const lines = versionSection.split('\n');
+        let currentCategory = '';
+        let uncategorizedItems: string[] = [];
+
+        for (const line of lines) {
+          if (line.startsWith('### ')) {
+            currentCategory = line.replace('### ', '').trim();
+            if (!combinedChanges.has(currentCategory)) {
+              combinedChanges.set(currentCategory, []);
+            }
+          } else if (line.startsWith('- ')) {
+            const item = line.replace('- ', '').trim();
+            if (currentCategory) {
+              const items = combinedChanges.get(currentCategory)!;
+              // Avoid duplicates
+              if (!items.includes(item)) {
+                items.push(item);
+              }
+            } else {
+              uncategorizedItems.push(item);
+            }
           }
-          currentCategory = line.replace('### ', '').trim();
-          currentItems = [];
-        } else if (line.startsWith('- ')) {
-          currentItems.push(line.replace('- ', '').trim());
+        }
+
+        // Handle uncategorized items
+        if (uncategorizedItems.length > 0) {
+          if (!combinedChanges.has('Changes')) {
+            combinedChanges.set('Changes', []);
+          }
+          const changesItems = combinedChanges.get('Changes')!;
+          for (const item of uncategorizedItems) {
+            if (!changesItems.includes(item)) {
+              changesItems.push(item);
+            }
+          }
         }
       }
 
-      // Don't forget the last category
-      if (currentCategory && currentItems.length > 0) {
-        changes.push({ category: currentCategory, items: currentItems });
+      // Convert map to array, putting "Changes" first if it exists
+      const changes: { category: string; items: string[] }[] = [];
+      if (combinedChanges.has('Changes')) {
+        changes.push({ category: 'Changes', items: combinedChanges.get('Changes')! });
+        combinedChanges.delete('Changes');
       }
-
-      // Extract date from header
-      const dateMatch = versionSection.match(/## \[[\d.]+\] - ([\d-]+)/);
-      const date = dateMatch ? dateMatch[1] : null;
+      for (const [category, items] of combinedChanges) {
+        if (items.length > 0) {
+          changes.push({ category, items });
+        }
+      }
 
       return {
         success: true,
         version,
-        date,
+        date: latestDate,
         changes,
+        includedVersions,
       };
     } catch (error: any) {
       return {
@@ -898,6 +1023,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
   // T007: Register Search IPC handlers
   registerSearchHandlers();
+
+  // Register Settings IPC handlers
+  registerSettingsHandlers();
 
   console.log('IPC handlers registered');
 }

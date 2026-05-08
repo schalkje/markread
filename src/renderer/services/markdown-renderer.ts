@@ -380,6 +380,7 @@ export function sanitizeHtml(html: string): string {
       'foreignObject',
       'sup',
       'sub',
+      'small',
       's'
     ],
 

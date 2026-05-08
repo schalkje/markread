@@ -1,34 +1,13 @@
 
 # Small issues
 
-- Dark mode findings:
-    - home page stays white in dark mode
-        - header text changes font color
-        - explanation text does not
-        - branch icon stays light too, text changes to darm mode
-    - Open repository button stays light
-    - About box stays light, some text change
+- When showing a page, go to the next; press Home in the View menu, the page does not change to the first page in the history; looks like only the page in the active tab is not refreshed, because history (forward/back) is changing position
 
-- if a folder or repo/branch is opened, and the golder contains files open them in this order:
-  - README.md, index.md, first file alphabetically
-  
-
-## home page fixes
-- on the home page I sometimes see double entries of the same folder; only difference are the \ vs /
-- 
 
 ## toggle full screen
 
-not working yet
-
-# Clean up wpf
-Clean all files that are related to wpf or dotnet development. They should not be needed anymore in the electron solution.
-
-Remove all references to wpf from the markdown documentation. Remove entire markdown files when they have become obsolete. Update files where the story changed because of the switch from wpf to electron.
-
-Files that can stay unchanged:
-- Changelog.md
-- All files in the .specify folder
+Full screen should hide the titlebar, and the tab bar; only when the mouse get't near the top they should flow down into view, over the page
+Same with side panel; should hide by default, show when the mouse nears the left side
 
 
 # Index
@@ -71,29 +50,6 @@ in the root there is a markread.json file
 ```
 
 
----
-
-# refreshing
-I want a way of refreshing the visible page
-I want a way of refreshing the folderview for the current folder or repo/branch
-
-# ignore folders
-Ignoring folders:
-- A base list should be available of folders that are by default not read (open folder, open repo/branch)
-- there is a setting where this list can be seen and modified; there is also a button here to reset to the defaults
-
-# Export to pdf function
-
-# Export mermaid diagrams
-Export or copy to clipboard mermaid diagrams as svg.
-
-have hoover buttons:
-- that copy as image
-- copy mermaid code
-- download image
-
-## Open mermaid in new dedicated tab
-- open mermaid in new tab
 
 ---
 
@@ -129,9 +85,25 @@ Support split window: 2 documents horizontal / vertical
 # small improvements
 
 - when zoomed in (application), also zoom in mouse over (e.g. file tree, chapters in scroll bar)
-- mouse buttons for forward and back should work, now they do nothing
 - navigating links in a document, in a s subfolder, takes the folder root as basis, 
   - should take the active document as basis when startting with a folder and not starting with a /
   - when starting with a /, it should take the folder root
 
 
+# deep links
+
+When I have a deep link:
+e.g.: [deep link](./documantiation/readme.md#second)
+
+I expect it to open the page and go to the heading with the name "second". 
+
+If the heading does not exist; go to the page top and do a toast message that the heading does not exist, but the page has ben opened.
+
+# open in file explorer
+
+The open in file explore / gitub functionality is not working yet.
+It should be an option on the filetree menu, both on files and on folders.
+If local: open file explorer on the location of the folder / file
+If repo/branch: open the repo/branch in the default browser at the right location
+
+If local also add an open in vscode option

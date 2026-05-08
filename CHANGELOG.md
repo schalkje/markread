@@ -1,4 +1,4 @@
-# Changelog\
+# Changelog
 
 All notable changes to MarkRead will be documented in this file.
 
@@ -8,8 +8,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Export to PDF
 - Bookmarks
+- Split screen and multiple windows
+
+## [0.7.4] - 2026-01-30
+
+### Fixes
+- resize installer banner for nsis
+- support opening branches on Azure DevOps
+- package markread logo for pdf generation
+
+## [0.7.3] - 2026-01-30
+
+### Fixes
+- Export branch/repo to pdf
+- Disable menu items when context is not applicable
+
+## [0.7.2] - 2026-01-30
+
+### Fixes
+- Keyboard shortcuts
+- Page Refresh
+
+## [0.7.1] - 2026-01-29
+
+### Added
+- Export to pdf for one file or an entire folder of files
+- Export mermaid diagram
+- Open mermaid in separate tab
+- Settings pages
+- On open folder or Repo/branch show default file (e.g. README.md)
+- Add ignore folders
+
+### Fixes
+- Home page fix: remove deprecated folders and repo/branches
+- Make full-screen toggle work
 
 ## [0.6.1] - 2026-01-22
 - improved dark theme

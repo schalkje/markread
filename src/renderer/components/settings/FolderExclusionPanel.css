@@ -1,0 +1,171 @@
+/**
+ * Folder Exclusion Panel Styles
+ */
+
+.folder-exclusion__add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.folder-exclusion__add .settings-input {
+  flex: 1;
+}
+
+.folder-exclusion__list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 6px;
+  background: var(--input-bg, #ffffff);
+}
+
+.folder-exclusion__empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary, #57606a);
+  font-size: 14px;
+}
+
+.folder-exclusion__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-light, #eaeef2);
+  transition: background-color 0.15s ease;
+}
+
+.folder-exclusion__item:last-child {
+  border-bottom: none;
+}
+
+.folder-exclusion__item:hover {
+  background: var(--item-hover-bg, #f6f8fa);
+}
+
+.folder-exclusion__item--disabled {
+  opacity: 0.5;
+}
+
+.folder-exclusion__item--disabled .folder-exclusion__pattern {
+  text-decoration: line-through;
+}
+
+.folder-exclusion__toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  cursor: pointer;
+}
+
+.folder-exclusion__toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.folder-exclusion__pattern {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  color: var(--text-primary, #24292f);
+}
+
+.folder-exclusion__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary, #57606a);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.folder-exclusion__remove:hover {
+  background: var(--danger-bg, #ffebe9);
+  color: var(--danger-color, #cf222e);
+}
+
+.folder-exclusion__actions {
+  margin-top: 16px;
+}
+
+.folder-exclusion__confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--warning-bg, #fff8c5);
+  border-radius: 6px;
+}
+
+.folder-exclusion__confirm span {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary, #24292f);
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .folder-exclusion__list {
+    --border-color: #30363d;
+    --input-bg: #0d1117;
+    --border-light: #21262d;
+  }
+
+  .folder-exclusion__item:hover {
+    --item-hover-bg: #21262d;
+  }
+
+  .folder-exclusion__pattern {
+    --text-primary: #e6edf3;
+  }
+
+  .folder-exclusion__remove {
+    --text-secondary: #7d8590;
+  }
+
+  .folder-exclusion__remove:hover {
+    --danger-bg: #3d1b20;
+    --danger-color: #f85149;
+  }
+
+  .folder-exclusion__confirm {
+    --warning-bg: #3d2e00;
+    --text-primary: #e6edf3;
+  }
+}
+
+[data-theme="dark"] .folder-exclusion__list {
+  --border-color: #30363d;
+  --input-bg: #0d1117;
+  --border-light: #21262d;
+}
+
+[data-theme="dark"] .folder-exclusion__item:hover {
+  --item-hover-bg: #21262d;
+}
+
+[data-theme="dark"] .folder-exclusion__pattern {
+  --text-primary: #e6edf3;
+}
+
+[data-theme="dark"] .folder-exclusion__remove {
+  --text-secondary: #7d8590;
+}
+
+[data-theme="dark"] .folder-exclusion__remove:hover {
+  --danger-bg: #3d1b20;
+  --danger-color: #f85149;
+}
+
+[data-theme="dark"] .folder-exclusion__confirm {
+  --warning-bg: #3d2e00;
+  --text-primary: #e6edf3;
+}

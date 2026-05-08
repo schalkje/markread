@@ -732,4 +732,43 @@ export function unregisterSearchShortcuts(): void {
   keyboardHandler.unregister('search.findInFiles');
 }
 
+/**
+ * Register refresh keyboard shortcuts
+ * - F5: Refresh current page and folder view
+ * - Ctrl+R: Refresh current page and folder view (alternate)
+ */
+export function registerRefreshShortcuts(callbacks: {
+  onRefresh: () => void;
+}): void {
+  // Refresh: F5
+  keyboardHandler.register({
+    id: 'view.refresh',
+    keys: ['F5'],
+    handler: () => {
+      callbacks.onRefresh();
+    },
+    description: 'Refresh current page and folder view',
+  });
+
+  // Refresh: Ctrl+Shift+R (Ctrl+R is used for Open Repository)
+  keyboardHandler.register({
+    id: 'view.refresh.alt',
+    keys: ['r', 'R'],
+    ctrlKey: true,
+    shiftKey: true,
+    handler: () => {
+      callbacks.onRefresh();
+    },
+    description: 'Refresh current page and folder view (alternate)',
+  });
+}
+
+/**
+ * Unregister refresh shortcuts
+ */
+export function unregisterRefreshShortcuts(): void {
+  keyboardHandler.unregister('view.refresh');
+  keyboardHandler.unregister('view.refresh.alt');
+}
+
 export default keyboardHandler;

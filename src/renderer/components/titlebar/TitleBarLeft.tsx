@@ -10,6 +10,7 @@
 
 import React, { useState } from 'react';
 import { useActiveTabNavigation, useTabsStore } from '../../stores/tabs';
+import { useFoldersStore } from '../../stores/folders';
 import './TitleBar.css';
 
 interface MenuItem {
@@ -112,6 +113,10 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const { canGoBack, canGoForward, goBack, goForward } = useActiveTabNavigation();
 
+  // Get state for conditional menu item enabling
+  const hasActiveTab = useTabsStore((state) => !!state.activeTabId);
+  const hasActiveFolder = useFoldersStore((state) => !!state.activeFolderId);
+
   const handleBurgerClick = () => {
     if (onToggleSidebar) {
       onToggleSidebar();
@@ -148,17 +153,43 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
     },
     { separator: true, label: '', action: () => {} },
     {
+      label: 'Export to PDF',
+      shortcut: 'Ctrl+Shift+E',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:export-pdf'));
+      },
+      disabled: !hasActiveTab,
+    },
+    {
+      label: 'Export Folder to PDF',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:export-folder-pdf'));
+      },
+      disabled: !hasActiveFolder,
+    },
+    { separator: true, label: '', action: () => {} },
+    {
+      label: 'Settings',
+      shortcut: 'Ctrl+,',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:settings'));
+      },
+    },
+    { separator: true, label: '', action: () => {} },
+    {
       label: 'Close Current',
       shortcut: 'Ctrl+W',
       action: () => {
         window.dispatchEvent(new CustomEvent('menu:close-current'));
       },
+      disabled: !hasActiveTab,
     },
     {
       label: 'Close Folder',
       action: () => {
         window.dispatchEvent(new CustomEvent('menu:close-folder'));
       },
+      disabled: !hasActiveFolder,
     },
     {
       label: 'Close All',
@@ -166,6 +197,7 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       action: () => {
         window.dispatchEvent(new CustomEvent('menu:close-all'));
       },
+      disabled: !hasActiveTab && !hasActiveFolder,
     },
   ];
 
@@ -175,12 +207,14 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       action: () => {
         window.dispatchEvent(new CustomEvent('menu:find'));
       },
+      disabled: !hasActiveTab,
     },
     {
       label: 'Find in Files...',
       action: () => {
         window.dispatchEvent(new CustomEvent('menu:find-in-files'));
       },
+      disabled: !hasActiveFolder,
     },
   ];
 
@@ -191,6 +225,15 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
   const isAtHome = !activeTab || activeTab.currentHistoryIndex === 0 || activeTab.navigationHistory.length === 0;
 
   const viewMenuItems = [
+    {
+      label: 'Refresh',
+      shortcut: 'F5',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('menu:refresh'));
+      },
+      disabled: !hasActiveTab,
+    },
+    { separator: true, label: '', action: () => {} },
     {
       label: 'Back',
       action: () => goBack(),
@@ -232,12 +275,14 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
       action: () => {
         window.dispatchEvent(new CustomEvent('show-history'));
       },
+      disabled: !hasActiveFolder,
     },
     {
       label: 'Show Files',
       action: () => {
         window.dispatchEvent(new CustomEvent('show-files'));
       },
+      disabled: !hasActiveFolder,
     },
     { separator: true, label: '', action: () => {} },
     {
@@ -254,6 +299,7 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
     // Document Zoom submenu
     {
       label: 'Document Zoom',
+      disabled: !hasActiveTab,
       submenu: [
         {
           label: 'Zoom In',

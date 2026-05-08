@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabsStore } from '../stores/tabs';
 import { useFoldersStore } from '../stores/folders';
+import { useSettingsStore } from '../stores/settings';
 import { recentsFavoritesService } from '../services/recents-favorites-service';
 import { useRecentsFavorites } from '../hooks/useRecentsFavorites';
 import { ItemType } from '@shared/types/recents-favorites';
@@ -37,10 +38,22 @@ import {
   registerHelpShortcuts,
   unregisterHelpShortcuts,
   registerSearchShortcuts,
-  unregisterSearchShortcuts
+  unregisterSearchShortcuts,
+  registerRefreshShortcuts,
+  unregisterRefreshShortcuts
 } from '../services/keyboard-handler';
 import { ShortcutsReference } from './help/ShortcutsReference';
 import { About } from './help/About';
+import { SettingsWindow } from './settings/SettingsWindow';
+import { ErrorDialog } from './ErrorDialog'; // T022: Import ErrorDialog
+import { ConfirmDialog } from './common/ConfirmDialog'; // Confirmation for removing failed repos
+import { ExportProgressDialog } from './ExportProgressDialog'; // T017: Import ExportProgressDialog
+import { DiagramTabView } from './DiagramTabView'; // T039: Import DiagramTabView
+import { CopyFormatPicker } from './CopyFormatPicker'; // T050: Import CopyFormatPicker
+import { CopyContextMenu } from './CopyContextMenu'; // T054: Import CopyContextMenu
+import { useCopyShortcuts } from '../hooks/useCopyShortcuts'; // T051: Import useCopyShortcuts
+import { getTextSelectionService } from '../services/TextSelectionService'; // T055: Import TextSelectionService
+import { useExport } from '../hooks/useExport'; // T018: Import useExport hook
 import { FindBar } from './search/FindBar'; // T008: Import FindBar component
 import { SearchResults } from './search/SearchResults'; // T035: Import SearchResults component
 import { useSearchStore } from '../stores/search'; // T009: Import search store
@@ -52,6 +65,7 @@ import {
   registerApplicationCommands,
 } from '../services/command-service';
 import { generateDirectFileTabId, generateFolderFileTabId, generateRepoFileTabId } from '../utils/tab-id';
+import { findDefaultFile } from '@shared/constants/defaultFiles';
 import { removeFromConnectionHistory } from '../utils/connection-history';
 import type { Folder } from '@shared/types/entities';
 import './AppLayout.css';
@@ -68,6 +82,7 @@ const AppLayout: React.FC = () => {
   const { tabs, activeTabId } = useTabsStore();
   const activeTab = activeTabId ? tabs.get(activeTabId) : null;
   const { folders, activeFolderId } = useFoldersStore();
+  const folderExclusionPatterns = useSettingsStore((state) => state.settings.behavior.folderExclusionPatterns);
   const { addRecent, removeRecent, removeFavorite } = useRecentsFavorites();
   const [revealFilePath, setRevealFilePath] = useState<string | null>(null); // File to reveal in sidebar
 
@@ -91,14 +106,72 @@ const AppLayout: React.FC = () => {
   // About dialog state
   const [showAbout, setShowAbout] = useState(false);
 
+  // Settings window state
+  const [showSettings, setShowSettings] = useState(false);
+
   // Repository connect dialog state
   const [showRepoConnect, setShowRepoConnect] = useState(false);
+
+  // Confirmation dialog state for removing failed repository branches
+  const [repoRemoveConfirm, setRepoRemoveConfirm] = useState<{
+    show: boolean;
+    url: string;
+    branch: string;
+    displayName: string;
+    errorMessage: string;
+    folderId?: string;
+  } | null>(null);
 
   // T009: Search bar visibility state
   const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
 
+  // T043: Diagram tab data (svgContent + mermaidCode for diagram tabs)
+  const diagramDataRef = useRef<Map<string, { svgContent: string; mermaidCode: string }>>(new Map());
+
+  // T055: Ref for the main content container (used by copy shortcuts)
+  const mainContentRef = useRef<HTMLDivElement>(null);
+
+  // T054: Context menu state for text selection copy
+  const [showCopyContextMenu, setShowCopyContextMenu] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+
+  // T051-T053: Copy shortcuts hook
+  const {
+    showFormatPicker,
+    pickerPosition,
+    closeFormatPicker,
+    copyAs,
+  } = useCopyShortcuts({
+    containerRef: mainContentRef,
+    onCopySuccess: (format) => {
+      const formatLabel = format === 'rich' ? 'Rich Text' : format === 'markdown' ? 'Markdown' : 'Plain Text';
+      setToast({ message: `Copied as ${formatLabel}`, type: 'success' });
+    },
+    onCopyError: (error) => {
+      setToast({ message: `Copy failed: ${error.message}`, type: 'error' });
+    },
+  });
+
   // T009: Access search store for find-in-page functionality
   const searchStore = useSearchStore();
+
+  // T018: Export hook for PDF export with progress tracking
+  const {
+    showProgressDialog: showExportProgress,
+    showErrorDialog: showExportError,
+    currentError: exportError,
+    progress: exportProgress,
+    status: exportStatus,
+    exportCurrentPage,
+    exportFolder,
+    exportFile,
+    cancelExport,
+    dismissProgress: dismissExportProgress,
+    dismissError: dismissExportError,
+    retryExport,
+    viewLogs: viewExportLogs,
+    openExportedFile,
+  } = useExport();
 
   // Ref to track if content was manually set (to avoid double-loading)
   const contentLoadedManually = useRef(false);
@@ -673,25 +746,52 @@ const AppLayout: React.FC = () => {
         });
 
         if (treeResult?.success && treeResult.data?.tree) {
-          // Find the first markdown file
-          const findFirstMarkdownFile = (nodes: any[]): string | null => {
-            const queue = [...nodes];
-            while (queue.length > 0) {
-              const levelSize = queue.length;
-              for (let i = 0; i < levelSize; i++) {
-                const node = queue.shift()!;
-                if (node.type === ItemType.FILE && node.isMarkdown) {
-                  return node.path;
-                }
-                if (node.children) {
-                  queue.push(...node.children);
+          // Get default files settings for priority-based file opening
+          const { settings } = useSettingsStore.getState();
+          const defaultFilesToOpen = settings.behavior.defaultFilesToOpen;
+
+          // Extract root-level markdown files from the tree
+          // Root files are those without '/' in the path (at repository root)
+          const rootFiles = treeResult.data.tree
+            .filter((node: any) => node.type === ItemType.FILE && node.isMarkdown && !node.path.includes('/'))
+            .map((node: any) => ({ name: node.path.split('/').pop() || node.path, path: node.path }));
+
+          // Try to find a matching default file using priority list (case-insensitive)
+          const matchedFilename = findDefaultFile(
+            rootFiles.map((f: { name: string }) => f.name),
+            defaultFilesToOpen
+          );
+
+          let firstFilePath: string | null = null;
+          if (matchedFilename) {
+            // Found a priority match in root
+            const matchedFile = rootFiles.find(
+              (f: { name: string; path: string }) => f.name.toLowerCase() === matchedFilename.toLowerCase()
+            );
+            firstFilePath = matchedFile?.path || null;
+          }
+
+          // Fallback: If no priority match, use BFS for first markdown file
+          if (!firstFilePath) {
+            const findFirstMarkdownFile = (nodes: any[]): string | null => {
+              const queue = [...nodes];
+              while (queue.length > 0) {
+                const levelSize = queue.length;
+                for (let i = 0; i < levelSize; i++) {
+                  const node = queue.shift()!;
+                  if (node.type === ItemType.FILE && node.isMarkdown) {
+                    return node.path;
+                  }
+                  if (node.children) {
+                    queue.push(...node.children);
+                  }
                 }
               }
-            }
-            return null;
-          };
+              return null;
+            };
 
-          const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+            firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+          }
           console.log('[AppLayout] First markdown file:', firstFilePath);
 
           if (firstFilePath) {
@@ -824,6 +924,18 @@ const AppLayout: React.FC = () => {
     };
   }, []);
 
+  // Listen for menu:settings events from File menu
+  useEffect(() => {
+    const handleShowSettings = () => {
+      setShowSettings(true);
+    };
+
+    window.addEventListener('menu:settings', handleShowSettings);
+    return () => {
+      window.removeEventListener('menu:settings', handleShowSettings);
+    };
+  }, []);
+
   // Listen for connect-repository events from File Menu and Folder Switcher
   useEffect(() => {
     const handleConnectRepository = () => {
@@ -860,6 +972,419 @@ const AppLayout: React.FC = () => {
     window.addEventListener('menu:find-in-files', handleFindInFiles);
     return () => {
       window.removeEventListener('menu:find-in-files', handleFindInFiles);
+    };
+  }, []);
+
+  // Listen for menu:toggle-fullscreen events from View menu
+  useEffect(() => {
+    const handleToggleFullScreen = async () => {
+      try {
+        await window.electronAPI?.window.toggleFullScreen();
+      } catch (error) {
+        console.error('Failed to toggle fullscreen:', error);
+      }
+    };
+
+    window.addEventListener('menu:toggle-fullscreen', handleToggleFullScreen);
+    return () => {
+      window.removeEventListener('menu:toggle-fullscreen', handleToggleFullScreen);
+    };
+  }, []);
+
+  // T020: Listen for menu:export-pdf events to trigger PDF export
+  useEffect(() => {
+    const handleExportPdf = async () => {
+      // Preferred path: when a markdown file is open, route through the
+      // single-file export pipeline. This produces a cover page followed by
+      // server-side rendered content (fixes empty-PDF caused by querying the
+      // wrong dual-buffer in the renderer).
+      const filePath = activeTab?.filePath || currentFile;
+      if (filePath) {
+        try {
+          await exportFile(filePath);
+        } catch (error) {
+          console.error('[AppLayout] Single-file PDF export failed:', error);
+          setToast({ message: 'PDF export failed', type: 'error' });
+        }
+        return;
+      }
+
+      // Fallback: no file path (e.g., diagram tab) — grab the active buffer's
+      // rendered HTML and use the legacy raw-HTML export path.
+      const viewerContent = document.querySelector(
+        '.markdown-viewer__buffer--active .markdown-viewer__content'
+      ) || document.querySelector('.markdown-viewer__content');
+      if (!viewerContent) {
+        setToast({ message: 'No document content to export', type: 'warning' });
+        return;
+      }
+
+      // Get the rendered HTML and wrap in a full document
+      const renderedHtml = viewerContent.innerHTML;
+
+      const htmlDocument = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${activeTab?.title || 'Document'}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #24292f;
+      max-width: none;
+      padding: 20px 40px;
+      margin: 0;
+    }
+    img { max-width: 100%; }
+    pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    code { font-family: 'Cascadia Code', Consolas, monospace; font-size: 85%; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
+    th { background: #f6f8fa; font-weight: 600; }
+    blockquote { border-left: 4px solid #d0d7de; margin: 0; padding: 0 16px; color: #57606a; }
+    h1, h2, h3, h4, h5, h6 { margin-top: 24px; margin-bottom: 16px; font-weight: 600; line-height: 1.25; }
+    h1 { font-size: 2em; padding-bottom: 0.3em; border-bottom: 1px solid #d8dee4; }
+    h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid #d8dee4; }
+    hr { border: none; border-top: 1px solid #d8dee4; margin: 24px 0; }
+    a { color: #0969da; text-decoration: none; }
+    /* Mermaid diagrams: force dark text and light backgrounds for PDF */
+    .mermaid-rendered text {
+      fill: #24292f !important;
+    }
+    .mermaid-rendered .edgeLabel rect.background {
+      fill: #ffffff !important;
+      fill-opacity: 0.8 !important;
+    }
+    .mermaid-rendered .entityBox {
+      fill: rgba(255, 255, 255, 0.85) !important;
+      stroke: #d0d7de !important;
+    }
+    /* Container/callout styles */
+    .markdown-container {
+      margin: 16px 0;
+      border-radius: 6px;
+      border-left: 4px solid #d0d7de;
+      overflow: hidden;
+    }
+    .markdown-container-title {
+      padding: 8px 16px;
+      font-weight: 600;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    .markdown-container-content {
+      padding: 12px 16px;
+    }
+    .markdown-container-content > *:last-child {
+      margin-bottom: 0;
+    }
+    .markdown-container-info {
+      border-left-color: #0969da;
+      background: #e6f2ff;
+    }
+    .markdown-container-info .markdown-container-title {
+      color: #0969da;
+    }
+    .markdown-container-warning {
+      border-left-color: #bf8700;
+      background: #fff8e6;
+    }
+    .markdown-container-warning .markdown-container-title {
+      color: #bf8700;
+    }
+    .markdown-container-error {
+      border-left-color: #cf222e;
+      background: #ffebe9;
+    }
+    .markdown-container-error .markdown-container-title {
+      color: #cf222e;
+    }
+    .markdown-container-success {
+      border-left-color: #1a7f37;
+      background: #dafbe1;
+    }
+    .markdown-container-success .markdown-container-title {
+      color: #1a7f37;
+    }
+    .markdown-container-note {
+      border-left-color: #8250df;
+      background: #f6f0ff;
+    }
+    .markdown-container-note .markdown-container-title {
+      color: #8250df;
+    }
+    /* Syntax highlighting (GitHub light theme) */
+    .hljs { color: #24292e; background: #f6f8fa; }
+    .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword,
+    .hljs-template-tag, .hljs-template-variable, .hljs-type,
+    .hljs-variable.language_ { color: #d73a49; }
+    .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__,
+    .hljs-title.function_ { color: #6f42c1; }
+    .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta,
+    .hljs-number, .hljs-operator, .hljs-variable, .hljs-selector-attr,
+    .hljs-selector-class, .hljs-selector-id { color: #005cc5; }
+    .hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: #032f62; }
+    .hljs-built_in, .hljs-symbol { color: #e36209; }
+    .hljs-comment, .hljs-code, .hljs-formula { color: #6a737d; }
+    .hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: #22863a; }
+    .hljs-subst { color: #24292e; }
+    .hljs-section { color: #005cc5; font-weight: bold; }
+    .hljs-bullet { color: #735c0f; }
+    .hljs-emphasis { color: #24292e; font-style: italic; }
+    .hljs-strong { color: #24292e; font-weight: bold; }
+    .hljs-addition { color: #22863a; background-color: #f0fff4; }
+    .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
+    .hljs-copy-button { display: none !important; }
+    @media print {
+      body { padding: 0; }
+      pre { white-space: pre-wrap; word-wrap: break-word; }
+      .mermaid-actions, .diagram-actions { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  ${renderedHtml}
+</body>
+</html>`;
+
+      // Derive default filename from current file path
+      const defaultFilename = currentFile
+        ? currentFile.replace(/\.[^.]+$/, '.pdf').split(/[/\\]/).pop()
+        : 'document.pdf';
+
+      await exportCurrentPage(htmlDocument, defaultFilename);
+    };
+
+    window.addEventListener('menu:export-pdf', handleExportPdf);
+    return () => {
+      window.removeEventListener('menu:export-pdf', handleExportPdf);
+    };
+  }, [activeTab, currentFile, exportCurrentPage, exportFile, setToast]);
+
+  // T037: Listen for diagram action completion events (copy/download toasts)
+  useEffect(() => {
+    const handleDiagramAction = (e: Event) => {
+      const { message, type } = (e as CustomEvent).detail;
+      setToast({ message, type });
+    };
+
+    window.addEventListener('diagram:action-complete', handleDiagramAction);
+    return () => {
+      window.removeEventListener('diagram:action-complete', handleDiagramAction);
+    };
+  }, []);
+
+  // T072: Listen for export-folder-to-pdf events from file tree context menu
+  useEffect(() => {
+    const handleExportFolder = async (e: Event) => {
+      const { folderPath } = (e as CustomEvent).detail;
+      if (folderPath) {
+        // Get the active folder (root) to calculate relative path
+        const { folders, activeFolderId } = useFoldersStore.getState();
+        const activeFolder = activeFolderId ? folders.find(f => f.id === activeFolderId) : undefined;
+
+        // Calculate subfolderPath and gitInfo based on folder type
+        let subfolderPath: string | undefined;
+        let gitInfo: { repoName?: string; repoUrl?: string; branch?: string } | undefined;
+
+        if (activeFolder?.type === 'repository') {
+          // For repository folders, folderPath is the virtual path from repo root
+          // Use it directly as the subfolderPath
+          subfolderPath = folderPath;
+
+          // Extract git info from the repository folder
+          gitInfo = {
+            repoUrl: activeFolder.repositoryUrl,
+            repoName: activeFolder.repositoryMetadata?.owner && activeFolder.repositoryMetadata?.name
+              ? `${activeFolder.repositoryMetadata.owner}/${activeFolder.repositoryMetadata.name}`
+              : activeFolder.displayName?.replace(/\s*\([^)]+\)\s*$/, ''),
+            branch: activeFolder.currentBranch,
+          };
+        } else if (activeFolder && folderPath !== activeFolder.path && folderPath.startsWith(activeFolder.path)) {
+          // For local folders, remove root path and leading separator to get relative path
+          subfolderPath = folderPath.slice(activeFolder.path.length).replace(/^[/\\]+/, '');
+        }
+
+        // Title should be the name of the folder being exported, not the root folder
+        const exportTitle = folderPath.split(/[/\\]/).pop() || 'Export';
+
+        // Generate default filename based on folder type
+        // Format: {rootName}-{folderName}-{YYYYMMDD}[-{branch}].pdf
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const exportedFolderName = folderPath.split(/[/\\]/).pop() || 'export';
+        let defaultFilename: string;
+
+        // Build repository info if this is a repository export
+        let repositoryInfo: {
+          repositoryId: string;
+          branch: string;
+          provider: 'github' | 'azure';
+          owner?: string;
+          name?: string;
+        } | undefined;
+
+        if (activeFolder?.type === 'repository') {
+          // For repos: repoName-folderName-date-branch.pdf
+          const repoName = activeFolder.repositoryMetadata?.name || activeFolder.displayName?.replace(/\s*\([^)]+\)\s*$/, '') || 'repo';
+          const branch = activeFolder.currentBranch || 'main';
+          defaultFilename = `${repoName}-${exportedFolderName}-${dateStr}-${branch}.pdf`;
+
+          // Determine provider from URL
+          const isAzure = activeFolder.repositoryUrl?.includes('dev.azure.com') ||
+                          activeFolder.repositoryUrl?.includes('visualstudio.com');
+
+          repositoryInfo = {
+            repositoryId: activeFolder.repositoryId!,
+            branch,
+            provider: isAzure ? 'azure' : 'github',
+            owner: activeFolder.repositoryMetadata?.owner,
+            name: activeFolder.repositoryMetadata?.name,
+          };
+        } else {
+          // For local: rootFolderName-exportedFolderName-date.pdf
+          const rootFolderName = activeFolder?.path?.split(/[/\\]/).pop() || 'folder';
+          defaultFilename = `${rootFolderName}-${exportedFolderName}-${dateStr}.pdf`;
+        }
+
+        await exportFolder(folderPath, {
+          subfolderPath,
+          gitInfo,
+          repositoryInfo,
+          coverPage: {
+            title: exportTitle,
+          },
+        }, defaultFilename);
+      }
+    };
+
+    window.addEventListener('export-folder-to-pdf', handleExportFolder);
+    return () => {
+      window.removeEventListener('export-folder-to-pdf', handleExportFolder);
+    };
+  }, [exportFolder]);
+
+  // Listen for menu:export-folder-pdf events from File menu
+  useEffect(() => {
+    const handleExportFolderFromMenu = async () => {
+      // Get the active folder
+      const { folders, activeFolderId } = useFoldersStore.getState();
+      const activeFolder = activeFolderId ? folders.find(f => f.id === activeFolderId) : undefined;
+
+      if (!activeFolder) {
+        setToast({
+          message: 'No folder is open. Please open a folder first.',
+          type: 'warning',
+        });
+        return;
+      }
+
+      // Generate default filename and prepare export options
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+
+      if (activeFolder.type === 'repository') {
+        // For repository folders, export the whole repo
+        const repoName = activeFolder.repositoryMetadata?.name || activeFolder.displayName?.replace(/\s*\([^)]+\)\s*$/, '') || 'repo';
+        const branch = activeFolder.currentBranch || 'main';
+        const defaultFilename = `${repoName}-${dateStr}-${branch}.pdf`;
+
+        // Extract git info from the repository folder
+        const gitInfo = {
+          repoUrl: activeFolder.repositoryUrl,
+          repoName: activeFolder.repositoryMetadata?.owner && activeFolder.repositoryMetadata?.name
+            ? `${activeFolder.repositoryMetadata.owner}/${activeFolder.repositoryMetadata.name}`
+            : activeFolder.displayName?.replace(/\s*\([^)]+\)\s*$/, ''),
+          branch: activeFolder.currentBranch,
+        };
+
+        // Determine provider from URL
+        const isAzure = activeFolder.repositoryUrl?.includes('dev.azure.com') ||
+                        activeFolder.repositoryUrl?.includes('visualstudio.com');
+        const provider = isAzure ? 'azure' : 'github';
+
+        // Build repository info for the export service
+        const repositoryInfo = {
+          repositoryId: activeFolder.repositoryId!,
+          branch,
+          provider: provider as 'github' | 'azure',
+          owner: activeFolder.repositoryMetadata?.owner,
+          name: activeFolder.repositoryMetadata?.name,
+        };
+
+        // Use repository root path (virtual path '/')
+        await exportFolder('/', {
+          gitInfo,
+          repositoryInfo,
+          coverPage: {
+            title: gitInfo.repoName || repoName,
+          },
+        }, defaultFilename);
+      } else {
+        // For local folders
+        const rootFolderName = activeFolder.path.split(/[/\\]/).pop() || 'folder';
+        const defaultFilename = `${rootFolderName}-${dateStr}.pdf`;
+
+        await exportFolder(activeFolder.path, undefined, defaultFilename);
+      }
+    };
+
+    window.addEventListener('menu:export-folder-pdf', handleExportFolderFromMenu);
+    return () => {
+      window.removeEventListener('menu:export-folder-pdf', handleExportFolderFromMenu);
+    };
+  }, [exportFolder, setToast]);
+
+  // T077: Listen for export-file-to-pdf events from file tree context menu
+  useEffect(() => {
+    const handleExportFile = async (e: Event) => {
+      const { filePath } = (e as CustomEvent).detail;
+      if (filePath) {
+        await exportFile(filePath);
+      }
+    };
+
+    window.addEventListener('export-file-to-pdf', handleExportFile);
+    return () => {
+      window.removeEventListener('export-file-to-pdf', handleExportFile);
+    };
+  }, [exportFile]);
+
+  // T042-T043: Listen for diagram:open-tab events to open diagrams in dedicated tabs
+  useEffect(() => {
+    const handleOpenDiagramTab = (e: Event) => {
+      const { svgContent, mermaidCode, heading } = (e as CustomEvent).detail;
+      if (!svgContent) return;
+
+      // Generate a unique tab ID for this diagram
+      const diagramTabId = `diagram-${Date.now()}`;
+
+      // Store diagram data
+      diagramDataRef.current.set(diagramTabId, { svgContent, mermaidCode });
+
+      // Create a new tab for the diagram
+      const { addTab } = useTabsStore.getState();
+      addTab({
+        id: diagramTabId,
+        filePath: `diagram://${diagramTabId}`,
+        title: heading || 'Diagram',
+        scrollPosition: 0,
+        zoomLevel: 100,
+        searchState: null,
+        modificationTimestamp: Date.now(),
+        isDirty: false,
+        renderCache: null,
+        navigationHistory: [],
+        currentHistoryIndex: -1,
+        forwardHistory: [],
+        createdAt: Date.now(),
+        folderId: null,
+        isDirectFile: true,
+      });
+    };
+
+    window.addEventListener('diagram:open-tab', handleOpenDiagramTab);
+    return () => {
+      window.removeEventListener('diagram:open-tab', handleOpenDiagramTab);
     };
   }, []);
 
@@ -1079,7 +1604,7 @@ const AppLayout: React.FC = () => {
         console.log('Command palette not implemented yet');
       },
       onOpenSettings: () => {
-        console.log('Settings not implemented yet');
+        setShowSettings(true);
       },
       onShowShortcuts: () => {
         setShowShortcuts(true);
@@ -1237,12 +1762,66 @@ const AppLayout: React.FC = () => {
       setGlobalZoom(zoom);
     };
 
+    // Handler for Refresh menu command (F5)
+    const handleMenuRefresh = async () => {
+      console.log('[AppLayout] Refresh triggered');
+
+      // 1. Refresh current file content if a file is open
+      const { activeTabId, tabs, invalidateTabCache } = useTabsStore.getState();
+      const activeTab = activeTabId ? tabs.get(activeTabId) : null;
+
+      if (activeTab?.filePath) {
+        try {
+          // Check if it's a git repository file or local file
+          const folder = useFoldersStore.getState().folders.find(f => f.id === activeTab.folderId);
+
+          if (folder?.type === 'repository') {
+            // Refresh git file
+            const result = await window.git?.repo?.fetchFile({
+              repositoryId: folder.repositoryId!,
+              filePath: activeTab.filePath,
+              branch: folder.currentBranch!,
+            });
+
+            if (result?.success && result.data) {
+              setCurrentContent(result.data.content);
+              contentCacheRef.current.set(activeTab.filePath, result.data.content);
+              invalidateTabCache(activeTabId!);
+              console.log('[AppLayout] Git file refreshed:', activeTab.filePath);
+            }
+          } else {
+            // Refresh local file
+            const result = await window.electronAPI?.file?.read({ filePath: activeTab.filePath });
+
+            if (result?.success && result.content) {
+              setCurrentContent(result.content);
+              contentCacheRef.current.set(activeTab.filePath, result.content);
+              invalidateTabCache(activeTabId!);
+              console.log('[AppLayout] Local file refreshed:', activeTab.filePath);
+            }
+          }
+        } catch (err) {
+          console.error('[AppLayout] Error refreshing file:', err);
+        }
+      }
+
+      // 2. Dispatch event for folder tree to refresh
+      window.dispatchEvent(new CustomEvent('refresh-folder-tree'));
+
+      // 3. Show toast notification
+      setToast({
+        message: 'Refreshed',
+        type: 'info',
+      });
+    };
+
     // Register event listeners for menu commands
     window.addEventListener('menu:open-file', handleMenuOpenFile);
     window.addEventListener('menu:open-folder', handleMenuOpenFolder);
     window.addEventListener('menu:close-current', handleMenuCloseCurrent);
     window.addEventListener('menu:close-folder', handleMenuCloseFolder);
     window.addEventListener('menu:close-all', handleMenuCloseAll);
+    window.addEventListener('menu:refresh', handleMenuRefresh);
 
     // T051k-view: Register zoom menu event listeners
     window.electronAPI?.on('menu:content-zoom-in', handleContentZoomIn);
@@ -1261,6 +1840,7 @@ const AppLayout: React.FC = () => {
       window.removeEventListener('menu:close-current', handleMenuCloseCurrent);
       window.removeEventListener('menu:close-folder', handleMenuCloseFolder);
       window.removeEventListener('menu:close-all', handleMenuCloseAll);
+      window.removeEventListener('menu:refresh', handleMenuRefresh);
     };
   }, [activeFolderId]);
 
@@ -1786,6 +2366,13 @@ const AppLayout: React.FC = () => {
       },
     });
 
+    // Register refresh shortcuts (F5, Ctrl+Shift+R)
+    registerRefreshShortcuts({
+      onRefresh: () => {
+        window.dispatchEvent(new CustomEvent('menu:refresh'));
+      },
+    });
+
     // Listen for navigate-to-history events (for Home navigation)
     window.addEventListener('navigate-to-history', handleNavigateToHistory);
     // Listen for directory listing events
@@ -1905,6 +2492,7 @@ const AppLayout: React.FC = () => {
       unregisterFileShortcuts();
       unregisterHelpShortcuts();
       unregisterSearchShortcuts();
+      unregisterRefreshShortcuts();
       window.removeEventListener('mouseup', handleMouseButtons);
       window.removeEventListener('navigate-to-history', handleNavigateToHistory);
       window.removeEventListener('show-directory-listing', handleShowDirectoryListing);
@@ -2173,41 +2761,72 @@ const AppLayout: React.FC = () => {
 
       // Get the folder tree to find the first markdown file
       // Limit depth to 5 levels to prevent hanging on large directories
+      // Get enabled exclusion patterns as folder names
+      const excludedFolders = folderExclusionPatterns
+        .filter((p) => p.isEnabled)
+        .map((p) => p.pattern);
+
       const result = await window.electronAPI?.file?.getFolderTree({
         folderPath,
         includeHidden: false,
         maxDepth: 5,
+        excludedFolders,
       });
 
       if (result?.success && result.tree) {
-        // Find the first markdown file using breadth-first search
-        // This checks root folder first, then first-level subfolders, etc.
-        const findFirstMarkdownFile = (rootNode: any): string | null => {
-          const queue = [rootNode];
+        // Get default files settings for priority-based file opening
+        const { settings } = useSettingsStore.getState();
+        const defaultFilesToOpen = settings.behavior.defaultFilesToOpen;
 
-          while (queue.length > 0) {
-            const levelSize = queue.length;
+        // Extract root-level markdown files from the tree (filter out undefined names)
+        const rootFiles = (result.tree.children || [])
+          .filter((node: any) => node.type === ItemType.FILE && node.name && /\.(md|markdown)$/i.test(node.name))
+          .map((node: any) => ({ name: node.name as string, path: node.path as string }));
 
-            // Process all nodes at current level before going deeper
-            for (let i = 0; i < levelSize; i++) {
-              const node = queue.shift()!;
+        // Try to find a matching default file using priority list (case-insensitive)
+        const matchedFilename = findDefaultFile(
+          rootFiles.map((f: { name: string }) => f.name),
+          defaultFilesToOpen
+        );
 
-              // Check if this node is a markdown file
-              if (node.type === ItemType.FILE && /\.(md|markdown)$/i.test(node.name)) {
-                return node.path;
-              }
+        let firstFilePath: string | null = null;
+        if (matchedFilename) {
+          // Found a priority match in root
+          const matchedFile = rootFiles.find(
+            (f: { name: string; path: string }) => f.name.toLowerCase() === matchedFilename.toLowerCase()
+          );
+          firstFilePath = matchedFile?.path || null;
+        }
 
-              // Add children to queue for next level
-              if (node.children) {
-                queue.push(...node.children);
+        // Fallback: If no priority match, use BFS for first markdown file
+        if (!firstFilePath) {
+          const findFirstMarkdownFile = (rootNode: any): string | null => {
+            const queue = [rootNode];
+
+            while (queue.length > 0) {
+              const levelSize = queue.length;
+
+              // Process all nodes at current level before going deeper
+              for (let i = 0; i < levelSize; i++) {
+                const node = queue.shift()!;
+
+                // Check if this node is a markdown file
+                if (node.type === ItemType.FILE && /\.(md|markdown)$/i.test(node.name)) {
+                  return node.path;
+                }
+
+                // Add children to queue for next level
+                if (node.children) {
+                  queue.push(...node.children);
+                }
               }
             }
-          }
 
-          return null;
-        };
+            return null;
+          };
 
-        const firstFilePath = findFirstMarkdownFile(result.tree);
+          firstFilePath = findFirstMarkdownFile(result.tree);
+        }
         const { tabs, addTab } = useTabsStore.getState();
 
         if (firstFilePath) {
@@ -2315,9 +2934,27 @@ const AppLayout: React.FC = () => {
             setActiveTab(newTab.id);
           }
 
-          // Set empty content with a message
+          // Set content based on whether folder is truly empty or just has no markdown files
           setCurrentFile(overviewPath);
-          setCurrentContent(`# ${folderName}\n\n*This folder contains no markdown files.*\n\nCreate a markdown file to get started.`);
+
+          // Check if folder has any subfolders (directories)
+          const hasSubfolders = (result.tree.children || []).some(
+            (node: any) => node.type === 'directory'
+          );
+
+          // Check if folder has any files at all (not just markdown)
+          const hasAnyFiles = (result.tree.children || []).length > 0;
+
+          if (!hasAnyFiles) {
+            // Truly empty folder
+            setCurrentContent(`# ${folderName}\n\n*This folder is empty.*\n\nAdd files to get started.`);
+          } else if (hasSubfolders) {
+            // Has subfolders but no markdown files in root or subfolders
+            setCurrentContent(`# ${folderName}\n\n*This folder contains no markdown files.*\n\nCreate a markdown file to get started.`);
+          } else {
+            // Has files but no markdown files
+            setCurrentContent(`# ${folderName}\n\n*This folder contains no markdown files.*\n\nCreate a markdown file to get started.`);
+          }
           setError(null);
         }
       }
@@ -2382,6 +3019,11 @@ const AppLayout: React.FC = () => {
     // Skip loading if content was manually set (e.g., from link click)
     if (contentLoadedManually.current) {
       contentLoadedManually.current = false;
+      return;
+    }
+
+    // Skip loading for virtual paths (e.g., diagram:// tabs handled by DiagramTabView)
+    if (currentFile.startsWith('diagram://')) {
       return;
     }
 
@@ -2886,7 +3528,15 @@ const AppLayout: React.FC = () => {
           </div>
         )}
 
-        <div className="main-content">
+        <div className="main-content" ref={mainContentRef} onContextMenu={(e) => {
+          // T054: Show copy context menu on right-click when text is selected
+          const selectionService = getTextSelectionService();
+          if (selectionService.hasSelection(mainContentRef.current || undefined)) {
+            e.preventDefault();
+            setContextMenuPosition({ x: e.clientX, y: e.clientY });
+            setShowCopyContextMenu(true);
+          }
+        }}>
         {/* T060, T063a-T063o: TabBar with enhanced features - only show if there are tabs */}
         {hasTabs && (
           <TabBar
@@ -3004,21 +3654,13 @@ const AppLayout: React.FC = () => {
                       console.error('[AppLayout] Failed to track repository branch in recents:', error);
                     }
                   } else {
-                    // Branch opening failed - remove from recents, favorites, and connection history
-                    try {
-                      const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                      await removeRecent(pathWithBranch, ItemType.REPO);
-                      await removeFavorite(pathWithBranch, ItemType.REPO);
-                      removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-                      console.log('[AppLayout] Removed unavailable repository branch from recents/favorites/history');
-                    } catch (removeError) {
-                      console.error('[AppLayout] Failed to remove unavailable repository branch:', removeError);
-                    }
-
-                    // Show error toast
-                    setToast({
-                      message: `This branch has been removed. Failed to load repository branch.`,
-                      type: 'error',
+                    // Branch opening failed - show confirmation dialog instead of auto-removing
+                    setRepoRemoveConfirm({
+                      show: true,
+                      url: connectedRepository.url,
+                      branch: connectedRepository.currentBranch,
+                      displayName: connectedRepository.displayName,
+                      errorMessage: 'Failed to load repository branch',
                     });
                   }
 
@@ -3086,33 +3728,60 @@ const AppLayout: React.FC = () => {
                   });
 
                   if (treeResult?.success && treeResult.data?.tree) {
-                    // Find the first markdown file using breadth-first search
-                    const findFirstMarkdownFile = (nodes: any[]): string | null => {
-                      const queue = [...nodes];
+                    // Get default files settings for priority-based file opening
+                    const { settings } = useSettingsStore.getState();
+                    const defaultFilesToOpen = settings.behavior.defaultFilesToOpen;
 
-                      while (queue.length > 0) {
-                        const levelSize = queue.length;
+                    // Extract root-level markdown files from the tree
+                    // Root files are those without '/' in the path (at repository root)
+                    const rootFiles = treeResult.data.tree
+                      .filter((node: any) => node.type === ItemType.FILE && node.isMarkdown && !node.path.includes('/'))
+                      .map((node: any) => ({ name: node.path.split('/').pop() || node.path, path: node.path }));
 
-                        // Process all nodes at current level before going deeper
-                        for (let i = 0; i < levelSize; i++) {
-                          const node = queue.shift()!;
+                    // Try to find a matching default file using priority list (case-insensitive)
+                    const matchedFilename = findDefaultFile(
+                      rootFiles.map((f: { name: string }) => f.name),
+                      defaultFilesToOpen
+                    );
 
-                          // Check if this node is a markdown file
-                          if (node.type === ItemType.FILE && node.isMarkdown) {
-                            return node.path;
-                          }
+                    let firstFilePath: string | null = null;
+                    if (matchedFilename) {
+                      // Found a priority match in root
+                      const matchedFile = rootFiles.find(
+                        (f: { name: string; path: string }) => f.name.toLowerCase() === matchedFilename.toLowerCase()
+                      );
+                      firstFilePath = matchedFile?.path || null;
+                    }
 
-                          // Add children to queue for next level
-                          if (node.children) {
-                            queue.push(...node.children);
+                    // Fallback: If no priority match, use BFS for first markdown file
+                    if (!firstFilePath) {
+                      const findFirstMarkdownFile = (nodes: any[]): string | null => {
+                        const queue = [...nodes];
+
+                        while (queue.length > 0) {
+                          const levelSize = queue.length;
+
+                          // Process all nodes at current level before going deeper
+                          for (let i = 0; i < levelSize; i++) {
+                            const node = queue.shift()!;
+
+                            // Check if this node is a markdown file
+                            if (node.type === ItemType.FILE && node.isMarkdown) {
+                              return node.path;
+                            }
+
+                            // Add children to queue for next level
+                            if (node.children) {
+                              queue.push(...node.children);
+                            }
                           }
                         }
-                      }
 
-                      return null;
-                    };
+                        return null;
+                      };
 
-                    const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+                      firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+                    }
 
                     console.log('[AppLayout] Home onRepositoryConnected - First markdown file:', firstFilePath);
 
@@ -3224,26 +3893,18 @@ const AppLayout: React.FC = () => {
                   } else {
                     console.warn('[AppLayout] Home onRepositoryConnected - Tree fetch failed or no data:', treeResult?.error);
 
-                    // Tree fetch failed - clean up the failed connection
+                    // Tree fetch failed - clean up the folder but ask user about removal from recents
                     const { removeFolder } = useFoldersStore.getState();
                     removeFolder(repoFolder.id);
 
-                    // Remove from recents, favorites, and connection history
-                    try {
-                      const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                      await removeRecent(pathWithBranch, ItemType.REPO);
-                      await removeFavorite(pathWithBranch, ItemType.REPO);
-                      removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-                      console.log('[AppLayout] Home onRepositoryConnected - Removed unavailable repository from recents/favorites/history');
-                    } catch (removeError) {
-                      console.error('[AppLayout] Home onRepositoryConnected - Failed to remove unavailable repository:', removeError);
-                    }
-
-                    // Show error toast
+                    // Show confirmation dialog instead of auto-removing
                     const errorMsg = treeResult?.error?.message || 'Failed to load repository';
-                    setToast({
-                      message: `This branch has been removed. ${errorMsg}`,
-                      type: 'error',
+                    setRepoRemoveConfirm({
+                      show: true,
+                      url: connectedRepository.url,
+                      branch: connectedRepository.currentBranch,
+                      displayName: connectedRepository.displayName,
+                      errorMessage: errorMsg,
                     });
 
                     return; // Don't show success toast
@@ -3251,25 +3912,18 @@ const AppLayout: React.FC = () => {
                 } catch (err) {
                   console.error('[AppLayout] Home onRepositoryConnected - Error loading first repository file:', err);
 
-                  // Clean up on error
+                  // Clean up the folder but ask user about removal from recents
                   const { removeFolder } = useFoldersStore.getState();
                   removeFolder(repoFolder.id);
 
-                  // Remove from recents, favorites, and connection history
-                  try {
-                    const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                    await removeRecent(pathWithBranch, ItemType.REPO);
-                    await removeFavorite(pathWithBranch, ItemType.REPO);
-                    removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-                    console.log('[AppLayout] Home onRepositoryConnected - Removed unavailable repository from recents/favorites/history');
-                  } catch (removeError) {
-                    console.error('[AppLayout] Home onRepositoryConnected - Failed to remove unavailable repository:', removeError);
-                  }
-
-                  // Show error toast
-                  setToast({
-                    message: `This branch has been removed. ${err instanceof Error ? err.message : 'Unknown error'}`,
-                    type: 'error',
+                  // Show confirmation dialog instead of auto-removing
+                  const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+                  setRepoRemoveConfirm({
+                    show: true,
+                    url: connectedRepository.url,
+                    branch: connectedRepository.currentBranch,
+                    displayName: connectedRepository.displayName,
+                    errorMessage: errorMsg,
                   });
 
                   return; // Don't show success toast
@@ -3280,6 +3934,11 @@ const AppLayout: React.FC = () => {
                   type: 'success',
                 });
               }}
+            />
+          ) : currentFile?.startsWith('diagram://') ? (
+            <DiagramTabView
+              svgContent={diagramDataRef.current.get(activeTabId || '')?.svgContent || ''}
+              mermaidCode={diagramDataRef.current.get(activeTabId || '')?.mermaidCode || ''}
             />
           ) : (
             <MarkdownViewer
@@ -3377,6 +4036,12 @@ const AppLayout: React.FC = () => {
       <About
         isOpen={showAbout}
         onClose={() => setShowAbout(false)}
+      />
+
+      {/* Settings Window */}
+      <SettingsWindow
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
       />
 
       {/* Repository Connect Dialog */}
@@ -3477,21 +4142,13 @@ const AppLayout: React.FC = () => {
             } else {
               console.error('[AppLayout] Failed to open repository branch via openRepositoryBranch');
 
-              // Branch opening failed - remove from recents, favorites, and connection history
-              try {
-                const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                await removeRecent(pathWithBranch, ItemType.REPO);
-                await removeFavorite(pathWithBranch, ItemType.REPO);
-                removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-                console.log('[AppLayout] Removed unavailable repository branch from recents/favorites/history');
-              } catch (removeError) {
-                console.error('[AppLayout] Failed to remove unavailable repository branch:', removeError);
-              }
-
-              // Show error toast
-              setToast({
-                message: `This branch has been removed. Failed to load repository branch.`,
-                type: 'error',
+              // Branch opening failed - show confirmation dialog instead of auto-removing
+              setRepoRemoveConfirm({
+                show: true,
+                url: connectedRepository.url,
+                branch: connectedRepository.currentBranch,
+                displayName: connectedRepository.displayName,
+                errorMessage: 'Failed to load repository branch',
               });
             }
 
@@ -3561,33 +4218,60 @@ const AppLayout: React.FC = () => {
             });
 
             if (treeResult?.success && treeResult.data?.tree) {
-              // Find the first markdown file using breadth-first search
-              const findFirstMarkdownFile = (nodes: any[]): string | null => {
-                const queue = [...nodes];
+              // Get default files settings for priority-based file opening
+              const { settings } = useSettingsStore.getState();
+              const defaultFilesToOpen = settings.behavior.defaultFilesToOpen;
 
-                while (queue.length > 0) {
-                  const levelSize = queue.length;
+              // Extract root-level markdown files from the tree
+              // Root files are those without '/' in the path (at repository root)
+              const rootFiles = treeResult.data.tree
+                .filter((node: any) => node.type === ItemType.FILE && node.isMarkdown && !node.path.includes('/'))
+                .map((node: any) => ({ name: node.path.split('/').pop() || node.path, path: node.path }));
 
-                  // Process all nodes at current level before going deeper
-                  for (let i = 0; i < levelSize; i++) {
-                    const node = queue.shift()!;
+              // Try to find a matching default file using priority list (case-insensitive)
+              const matchedFilename = findDefaultFile(
+                rootFiles.map((f: { name: string }) => f.name),
+                defaultFilesToOpen
+              );
 
-                    // Check if this node is a markdown file
-                    if (node.type === ItemType.FILE && node.isMarkdown) {
-                      return node.path;
-                    }
+              let firstFilePath: string | null = null;
+              if (matchedFilename) {
+                // Found a priority match in root
+                const matchedFile = rootFiles.find(
+                  (f: { name: string; path: string }) => f.name.toLowerCase() === matchedFilename.toLowerCase()
+                );
+                firstFilePath = matchedFile?.path || null;
+              }
 
-                    // Add children to queue for next level
-                    if (node.children) {
-                      queue.push(...node.children);
+              // Fallback: If no priority match, use BFS for first markdown file
+              if (!firstFilePath) {
+                const findFirstMarkdownFile = (nodes: any[]): string | null => {
+                  const queue = [...nodes];
+
+                  while (queue.length > 0) {
+                    const levelSize = queue.length;
+
+                    // Process all nodes at current level before going deeper
+                    for (let i = 0; i < levelSize; i++) {
+                      const node = queue.shift()!;
+
+                      // Check if this node is a markdown file
+                      if (node.type === ItemType.FILE && node.isMarkdown) {
+                        return node.path;
+                      }
+
+                      // Add children to queue for next level
+                      if (node.children) {
+                        queue.push(...node.children);
+                      }
                     }
                   }
-                }
 
-                return null;
-              };
+                  return null;
+                };
 
-              const firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+                firstFilePath = findFirstMarkdownFile(treeResult.data.tree);
+              }
 
               console.log('[AppLayout] onConnected - First markdown file:', firstFilePath);
 
@@ -3699,26 +4383,18 @@ const AppLayout: React.FC = () => {
             } else {
               console.warn('[AppLayout] onConnected - Tree fetch failed or no data:', treeResult?.error);
 
-              // Tree fetch failed - clean up the failed connection
+              // Tree fetch failed - clean up the folder but ask user about removal from recents
               const { removeFolder } = useFoldersStore.getState();
               removeFolder(repoFolder.id);
 
-              // Remove from recents, favorites, and connection history
-              try {
-                const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-                await removeRecent(pathWithBranch, ItemType.REPO);
-                await removeFavorite(pathWithBranch, ItemType.REPO);
-                removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-                console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
-              } catch (removeError) {
-                console.error('[AppLayout] Failed to remove unavailable repository:', removeError);
-              }
-
-              // Show error toast
+              // Show confirmation dialog instead of auto-removing
               const errorMsg = treeResult?.error?.message || 'Failed to load repository';
-              setToast({
-                message: `This branch has been removed. ${errorMsg}`,
-                type: 'error',
+              setRepoRemoveConfirm({
+                show: true,
+                url: connectedRepository.url,
+                branch: connectedRepository.currentBranch,
+                displayName: connectedRepository.displayName,
+                errorMessage: errorMsg,
               });
 
               return; // Don't show success toast
@@ -3726,25 +4402,18 @@ const AppLayout: React.FC = () => {
           } catch (err) {
             console.error('[AppLayout] Error loading first repository file:', err);
 
-            // Clean up on error
+            // Clean up the folder but ask user about removal from recents
             const { removeFolder } = useFoldersStore.getState();
             removeFolder(repoFolder.id);
 
-            // Remove from recents, favorites, and connection history
-            try {
-              const pathWithBranch = `${connectedRepository.url}#${connectedRepository.currentBranch}`;
-              await removeRecent(pathWithBranch, ItemType.REPO);
-              await removeFavorite(pathWithBranch, ItemType.REPO);
-              removeFromConnectionHistory(connectedRepository.url, connectedRepository.currentBranch);
-              console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
-            } catch (removeError) {
-              console.error('[AppLayout] Failed to remove unavailable repository:', removeError);
-            }
-
-            // Show error toast
-            setToast({
-              message: `This branch has been removed. ${err instanceof Error ? err.message : 'Unknown error'}`,
-              type: 'error',
+            // Show confirmation dialog instead of auto-removing
+            const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+            setRepoRemoveConfirm({
+              show: true,
+              url: connectedRepository.url,
+              branch: connectedRepository.currentBranch,
+              displayName: connectedRepository.displayName,
+              errorMessage: errorMsg,
             });
 
             return; // Don't show success toast
@@ -3757,6 +4426,70 @@ const AppLayout: React.FC = () => {
           });
         }}
       />
+
+      {/* T050: Copy Format Picker (Ctrl+Shift+C) */}
+      <CopyFormatPicker
+        isOpen={showFormatPicker}
+        position={pickerPosition}
+        onSelect={copyAs}
+        onClose={closeFormatPicker}
+      />
+
+      {/* T054: Copy Context Menu (right-click on selected text) */}
+      <CopyContextMenu
+        isOpen={showCopyContextMenu}
+        position={contextMenuPosition}
+        onSelect={(format) => {
+          copyAs(format);
+          setShowCopyContextMenu(false);
+        }}
+        onClose={() => setShowCopyContextMenu(false)}
+      />
+
+      {/* T017: Export Progress Dialog */}
+      <ExportProgressDialog
+        visible={showExportProgress}
+        progress={exportProgress}
+        status={exportStatus}
+        onCancel={cancelExport}
+        onClose={dismissExportProgress}
+        onOpenFile={openExportedFile}
+      />
+
+      {/* T022: Export Error Dialog */}
+      {showExportError && exportError && (
+        <ErrorDialog
+          error={exportError}
+          title="Export Failed"
+          onRetry={retryExport}
+          onViewLogs={viewExportLogs}
+          onClose={dismissExportError}
+        />
+      )}
+
+      {/* Confirmation dialog for removing failed repository branch from recents */}
+      {repoRemoveConfirm?.show && (
+        <ConfirmDialog
+          title="Repository Branch Not Accessible"
+          message={`Cannot open "${repoRemoveConfirm.displayName}" (${repoRemoveConfirm.branch}).\n\n${repoRemoveConfirm.errorMessage}\n\nWould you like to remove it from your recent items?`}
+          confirmLabel="Remove from Recents"
+          cancelLabel="Keep"
+          variant="warning"
+          onConfirm={async () => {
+            try {
+              const pathWithBranch = `${repoRemoveConfirm.url}#${repoRemoveConfirm.branch}`;
+              await removeRecent(pathWithBranch, ItemType.REPO);
+              await removeFavorite(pathWithBranch, ItemType.REPO);
+              removeFromConnectionHistory(repoRemoveConfirm.url, repoRemoveConfirm.branch);
+              console.log('[AppLayout] Removed unavailable repository from recents/favorites/history');
+            } catch (removeError) {
+              console.error('[AppLayout] Failed to remove unavailable repository:', removeError);
+            }
+            setRepoRemoveConfirm(null);
+          }}
+          onCancel={() => setRepoRemoveConfirm(null)}
+        />
+      )}
     </div>
   );
 };

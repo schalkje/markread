@@ -181,6 +181,13 @@
   background: var(--scrollbar-thumb-hover, #afb8c1);
 }
 
+/* Panel divider for separating sections within a tab */
+.settings-panel-divider {
+  height: 1px;
+  background: var(--border-color, #d0d7de);
+  margin: 32px 0;
+}
+
 /* Footer */
 .settings-window__footer {
   display: flex;

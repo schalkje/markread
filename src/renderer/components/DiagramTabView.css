@@ -1,0 +1,57 @@
+/**
+ * DiagramTabView Styles
+ * Task: T044
+ */
+
+.diagram-tab-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-bg-primary, #ffffff);
+}
+
+
+.diagram-tab-view__canvas {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.diagram-tab-view__canvas--panning {
+  cursor: grabbing;
+}
+
+.diagram-tab-view__content {
+  transition: transform 0.1s ease-out;
+  will-change: transform;
+}
+
+.diagram-tab-view__content svg {
+  display: block;
+  max-width: none;
+  max-height: none;
+}
+
+/* Mermaid edge labels - override default purple background */
+.diagram-tab-view__content .edgeLabel rect.background {
+  fill: var(--color-bg-primary, #ffffff);
+  fill-opacity: 0.8;
+}
+
+.diagram-tab-view__content .edgeLabel text {
+  fill: #24292f !important;
+}
+
+[data-theme="dark"] .diagram-tab-view__content .edgeLabel rect.background {
+  fill: var(--color-bg-primary, #0d1117);
+}
+
+[data-theme="dark"] .diagram-tab-view__content .edgeLabel text {
+  fill: #e6edf3 !important;
+}
+
+/* Dark theme - no custom vars needed, uses --color-bg-primary from theme */

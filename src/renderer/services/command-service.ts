@@ -274,7 +274,7 @@ export function registerFileCommands(callbacks: {
     id: 'file.openFolder',
     label: 'Open Folder',
     category: CC.File,
-    defaultShortcut: 'Ctrl+K Ctrl+O',
+    defaultShortcut: 'Ctrl+Shift+O',
     whenClause: null,
     handler: callbacks.onOpenFolder,
     description: 'Open a folder containing markdown files',
@@ -327,7 +327,7 @@ export function registerFileCommands(callbacks: {
     id: 'file.revealInExplorer',
     label: 'Reveal in File Explorer',
     category: CC.File,
-    defaultShortcut: 'Ctrl+Shift+R',
+    defaultShortcut: 'Ctrl+Alt+R',
     whenClause: 'hasActiveTab',
     handler: callbacks.onRevealInExplorer,
     description: 'Show file in Windows Explorer',
@@ -336,13 +336,14 @@ export function registerFileCommands(callbacks: {
 
   commandService.register({
     id: 'file.reload',
-    label: 'Reload File',
+    label: 'Refresh',
     category: CC.File,
-    defaultShortcut: 'Ctrl+R',
-    whenClause: 'hasActiveTab',
+    defaultShortcut: 'F5 / Ctrl+Shift+R',
+    whenClause: null,
     handler: callbacks.onReload,
-    description: 'Reload the current file from disk',
+    description: 'Refresh current page and folder view',
     icon: 'refresh',
+    aliases: ['reload', 'refresh'],
   });
 }
 
@@ -354,6 +355,8 @@ export function registerNavigationCommands(callbacks: {
   onNextTab: () => void;
   onPreviousTab: () => void;
   onJumpToTab: (index: number) => void;
+  onMoveTabLeft?: () => void;
+  onMoveTabRight?: () => void;
   onNavigateBack: () => void;
   onNavigateForward: () => void;
   onGoToLine: () => void;
@@ -384,6 +387,31 @@ export function registerNavigationCommands(callbacks: {
     handler: callbacks.onPreviousTab,
     description: 'Switch to previous tab',
   });
+
+  // Move tabs
+  if (callbacks.onMoveTabLeft) {
+    commandService.register({
+      id: 'tabs.moveLeft',
+      label: 'Move Tab Left',
+      category: CC.Tabs,
+      defaultShortcut: 'Ctrl+Shift+ArrowLeft',
+      whenClause: 'hasActiveTab',
+      handler: callbacks.onMoveTabLeft,
+      description: 'Move current tab to the left',
+    });
+  }
+
+  if (callbacks.onMoveTabRight) {
+    commandService.register({
+      id: 'tabs.moveRight',
+      label: 'Move Tab Right',
+      category: CC.Tabs,
+      defaultShortcut: 'Ctrl+Shift+ArrowRight',
+      whenClause: 'hasActiveTab',
+      handler: callbacks.onMoveTabRight,
+      description: 'Move current tab to the right',
+    });
+  }
 
   // Jump to specific tabs
   for (let i = 1; i <= 9; i++) {
@@ -423,24 +451,24 @@ export function registerNavigationCommands(callbacks: {
 
   // Document navigation
   commandService.register({
-    id: 'navigation.goToLine',
-    label: 'Go to Line',
+    id: 'navigation.goToHeading',
+    label: 'Table of Contents',
     category: CC.Navigation,
     defaultShortcut: 'Ctrl+G',
     whenClause: 'hasActiveTab',
-    handler: callbacks.onGoToLine,
-    description: 'Jump to a specific line number',
+    handler: callbacks.onGoToHeading,
+    description: 'Jump to a heading in the document',
+    aliases: ['outline', 'toc', 'table of contents', 'go to heading'],
   });
 
   commandService.register({
-    id: 'navigation.goToHeading',
-    label: 'Go to Heading',
+    id: 'navigation.goToLine',
+    label: 'Go to Line',
     category: CC.Navigation,
-    defaultShortcut: 'Ctrl+Shift+O',
+    defaultShortcut: null,
     whenClause: 'hasActiveTab',
-    handler: callbacks.onGoToHeading,
-    description: 'Jump to a heading in the document',
-    aliases: ['outline', 'toc', 'table of contents'],
+    handler: callbacks.onGoToLine,
+    description: 'Jump to a specific line number',
   });
 
   // Pane management
@@ -504,32 +532,35 @@ export function registerViewCommands(callbacks: {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
+  onGlobalZoomIn?: () => void;
+  onGlobalZoomOut?: () => void;
+  onGlobalZoomReset?: () => void;
   onToggleSidebar: () => void;
   onToggleFileTree: () => void;
   onToggleTableOfContents: () => void;
   onChangeTheme: () => void;
   onToggleFullScreen: () => void;
 }): void {
-  // Zoom
+  // Document Zoom
   commandService.register({
     id: 'view.zoomIn',
-    label: 'Zoom In',
+    label: 'Document Zoom In',
     category: CC.View,
-    defaultShortcut: 'Ctrl+Plus',
+    defaultShortcut: 'Ctrl++ / Ctrl+=',
     whenClause: null,
     handler: callbacks.onZoomIn,
-    description: 'Increase zoom level',
+    description: 'Increase document zoom level',
     icon: 'zoom-in',
   });
 
   commandService.register({
     id: 'view.zoomOut',
-    label: 'Zoom Out',
+    label: 'Document Zoom Out',
     category: CC.View,
     defaultShortcut: 'Ctrl+Minus',
     whenClause: null,
     handler: callbacks.onZoomOut,
-    description: 'Decrease zoom level',
+    description: 'Decrease document zoom level',
     icon: 'zoom-out',
   });
 
@@ -540,8 +571,45 @@ export function registerViewCommands(callbacks: {
     defaultShortcut: 'Ctrl+0',
     whenClause: null,
     handler: callbacks.onZoomReset,
-    description: 'Reset zoom to 100%',
+    description: 'Reset document zoom to 100%',
   });
+
+  // Application zoom
+  if (callbacks.onGlobalZoomIn) {
+    commandService.register({
+      id: 'view.globalZoomIn',
+      label: 'Application Zoom In',
+      category: CC.View,
+      defaultShortcut: 'Ctrl+Alt++ / Ctrl+Alt+=',
+      whenClause: null,
+      handler: callbacks.onGlobalZoomIn,
+      description: 'Increase application zoom level',
+    });
+  }
+
+  if (callbacks.onGlobalZoomOut) {
+    commandService.register({
+      id: 'view.globalZoomOut',
+      label: 'Application Zoom Out',
+      category: CC.View,
+      defaultShortcut: 'Ctrl+Alt+Minus',
+      whenClause: null,
+      handler: callbacks.onGlobalZoomOut,
+      description: 'Decrease application zoom level',
+    });
+  }
+
+  if (callbacks.onGlobalZoomReset) {
+    commandService.register({
+      id: 'view.globalZoomReset',
+      label: 'Reset Application Zoom',
+      category: CC.View,
+      defaultShortcut: 'Ctrl+Alt+0',
+      whenClause: null,
+      handler: callbacks.onGlobalZoomReset,
+      description: 'Reset application zoom to 100%',
+    });
+  }
 
   // UI toggles
   commandService.register({
@@ -626,7 +694,7 @@ export function registerSearchCommands(callbacks: {
     id: 'search.findNext',
     label: 'Find Next',
     category: CC.Search,
-    defaultShortcut: 'F3',
+    defaultShortcut: 'F3 / Enter',
     whenClause: 'hasActiveTab',
     handler: callbacks.onFindNext,
     description: 'Go to next search result',
@@ -636,7 +704,7 @@ export function registerSearchCommands(callbacks: {
     id: 'search.findPrevious',
     label: 'Find Previous',
     category: CC.Search,
-    defaultShortcut: 'Shift+F3',
+    defaultShortcut: 'Shift+F3 / Shift+Enter',
     whenClause: 'hasActiveTab',
     handler: callbacks.onFindPrevious,
     description: 'Go to previous search result',

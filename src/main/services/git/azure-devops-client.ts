@@ -240,10 +240,8 @@ export class AzureDevOpsClient {
       }>(itemsUrl, {
         params: {
           recursionLevel: 'Full',
-          versionDescriptor: JSON.stringify({
-            versionType: 'commit',
-            version: commitId,
-          }),
+          'versionDescriptor.versionType': 'commit',
+          'versionDescriptor.version': commitId,
           'api-version': '7.0',
         },
       });

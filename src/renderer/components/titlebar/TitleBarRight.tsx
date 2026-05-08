@@ -60,6 +60,12 @@ export const TitleBarRight: React.FC = () => {
     window.dispatchEvent(new CustomEvent('menu:export-pdf'));
   };
 
+  // Refresh button handler
+  const handleRefreshClick = () => {
+    // Dispatch event to trigger refresh of current page and folder view
+    window.dispatchEvent(new CustomEvent('menu:refresh'));
+  };
+
   // Document zoom handlers (content zoom)
   const handleZoomIn = () => {
     if (!activeTabId) return;
@@ -134,6 +140,16 @@ export const TitleBarRight: React.FC = () => {
         {isDarkTheme ? '☀️' : '🌙'}
       </button>
 
+      {/* Refresh button */}
+      <button
+        className="title-bar__button title-bar__icon-button"
+        onClick={handleRefreshClick}
+        title="Refresh (F5)"
+        type="button"
+      >
+        🔄
+      </button>
+
       {/* Search button - only visible when there's an active document */}
       {activeTabId && (
         <button
@@ -206,6 +222,7 @@ export const TitleBarRight: React.FC = () => {
               <div className="title-bar__zoom-menu-divider"></div>
               <div className="title-bar__zoom-menu-section">
                 <button type="button" onClick={handleZoomReset}>Reset to 100%</button>
+                <button type="button" onClick={() => { window.dispatchEvent(new CustomEvent('zoom:fit')); setShowZoomMenu(false); }}>Fit</button>
               </div>
             </div>
           )}

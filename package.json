@@ -1,6 +1,6 @@
 {
   "name": "markread",
-  "version": "0.6.1",
+  "version": "0.7.4",
   "description": "Electron-based markdown viewer",
   "main": "./out/main/index.js",
   "author": "MarkRead",
@@ -33,6 +33,7 @@
     "electron-updater": "^6.7.3",
     "highlight.js": "^11.11.1",
     "highlightjs-copy": "^1.0.6",
+    "html2canvas": "^1.4.1",
     "isomorphic-dompurify": "^2.16.0",
     "markdown-it": "^14.1.0",
     "markdown-it-container": "^4.0.0",
@@ -49,6 +50,7 @@
   "devDependencies": {
     "@playwright/test": "^1.49.0",
     "@types/dompurify": "^3.0.5",
+    "@types/html2canvas": "^0.5.35",
     "@types/markdown-it": "^14.1.2",
     "@types/react": "18.3.27",
     "@types/react-dom": "18.3.7",

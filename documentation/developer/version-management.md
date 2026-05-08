@@ -186,7 +186,7 @@ Beyond version, `Directory.Build.props` also centralizes:
 
 - **Product name** (`<Product>MarkRead</Product>`)
 - **Company** (`<Company>schalken.net</Company>`)
-- **Copyright** (`<Copyright>Copyright © 2025 schalken.net</Copyright>`)
+- **Copyright** (`<Copyright>Copyright © 2026 schalken.net</Copyright>`)
 - **Authors** (`<Authors>schalkje</Authors>`)
 - **Repository info** (`<RepositoryUrl>`, `<RepositoryType>`)
 - **License** (`<PackageLicenseExpression>MIT</PackageLicenseExpression>`)

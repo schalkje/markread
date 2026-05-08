@@ -11,6 +11,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFoldersStore } from '../../stores/folders';
+import { useSettingsStore } from '../../stores/settings';
 import type { TreeNode } from '../../../shared/types/repository';
 import { FileTreeContextMenu } from './FileTreeContextMenu';
 import './FileTree.css';
@@ -191,6 +192,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const updateFileTreeState = useFoldersStore(
     (state) => state.updateFileTreeState
   );
+  const folderExclusionPatterns = useSettingsStore(
+    (state) => state.settings.behavior.folderExclusionPatterns
+  );
 
   console.log('[FileTree] Component rendered/mounted:', {
     folderId,
@@ -270,10 +274,16 @@ export const FileTree: React.FC<FileTreeProps> = ({
         } else {
           // Load local folder tree from file system
           // Limit depth to prevent hanging on very deep directory structures
+          // Get enabled exclusion patterns as folder names
+          const excludedFolders = folderExclusionPatterns
+            .filter((p) => p.isEnabled)
+            .map((p) => p.pattern);
+
           const result = await window.electronAPI?.file?.getFolderTree({
             folderPath: folder.path,
             includeHidden: false,
             maxDepth: 20,
+            excludedFolders,
           });
 
           if (!result?.success || !result.tree) {
@@ -312,7 +322,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
       setExpandedDirs(new Set(folder.fileTreeState.expandedDirectories));
     }
     setSelectedPath(folder.fileTreeState.selectedPath);
-  }, [folder]);
+  }, [folder, folderExclusionPatterns]);
 
   // T110: Listen for file change events and update tree incrementally
   useEffect(() => {
@@ -359,6 +369,81 @@ export const FileTree: React.FC<FileTreeProps> = ({
       window.removeEventListener('file:changed', handleFileChanged as EventListener);
     };
   }, [folder]);
+
+  // Listen for refresh-folder-tree events to force a full tree reload
+  useEffect(() => {
+    if (!folder) return;
+
+    const handleRefreshTree = async () => {
+      console.log('[FileTree] Refresh tree triggered for folder:', folder.path);
+
+      try {
+        let treeWithDepth: FileTreeNode[] = [];
+
+        if (folder.type === 'repository') {
+          // Reload repository file tree from Git API
+          const result = await window.git?.repo?.fetchTree({
+            repositoryId: folder.repositoryId!,
+            branch: folder.currentBranch!,
+            markdownOnly: true,
+          });
+
+          if (result?.success && result.data) {
+            // Convert Git TreeNode to FileTreeNode with depth
+            const convertGitNode = (node: TreeNode, depth: number = 0): FileTreeNode => ({
+              name: node.path.split('/').pop() || node.path,
+              path: node.path,
+              type: node.type === 'directory' ? 'directory' : 'file',
+              depth,
+              children: node.children?.map((child) => convertGitNode(child, depth + 1)),
+            });
+
+            treeWithDepth = result.data.tree.map((node: TreeNode) => convertGitNode(node, 0));
+          }
+        } else {
+          // Reload local folder tree from file system
+          const excludedFolders = folderExclusionPatterns
+            .filter((p) => p.isEnabled)
+            .map((p) => p.pattern);
+
+          const result = await window.electronAPI?.file?.getFolderTree({
+            folderPath: folder.path,
+            includeHidden: false,
+            maxDepth: 20,
+            excludedFolders,
+          });
+
+          if (result?.success && result.tree) {
+            // Convert the tree structure to include depth for rendering
+            const addDepth = (node: any, depth: number = 0): FileTreeNode => ({
+              name: node.name,
+              path: node.path,
+              type: node.type,
+              depth,
+              children: node.children?.map((child: any) => addDepth(child, depth + 1)),
+            });
+
+            treeWithDepth = result.tree.children?.map((child: any) =>
+              addDepth(child, 0)
+            ) || [];
+          }
+        }
+
+        // Sort tree: files first, then folders, both alphabetically
+        const sortedTree = sortTreeNodes(treeWithDepth);
+        setTreeData(sortedTree);
+        console.log('[FileTree] Tree refreshed successfully');
+      } catch (error) {
+        console.error('[FileTree] Error refreshing tree:', error);
+      }
+    };
+
+    window.addEventListener('refresh-folder-tree', handleRefreshTree);
+
+    return () => {
+      window.removeEventListener('refresh-folder-tree', handleRefreshTree);
+    };
+  }, [folder, folderExclusionPatterns]);
 
   // Handle reveal file path - expand parents and scroll into view
   useEffect(() => {
@@ -511,6 +596,20 @@ export const FileTree: React.FC<FileTreeProps> = ({
     }));
   };
 
+  // T077: Export file to PDF from context menu
+  const handleContextMenuExportToPdf = (filePath: string) => {
+    window.dispatchEvent(new CustomEvent('export-file-to-pdf', {
+      detail: { filePath }
+    }));
+  };
+
+  // T072: Export folder to PDF from context menu
+  const handleContextMenuExportFolderToPdf = (folderPath: string) => {
+    window.dispatchEvent(new CustomEvent('export-folder-to-pdf', {
+      detail: { folderPath }
+    }));
+  };
+
   // Flatten tree for rendering (needed for virtualization)
   const flattenedNodes = useMemo(() => {
     const result: Array<FileTreeNode & { isExpanded: boolean }> = [];
@@ -586,6 +685,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
           onOpenInNewWindow={handleContextMenuOpenInNewWindow}
           onViewFolder={handleContextMenuViewFolder}
           onOpenAsNewFolder={handleContextMenuOpenAsNewFolder}
+          onExportToPdf={handleContextMenuExportToPdf}
+          onExportFolderToPdf={handleContextMenuExportFolderToPdf}
           onHide={() => setContextMenu(null)}
         />
       )}
