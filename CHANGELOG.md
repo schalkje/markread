@@ -11,6 +11,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bookmarks
 - Split screen and multiple windows
 
+## [0.8.0] - 2026-05-08
+
+### Added
+- End‑to‑end **export and copy functionality** for files, folders, and diagrams.
+- **PDF export** with cover page, headers/footers, table of contents, section separators, and styling options.
+- **Folder export** with priority files, default file handling, subfolder paths, git repository metadata, and configurable exclusions.
+- **Multi-format clipboard support** (plain text, HTML, markdown, images).
+- Export of **Mermaid diagrams** as PNG or SVG, with improved interaction (copy/save, hover actions).
+- New **Export Settings panels** for styling, default files, folder exclusions, and export behavior.
+- Confirmation dialogs for destructive or risky actions.
+- Keyboard shortcuts for refresh and improved navigation.
+- Fullscreen toggle with menu integration.
+- Support for deep links in markdown viewer.
+- Developer documentation: feature specs, implementation plan, quality checklist, and quickstart guide.
+
+### Changed
+- Significantly improved **export UX** with progress tracking, stage indicators, and detailed status messages.
+- Enhanced Mermaid styling for better PDF rendering and improved SVG readability.
+- Improved folder export sorting, link handling, path normalization, and document limits.
+- Refactored export pipeline and related code for better readability and maintainability.
+- Enhanced changelog processing and UI to better support minor version series.
+
+### Fixed
+- Single‑file PDF export now reliably renders content, cover page, and headers.
+- Inline local images as base64 data URIs to improve PDF export security.
+- Improved handling of broken links with footnote generation and styling.
+- Path separator issues affecting relative paths in folder export.
+- Azure DevOps version descriptor formatting issues.
+- Various UI, linting, and documentation issues.
+
+### Technical
+- Introduced centralized export state management via Zustand.
+- Added dedicated services for export, clipboard, diagram capture, and text selection.
+- Improved error handling across export, rendering, and clipboard workflows.
+
 ## [0.7.4] - 2026-01-30
 
 ### Fixes
