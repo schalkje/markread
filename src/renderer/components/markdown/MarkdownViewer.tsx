@@ -16,7 +16,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { renderMarkdownDocument, renderMermaidDiagrams, applySyntaxHighlighting } from '../../services/markdown-renderer';
 import { CustomScrollbar, ScrollbarMarker } from '../scrollbar/CustomScrollbar';
 import { extractHeadingMarkers } from '../../utils/marker-extractor';
-import { syncHeadingIds, extractHeadingsFromDom, findHeadingElement, elementTopInContainer } from '../../utils/heading-dom'; // Issue #25
+import { syncHeadingIds, findHeadingElement, elementTopInContainer } from '../../utils/heading-dom'; // Issue #25
+import type { OutlineHeading } from '@shared/utils/outline'; // Issue #25
 import { useOutlineStore } from '../../stores/outline'; // Issue #25: outline panel
 import { useSettingsStore } from '../../stores/settings'; // Issue #25: scroll behaviour for anchors
 import { useSearchStore } from '../../stores/search'; // T014: Import search store
@@ -179,8 +180,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
   // Issue #25: bumped after every completed render so the outline re-reads the active buffer
   const [renderVersion, setRenderVersion] = useState(0);
-  // Issue #25: which file each buffer currently holds
+  // Issue #25: which file and headings each buffer currently holds
   const bufferFilePathRef = useRef<{ A: string | null; B: string | null }>({ A: null, B: null });
+  const bufferHeadingsRef = useRef<{ A: OutlineHeading[]; B: OutlineHeading[] }>({ A: [], B: [] });
 
   // Start transition when navigating to a new page or opening first file
   // Use useLayoutEffect to ensure this runs before the render effect
@@ -820,7 +822,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
         // Issue #25: make sure every rendered heading has a unique id (DOMPurify may
         // drop clobbering ids like "title"; raw HTML headings never got one)
-        syncHeadingIds(targetContentElement);
+        bufferHeadingsRef.current[targetBuffer] = syncHeadingIds(targetContentElement);
         bufferFilePathRef.current[targetBuffer] = filePath || null;
 
         // Step 3: Render Mermaid diagrams
@@ -932,11 +934,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // and never reads the hidden buffer.
   useEffect(() => {
     const bufferElement = (activeBuffer === 'A' ? bufferARef : bufferBRef).current;
-    const contentElement = (activeBuffer === 'A' ? contentARef : contentBRef).current;
-    if (!bufferElement || !contentElement) return;
+    if (!bufferElement) return;
 
     useOutlineStore.getState().setDocument({
-      headings: extractHeadingsFromDom(contentElement),
+      headings: bufferHeadingsRef.current[activeBuffer],
       scrollContainer: bufferElement,
       filePath: bufferFilePathRef.current[activeBuffer],
     });

@@ -6,9 +6,14 @@ import { describe, it, expect } from 'vitest';
 import { computeActivationLine, isScrolledToBottom, resolveActiveIndex } from '../../../src/shared/utils/scrollspy';
 
 describe('computeActivationLine', () => {
-  it('sits at 30% of the viewport, capped at 160px', () => {
-    expect(computeActivationLine(400)).toBe(120);
-    expect(computeActivationLine(2000)).toBe(160);
+  it('sits at 12% of the viewport, capped at 48px', () => {
+    expect(computeActivationLine(300)).toBe(36);
+    expect(computeActivationLine(2000)).toBe(48);
+  });
+
+  it('stays below the gap between a clicked heading and the heading right after it', () => {
+    // 12px navigate offset + ~20px h6 line + 24px collapsed margin
+    expect(computeActivationLine(10000)).toBeLessThan(56);
   });
 });
 

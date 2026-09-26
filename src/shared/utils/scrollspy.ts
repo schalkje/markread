@@ -9,9 +9,15 @@
  *   active even if it can never reach the line
  */
 
-/** Fraction of the viewport height the activation line sits at, capped in px */
-const ACTIVATION_FRACTION = 0.3;
-const ACTIVATION_MAX_PX = 160;
+/**
+ * Fraction of the viewport height the activation line sits at, capped in px.
+ * The cap must stay below the distance between two adjacent headings after a
+ * click (12px offset + heading height + 24px collapsed margin, ~56px for h6),
+ * otherwise the child of a clicked heading steals the highlight once the
+ * click lock releases.
+ */
+const ACTIVATION_FRACTION = 0.12;
+const ACTIVATION_MAX_PX = 48;
 /** Tolerance for rounding in scroll metrics */
 const BOTTOM_TOLERANCE_PX = 2;
 /** Small tolerance so a heading scrolled exactly onto the line counts as crossed */

@@ -79,7 +79,8 @@ export const OutlinePanel: React.FC<OutlinePanelProps> = ({ variant, tabId, onCl
   const isFiltering = filter.trim().length > 0;
   const rows = useMemo(() => flattenOutlineTree(filteredTree, collapsed, isFiltering), [filteredTree, collapsed, isFiltering]);
 
-  const { activeId, lock } = useScrollSpy(scrollContainer, headings, headings.length > 0);
+  const documentVersion = useOutlineStore((s) => s.documentVersion);
+  const { activeId, lock } = useScrollSpy(scrollContainer, headings, headings.length > 0, documentVersion);
 
   // Ctrl+G / "Go to heading": focus the filter box
   useEffect(() => {
@@ -217,7 +218,10 @@ export const OutlinePanel: React.FC<OutlinePanelProps> = ({ variant, tabId, onCl
         focusRow(focusedId && rows.some((r) => r.node.id === focusedId) ? focusedId : rows[0].node.id);
       } else if (event.key === 'Enter' && rows.length > 0) {
         event.preventDefault();
-        navigateToHeading(rows[0].node.id);
+        // While filtering, rows also contain ancestors kept for context: go to the first real match
+        const query = filter.trim().toLowerCase();
+        const target = query ? rows.find((r) => r.node.text.toLowerCase().includes(query)) ?? rows[0] : rows[0];
+        navigateToHeading(target.node.id);
       }
     },
     [filter, setFilter, rows, focusRow, focusedId, navigateToHeading]

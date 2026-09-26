@@ -25,6 +25,9 @@ export interface OutlineDocument {
 }
 
 interface OutlineState extends OutlineDocument {
+  /** Bumped on every publish, including in-place re-renders with unchanged headings */
+  documentVersion: number;
+
   // Persisted (UIState)
   showOutline: boolean;
   outlineWidth: number;
@@ -60,6 +63,8 @@ interface OutlineState extends OutlineDocument {
   toggleCollapsed: (tabId: string, headingId: string) => void;
   collapseAll: (tabId: string, headingIds: string[]) => void;
   expandAll: (tabId: string) => void;
+  /** Drop collapse state of tabs that are no longer open */
+  pruneCollapsed: (openTabIds: string[]) => void;
 }
 
 export function clampOutlineWidth(width: number): number {
@@ -84,6 +89,7 @@ export const useOutlineStore = create<OutlineState>((set, get) => ({
   headings: [],
   scrollContainer: null,
   filePath: null,
+  documentVersion: 0,
 
   showOutline: false,
   outlineWidth: OUTLINE_DEFAULT_WIDTH,
@@ -102,8 +108,28 @@ export const useOutlineStore = create<OutlineState>((set, get) => ({
       current.filePath === filePath &&
       current.headings.length === headings.length &&
       current.headings.every((h, i) => h.id === headings[i].id && h.level === headings[i].level && h.text === headings[i].text);
-    if (sameHeadings) return;
-    set({ headings, scrollContainer, filePath });
+    // The DOM may have been re-rendered in place (auto-reload with unchanged headings), so the
+    // version always moves even when the heading list is reused; scrollspy re-resolves elements on it.
+    if (sameHeadings) {
+      set({ documentVersion: current.documentVersion + 1 });
+      return;
+    }
+    set({ headings, scrollContainer, filePath, documentVersion: current.documentVersion + 1 });
+  },
+
+  pruneCollapsed: (openTabIds) => {
+    set((state) => {
+      const open = new Set(openTabIds);
+      let changed = false;
+      const next = new Map(state.collapsedByTab);
+      for (const tabId of next.keys()) {
+        if (!open.has(tabId)) {
+          next.delete(tabId);
+          changed = true;
+        }
+      }
+      return changed ? { collapsedByTab: next } : state;
+    });
   },
 
   clearDocument: () => {

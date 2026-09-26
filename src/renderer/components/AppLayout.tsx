@@ -689,13 +689,25 @@ const AppLayout: React.FC = () => {
     // depth (like every other persisted setting) have to apply at startup.
     useSettingsStore.getState().loadSettings();
 
+    // A left-docked outline lives inside the sidebar, so showing it must also reveal the sidebar
+    const showOutlinePanel = () => {
+      useOutlineStore.getState().setShowOutline(true);
+      if ((useSettingsStore.getState().settings.appearance.outlinePosition ?? 'right') === 'left') {
+        setShowSidebar(true);
+      }
+    };
     const handleToggleOutline = () => {
-      useOutlineStore.getState().toggleOutline();
+      if (useOutlineStore.getState().showOutline) {
+        useOutlineStore.getState().setShowOutline(false);
+      } else {
+        showOutlinePanel();
+      }
     };
     const handleFocusOutlineFilter = () => {
-      const outline = useOutlineStore.getState();
-      outline.setShowOutline(true);
-      outline.requestFocusFilter();
+      // Same gate as the command (hasActiveTab) and the View menu item
+      if (!useTabsStore.getState().activeTabId) return;
+      showOutlinePanel();
+      useOutlineStore.getState().requestFocusFilter();
     };
     const handleToggleOutlinePosition = () => {
       const { settings, updateAppearance, saveSettings } = useSettingsStore.getState();
@@ -737,6 +749,11 @@ const AppLayout: React.FC = () => {
       unregisterOutlineShortcuts();
     };
   }, []);
+
+  // Issue #25: forget per-tab outline collapse state once a tab is closed
+  useEffect(() => {
+    useOutlineStore.getState().pruneCollapsed(Array.from(tabs.keys()));
+  }, [tabs]);
 
   // Listen for toggle-sidebar events from TitleBar
   useEffect(() => {

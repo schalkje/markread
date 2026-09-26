@@ -23,7 +23,17 @@ export interface ScrollSpy {
   lock: (id: string) => void;
 }
 
-export function useScrollSpy(container: HTMLElement | null, headings: OutlineHeading[], enabled: boolean): ScrollSpy {
+/**
+ * @param version bumped by the outline store on every publish; forces the heading
+ *   elements to be re-resolved after an in-place re-render (auto-reload) that
+ *   replaced the DOM without changing the heading list
+ */
+export function useScrollSpy(
+  container: HTMLElement | null,
+  headings: OutlineHeading[],
+  enabled: boolean,
+  version = 0
+): ScrollSpy {
   const [activeId, setActiveIdState] = useState<string | null>(null);
   const activeIdRef = useRef<string | null>(null);
   const elementsRef = useRef<(HTMLElement | null)[]>([]);
@@ -54,7 +64,7 @@ export function useScrollSpy(container: HTMLElement | null, headings: OutlineHea
       return;
     }
     elementsRef.current = headings.map((h) => findHeadingElement(container, h.id));
-  }, [container, headings, clearLock, setActiveId]);
+  }, [container, headings, version, clearLock, setActiveId]); // `version` re-runs the resolution after in-place re-renders
 
   const measure = useCallback(() => {
     rafRef.current = null;
