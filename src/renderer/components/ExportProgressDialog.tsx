@@ -15,6 +15,8 @@ export interface ExportProgressDialogProps {
   onCancel?: () => void;
   onClose: () => void;
   onOpenFile?: () => void;
+  /** Reveal the exported file in the OS file manager; only rendered when the export completed */
+  onOpenFolder?: () => void;
 }
 
 export const ExportProgressDialog: React.FC<ExportProgressDialogProps> = ({
@@ -24,6 +26,7 @@ export const ExportProgressDialog: React.FC<ExportProgressDialogProps> = ({
   onCancel,
   onClose,
   onOpenFile,
+  onOpenFolder,
 }) => {
   if (!visible) return null;
 
@@ -136,6 +139,16 @@ export const ExportProgressDialog: React.FC<ExportProgressDialogProps> = ({
               onClick={onOpenFile}
             >
               Open File
+            </button>
+          )}
+          {isComplete && onOpenFolder && (
+            <button
+              type="button"
+              className="export-progress__button export-progress__button--folder"
+              onClick={onOpenFolder}
+              title="Show the PDF in the file manager"
+            >
+              Open Folder
             </button>
           )}
           {isFinished && (

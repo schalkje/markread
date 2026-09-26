@@ -9,6 +9,7 @@ import { registerGitHandlers } from './ipc/git-handlers';
 import { registerRecentsFavoritesHandlers } from './ipc/recents-favorites-handlers';
 import { registerSearchHandlers } from './ipc/search-handlers';
 import { registerSettingsHandlers } from './ipc/settings-handlers';
+import { resolveLinkPath } from './services/path-resolver';
 
 // T011: IPC handler registration system with Zod validation (research.md Section 6)
 
@@ -112,76 +113,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
       console.log('[resolvePath] Input:', { basePath, relativePath });
 
-      // Import path and fs modules
-      const path = await import('path');
-      const fs = await import('fs/promises');
+      // Issue #23: markdown-it percent-encodes hrefs ("My%20File.md"), so the
+      // resolver decodes before resolving (falling back to the raw value) and
+      // maps directories to README.md or a listing. See path-resolver.ts.
+      const result = await resolveLinkPath(basePath, relativePath);
 
-      // Resolve relative path based on the directory of basePath
-      const baseDir = path.dirname(basePath);
-      console.log('[resolvePath] Base directory:', baseDir);
-
-      const absolutePath = path.resolve(baseDir, relativePath);
-      console.log('[resolvePath] Resolved absolute path:', absolutePath);
-
-      // Sanitize path to prevent directory traversal attacks (T032)
-      // Ensure the resolved path is safe and normalize it
-      const normalizedAbsolute = path.normalize(absolutePath);
-      console.log('[resolvePath] Normalized path:', normalizedAbsolute);
-
-      // Additional security: prevent path traversal outside allowed areas
-      // This is a basic check - in production, you might want stricter validation
-      if (normalizedAbsolute.includes('..')) {
-        return {
-          success: false,
-          error: 'Path traversal detected - relative paths with ".." are not allowed',
-        };
-      }
-
-      // Check if path exists and what type it is
-      let exists = false;
-      let isDirectory = false;
-      try {
-        const stats = await fs.stat(normalizedAbsolute);
-        exists = true;
-        isDirectory = stats.isDirectory();
-      } catch {
-        exists = false;
-      }
-
-      console.log('[resolvePath] Path info:', { exists, isDirectory });
-
-      // If it's a directory, try to find README.md
-      if (exists && isDirectory) {
-        const readmePath = path.join(normalizedAbsolute, 'README.md');
-        try {
-          await fs.access(readmePath);
-          console.log('[resolvePath] Found README.md in directory');
-          return {
-            success: true,
-            absolutePath: readmePath,
-            exists: true,
-            isDirectory: false,
-          };
-        } catch {
-          // No README.md, return directory info for dynamic listing
-          console.log('[resolvePath] No README.md, returning directory for listing');
-          return {
-            success: true,
-            absolutePath: normalizedAbsolute,
-            exists: true,
-            isDirectory: true,
-          };
-        }
-      }
-
-      console.log('[resolvePath] Returning:', { success: true, absolutePath: normalizedAbsolute, exists, isDirectory });
-
-      return {
-        success: true,
-        absolutePath: normalizedAbsolute,
-        exists,
-        isDirectory,
-      };
+      console.log('[resolvePath] Returning:', result);
+      return result;
     } catch (error: any) {
       console.error('[resolvePath] Error:', error.message);
       return {

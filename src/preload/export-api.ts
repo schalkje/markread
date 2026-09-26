@@ -66,6 +66,9 @@ export interface ExportAPI {
   // Open exported file
   openExportedFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
 
+  // Reveal exported file in the OS file manager (Explorer / Finder)
+  revealExportedFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+
   // Logs
   getLogs: (limit?: number) => Promise<{ success: boolean; logs?: any[]; error?: string }>;
   openLogsFolder: () => Promise<{ success: boolean; error?: string }>;
@@ -92,6 +95,7 @@ export function exposeExportAPI(): void {
     getSettings: () => ipcRenderer.invoke('export:settings:get'),
     updateSettings: (settings) => ipcRenderer.invoke('export:settings:update', { settings }),
     openExportedFile: (filePath) => ipcRenderer.invoke('export:open-file', { filePath }),
+    revealExportedFile: (filePath) => ipcRenderer.invoke('export:reveal-in-folder', { filePath }),
     getLogs: (limit) => ipcRenderer.invoke('export:logs:get', { limit }),
     openLogsFolder: () => ipcRenderer.invoke('export:logs:open-folder'),
     onProgress: (callback) => {

@@ -1,0 +1,27 @@
+/**
+ * Export Panel Styles
+ * Only the parts not covered by SettingsPanel.css / FolderExclusionPanel.css
+ */
+
+.export-exclusions__presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.export-exclusions__presets .settings-hint {
+  margin: 0;
+}
+
+.export-exclusions__preset {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.export-exclusions__preset:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

@@ -34,6 +34,10 @@ const CancelExportSchema = z.object({
   jobId: z.string().min(1),
 });
 
+const RevealInFolderSchema = z.object({
+  filePath: z.string().min(1),
+});
+
 // PDF styling options schema
 const PdfStylingSchema = z.object({
   coverPage: z.object({
@@ -95,6 +99,12 @@ const UpdateSettingsSchema = z.object({
     printBackground: z.boolean().optional(),
     defaultOutputDirectory: z.string().optional(),
     includeSubfoldersDefault: z.boolean().optional(),
+    exportExclusions: z.array(z.object({
+      id: z.string().min(1),
+      pattern: z.string().min(1),
+      isEnabled: z.boolean(),
+      description: z.string().optional(),
+    })).optional(),
     pdfStyling: PdfStylingSchema,
   }),
 });
@@ -327,6 +337,12 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
       if (appSettings.behavior.defaultFilesToOpen) {
         folderOptions.defaultFilesToOpen = appSettings.behavior.defaultFilesToOpen;
       }
+      // Folder export skips the union of the browsing folder exclusions and
+      // the export-only exclusions (issue #23)
+      if (appSettings.behavior.folderExclusionPatterns) {
+        folderOptions.browsingExclusions = appSettings.behavior.folderExclusionPatterns;
+      }
+      folderOptions.exportExclusions = settings.exportExclusions ?? [];
       // Pass repository info for git repository exports
       if (options?.repositoryInfo) {
         folderOptions.repositoryInfo = options.repositoryInfo;
@@ -429,6 +445,21 @@ export function registerExportHandlers(mainWindow: BrowserWindow): void {
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };
+    }
+  });
+
+  // export:reveal-in-folder - Reveal exported file in the OS file manager
+  // (Explorer / Finder) with the file selected. Issue #23.
+  ipcMain.handle('export:reveal-in-folder', async (_event, payload) => {
+    try {
+      const { filePath } = RevealInFolderSchema.parse(payload);
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: `File not found: ${filePath}` };
+      }
+      shell.showItemInFolder(filePath);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to reveal file' };
     }
   });
 

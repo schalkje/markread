@@ -19,8 +19,21 @@ const DEFAULT_SETTINGS: ExportSettings = {
   printBackground: true,
   includeSubfoldersDefault: true,
   recentExports: [],
+  exportExclusions: [],
   pdfStyling: DEFAULT_PDF_STYLING,
 };
+
+/**
+ * Overlay stored settings on the defaults so keys added in later versions
+ * (e.g. exportExclusions) are always present.
+ */
+function withDefaults(stored: Partial<ExportSettings> | undefined): ExportSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...stored,
+    pdfStyling: mergePdfStyling(stored?.pdfStyling, DEFAULT_PDF_STYLING),
+  };
+}
 
 /**
  * Deep merge PDF styling options with defaults
@@ -77,7 +90,7 @@ export class ExportSettingsStore {
     if (!this.store) {
       return DEFAULT_SETTINGS;
     }
-    return this.store.get('export.settings', DEFAULT_SETTINGS);
+    return withDefaults(this.store.get('export.settings', DEFAULT_SETTINGS));
   }
 
   /**
@@ -85,7 +98,7 @@ export class ExportSettingsStore {
    */
   async getSettingsAsync(): Promise<ExportSettings> {
     const store = await this.getStore();
-    return store.get('export.settings', DEFAULT_SETTINGS);
+    return withDefaults(store.get('export.settings', DEFAULT_SETTINGS));
   }
 
   /**
@@ -93,7 +106,7 @@ export class ExportSettingsStore {
    */
   async updateSettings(partial: Partial<ExportSettings>): Promise<void> {
     const store = await this.getStore();
-    const current = store.get('export.settings', DEFAULT_SETTINGS);
+    const current = withDefaults(store.get('export.settings', DEFAULT_SETTINGS));
     const updated: ExportSettings = {
       ...current,
       ...partial,

@@ -28,6 +28,7 @@ interface UseExportResult {
   retryExport: () => Promise<void>;
   viewLogs: () => Promise<void>;
   openExportedFile: () => Promise<void>;
+  revealExportedFile: () => Promise<void>;
 }
 
 export function useExport(): UseExportResult {
@@ -300,6 +301,20 @@ export function useExport(): UseExportResult {
     }
   }, [destination]);
 
+  // Issue #23: reveal the exported PDF in Explorer / Finder
+  const revealExportedFile = useCallback(async (): Promise<void> => {
+    if (destination) {
+      try {
+        const result = await window.exportApi?.revealExportedFile(destination);
+        if (result && !result.success) {
+          console.error('Failed to reveal exported file:', result.error);
+        }
+      } catch (error) {
+        console.error('Failed to reveal exported file:', error);
+      }
+    }
+  }, [destination]);
+
   return {
     isExporting: store.showProgressDialog,
     showProgressDialog: store.showProgressDialog,
@@ -317,6 +332,7 @@ export function useExport(): UseExportResult {
     retryExport,
     viewLogs,
     openExportedFile,
+    revealExportedFile,
   };
 }
 

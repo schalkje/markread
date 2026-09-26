@@ -48,6 +48,7 @@ import { SettingsWindow } from './settings/SettingsWindow';
 import { ErrorDialog } from './ErrorDialog'; // T022: Import ErrorDialog
 import { ConfirmDialog } from './common/ConfirmDialog'; // Confirmation for removing failed repos
 import { ExportProgressDialog } from './ExportProgressDialog'; // T017: Import ExportProgressDialog
+import { generateDirectoryListingMarkdown } from '@shared/utils/directory-listing'; // Issue #23
 import { DiagramTabView } from './DiagramTabView'; // T039: Import DiagramTabView
 import { CopyFormatPicker } from './CopyFormatPicker'; // T050: Import CopyFormatPicker
 import { CopyContextMenu } from './CopyContextMenu'; // T054: Import CopyContextMenu
@@ -171,6 +172,8 @@ const AppLayout: React.FC = () => {
     retryExport,
     viewLogs: viewExportLogs,
     openExportedFile,
+    revealExportedFile,
+    destination: exportDestination,
   } = useExport();
 
   // Ref to track if content was manually set (to avoid double-loading)
@@ -2437,30 +2440,17 @@ const AppLayout: React.FC = () => {
         });
 
         if (listingResult?.success && listingResult.items) {
-          // Generate markdown content for directory listing
+          // Generate markdown content for directory listing (issue #23: link
+          // destinations are percent-encoded so names with spaces stay clickable)
           const dirName = folderPath.split(/[/\\]/).pop() || 'Directory';
-          let markdown = `# ${dirName}\n\n`;
-
-          // Add directories
-          const directories = listingResult.items.filter((item: any) => item.isDirectory);
-          if (directories.length > 0) {
-            markdown += '## Folders\n\n';
-            directories.forEach((item: any) => {
-              const label = item.title || item.name;
-              markdown += `- [${label}/](${item.name}/)\n`;
-            });
-            markdown += '\n';
-          }
-
-          // Add files
-          const files = listingResult.items.filter((item: any) => !item.isDirectory);
-          if (files.length > 0) {
-            markdown += '## Files\n\n';
-            files.forEach((item: any) => {
-              const label = item.title || item.name;
-              markdown += `- [${label}](${item.name})\n`;
-            });
-          }
+          const markdown = generateDirectoryListingMarkdown({
+            dirName,
+            items: listingResult.items.map((item: any) => ({
+              name: item.name,
+              title: item.title,
+              isDirectory: !!item.isDirectory,
+            })),
+          });
 
           // Create virtual file path for directory index
           const virtualFilePath = `${folderPath}/[Directory Index]`;
@@ -4454,6 +4444,7 @@ const AppLayout: React.FC = () => {
         onCancel={cancelExport}
         onClose={dismissExportProgress}
         onOpenFile={openExportedFile}
+        onOpenFolder={exportDestination ? revealExportedFile : undefined}
       />
 
       {/* T022: Export Error Dialog */}
