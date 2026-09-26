@@ -3,7 +3,7 @@
  * Defines interfaces for PDF export operations, progress tracking, and error handling
  */
 
-import type { DefaultFileEntry } from './entities';
+import type { DefaultFileEntry, FolderExclusionPattern } from './entities';
 
 export type ExportJobType = 'single-pdf' | 'folder-pdf';
 export type ExportJobStatus = 'pending' | 'in-progress' | 'completed' | 'failed' | 'cancelled';
@@ -66,6 +66,16 @@ export interface FolderExportOptions extends ExportOptions {
   pdfStyling?: PdfStylingOptions;
   /** Default files configuration for priority ordering in export */
   defaultFilesToOpen?: DefaultFileEntry[];
+  /**
+   * The user's browsing folder exclusions. Folder export skips these folders
+   * as well as the export-only exclusions (union). Defaults to the built-in list.
+   */
+  browsingExclusions?: FolderExclusionPattern[];
+  /**
+   * Export-only exclusions (file and folder names). Defaults to
+   * ExportSettings.exportExclusions. Ignored by single-file export.
+   */
+  exportExclusions?: ExclusionPattern[];
   /** Repository info for exporting from git repositories (GitHub/Azure DevOps) */
   repositoryInfo?: {
     /** Internal repository ID */
@@ -155,6 +165,18 @@ export interface TOCEntry {
   children: TOCEntry[];
 }
 
+/**
+ * A file or folder name pattern excluded from folder/repository exports only.
+ * Same shape as FolderExclusionPattern; matched case-insensitively with
+ * simple globs (`CLAUDE.md`, `*.agent.md`, `.github`).
+ */
+export interface ExclusionPattern {
+  id: string;
+  pattern: string;
+  isEnabled: boolean;
+  description?: string;
+}
+
 export interface ExportSettings {
   defaultPageSize: PageSize;
   defaultMargins: { top: number; bottom: number; left: number; right: number };
@@ -162,6 +184,11 @@ export interface ExportSettings {
   defaultOutputDirectory?: string;
   includeSubfoldersDefault: boolean;
   recentExports: RecentExport[];
+  /**
+   * Files and folders left out of folder/repository exports while staying
+   * visible in the viewer. Empty by default.
+   */
+  exportExclusions: ExclusionPattern[];
   /** Default PDF styling options */
   pdfStyling: PdfStylingOptions;
 }

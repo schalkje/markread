@@ -6,9 +6,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import type { ExportSettings, PdfStylingOptions } from '../../../shared/types/export';
+import type { ExportSettings, PdfStylingOptions, ExclusionPattern } from '../../../shared/types/export';
 import { DEFAULT_PDF_STYLING } from '../../../shared/types/export';
+import { createExclusionPattern, EXPORT_EXCLUSION_PRESETS } from '../../../shared/utils/export-exclusions';
 import './SettingsPanel.css';
+import './FolderExclusionPanel.css'; // Reuse the exclusion list styles (issue #23)
+import './ExportPanel.css';
 
 /** Deep partial type for nested objects */
 type DeepPartial<T> = {
@@ -22,6 +25,8 @@ export const ExportPanel: React.FC = () => {
   const [settings, setSettings] = useState<ExportSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Issue #23: text of the export exclusion being typed
+  const [newExclusion, setNewExclusion] = useState('');
 
   // Load export settings on mount
   useEffect(() => {
@@ -68,6 +73,42 @@ export const ExportPanel: React.FC = () => {
     } catch {
       setError('Failed to save settings');
     }
+  };
+
+  // Issue #23: export-only exclusions (files/folders left out of folder exports)
+  const exportExclusions: ExclusionPattern[] = settings?.exportExclusions ?? [];
+
+  const saveExclusions = async (next: ExclusionPattern[]) => {
+    if (!settings) return;
+    setSettings({ ...settings, exportExclusions: next });
+    try {
+      const result = await window.exportApi.updateSettings({ exportExclusions: next });
+      if (!result.success) {
+        setError(result.error || 'Failed to save export exclusions');
+      }
+    } catch {
+      setError('Failed to save export exclusions');
+    }
+  };
+
+  const hasExclusion = (pattern: string): boolean =>
+    exportExclusions.some((p) => p.pattern.toLowerCase() === pattern.trim().toLowerCase());
+
+  const handleAddExclusion = (pattern: string = newExclusion) => {
+    const trimmed = pattern.trim();
+    if (!trimmed || hasExclusion(trimmed)) return;
+    void saveExclusions([...exportExclusions, createExclusionPattern(trimmed)]);
+    setNewExclusion('');
+  };
+
+  const handleToggleExclusion = (id: string) => {
+    void saveExclusions(
+      exportExclusions.map((p) => (p.id === id ? { ...p, isEnabled: !p.isEnabled } : p))
+    );
+  };
+
+  const handleRemoveExclusion = (id: string) => {
+    void saveExclusions(exportExclusions.filter((p) => p.id !== id));
   };
 
   if (isLoading) {
@@ -321,6 +362,102 @@ export const ExportPanel: React.FC = () => {
             </span>
           </div>
         </label>
+      </div>
+
+      {/* Issue #23: Export-only exclusions */}
+      <div className="settings-section" data-testid="export-exclusions">
+        <h4 className="settings-section__title">Exclude from Export</h4>
+        <p className="settings-hint" style={{ marginBottom: '16px' }}>
+          Files and folders matching these names are left out of folder and repository
+          exports (no page, no table of contents entry) but stay visible in the viewer.
+          Names match case-insensitively; <code>*</code> and <code>?</code> wildcards are
+          supported. Exporting a single file ignores this list.
+        </p>
+
+        <div className="folder-exclusion__add">
+          <input
+            type="text"
+            className="settings-input"
+            placeholder="File or folder name (e.g. CLAUDE.md, *.agent.md, .github)"
+            value={newExclusion}
+            onChange={(e) => setNewExclusion(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddExclusion();
+              }
+            }}
+            aria-label="New export exclusion pattern"
+          />
+          <button
+            className="settings-button"
+            onClick={() => handleAddExclusion()}
+            disabled={!newExclusion.trim() || hasExclusion(newExclusion)}
+          >
+            Add
+          </button>
+        </div>
+
+        <div className="export-exclusions__presets">
+          <span className="settings-hint">Presets:</span>
+          {EXPORT_EXCLUSION_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className="settings-button settings-button--secondary export-exclusions__preset"
+              onClick={() => handleAddExclusion(preset)}
+              disabled={hasExclusion(preset)}
+              title={hasExclusion(preset) ? `${preset} is already excluded` : `Exclude ${preset} from export`}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+
+        <div className="folder-exclusion__list">
+          {exportExclusions.length === 0 ? (
+            <div className="folder-exclusion__empty">
+              No export exclusions configured. Everything shown in the viewer is exported.
+            </div>
+          ) : (
+            exportExclusions.map((pattern) => (
+              <div
+                key={pattern.id}
+                className={`folder-exclusion__item ${!pattern.isEnabled ? 'folder-exclusion__item--disabled' : ''}`}
+              >
+                <label className="folder-exclusion__toggle">
+                  <input
+                    type="checkbox"
+                    checked={pattern.isEnabled}
+                    onChange={() => handleToggleExclusion(pattern.id)}
+                  />
+                  <span className="folder-exclusion__pattern">{pattern.pattern}</span>
+                </label>
+                <button
+                  className="folder-exclusion__remove"
+                  onClick={() => handleRemoveExclusion(pattern.id)}
+                  title="Remove pattern"
+                  aria-label={`Remove ${pattern.pattern}`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M2.22 2.22a.75.75 0 0 1 1.06 0L8 6.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L9.06 8l4.72 4.72a.75.75 0 1 1-1.06 1.06L8 9.06l-4.72 4.72a.75.75 0 0 1-1.06-1.06L6.94 8 2.22 3.28a.75.75 0 0 1 0-1.06z" />
+                  </svg>
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        {exportExclusions.length > 0 && (
+          <div className="folder-exclusion__actions">
+            <button
+              className="settings-button settings-button--secondary"
+              onClick={() => void saveExclusions([])}
+            >
+              Clear All
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -30,11 +30,18 @@ import type {
 } from '../../../shared/types/export';
 import type { DefaultFileEntry } from '../../../shared/types/entities';
 import { ExportErrorCode, DEFAULT_PDF_STYLING } from '../../../shared/types/export';
-import { DEFAULT_EXCLUDED_FOLDERS } from '../../../shared/constants/folderExclusions';
+import {
+  createExportExclusionFilter,
+  type ExportExclusionFilter,
+} from '../../../shared/utils/export-exclusions';
 import { getExportLogger } from './ExportLogger';
 import { getExportSettingsStore } from './ExportSettingsStore';
 import { repositoryService } from '../git/repository-service';
-import type { TreeNode } from '../../../shared/types/repository';
+import {
+  collectMarkdownFilesFromFolder,
+  collectMarkdownFilesFromTree,
+  extractTitle,
+} from './markdown-file-collector';
 
 // Maximum number of documents in a single folder export
 const MAX_DOCUMENTS = 500;
@@ -170,6 +177,9 @@ export class FolderExportService extends EventEmitter {
         sectionSeparators: { ...DEFAULT_PDF_STYLING.sectionSeparators, ...defaults.pdfStyling?.sectionSeparators, ...options.pdfStyling?.sectionSeparators },
       },
       defaultFilesToOpen: options.defaultFilesToOpen,
+      // Issue #23: folder export skips the union of browsing + export exclusions
+      browsingExclusions: options.browsingExclusions,
+      exportExclusions: options.exportExclusions ?? defaults.exportExclusions ?? [],
       repositoryInfo: options.repositoryInfo,
     };
 
@@ -203,19 +213,26 @@ export class FolderExportService extends EventEmitter {
       job.progress.currentStage = isRepositoryExport ? 'Fetching repository tree...' : 'Scanning folder...';
       this.emitProgress(job);
 
-      // T062: Collect markdown files from folder or repository
+      // T062: Collect markdown files from folder or repository.
+      // Excluded files never enter the list, so TOC, page count and progress
+      // totals only reflect exported documents (issue #23).
+      const exclusionFilter = createExportExclusionFilter({
+        browsingExclusions: mergedOptions.browsingExclusions,
+        exportExclusions: mergedOptions.exportExclusions,
+      });
       const files = isRepositoryExport
         ? await this.collectMarkdownFilesFromRepository(
             mergedOptions.repositoryInfo!,
             mergedOptions.subfolderPath,
             mergedOptions.includeSubfolders,
-            mergedOptions.defaultFilesToOpen
+            mergedOptions.defaultFilesToOpen,
+            exclusionFilter
           )
-        : await this.collectMarkdownFiles(
-            folderPath,
-            mergedOptions.includeSubfolders,
-            mergedOptions.defaultFilesToOpen
-          );
+        : await collectMarkdownFilesFromFolder(folderPath, {
+            includeSubfolders: mergedOptions.includeSubfolders,
+            defaultFilesToOpen: mergedOptions.defaultFilesToOpen,
+            filter: exclusionFilter,
+          });
 
       // T075: Enforce file count limit
       if (files.length === 0) {
@@ -686,26 +703,15 @@ export class FolderExportService extends EventEmitter {
   }
 
   /**
-   * T062: Collect markdown files from folder (recursive)
-   */
-  private async collectMarkdownFiles(
-    folderPath: string,
-    includeSubfolders: boolean,
-    defaultFilesToOpen?: DefaultFileEntry[]
-  ): Promise<MarkdownFile[]> {
-    const files: MarkdownFile[] = [];
-    await this.walkDirectory(folderPath, folderPath, files, includeSubfolders, 0, defaultFilesToOpen);
-    return files;
-  }
-
-  /**
-   * Collect markdown files from a git repository
+   * Collect markdown files from a git repository.
+   * The tree flattening lives in markdown-file-collector.ts (unit tested).
    */
   private async collectMarkdownFilesFromRepository(
     repositoryInfo: NonNullable<FolderExportOptions['repositoryInfo']>,
     subfolderPath: string | undefined,
     includeSubfolders: boolean,
-    defaultFilesToOpen?: DefaultFileEntry[]
+    defaultFilesToOpen: DefaultFileEntry[] | undefined,
+    filter: ExportExclusionFilter
   ): Promise<MarkdownFile[]> {
     // Fetch the repository tree
     const treeResponse = await repositoryService.fetchTree({
@@ -718,137 +724,11 @@ export class FolderExportService extends EventEmitter {
       return [];
     }
 
-    // Flatten the tree to get all markdown files
-    const files: MarkdownFile[] = [];
-    let order = 0;
-
-    const processNode = (node: TreeNode, currentPath: string = '') => {
-      const nodePath = currentPath ? `${currentPath}/${node.path.split('/').pop()}` : node.path;
-
-      // If we have a subfolder filter, check if this path is within it
-      if (subfolderPath) {
-        const normalizedSubfolder = subfolderPath.replace(/\\/g, '/').replace(/^\/+/, '');
-        const normalizedNodePath = nodePath.replace(/\\/g, '/');
-
-        if (node.type === 'directory') {
-          // For directories, check if it's the subfolder or a parent/child of it
-          if (!normalizedNodePath.startsWith(normalizedSubfolder) &&
-              !normalizedSubfolder.startsWith(normalizedNodePath)) {
-            return; // Skip this branch
-          }
-        } else {
-          // For files, check if it's within the subfolder
-          if (!normalizedNodePath.startsWith(normalizedSubfolder + '/') &&
-              normalizedNodePath !== normalizedSubfolder) {
-            return; // Skip this file
-          }
-        }
-      }
-
-      if (node.type === 'file' && this.isMarkdownFile(node.path)) {
-        // Calculate relative path from subfolder root if applicable
-        let relativePath = nodePath;
-        if (subfolderPath) {
-          const normalizedSubfolder = subfolderPath.replace(/\\/g, '/').replace(/^\/+/, '');
-          relativePath = nodePath.replace(normalizedSubfolder + '/', '').replace(/^\/+/, '');
-        }
-
-        files.push({
-          path: nodePath, // Virtual path within repo
-          relativePath,
-          title: this.extractTitle(path.basename(node.path)),
-          content: '', // Will be fetched later
-          order: order++,
-        });
-      } else if (node.type === 'directory' && node.children) {
-        // Only recurse into subdirectories if includeSubfolders is true
-        // or if we haven't reached the target subfolder yet
-        const shouldRecurse = includeSubfolders ||
-          (subfolderPath && !nodePath.includes(subfolderPath.replace(/\\/g, '/')));
-
-        if (shouldRecurse || !subfolderPath) {
-          // Separate files and directories
-          const fileChildren = node.children.filter(c => c.type === 'file');
-          const dirChildren = node.children.filter(c => c.type === 'directory');
-
-          // Sort files with priority ordering (matching local folder behavior)
-          const sortedFiles = this.sortTreeNodesByPriority(fileChildren, defaultFilesToOpen);
-          // Sort directories alphabetically
-          const sortedDirs = [...dirChildren].sort((a, b) => a.path.localeCompare(b.path));
-
-          // Process files first, then directories
-          for (const child of sortedFiles) {
-            processNode(child, nodePath);
-          }
-          for (const child of sortedDirs) {
-            processNode(child, nodePath);
-          }
-        }
-      }
-    };
-
-    // Process root level nodes - separate files and directories
-    const rootFiles = treeResponse.tree.filter(n => n.type === 'file');
-    const rootDirs = treeResponse.tree.filter(n => n.type === 'directory');
-
-    // Sort root files with priority ordering
-    const sortedRootFiles = this.sortTreeNodesByPriority(rootFiles, defaultFilesToOpen);
-    // Sort root directories alphabetically
-    const sortedRootDirs = [...rootDirs].sort((a, b) => a.path.localeCompare(b.path));
-
-    // Process root files first (with priority ordering), then directories
-    for (const node of sortedRootFiles) {
-      processNode(node);
-    }
-    for (const node of sortedRootDirs) {
-      processNode(node);
-    }
-
-    return files;
-  }
-
-  /**
-   * Sort tree nodes by priority: files matching defaultFilesToOpen come first (in order),
-   * then remaining files alphabetically
-   */
-  private sortTreeNodesByPriority(
-    nodes: TreeNode[],
-    defaultFilesToOpen?: DefaultFileEntry[]
-  ): TreeNode[] {
-    if (!defaultFilesToOpen || defaultFilesToOpen.length === 0) {
-      // No priority config, just sort alphabetically
-      return [...nodes].sort((a, b) => a.path.localeCompare(b.path));
-    }
-
-    // Create a map of lowercase filename to priority index (only enabled entries)
-    const priorityMap = new Map<string, number>();
-    defaultFilesToOpen.forEach((entry, index) => {
-      if (entry.isEnabled) {
-        priorityMap.set(entry.filename.toLowerCase(), index);
-      }
-    });
-
-    return [...nodes].sort((a, b) => {
-      const aFilename = a.path.split('/').pop()?.toLowerCase() || '';
-      const bFilename = b.path.split('/').pop()?.toLowerCase() || '';
-
-      const aPriority = priorityMap.get(aFilename);
-      const bPriority = priorityMap.get(bFilename);
-
-      // Both have priority: sort by priority index
-      if (aPriority !== undefined && bPriority !== undefined) {
-        return aPriority - bPriority;
-      }
-      // Only a has priority: a comes first
-      if (aPriority !== undefined) {
-        return -1;
-      }
-      // Only b has priority: b comes first
-      if (bPriority !== undefined) {
-        return 1;
-      }
-      // Neither has priority: sort alphabetically
-      return a.path.localeCompare(b.path);
+    return collectMarkdownFilesFromTree(treeResponse.tree, {
+      subfolderPath,
+      includeSubfolders,
+      defaultFilesToOpen,
+      filter,
     });
   }
 
@@ -867,113 +747,10 @@ export class FolderExportService extends EventEmitter {
     return response.content;
   }
 
-  private async walkDirectory(
-    currentPath: string,
-    rootPath: string,
-    files: MarkdownFile[],
-    recurse: boolean,
-    order: number,
-    defaultFilesToOpen?: DefaultFileEntry[]
-  ): Promise<number> {
-    let currentOrder = order;
-    const entries = await fs.readdir(currentPath, { withFileTypes: true });
-
-    // Separate files and directories
-    const fileEntries = entries.filter(e => e.isFile() && this.isMarkdownFile(e.name));
-    const dirEntries = entries.filter(e => e.isDirectory());
-
-    // Sort files: priority files first (by their order in defaultFilesToOpen), then alphabetically
-    const sortedFiles = this.sortFilesByPriority(fileEntries, defaultFilesToOpen);
-
-    // Sort directories alphabetically
-    const sortedDirs = dirEntries.sort((a, b) => a.name.localeCompare(b.name));
-
-    // Process files first
-    for (const entry of sortedFiles) {
-      const fullPath = path.join(currentPath, entry.name);
-      const relativePath = path.relative(rootPath, fullPath);
-      const title = this.extractTitle(entry.name);
-      files.push({
-        path: fullPath,
-        relativePath,
-        title,
-        content: '',
-        order: currentOrder++,
-      });
-    }
-
-    // Then process directories
-    if (recurse) {
-      for (const entry of sortedDirs) {
-        const fullPath = path.join(currentPath, entry.name);
-        // T074: Skip hidden directories and excluded folders from default list
-        if (entry.name.startsWith('.') || DEFAULT_EXCLUDED_FOLDERS.includes(entry.name)) continue;
-        currentOrder = await this.walkDirectory(fullPath, rootPath, files, recurse, currentOrder, defaultFilesToOpen);
-      }
-    }
-
-    return currentOrder;
-  }
-
-  /**
-   * Sort file entries by priority: files matching defaultFilesToOpen come first (in order),
-   * then remaining files alphabetically
-   */
-  private sortFilesByPriority(
-    fileEntries: import('fs').Dirent[],
-    defaultFilesToOpen?: DefaultFileEntry[]
-  ): import('fs').Dirent[] {
-    console.log('[FolderExport] sortFilesByPriority - input files:', fileEntries.map(f => f.name));
-    console.log('[FolderExport] sortFilesByPriority - defaultFilesToOpen:', defaultFilesToOpen);
-
-    if (!defaultFilesToOpen || defaultFilesToOpen.length === 0) {
-      // No priority config, just sort alphabetically
-      console.log('[FolderExport] No priority config, sorting alphabetically');
-      return fileEntries.sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    // Create a map of lowercase filename to priority index (only enabled entries)
-    const priorityMap = new Map<string, number>();
-    defaultFilesToOpen.forEach((entry, index) => {
-      if (entry.isEnabled) {
-        priorityMap.set(entry.filename.toLowerCase(), index);
-      }
-    });
-    console.log('[FolderExport] Priority map:', Array.from(priorityMap.entries()));
-
-    const sorted = fileEntries.sort((a, b) => {
-      const aPriority = priorityMap.get(a.name.toLowerCase());
-      const bPriority = priorityMap.get(b.name.toLowerCase());
-
-      // Both have priority: sort by priority index
-      if (aPriority !== undefined && bPriority !== undefined) {
-        return aPriority - bPriority;
-      }
-      // Only a has priority: a comes first
-      if (aPriority !== undefined) {
-        return -1;
-      }
-      // Only b has priority: b comes first
-      if (bPriority !== undefined) {
-        return 1;
-      }
-      // Neither has priority: sort alphabetically
-      return a.name.localeCompare(b.name);
-    });
-
-    console.log('[FolderExport] Sorted files:', sorted.map(f => f.name));
-    return sorted;
-  }
-
-  private isMarkdownFile(filename: string): boolean {
-    const ext = path.extname(filename).toLowerCase();
-    return ['.md', '.markdown', '.mdown', '.mkd'].includes(ext);
-  }
+  // Directory walking and priority sorting moved to markdown-file-collector.ts (issue #23)
 
   private extractTitle(filename: string): string {
-    // Remove extension and convert common separators to spaces
-    const name = path.basename(filename, path.extname(filename));
-    return name.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return extractTitle(filename);
   }
 
   /**

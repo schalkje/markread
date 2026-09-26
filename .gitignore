@@ -62,3 +62,6 @@ playwright/.cache/
 *.cer
 *_TemporaryKey.*
 certificate-info.txt
+
+# dobby progress ledgers (local resume state)
+.dobby/evidence/

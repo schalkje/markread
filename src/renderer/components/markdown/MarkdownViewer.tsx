@@ -18,8 +18,16 @@ import { CustomScrollbar, ScrollbarMarker } from '../scrollbar/CustomScrollbar';
 import { extractHeadingMarkers } from '../../utils/marker-extractor';
 import { useSearchStore } from '../../stores/search'; // T014: Import search store
 import { useDiagramHoverButtons } from '../DiagramHoverButtons'; // T032: Import diagram hover buttons
+import { decodeLinkPath, toMdFileUrl } from '@shared/utils/link-paths'; // Issue #23: paths with spaces
+import { generateDirectoryListingMarkdown } from '@shared/utils/directory-listing';
 import '../DiagramHoverButtons.css'; // T031: Import diagram hover buttons styles
 import './MarkdownViewer.css';
+
+/**
+ * Issue #23: how long a navigation may wait for the prepared buffer before the
+ * swap is forced. Generous enough for large documents with diagrams.
+ */
+const TRANSITION_SAFETY_TIMEOUT_MS = 4000;
 
 export interface MarkdownViewerProps {
   /** Markdown content to render */
@@ -288,6 +296,24 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     };
   }, [isTransitioning, preparedBufferReady, preparingBuffer, activeBuffer]);
 
+  // Issue #23: safety net for the blank-page case. If the prepared buffer never
+  // reports ready (e.g. a render was cancelled and nothing re-rendered), force
+  // the swap so the user is never left with both buffers hidden. The timer is
+  // reset whenever a new navigation starts.
+  useEffect(() => {
+    if (!isTransitioning || preparedBufferReady || !preparingBuffer) return undefined;
+
+    const safetyTimeout = setTimeout(() => {
+      console.warn('[MarkdownViewer] Transition safety timeout - prepared buffer never became ready, forcing swap to', preparingBuffer);
+      setActiveBuffer(preparingBuffer);
+      setIsTransitioning(false);
+      setPreparingBuffer(null);
+      setPreparedBufferReady(false);
+    }, TRANSITION_SAFETY_TIMEOUT_MS);
+
+    return () => clearTimeout(safetyTimeout);
+  }, [isTransitioning, preparedBufferReady, preparingBuffer]);
+
   // Event delegation for link hover and click handling
   useEffect(() => {
     // Use the active buffer for event handling
@@ -302,7 +328,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       if (link) {
         const href = link.getAttribute('href');
         if (href) {
-          setHoveredLinkRef.current(href);
+          // Show the human-readable path (markdown-it percent-encodes hrefs)
+          setHoveredLinkRef.current(decodeLinkPath(href));
         }
       }
     };
@@ -404,38 +431,19 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
                   currentPageTitle = extractFirstHeading(content) || filePath?.split(/[/\\]/).pop()?.replace(/\.(md|markdown)$/i, '') || 'Previous Page';
                 }
 
-                // Generate markdown content for directory listing
+                // Generate markdown content for directory listing.
+                // Links are relative to the directory being viewed; destinations are
+                // percent-encoded so names with spaces stay clickable (issue #23).
                 const dirName = directoryPath.split(/[/\\]/).pop() || 'Directory';
-                let markdown = `# ${dirName}\n\n`;
-
-                // Add "Back to" link at the top
-                if (filePath) {
-                  // Use trailing slash to force directory listing (not README.md)
-                  markdown += `[← Back to: ${currentPageTitle}](../)\n\n---\n\n`;
-                }
-
-                // Add directories
-                const directories = listingResult.items.filter((item: any) => item.isDirectory);
-                if (directories.length > 0) {
-                  markdown += '## Folders\n\n';
-                  directories.forEach((item: any) => {
-                    // Use just the item name since links are relative to the directory being viewed
-                    const label = item.title || item.name;
-                    markdown += `- [${label}/](${item.name}/)\n`;
-                  });
-                  markdown += '\n';
-                }
-
-                // Add files
-                const files = listingResult.items.filter((item: any) => !item.isDirectory);
-                if (files.length > 0) {
-                  markdown += '## Files\n\n';
-                  files.forEach((item: any) => {
-                    // Use just the item name since links are relative to the directory being viewed
-                    const label = item.title || item.name;
-                    markdown += `- [${label}](${item.name})\n`;
-                  });
-                }
+                const markdown = generateDirectoryListingMarkdown({
+                  dirName,
+                  items: listingResult.items.map((item: any) => ({
+                    name: item.name,
+                    title: item.title,
+                    isDirectory: !!item.isDirectory,
+                  })),
+                  backLinkTitle: filePath ? currentPageTitle : undefined,
+                });
 
                 // Use the actual directory path with a dummy filename for link resolution
                 // This ensures path.dirname() in the backend gives us the correct directory
@@ -685,7 +693,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   }, [scrollTop, scrollLeft, filePath, preparingBuffer, activeBuffer]); // Trigger when navigating to a new page (removed zoomLevel to avoid conflicts)
 
   // Track the last render to prevent duplicate renders
-  const lastRenderRef = useRef<{ buffer: string; filePath: string; modificationTimestamp?: number } | null>(null);
+  // Issue #23: `content` is part of the key. The same file can be rendered
+  // first with empty/stale content (e.g. before AppLayout finishes loading it)
+  // and again with the real content; without the content in the key the
+  // second render was skipped as a "duplicate", leaving a blank page.
+  const lastRenderRef = useRef<{ buffer: string; filePath: string; modificationTimestamp?: number; content: string } | null>(null);
   // Track previous dependencies to see what changed
   const prevDepsRef = useRef<{
     filePath: string | undefined;
@@ -744,19 +756,26 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
     // Skip if we're already rendering or just rendered the same content to the same buffer
     // T110: Include modificationTimestamp to detect content changes
+    // Issue #23: the content itself is part of the key (string comparison is by
+    // value, so a new string instance with identical text is still a duplicate)
     if (lastRenderRef.current?.buffer === targetBuffer &&
-        lastRenderRef.current?.filePath === filePath &&
-        lastRenderRef.current?.modificationTimestamp === modificationTimestamp) {
+        lastRenderRef.current?.filePath === (filePath || '') &&
+        lastRenderRef.current?.modificationTimestamp === modificationTimestamp &&
+        lastRenderRef.current?.content === content) {
       console.log('[MarkdownViewer] Skipping duplicate render to', targetBuffer, 'for', filePath);
       return;
     }
 
-    console.log('[MarkdownViewer] Rendering to buffer:', targetBuffer, { preparingBuffer, activeBuffer, filePath, modificationTimestamp });
+    console.log('[MarkdownViewer] Rendering to buffer:', targetBuffer, { preparingBuffer, activeBuffer, filePath, modificationTimestamp, contentLength: content.length });
 
     // Mark this render as in progress
-    lastRenderRef.current = { buffer: targetBuffer, filePath: filePath || '', modificationTimestamp };
+    const renderKey = { buffer: targetBuffer, filePath: filePath || '', modificationTimestamp, content };
+    lastRenderRef.current = renderKey;
 
     let isCancelled = false;
+    // Issue #23: track whether this render reached the point where the buffer
+    // was marked ready, so a cancelled render is not mistaken for a completed one
+    let renderCompleted = false;
 
     const renderContent = async () => {
       console.log('[MarkdownViewer] renderContent started for', targetBuffer);
@@ -816,6 +835,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         }
 
         if (!isCancelled) {
+          renderCompleted = true;
           setIsRendering(false);
           onRenderComplete?.();
 
@@ -839,6 +859,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         }
       } catch (err) {
         if (!isCancelled) {
+          renderCompleted = true;
           console.error('Markdown rendering error:', err);
           setRenderError(err instanceof Error ? err.message : 'Failed to render markdown');
           setIsRendering(false);
@@ -860,6 +881,14 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     // Cleanup function to cancel pending operations
     return () => {
       isCancelled = true;
+      // Issue #23: if this render was cancelled before it marked the buffer
+      // ready, clear the duplicate-render guard. Otherwise the re-run hits
+      // "Skipping duplicate render", never sets preparedBufferReady, and both
+      // buffers stay hidden (blank page after navigation).
+      if (!renderCompleted && lastRenderRef.current === renderKey) {
+        console.log('[MarkdownViewer] Render cancelled before completion - clearing duplicate-render guard for', targetBuffer, filePath);
+        lastRenderRef.current = null;
+      }
     };
   }, [filePath, isLoading, preparingBuffer, activeBuffer, modificationTimestamp]);
   // NOTE: Removed scrollTop, scrollLeft, onRenderComplete, isTransitioning, and content from dependencies
@@ -1340,8 +1369,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           // Use mdfile:// protocol to load local images (CSP-allowed, works in both dev and prod)
           console.log('[MarkdownViewer] Loading image from file path:', result.absolutePath);
           const imgElement = img as HTMLImageElement;
-          const normalizedPath = result.absolutePath.replace(/\\/g, '/');
-          imgElement.src = `mdfile:///${encodeURI(normalizedPath)}`;
+          // Issue #23: escapes '#' and '?' too, so folders with those characters load
+          imgElement.src = toMdFileUrl(result.absolutePath);
         } else {
           // Image file doesn't exist - show placeholder
           console.warn(`Image not found: ${src}`, result);
