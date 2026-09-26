@@ -127,6 +127,7 @@
 
 .sidebar-content {
   flex: 1;
+  min-height: 0; /* Issue #25: lets the stacked outline take space below the file tree */
   overflow-y: auto;
 }
 

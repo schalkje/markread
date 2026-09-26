@@ -13,9 +13,13 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { renderMarkdown, renderMermaidDiagrams, applySyntaxHighlighting } from '../../services/markdown-renderer';
+import { renderMarkdownDocument, renderMermaidDiagrams, applySyntaxHighlighting } from '../../services/markdown-renderer';
 import { CustomScrollbar, ScrollbarMarker } from '../scrollbar/CustomScrollbar';
 import { extractHeadingMarkers } from '../../utils/marker-extractor';
+import { syncHeadingIds, findHeadingElement, elementTopInContainer } from '../../utils/heading-dom'; // Issue #25
+import type { OutlineHeading } from '@shared/utils/outline'; // Issue #25
+import { useOutlineStore } from '../../stores/outline'; // Issue #25: outline panel
+import { useSettingsStore } from '../../stores/settings'; // Issue #25: scroll behaviour for anchors
 import { useSearchStore } from '../../stores/search'; // T014: Import search store
 import { useDiagramHoverButtons } from '../DiagramHoverButtons'; // T032: Import diagram hover buttons
 import { decodeLinkPath, toMdFileUrl } from '@shared/utils/link-paths'; // Issue #23: paths with spaces
@@ -173,6 +177,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
   // Track previous filePath to detect navigation
   const previousFilePathRef = useRef<string | undefined>(undefined);
+
+  // Issue #25: bumped after every completed render so the outline re-reads the active buffer
+  const [renderVersion, setRenderVersion] = useState(0);
+  // Issue #25: which file and headings each buffer currently holds
+  const bufferFilePathRef = useRef<{ A: string | null; B: string | null }>({ A: null, B: null });
+  const bufferHeadingsRef = useRef<{ A: OutlineHeading[]; B: OutlineHeading[] }>({ A: [], B: [] });
 
   // Start transition when navigating to a new page or opening first file
   // Use useLayoutEffect to ensure this runs before the render effect
@@ -359,9 +369,22 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       const shiftKey = e.shiftKey;
 
       // Handle internal links (same-document anchors)
+      // Issue #25: headings now carry stable ids; resolve safely (ids may start with digits or be encoded)
       if (href.startsWith('#')) {
-        const targetElement = container.querySelector(href);
-        targetElement?.scrollIntoView({ behavior: 'smooth' });
+        let anchorId = href.slice(1);
+        try {
+          anchorId = decodeURIComponent(anchorId);
+        } catch {
+          // keep raw id
+        }
+        const targetElement = findHeadingElement(container, anchorId);
+        if (targetElement) {
+          const behavior = useSettingsStore.getState().settings.behavior.scrollBehavior ?? 'smooth';
+          const top = Math.max(0, container.scrollTop + elementTopInContainer(targetElement, container) - 12);
+          container.scrollTo({ top, behavior });
+        } else {
+          console.warn('[MarkdownViewer] Anchor target not found:', href);
+        }
         return;
       }
 
@@ -785,7 +808,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
       try {
         // Step 1: Convert markdown to HTML
-        const html = renderMarkdown(content);
+        const { html } = renderMarkdownDocument(content);
 
         // Check if cancelled before proceeding
         if (isCancelled) {
@@ -796,6 +819,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         // Step 2: Insert HTML into DOM (hidden buffer if transitioning)
         targetContentElement.innerHTML = html;
         console.log('[MarkdownViewer] HTML inserted into content wrapper', targetBuffer);
+
+        // Issue #25: make sure every rendered heading has a unique id (DOMPurify may
+        // drop clobbering ids like "title"; raw HTML headings never got one)
+        bufferHeadingsRef.current[targetBuffer] = syncHeadingIds(targetContentElement);
+        bufferFilePathRef.current[targetBuffer] = filePath || null;
 
         // Step 3: Render Mermaid diagrams
         await renderMermaidDiagrams(targetContentElement);
@@ -838,6 +866,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           renderCompleted = true;
           setIsRendering(false);
           onRenderComplete?.();
+          setRenderVersion((v) => v + 1); // Issue #25: outline re-reads the active buffer
 
           // If no scroll restoration needed (scrollTop/Left are undefined or 0),
           // mark prepared buffer as ready
@@ -899,6 +928,27 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // - isTransitioning: Only used for logging
   // T110: Added modificationTimestamp to detect content changes for auto-reload
   // We rely on filePath changes to detect when to re-render a different file.
+
+  // Issue #25: publish the active buffer's headings and scroll container to the outline store.
+  // Runs on render completion (same-file reload), on buffer swap (navigation / tab switch)
+  // and never reads the hidden buffer.
+  useEffect(() => {
+    const bufferElement = (activeBuffer === 'A' ? bufferARef : bufferBRef).current;
+    if (!bufferElement) return;
+
+    useOutlineStore.getState().setDocument({
+      headings: bufferHeadingsRef.current[activeBuffer],
+      scrollContainer: bufferElement,
+      filePath: bufferFilePathRef.current[activeBuffer],
+    });
+  }, [activeBuffer, renderVersion]);
+
+  // Issue #25: Home screen / diagram tabs unmount the viewer - clear the outline
+  useEffect(() => {
+    return () => {
+      useOutlineStore.getState().clearDocument();
+    };
+  }, []);
 
   // T048, T051l, T051m: Pan functionality with mouse drag
   const handleMouseDown = (e: React.MouseEvent) => {

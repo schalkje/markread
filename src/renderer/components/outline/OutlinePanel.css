@@ -1,0 +1,331 @@
+/**
+ * OutlinePanel Styles (issue #25)
+ *
+ * Rows mirror `.file-tree-item` (13px, 6px 8px padding, hover bg, accent left
+ * border + weight 500 for the active entry, 20px indent per level, 12px
+ * chevron). Colours come from the theme variables with the same
+ * [data-theme="dark"] / prefers-color-scheme / prefers-contrast overrides
+ * FileTree.css uses.
+ */
+
+.outline-panel {
+  --outline-bg: var(--color-sidebar-bg, #f6f8fa);
+  --outline-fg: var(--color-sidebar-fg, var(--text-primary, #24292f));
+  --outline-border: var(--color-sidebar-border, var(--color-border-default, #d0d7de));
+  --outline-accent: var(--color-accent, var(--accent-color, #0969da));
+  --outline-secondary: var(--color-text-secondary, var(--text-secondary, #57606a));
+  --outline-tertiary: var(--text-tertiary, #8c959f);
+  --outline-hover-bg: var(--item-hover-bg, rgba(0, 0, 0, 0.05));
+  --outline-active-bg: var(--item-selected-bg, #ddf4ff);
+  --outline-input-bg: var(--color-background, #ffffff);
+  --outline-scrollbar-thumb: var(--color-scrollbar, #d0d7de);
+  --outline-scrollbar-thumb-hover: var(--color-scrollbar-hover, #afb8c1);
+
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--outline-bg);
+  color: var(--outline-fg);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Right position: dedicated panel after the content area */
+.outline-panel--right {
+  flex: 0 0 auto;
+  min-width: 170px;
+  max-width: 600px;
+  border-left: 1px solid var(--outline-border);
+  z-index: 5;
+}
+
+.outline-panel__resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 100;
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.outline-panel__resize-handle:hover {
+  background-color: var(--outline-accent);
+}
+
+/* Left position: stacked section inside the sidebar under the file tree */
+.outline-panel--stacked {
+  flex: 0 0 auto;
+  min-height: 120px;
+  width: 100%;
+}
+
+.sidebar-outline-divider {
+  flex: 0 0 auto;
+  height: 5px;
+  cursor: row-resize;
+  background: var(--color-sidebar-border, var(--color-border-default, #d0d7de));
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-outline-divider:hover {
+  background: var(--color-accent, #0969da);
+}
+
+/* Header */
+.outline-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--outline-border);
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.outline-panel__title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--outline-secondary);
+  white-space: nowrap;
+}
+
+.outline-panel__count {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0 6px;
+  min-width: 18px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 8px;
+  background: var(--outline-hover-bg);
+  color: var(--outline-secondary);
+}
+
+.outline-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.outline-panel__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--outline-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.outline-panel__action:hover {
+  background: var(--outline-hover-bg);
+  color: var(--outline-fg);
+}
+
+.outline-panel__action--active {
+  color: var(--outline-accent);
+}
+
+.outline-panel__action:focus-visible {
+  outline: 2px solid var(--outline-accent);
+  outline-offset: -2px;
+}
+
+/* Filter */
+.outline-panel__filter {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--outline-border);
+  flex: 0 0 auto;
+}
+
+.outline-panel__filter-input {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--outline-border);
+  border-radius: 4px;
+  background: var(--outline-input-bg);
+  color: var(--outline-fg);
+  outline: none;
+}
+
+.outline-panel__filter-input::placeholder {
+  color: var(--outline-tertiary);
+}
+
+.outline-panel__filter-input:focus {
+  border-color: var(--outline-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--outline-accent) 25%, transparent);
+}
+
+/* Body / tree */
+.outline-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.outline-panel__body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.outline-panel__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.outline-panel__body::-webkit-scrollbar-thumb {
+  background: var(--outline-scrollbar-thumb);
+  border-radius: 4px;
+}
+
+.outline-panel__body::-webkit-scrollbar-thumb:hover {
+  background: var(--outline-scrollbar-thumb-hover);
+}
+
+.outline-panel__empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--outline-secondary);
+}
+
+.outline-tree {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.outline-tree:focus {
+  outline: none;
+}
+
+.outline-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  user-select: none;
+  border-left: 2px solid transparent;
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--outline-fg);
+  transition: background-color 0.1s ease, border-color 0.15s ease;
+  outline: none;
+  min-width: 0;
+}
+
+.outline-item:hover {
+  background: var(--outline-hover-bg);
+}
+
+.outline-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--outline-accent);
+}
+
+.outline-item--active {
+  background: var(--outline-active-bg);
+  border-left-color: var(--outline-accent);
+  color: var(--outline-accent);
+  font-weight: 500;
+}
+
+.outline-item__chevron {
+  flex-shrink: 0;
+  width: 12px;
+  font-size: 9px;
+  color: var(--outline-tertiary);
+  transition: transform 0.15s ease;
+  text-align: center;
+}
+
+.outline-item__chevron--expanded {
+  transform: rotate(90deg);
+}
+
+.outline-item__chevron--hidden {
+  visibility: hidden;
+}
+
+.outline-item__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dark theme - via system preference */
+@media (prefers-color-scheme: dark) {
+  .outline-panel {
+    --outline-bg: var(--color-sidebar-bg, #0d1117);
+    --outline-fg: var(--color-sidebar-fg, #e6edf3);
+    --outline-border: var(--color-sidebar-border, #30363d);
+    --outline-accent: var(--color-accent, #58a6ff);
+    --outline-secondary: var(--color-text-secondary, #7d8590);
+    --outline-tertiary: #484f58;
+    --outline-hover-bg: #161b22;
+    --outline-active-bg: rgba(31, 111, 235, 0.25);
+    --outline-input-bg: #0d1117;
+    --outline-scrollbar-thumb: #484f58;
+    --outline-scrollbar-thumb-hover: #6e7681;
+  }
+}
+
+/* Dark theme - via manual theme selection */
+[data-theme="dark"] .outline-panel {
+  --outline-bg: var(--color-sidebar-bg, #0d1117);
+  --outline-fg: var(--color-sidebar-fg, #e6edf3);
+  --outline-border: var(--color-sidebar-border, #30363d);
+  --outline-accent: var(--color-accent, #58a6ff);
+  --outline-secondary: var(--color-text-secondary, #7d8590);
+  --outline-tertiary: #484f58;
+  --outline-hover-bg: #161b22;
+  --outline-active-bg: rgba(31, 111, 235, 0.25);
+  --outline-input-bg: #0d1117;
+  --outline-scrollbar-thumb: #484f58;
+  --outline-scrollbar-thumb-hover: #6e7681;
+}
+
+/* High contrast: the active entry is identified by border + weight + outline, never colour alone */
+@media (prefers-contrast: high) {
+  .outline-item {
+    border-left-width: 3px;
+  }
+
+  .outline-item--active {
+    outline: 2px solid var(--outline-accent);
+    outline-offset: -2px;
+  }
+}
+
+[data-theme="high-contrast"] .outline-item--active,
+[data-theme="high-contrast-light"] .outline-item--active,
+[data-theme="high-contrast-dark"] .outline-item--active {
+  outline: 2px solid var(--outline-accent);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .outline-item,
+  .outline-item__chevron,
+  .outline-panel__action,
+  .outline-panel__resize-handle,
+  .sidebar-outline-divider {
+    transition: none;
+  }
+}

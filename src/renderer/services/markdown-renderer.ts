@@ -23,6 +23,7 @@ import deflist from 'markdown-it-deflist';
 import container from 'markdown-it-container';
 // @ts-expect-error - highlightjs-copy may not have types
 import CopyButtonPlugin from 'highlightjs-copy';
+import { headingIdsPlugin, type OutlineHeading } from '@shared/utils/outline';
 
 /**
  * T025: Configure markdown-it v14.1.0 with GFM plugins
@@ -66,6 +67,9 @@ md.use(footnote);
 
 // Enable definition lists plugin
 md.use(deflist);
+
+// Issue #25: stable, de-duplicated heading ids (outline panel + in-document anchors)
+md.use(headingIdsPlugin);
 
 /**
  * Enable container plugin for callouts
@@ -449,13 +453,29 @@ export function sanitizeHtml(html: string): string {
  * Converts markdown to safe HTML
  */
 export function renderMarkdown(markdown: string): string {
+  return renderMarkdownDocument(markdown).html;
+}
+
+export interface RenderedMarkdownDocument {
+  /** Sanitized HTML */
+  html: string;
+  /** Headings in document order with the ids assigned at render time (issue #25) */
+  headings: OutlineHeading[];
+}
+
+/**
+ * Render markdown and return the heading list collected by the heading-id rule
+ */
+export function renderMarkdownDocument(markdown: string): RenderedMarkdownDocument {
+  const env: { headings?: OutlineHeading[] } = {};
+
   // Step 1: Parse markdown to HTML
-  const rawHtml = md.render(markdown);
+  const rawHtml = md.render(markdown, env);
 
   // Step 2: Sanitize HTML with DOMPurify
   const safeHtml = sanitizeHtml(rawHtml);
 
-  return safeHtml;
+  return { html: safeHtml, headings: env.headings ?? [] };
 }
 
 /**
@@ -487,6 +507,7 @@ export function updateMermaidTheme(theme: 'light' | 'dark'): void {
 
 export default {
   renderMarkdown,
+  renderMarkdownDocument,
   renderMermaidDiagrams,
   applySyntaxHighlighting,
   sanitizeHtml,

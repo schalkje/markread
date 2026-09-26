@@ -449,15 +449,15 @@ export function registerNavigationCommands(callbacks: {
     icon: 'arrow-right',
   });
 
-  // Document navigation
+  // Document navigation (issue #25: focuses the outline filter)
   commandService.register({
     id: 'navigation.goToHeading',
-    label: 'Table of Contents',
+    label: 'Go to Heading',
     category: CC.Navigation,
     defaultShortcut: 'Ctrl+G',
     whenClause: 'hasActiveTab',
     handler: callbacks.onGoToHeading,
-    description: 'Jump to a heading in the document',
+    description: 'Show the outline and focus its filter to jump to a heading',
     aliases: ['outline', 'toc', 'table of contents', 'go to heading'],
   });
 
@@ -538,6 +538,8 @@ export function registerViewCommands(callbacks: {
   onToggleSidebar: () => void;
   onToggleFileTree: () => void;
   onToggleTableOfContents: () => void;
+  onToggleOutlinePosition?: () => void;
+  onToggleOutlineFollow?: () => void;
   onChangeTheme: () => void;
   onToggleFullScreen: () => void;
 }): void {
@@ -633,16 +635,43 @@ export function registerViewCommands(callbacks: {
     description: 'Show or hide the file tree',
   });
 
+  // Issue #25: Ctrl+Shift+T is Copy as plain text, so the outline gets a free chord
   commandService.register({
     id: 'view.toggleTOC',
-    label: 'Toggle Table of Contents',
+    label: 'Toggle Outline',
     category: CC.View,
-    defaultShortcut: 'Ctrl+Shift+T',
-    whenClause: 'hasActiveTab',
+    defaultShortcut: 'Ctrl+Alt+O',
+    whenClause: null,
     handler: callbacks.onToggleTableOfContents,
-    description: 'Show or hide table of contents',
-    aliases: ['outline', 'headings'],
+    description: 'Show or hide the document outline panel',
+    aliases: ['outline', 'headings', 'toc', 'table of contents'],
   });
+
+  if (callbacks.onToggleOutlinePosition) {
+    commandService.register({
+      id: 'view.outlinePosition',
+      label: 'Move Outline to Other Side',
+      category: CC.View,
+      defaultShortcut: null,
+      whenClause: null,
+      handler: callbacks.onToggleOutlinePosition,
+      description: 'Switch the outline panel between the right side and the sidebar',
+      aliases: ['outline left', 'outline right', 'outline position'],
+    });
+  }
+
+  if (callbacks.onToggleOutlineFollow) {
+    commandService.register({
+      id: 'view.outlineFollow',
+      label: 'Toggle Outline Follow Scroll',
+      category: CC.View,
+      defaultShortcut: null,
+      whenClause: null,
+      handler: callbacks.onToggleOutlineFollow,
+      description: 'Auto-scroll the outline to keep the active heading visible',
+      aliases: ['follow scroll', 'outline follow'],
+    });
+  }
 
   // Theme
   commandService.register({

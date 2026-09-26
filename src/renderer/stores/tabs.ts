@@ -38,6 +38,8 @@ interface TabsState {
 
   // Actions - Navigation History (T065, T067)
   addHistoryEntry: (tabId: string, entry: HistoryEntry) => void;
+  /** Issue #25: push a same-file entry (e.g. outline jump) so Alt+Left returns to the previous position */
+  pushScrollHistoryEntry: (tabId: string, entry: HistoryEntry) => void;
   navigateBack: (tabId: string) => HistoryEntry | null;
   navigateForward: (tabId: string) => HistoryEntry | null;
   navigateToIndex: (tabId: string, index: number) => HistoryEntry | null;
@@ -313,6 +315,54 @@ export const useTabsStore = create<TabsState>((set, get) => ({
         navigationHistory: history,
         currentHistoryIndex: currentIndex,
         forwardHistory: [] // No longer used
+      });
+      return { tabs: newTabs };
+    });
+  },
+
+  // Issue #25: same-file history entry for in-document jumps (outline click, anchor link)
+  pushScrollHistoryEntry: (tabId, entry) => {
+    set((state) => {
+      const tab = state.tabs.get(tabId);
+      if (!tab) return state;
+
+      let history = [...tab.navigationHistory];
+      let currentIndex = tab.currentHistoryIndex;
+
+      // Tabs opened in a new tab start without history: record the pre-jump position first,
+      // otherwise there is nothing for Alt+Left to return to
+      if (currentIndex < 0 || currentIndex >= history.length) {
+        history = [
+          {
+            filePath: tab.filePath,
+            scrollPosition: tab.scrollPosition,
+            scrollLeft: tab.scrollLeft || 0,
+            zoomLevel: tab.zoomLevel || 100,
+            timestamp: entry.timestamp,
+          },
+        ];
+        currentIndex = 0;
+      }
+
+      // Drop forward entries, like a normal navigation does
+      if (currentIndex < history.length - 1) {
+        history = history.slice(0, currentIndex + 1);
+      }
+
+      history.push(entry);
+      currentIndex = history.length - 1;
+
+      if (history.length > 50) {
+        history.shift();
+        currentIndex = Math.max(0, currentIndex - 1);
+      }
+
+      const newTabs = new Map(state.tabs);
+      newTabs.set(tabId, {
+        ...tab,
+        navigationHistory: history,
+        currentHistoryIndex: currentIndex,
+        forwardHistory: [],
       });
       return { tabs: newTabs };
     });

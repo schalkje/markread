@@ -2,7 +2,7 @@
 
 > 📍 **Navigation**: [Home](../../../README.md) → [Documentation](../../README.md) → [Markdown Features](../) → [Text Formatting](./) → Headings
 
-Headings create the structural hierarchy of your document and enable navigation through the table of contents.
+Headings create the structural hierarchy of your document and drive the Outline panel used to navigate it.
 
 ## Heading Levels
 
@@ -93,9 +93,35 @@ Make headings descriptive and scannable:
 ## Heading Navigation
 
 In MarkRead, headings provide:
-- **Table of Contents** - Auto-generated from headings
-- **Anchor Links** - Each heading gets a URL anchor
-- **Quick Navigation** - `Ctrl+Up/Down` to jump between headings
+- **Outline panel** - A docked, always-in-sync outline of the current document
+- **Anchor Links** - Each heading gets a stable URL anchor (`#section-name`)
+
+### The Outline Panel
+
+Open the outline with `Ctrl+Alt+O`, **View → Toggle Outline**, or the "Toggle Outline" command. It docks on the
+right of the content by default and can be moved into the sidebar below the file tree (**View → Move Outline to
+Left**, the panel's move button, or the *Outline Position* setting). Its visibility, width and follow-scroll toggle are
+remembered between sessions.
+
+The panel shows:
+
+- **Heading tree** - Every heading up to the configured *Outline Depth* (Settings → Appearance), nested by relative
+  level. A document that skips levels (h1 → h3) still nests cleanly with no empty indent gaps. The header shows the
+  heading count.
+- **Reading position** - The heading at the top of the viewport is highlighted (accent bar + bold). At the very
+  bottom of the document the last heading stays active.
+- **Click to jump** - Clicking an entry scrolls the heading to the top of the content area (smooth or instant per
+  the *Scroll Behavior* setting). `Alt+Left` returns to where you were.
+- **Follow scroll** - The ⇅ button keeps the active entry visible while you read; switch it off if you prefer the
+  outline to stay put while you browse it.
+- **Collapse / expand** - Use the chevrons, `←` / `→`, or *Collapse all* / *Expand all* in the header. Collapse state
+  is kept per tab for the session.
+- **Filter** - `Ctrl+G` (Go to Heading) focuses the filter box. Matching entries and their ancestors stay visible;
+  `Esc` clears the filter.
+- **Keyboard** - With an entry focused: `↑` / `↓` move, `Home` / `End` jump to the first / last entry, `Enter`
+  navigates.
+
+Documents without headings show "No headings in this document".
 
 ### Creating Anchor Links
 
@@ -115,11 +141,12 @@ Link to headings in other documents:
 
 ### Anchor Link Rules
 
-Anchors are generated from headings:
+Anchors are generated from the heading's plain text (inline formatting, code and links are stripped):
 - Lowercase all letters
 - Replace spaces with hyphens
-- Remove special characters
+- Remove special characters (letters, numbers, `-` and `_` are kept, including accented letters)
 - Remove emojis
+- Duplicate headings get a numeric suffix so every anchor is unique
 
 Examples:
 
@@ -129,6 +156,10 @@ Examples:
 | `### Getting Started!` | `#getting-started` |
 | `## API (v2.0)` | `#api-v20` |
 | `### 🚀 Quick Start` | `#quick-start` |
+| `## Notes` (second occurrence) | `#notes-1` |
+
+The outline panel links to exactly these ids, so an entry always scrolls to its own heading, even when two headings
+share the same text.
 
 ## Document Structure Example
 
@@ -202,7 +233,8 @@ Light theme example:
 
 Headings are critical for accessibility:
 - **Screen readers** use headings for navigation
-- **Outline view** shows document structure
+- **Outline panel** exposes the structure as an ARIA tree (`Document outline`) with the current section marked
+  `aria-current="location"`
 - **SEO** (if exported to web) uses heading hierarchy
 
 Always use semantic headings, not just styled text:

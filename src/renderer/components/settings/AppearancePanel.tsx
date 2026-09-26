@@ -271,6 +271,50 @@ export const AppearancePanel: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Issue #25: Outline panel */}
+      <div className="settings-section" data-testid="outline-settings">
+        <h4 className="settings-section__title">Outline</h4>
+
+        <div className="settings-field">
+          <label className="settings-label" htmlFor="outline-position">
+            Outline Position
+          </label>
+          <select
+            id="outline-position"
+            className="settings-select"
+            value={appearance.outlinePosition ?? 'right'}
+            onChange={(e) => updateAppearance({ outlinePosition: e.target.value as 'left' | 'right' })}
+          >
+            <option value="right">Right (beside the content)</option>
+            <option value="left">Left (below the file tree)</option>
+          </select>
+          <p className="settings-hint">
+            Where the document outline is docked. Toggle the outline with Ctrl+Alt+O or View → Toggle Outline.
+          </p>
+        </div>
+
+        <div className="settings-field">
+          <label className="settings-label" htmlFor="outline-depth">
+            Outline Depth
+          </label>
+          <select
+            id="outline-depth"
+            className="settings-select"
+            value={String(appearance.outlineMaxDepth ?? 6)}
+            onChange={(e) => updateAppearance({ outlineMaxDepth: Number(e.target.value) })}
+          >
+            {[1, 2, 3, 4, 5, 6].map((depth) => (
+              <option key={depth} value={depth}>
+                {depth === 6 ? 'All levels (H1 - H6)' : `Up to H${depth}`}
+              </option>
+            ))}
+          </select>
+          <p className="settings-hint">
+            Deepest heading level listed in the outline. Deeper headings are neither shown nor counted.
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
