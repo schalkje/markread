@@ -70,6 +70,17 @@ Settings are organized into categories:
 **Range**: 150-500px
 **Description**: Width of file tree sidebar
 
+### Outline Position
+**Default**: Right
+**Options**: Right (beside the content) | Left (below the file tree)
+**Description**: Where the document outline panel is docked. The panel's own move button and **View → Move Outline**
+change this setting too.
+
+### Outline Depth
+**Default**: 6 (all levels)
+**Range**: 1-6
+**Description**: Deepest heading level listed in the outline. Deeper headings are neither shown nor counted.
+
 ### Content Padding
 **Default**: 40px
 **Range**: 0-100px

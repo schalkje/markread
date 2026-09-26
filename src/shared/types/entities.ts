@@ -204,6 +204,8 @@ export interface AppearanceSettings {
   syntaxHighlightThemeLight: string;
   syntaxHighlightThemeDark: string;
   sidebarWidth: number;              // 150-500px
+  outlinePosition: 'left' | 'right'; // Default side of the outline panel (issue #25)
+  outlineMaxDepth: number;           // 1-6, deepest heading level listed in the outline (issue #25)
 }
 
 export interface BehaviorSettings {
@@ -306,6 +308,9 @@ export interface UIState {
   recentItems: RecentItem[];         // Global recent files/folders (max 20)
   splitLayouts: Record<string, PanelLayout>; // Split layouts per folder
   globalZoomLevel?: number;          // Global window zoom level (50-300%, optional)
+  showOutline?: boolean;             // Outline panel visibility (issue #25)
+  outlineWidth?: number;             // Outline panel width in px, 170-600 (issue #25)
+  outlineFollow?: boolean;           // Outline follows the reading position (issue #25)
 }
 
 export interface AnimationSettings {

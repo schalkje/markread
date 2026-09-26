@@ -47,13 +47,12 @@ Complete reference of all keyboard shortcuts in MarkRead. All shortcuts are cust
 |--------|----------|
 | Go back | `Alt+Left` or `Backspace` or `Mouse Button 4` |
 | Go forward | `Alt+Right` or `Shift+Backspace` or `Mouse Button 5` |
-| Table of contents | `Ctrl+G` |
+| Go to heading (focus outline filter) | `Ctrl+G` |
+| Toggle outline | `Ctrl+Alt+O` |
 | Scroll to top | `Home` or `Ctrl+Home` |
 | Scroll to bottom | `End` or `Ctrl+End` |
 | Page down | `Space` or `Page Down` |
 | Page up | `Shift+Space` or `Page Up` |
-| Next heading | `Ctrl+Down` |
-| Previous heading | `Ctrl+Up` |
 
 **Mouse Navigation:**
 - Mouse Button 4 (typically rear side button) = Go back
@@ -78,6 +77,8 @@ Complete reference of all keyboard shortcuts in MarkRead. All shortcuts are cust
 | Action | Shortcut |
 |--------|----------|
 | Toggle sidebar | `Ctrl+B` |
+| Toggle outline | `Ctrl+Alt+O` |
+| Go to heading | `Ctrl+G` |
 | Focus sidebar | `Alt+1` |
 | Focus document | `Alt+2` |
 | Zoom in (document) | `Ctrl++` or `Ctrl+=` |
@@ -132,6 +133,20 @@ Complete reference of all keyboard shortcuts in MarkRead. All shortcuts are cust
 | Previous item | `↑` (when focused) |
 | Open selected | `Enter` (when focused) |
 | Open in new tab | `Ctrl+Enter` (when focused) |
+
+## Outline
+
+| Action | Shortcut |
+|--------|----------|
+| Toggle outline | `Ctrl+Alt+O` |
+| Focus outline filter | `Ctrl+G` |
+| Clear filter | `Escape` (in the filter box) |
+| Next / previous entry | `↓` / `↑` (when focused) |
+| First / last entry | `Home` / `End` (when focused) |
+| Expand entry | `→` (when focused) |
+| Collapse entry / go to parent | `←` (when focused) |
+| Jump to heading | `Enter` (when focused) |
+| Return to previous position | `Alt+Left` |
 
 ## Quick Access
 
@@ -273,8 +288,9 @@ MarkRead shortcuts avoid conflicts with:
 │  ESSENTIAL                  │  NAVIGATION                 │
 │  Ctrl+O    Open file        │  Alt+Left    Back          │
 │  Ctrl+Shift+O Open folder   │  Alt+Right   Forward       │
-│  Ctrl+T    New tab          │  Ctrl+G      TOC           │
+│  Ctrl+T    New tab          │  Ctrl+G      Go to heading │
 │  Ctrl+W    Close tab        │  Ctrl+B      Sidebar       │
+│  Ctrl+Alt+O Outline         │                            │
 │  Ctrl+F    Find in page     │  Home/End    Top/Bottom    │
 │  F5        Refresh          │                            │
 │                                                            │

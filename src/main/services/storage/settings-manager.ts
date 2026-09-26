@@ -29,6 +29,8 @@ function createDefaultSettings(): Settings {
       syntaxHighlightThemeLight: 'github',
       syntaxHighlightThemeDark: 'github-dark',
       sidebarWidth: 250,
+      outlinePosition: 'right',
+      outlineMaxDepth: 6,
     },
     behavior: {
       autoReload: true,

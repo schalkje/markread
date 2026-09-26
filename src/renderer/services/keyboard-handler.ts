@@ -358,29 +358,45 @@ export const registerZoomShortcuts = registerContentZoomShortcuts;
 export const unregisterZoomShortcuts = unregisterContentZoomShortcuts;
 
 /**
- * T054: Register navigation keyboard shortcuts
- * - Ctrl+G: Open table of contents / Go to heading
+ * Issue #25: Register outline keyboard shortcuts
+ * - Ctrl+Alt+O: Toggle the outline panel
+ * - Ctrl+G: Show the outline and focus its filter ("Go to heading")
  */
-export function registerNavigationShortcuts(callbacks: {
-  onOpenTableOfContents: () => void;
+export function registerOutlineShortcuts(callbacks: {
+  onToggleOutline: () => void;
+  onFocusOutlineFilter: () => void;
 }): void {
-  // Open Table of Contents: Ctrl+G
   keyboardHandler.register({
-    id: 'navigation.tableOfContents',
+    id: 'outline.toggle',
+    keys: ['o', 'O'],
+    ctrlKey: true,
+    altKey: true,
+    shiftKey: false,
+    handler: () => {
+      callbacks.onToggleOutline();
+    },
+    description: 'Toggle outline panel',
+  });
+
+  keyboardHandler.register({
+    id: 'outline.focusFilter',
     keys: ['g', 'G'],
     ctrlKey: true,
+    altKey: false,
+    shiftKey: false,
     handler: () => {
-      callbacks.onOpenTableOfContents();
+      callbacks.onFocusOutlineFilter();
     },
-    description: 'Open table of contents',
+    description: 'Go to heading (focus outline filter)',
   });
 }
 
 /**
- * Unregister navigation shortcuts
+ * Unregister outline shortcuts
  */
-export function unregisterNavigationShortcuts(): void {
-  keyboardHandler.unregister('navigation.tableOfContents');
+export function unregisterOutlineShortcuts(): void {
+  keyboardHandler.unregister('outline.toggle');
+  keyboardHandler.unregister('outline.focusFilter');
 }
 
 /**
@@ -585,12 +601,13 @@ export function registerFileShortcuts(callbacks: {
   onOpenFolder: () => void;
   onCloseAll: () => void;
 }): void {
-  // Open File: Ctrl+O
+  // Open File: Ctrl+O (altKey: false so Ctrl+Alt+O stays free for the outline, issue #25)
   keyboardHandler.register({
     id: 'file.open',
     keys: ['o', 'O'],
     ctrlKey: true,
     shiftKey: false,
+    altKey: false,
     handler: () => {
       callbacks.onOpenFile();
     },
@@ -603,6 +620,7 @@ export function registerFileShortcuts(callbacks: {
     keys: ['o', 'O'],
     ctrlKey: true,
     shiftKey: true,
+    altKey: false,
     handler: () => {
       callbacks.onOpenFolder();
     },

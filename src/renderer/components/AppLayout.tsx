@@ -40,8 +40,12 @@ import {
   registerSearchShortcuts,
   unregisterSearchShortcuts,
   registerRefreshShortcuts,
-  unregisterRefreshShortcuts
+  unregisterRefreshShortcuts,
+  registerOutlineShortcuts,
+  unregisterOutlineShortcuts
 } from '../services/keyboard-handler';
+import { OutlinePanel } from './outline/OutlinePanel'; // Issue #25: outline side panel
+import { useOutlineStore, OUTLINE_STACKED_MIN_HEIGHT } from '../stores/outline'; // Issue #25
 import { ShortcutsReference } from './help/ShortcutsReference';
 import { About } from './help/About';
 import { SettingsWindow } from './settings/SettingsWindow';
@@ -97,6 +101,10 @@ const AppLayout: React.FC = () => {
 
   // Home view state - tracks if home page is active
   const [showHome, setShowHome] = useState(false);
+
+  // Issue #25: outline panel visibility (persisted) and docking side (setting)
+  const showOutline = useOutlineStore((state) => state.showOutline);
+  const outlinePosition = useSettingsStore((state) => state.settings.appearance.outlinePosition ?? 'right');
 
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'warning' | 'error' | 'success' } | null>(null);
@@ -424,6 +432,28 @@ const AppLayout: React.FC = () => {
     document.addEventListener('mouseup', handleMouseUp);
   }, [sidebarWidth, minSidebarWidth, maxSidebarWidth]);
 
+  // Issue #25: resize the stacked outline (left position) by dragging the divider above it
+  const handleOutlineDividerResize = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = useOutlineStore.getState().sidebarOutlineHeight;
+    const sidebarHeight = (event.currentTarget as HTMLElement).parentElement?.clientHeight ?? window.innerHeight;
+    const maxHeight = Math.max(OUTLINE_STACKED_MIN_HEIGHT, sidebarHeight - 200);
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const next = Math.min(maxHeight, Math.max(OUTLINE_STACKED_MIN_HEIGHT, startHeight - (e.clientY - startY)));
+      useOutlineStore.getState().setSidebarOutlineHeight(next);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
+
   // T045, T046: Handle search result click with highlighting
   const handleSearchResultClick = useCallback(async (filePath: string, lineNumber: number, event: React.MouseEvent, folderInfo?: { repository?: string; branch?: string }) => {
     console.log('[AppLayout] Search result clicked:', filePath, lineNumber, 'ctrlKey:', event.ctrlKey || event.metaKey, 'folderInfo:', folderInfo);
@@ -651,6 +681,62 @@ const AppLayout: React.FC = () => {
       setIsLoading(false);
     }
   }, [searchStore, activeFolderId, setShowHome]);
+
+  // Issue #25: outline panel wiring - persisted state, window events, keyboard shortcuts
+  useEffect(() => {
+    useOutlineStore.getState().initialize();
+    // Settings were only loaded when the Settings window opened; the outline position and
+    // depth (like every other persisted setting) have to apply at startup.
+    useSettingsStore.getState().loadSettings();
+
+    const handleToggleOutline = () => {
+      useOutlineStore.getState().toggleOutline();
+    };
+    const handleFocusOutlineFilter = () => {
+      const outline = useOutlineStore.getState();
+      outline.setShowOutline(true);
+      outline.requestFocusFilter();
+    };
+    const handleToggleOutlinePosition = () => {
+      const { settings, updateAppearance, saveSettings } = useSettingsStore.getState();
+      const next = (settings.appearance.outlinePosition ?? 'right') === 'right' ? 'left' : 'right';
+      updateAppearance({ outlinePosition: next });
+      saveSettings();
+      if (next === 'left') {
+        setShowSidebar(true); // the stacked outline lives inside the sidebar
+      }
+    };
+    const handleToggleOutlineFollow = () => {
+      useOutlineStore.getState().toggleFollowScroll();
+    };
+    // Alt+Left after an outline jump: same file, so only the scroll position changes
+    const handleNavigateToHistoryForOutline = (event: Event) => {
+      const entry = (event as CustomEvent).detail;
+      const { scrollContainer, filePath } = useOutlineStore.getState();
+      if (!entry || !scrollContainer || !filePath || entry.filePath !== filePath) return;
+      scrollContainer.scrollTo({ top: entry.scrollPosition || 0, left: entry.scrollLeft || 0 });
+    };
+
+    window.addEventListener('toggle-toc', handleToggleOutline);
+    window.addEventListener('outline:focus-filter', handleFocusOutlineFilter);
+    window.addEventListener('outline:toggle-position', handleToggleOutlinePosition);
+    window.addEventListener('outline:toggle-follow', handleToggleOutlineFollow);
+    window.addEventListener('navigate-to-history', handleNavigateToHistoryForOutline);
+
+    registerOutlineShortcuts({
+      onToggleOutline: handleToggleOutline,
+      onFocusOutlineFilter: handleFocusOutlineFilter,
+    });
+
+    return () => {
+      window.removeEventListener('toggle-toc', handleToggleOutline);
+      window.removeEventListener('outline:focus-filter', handleFocusOutlineFilter);
+      window.removeEventListener('outline:toggle-position', handleToggleOutlinePosition);
+      window.removeEventListener('outline:toggle-follow', handleToggleOutlineFollow);
+      window.removeEventListener('navigate-to-history', handleNavigateToHistoryForOutline);
+      unregisterOutlineShortcuts();
+    };
+  }, []);
 
   // Listen for toggle-sidebar events from TitleBar
   useEffect(() => {
@@ -1520,7 +1606,7 @@ const AppLayout: React.FC = () => {
         console.log('Go to line not implemented yet');
       },
       onGoToHeading: () => {
-        window.dispatchEvent(new CustomEvent('toggle-toc'));
+        window.dispatchEvent(new CustomEvent('outline:focus-filter')); // Issue #25
       },
       onSplitVertical: () => {
         console.log('Split vertical not implemented yet');
@@ -1574,6 +1660,12 @@ const AppLayout: React.FC = () => {
       },
       onToggleTableOfContents: () => {
         window.dispatchEvent(new CustomEvent('toggle-toc'));
+      },
+      onToggleOutlinePosition: () => {
+        window.dispatchEvent(new CustomEvent('outline:toggle-position')); // Issue #25
+      },
+      onToggleOutlineFollow: () => {
+        window.dispatchEvent(new CustomEvent('outline:toggle-follow')); // Issue #25
       },
       onChangeTheme: () => {
         console.log('Change theme not implemented yet');
@@ -3514,6 +3606,23 @@ const AppLayout: React.FC = () => {
               );
             })()}
           </div>
+          {/* Issue #25: outline stacked under the file tree when docked left (hidden with the sidebar) */}
+          {showOutline && outlinePosition === 'left' && (
+            <>
+              <div
+                className="sidebar-outline-divider"
+                onMouseDown={handleOutlineDividerResize}
+                role="separator"
+                aria-orientation="horizontal"
+                aria-label="Resize outline"
+              />
+              <OutlinePanel
+                variant="stacked"
+                tabId={activeTabId}
+                onClose={() => useOutlineStore.getState().setShowOutline(false)}
+              />
+            </>
+          )}
           <div className="sidebar-resize-handle" onMouseDown={handleSidebarResize}></div>
           </div>
         )}
@@ -3996,6 +4105,15 @@ const AppLayout: React.FC = () => {
           )}
         </div>
         </div>
+
+        {/* Issue #25: outline panel docked right of the content area (independent of the sidebar) */}
+        {showOutline && outlinePosition === 'right' && hasContent && (
+          <OutlinePanel
+            variant="right"
+            tabId={activeTabId}
+            onClose={() => useOutlineStore.getState().setShowOutline(false)}
+          />
+        )}
       </div>
 
       {/* Toast notification */}

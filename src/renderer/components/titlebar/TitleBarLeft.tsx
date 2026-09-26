@@ -11,6 +11,7 @@
 import React, { useState } from 'react';
 import { useActiveTabNavigation, useTabsStore } from '../../stores/tabs';
 import { useFoldersStore } from '../../stores/folders';
+import { useSettingsStore } from '../../stores/settings'; // Issue #25: outline position label
 import './TitleBar.css';
 
 interface MenuItem {
@@ -116,6 +117,7 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
   // Get state for conditional menu item enabling
   const hasActiveTab = useTabsStore((state) => !!state.activeTabId);
   const hasActiveFolder = useFoldersStore((state) => !!state.activeFolderId);
+  const outlinePosition = useSettingsStore((state) => state.settings.appearance.outlinePosition ?? 'right'); // Issue #25
 
   const handleBurgerClick = () => {
     if (onToggleSidebar) {
@@ -288,6 +290,28 @@ export const TitleBarLeft: React.FC<TitleBarLeftProps> = ({ onToggleSidebar }) =
     {
       label: 'Toggle Sidebar',
       action: handleBurgerClick,
+    },
+    // Issue #25: outline panel
+    {
+      label: 'Toggle Outline',
+      shortcut: 'Ctrl+Alt+O',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('toggle-toc'));
+      },
+    },
+    {
+      label: 'Go to Heading',
+      shortcut: 'Ctrl+G',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('outline:focus-filter'));
+      },
+      disabled: !hasActiveTab,
+    },
+    {
+      label: outlinePosition === 'right' ? 'Move Outline to Left' : 'Move Outline to Right',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('outline:toggle-position'));
+      },
     },
     {
       label: 'Toggle Full Screen',
