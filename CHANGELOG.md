@@ -11,6 +11,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bookmarks
 - Split screen and multiple windows
 
+## [0.9.0] - 2026-09-27
+
+### Added
+- **Outline side panel** docked to the right of the content (or stacked under the file tree on the left) showing the heading tree of the current document.
+- Outline **scrollspy** that highlights the heading currently in view, with a follow-scroll toggle and collapse/expand all.
+- **Go to Heading** filter (Ctrl+G) to quickly jump to any heading in the document; Enter jumps to the first match.
+- **Toggle Outline** command (Ctrl+Alt+O) with View menu entries; outline visibility, width and follow-scroll are remembered between sessions.
+- Outline settings under Appearance: panel position (left/right) and maximum heading depth.
+- Keyboard navigation and ARIA tree semantics for the outline panel.
+- **Stable heading ids** (GitHub-style slugs, de-duplicated), so in-document `#anchor` links now work.
+- **Cross-file deep links**: links with a `#fragment` open the target page with the heading aligned to the top, in the current tab, a new tab (Ctrl/Cmd+click) or a new window (Shift+click).
+- Alt+Left returns to the position you were at before jumping to a heading.
+- **Export-only exclusions**: a new "Exclude from Export" section in the Export settings with case-insensitive globs and presets (CLAUDE.md, COPILOT.md, AGENTS.md), applied to folder and repository exports on top of the browsing exclusions.
+- **Open Folder** button on the completed export dialog that reveals the exported file in the file manager.
+
+### Changed
+- Pages loaded fresh into a tab now open at the top; history navigation and tab switches keep their scroll positions.
+- Links that point back to the page being shown are treated as in-document jumps.
+- Settings are now loaded at startup so they apply immediately.
+- Ctrl+Shift+T remains "Copy as plain text"; the outline uses its own shortcut.
+- Removed the unused modal Table of Contents and Split View components.
+- Documentation updated for the outline panel and how links open.
+
+### Fixed
+- Files and folders with **spaces in their paths** now open correctly from links, directory listings and images.
+- Blank page after navigating to a file: a render that completed with empty content no longer blocks the re-render once the file has loaded.
+- Outline scrollspy kept measuring stale heading elements after an in-place re-render (for example auto-reload with unchanged headings).
+- Showing a left-docked outline also reveals the sidebar when it was hidden.
+- Heading ids no longer collide with ids of headings written as raw HTML.
+- The orphaned toggle-toc event now has a listener.
+
+### Technical
+- Link, path and export-collection logic extracted into testable shared modules (`link-fragments`, `link-paths`, `path-resolver`, `directory-listing`, `markdown-file-collector`, `outline`, `scrollspy`) with unit tests.
+- New IPC handlers for revealing exported files, creating windows with a fragment and reading a window's initial state.
+- Playwright evidence specs for issues #23, #25 and #29.
+- Added dobby and OpenSpec agent skills for issue-driven development.
+
 ## [0.8.0] - 2026-05-08
 
 ### Added
