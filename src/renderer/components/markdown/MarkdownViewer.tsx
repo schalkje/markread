@@ -16,7 +16,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { renderMarkdownDocument, renderMermaidDiagrams, applySyntaxHighlighting } from '../../services/markdown-renderer';
 import { CustomScrollbar, ScrollbarMarker } from '../scrollbar/CustomScrollbar';
 import { extractHeadingMarkers } from '../../utils/marker-extractor';
-import { syncHeadingIds, findHeadingElement, elementTopInContainer } from '../../utils/heading-dom'; // Issue #25
+import { syncHeadingIds, findHeadingElement, scrollHeadingToTop, waitForStableHeight } from '../../utils/heading-dom'; // Issue #25, #29
+import { splitHrefFragment, isSameFilePath } from '@shared/utils/link-fragments'; // Issue #29: cross-file deep links
 import type { OutlineHeading } from '@shared/utils/outline'; // Issue #25
 import { useOutlineStore } from '../../stores/outline'; // Issue #25: outline panel
 import { useSettingsStore } from '../../stores/settings'; // Issue #25: scroll behaviour for anchors
@@ -52,8 +53,12 @@ export interface MarkdownViewerProps {
   onRenderComplete?: () => void;
   /** Callback when scroll position changes */
   onScrollChange?: (scrollTop: number, scrollLeft: number) => void;
-  /** Callback when a file link is clicked */
-  onFileLink?: (filePath: string) => void;
+  /** Callback when a file link is clicked (Issue #29: `fragment` is the decoded `#heading`, if any) */
+  onFileLink?: (filePath: string, fragment?: string | null) => void;
+  /** Issue #29: heading to align to the top once the current file has rendered */
+  pendingFragment?: string | null;
+  /** Issue #29: called once the pending fragment has been applied (or found missing) */
+  onPendingFragmentApplied?: () => void;
   /** Callback when zoom level changes (T051i) */
   onZoomChange?: (newZoom: number) => void;
   /** Modification timestamp to detect content changes (T110) */
@@ -80,6 +85,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   onFileLink,
   onZoomChange,
   modificationTimestamp,
+  pendingFragment,
+  onPendingFragmentApplied,
 }) => {
   const viewerRef = useRef<HTMLDivElement>(null);
   const bufferARef = useRef<HTMLDivElement>(null);
@@ -184,6 +191,58 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   const bufferFilePathRef = useRef<{ A: string | null; B: string | null }>({ A: null, B: null });
   const bufferHeadingsRef = useRef<{ A: OutlineHeading[]; B: OutlineHeading[] }>({ A: [], B: [] });
 
+  // Issue #29: deep-link fragment mirrored in refs so the render effect always sees the latest value
+  const pendingFragmentRef = useRef<string | null | undefined>(pendingFragment);
+  pendingFragmentRef.current = pendingFragment;
+  const onPendingFragmentAppliedRef = useRef(onPendingFragmentApplied);
+  onPendingFragmentAppliedRef.current = onPendingFragmentApplied;
+  // Issue #29: cancels the one-shot re-alignment scheduled after a deep link
+  const cancelRealignRef = useRef<(() => void) | null>(null);
+  // Issue #29: set by the navigation layout effect, cleared once `preparingBuffer` state has caught
+  // up. On the commit that changes `filePath` the render/restoration effects still see the old
+  // transition state and would otherwise write into the visible buffer (which then keeps and
+  // reports the previous page's scroll offset).
+  const transitionRequestedRef = useRef(false);
+
+  /**
+   * Issue #29: scroll the pending deep-link heading to the top of `bufferElement`
+   * (exact id, then case-insensitive), tell the parent the fragment is consumed and
+   * re-align once when the content height stabilises. A missing heading leaves the
+   * page at the top and logs a warning.
+   */
+  const applyPendingFragment = (bufferElement: HTMLElement) => {
+    const fragment = pendingFragmentRef.current;
+    if (!fragment) return;
+    pendingFragmentRef.current = null; // consumed - never apply twice for one navigation
+    onPendingFragmentAppliedRef.current?.();
+
+    // The setting's behaviour applies when the buffer is on screen. While the buffer is still
+    // hidden (before the crossfade) there is nothing to animate, and a smooth scroll started there
+    // would be cut short by the swap, so the page simply appears at the heading.
+    const behaviorFor = (element: HTMLElement): 'auto' | 'instant' | 'smooth' =>
+      element.classList.contains('markdown-viewer__buffer--preparing')
+        ? 'auto'
+        : (useSettingsStore.getState().settings.behavior.scrollBehavior ?? 'smooth');
+
+    const target = findHeadingElement(bufferElement, fragment);
+    if (!target) {
+      console.warn('[MarkdownViewer] Deep link target not found:', fragment);
+      return;
+    }
+    const top = scrollHeadingToTop(target, bufferElement, behaviorFor(bufferElement));
+    console.log('[MarkdownViewer] Deep link aligned:', { fragment, id: target.id, top });
+
+    cancelRealignRef.current?.();
+    cancelRealignRef.current = waitForStableHeight(bufferElement, () => {
+      cancelRealignRef.current = null;
+      const again = findHeadingElement(bufferElement, fragment);
+      if (again) {
+        const realignedTop = scrollHeadingToTop(again, bufferElement, behaviorFor(bufferElement));
+        console.log('[MarkdownViewer] Deep link re-aligned after height stabilised:', { fragment, top: realignedTop });
+      }
+    });
+  };
+
   // Start transition when navigating to a new page or opening first file
   // Use useLayoutEffect to ensure this runs before the render effect
   React.useLayoutEffect(() => {
@@ -202,6 +261,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
     if (isInitialLoad || isNavigation) {
       console.log('[MarkdownViewer] Transition triggered:', { isInitialLoad, isNavigation });
+
+      // Issue #29: a new navigation supersedes any pending deep-link re-alignment
+      cancelRealignRef.current?.();
+      cancelRealignRef.current = null;
+      transitionRequestedRef.current = true;
 
       // Clear any existing overlay timeout
       if (overlayTimeoutRef.current) {
@@ -368,23 +432,29 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       const ctrlOrCmd = e.ctrlKey || e.metaKey;
       const shiftKey = e.shiftKey;
 
-      // Handle internal links (same-document anchors)
-      // Issue #25: headings now carry stable ids; resolve safely (ids may start with digits or be encoded)
-      if (href.startsWith('#')) {
-        let anchorId = href.slice(1);
-        try {
-          anchorId = decodeURIComponent(anchorId);
-        } catch {
-          // keep raw id
+      // Issue #29: split off the `#fragment` so the file part resolves on its own
+      // (the fragment is percent-decoded; an empty fragment counts as none)
+      const { path: linkPath, fragment } = splitHrefFragment(href);
+      const behavior = useSettingsStore.getState().settings.behavior.scrollBehavior ?? 'smooth';
+
+      // In-document jump: heading to the top (exact id, then case-insensitive) or the page top
+      const jumpInDocument = (targetFragment: string | null) => {
+        if (!targetFragment) {
+          container.scrollTo({ top: 0, left: 0, behavior });
+          return;
         }
-        const targetElement = findHeadingElement(container, anchorId);
+        const targetElement = findHeadingElement(container, targetFragment);
         if (targetElement) {
-          const behavior = useSettingsStore.getState().settings.behavior.scrollBehavior ?? 'smooth';
-          const top = Math.max(0, container.scrollTop + elementTopInContainer(targetElement, container) - 12);
-          container.scrollTo({ top, behavior });
+          scrollHeadingToTop(targetElement, container, behavior);
         } else {
           console.warn('[MarkdownViewer] Anchor target not found:', href);
         }
+      };
+
+      // Handle internal links (same-document anchors)
+      // Issue #25: headings now carry stable ids; resolve safely (ids may start with digits or be encoded)
+      if (linkPath === '') {
+        jumpInDocument(fragment);
         return;
       }
 
@@ -402,10 +472,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       if (filePath && onFileLink) {
         try {
           // Check if this is a forced directory listing (ends with /)
-          const forceDirectory = href.endsWith('/') && !href.startsWith('http');
-          const cleanHref = forceDirectory ? href.slice(0, -1) : href;
+          const forceDirectory = linkPath.endsWith('/') && !linkPath.startsWith('http');
+          const cleanHref = forceDirectory ? linkPath.slice(0, -1) : linkPath;
 
-          console.log('[MarkdownViewer] Link click:', { href, forceDirectory, cleanHref });
+          console.log('[MarkdownViewer] Link click:', { href, linkPath, fragment, forceDirectory, cleanHref });
 
           const result = await window.electronAPI?.file?.resolvePath({
             basePath: filePath,
@@ -483,21 +553,29 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
                 }));
               }
             } else {
-              console.log(`Opening relative link: ${href} -> ${result.absolutePath}`, { ctrlOrCmd, shiftKey });
+              console.log(`Opening relative link: ${href} -> ${result.absolutePath}`, { ctrlOrCmd, shiftKey, fragment });
+
+              // Issue #29: a link back to the page being shown is an in-document jump
+              // (no reload, no history entry) unless it is meant for a new tab/window
+              if (!shiftKey && !ctrlOrCmd && isSameFilePath(result.absolutePath, filePath)) {
+                jumpInDocument(fragment);
+                return;
+              }
 
               // Ctrl/Cmd+Click: Open in new tab
               // Shift+Click: Open in new window
+              // Issue #29: the fragment travels with the navigation
               if (shiftKey) {
                 window.dispatchEvent(new CustomEvent('open-file-in-new-window', {
-                  detail: { filePath: result.absolutePath }
+                  detail: { filePath: result.absolutePath, fragment }
                 }));
               } else if (ctrlOrCmd) {
                 window.dispatchEvent(new CustomEvent('open-file-in-new-tab', {
-                  detail: { filePath: result.absolutePath }
+                  detail: { filePath: result.absolutePath, fragment }
                 }));
               } else {
                 // Normal click: Open in current tab
-                onFileLink(result.absolutePath);
+                onFileLink(result.absolutePath, fragment);
               }
             }
           } else {
@@ -630,6 +708,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
   // Restore scroll position from history (when navigating back/forward)
   useEffect(() => {
+    // Issue #29: wait for the transition state; never restore into the visible buffer
+    if (transitionRequestedRef.current && !preparingBuffer) return undefined;
+
     // Get the preparing buffer (or active buffer if not transitioning)
     const targetBuffer = preparingBuffer || activeBuffer;
     const targetBufferRef = targetBuffer === 'A' ? bufferARef : bufferBRef;
@@ -754,6 +835,17 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       return;
     }
 
+    // Issue #29: the transition requested by the layout effect is not in state yet on this
+    // commit; rendering now would overwrite the visible buffer. The effect re-runs as soon as
+    // `preparingBuffer` is set.
+    if (transitionRequestedRef.current && !preparingBuffer) {
+      console.log('[MarkdownViewer] Skipping render - transition state pending for', filePath);
+      return;
+    }
+    if (preparingBuffer) {
+      transitionRequestedRef.current = false;
+    }
+
     // Determine target buffer: use preparing buffer if set, otherwise active buffer
     const targetBuffer: 'A' | 'B' = preparingBuffer || activeBuffer;
     const targetBufferRef = targetBuffer === 'A' ? bufferARef : bufferBRef;
@@ -820,6 +912,17 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         targetContentElement.innerHTML = html;
         console.log('[MarkdownViewer] HTML inserted into content wrapper', targetBuffer);
 
+        // Issue #29: a fresh navigation starts at the top-left. The buffer may still
+        // hold the offset of the page it showed two navigations ago; only a history
+        // restore (non-zero scrollTop/scrollLeft props) is allowed to keep a position.
+        const isFreshNavigation = !((scrollTop !== undefined && scrollTop > 0) ||
+                                    (scrollLeft !== undefined && scrollLeft > 0));
+        if (isFreshNavigation && (targetElement.scrollTop !== 0 || targetElement.scrollLeft !== 0)) {
+          console.log('[MarkdownViewer] Fresh navigation - resetting buffer scroll to top-left', targetBuffer);
+          targetElement.scrollTop = 0;
+          targetElement.scrollLeft = 0;
+        }
+
         // Issue #25: make sure every rendered heading has a unique id (DOMPurify may
         // drop clobbering ids like "title"; raw HTML headings never got one)
         bufferHeadingsRef.current[targetBuffer] = syncHeadingIds(targetContentElement);
@@ -867,6 +970,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           setIsRendering(false);
           onRenderComplete?.();
           setRenderVersion((v) => v + 1); // Issue #25: outline re-reads the active buffer
+
+          // Issue #29: align the deep-link heading now (the hidden buffer is laid out)
+          // and once more when the content height stabilises
+          applyPendingFragment(targetElement);
 
           // If no scroll restoration needed (scrollTop/Left are undefined or 0),
           // mark prepared buffer as ready
@@ -943,6 +1050,16 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
     });
   }, [activeBuffer, renderVersion]);
 
+  // Issue #29: a fragment set while the page is already shown (e.g. Ctrl+click on a link
+  // to the current page) is applied right away; a page still rendering gets it from the
+  // render effect instead.
+  useEffect(() => {
+    if (!pendingFragment || isTransitioning) return;
+    const bufferElement = (activeBuffer === 'A' ? bufferARef : bufferBRef).current;
+    if (!bufferElement || bufferFilePathRef.current[activeBuffer] !== (filePath || null)) return;
+    applyPendingFragment(bufferElement);
+  }, [pendingFragment, isTransitioning, activeBuffer, filePath]);
+
   // Issue #25: Home screen / diagram tabs unmount the viewer - clear the outline
   useEffect(() => {
     return () => {
@@ -1009,6 +1126,13 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
   // Track scroll changes from the active buffer
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const element = e.currentTarget;
+
+    // Issue #29: only the visible buffer drives tab state and the scrollbars. Programmatic
+    // scrolls on the hidden buffer (history restore, fresh-navigation reset, deep-link
+    // alignment) are published once when that buffer is swapped in.
+    const activeElement = (activeBuffer === 'A' ? bufferARef : bufferBRef).current;
+    if (activeElement && element !== activeElement) return;
+
     const scrollTop = element.scrollTop;
     const scrollLeft = element.scrollLeft;
 
@@ -1024,7 +1148,25 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
 
     // Notify parent
     onScrollChange?.(scrollTop, scrollLeft);
-  }, [onScrollChange]);
+  }, [onScrollChange, activeBuffer]);
+
+  // Issue #29: the buffer that just became visible was scrolled while hidden (history restore,
+  // fresh-navigation reset, deep-link alignment) - publish its position once so the tab and its
+  // history entry mirror what is on screen. Skipped until the buffer has rendered the current
+  // file, so a freshly mounted viewer never overwrites a stored position with 0.
+  useEffect(() => {
+    const element = (activeBuffer === 'A' ? bufferARef : bufferBRef).current;
+    if (!element || bufferFilePathRef.current[activeBuffer] !== (filePath || null)) return;
+    setScrollState({
+      scrollTop: element.scrollTop,
+      scrollLeft: element.scrollLeft,
+      scrollHeight: element.scrollHeight,
+      scrollWidth: element.scrollWidth,
+      clientHeight: element.clientHeight,
+      clientWidth: element.clientWidth,
+    });
+    onScrollChange?.(element.scrollTop, element.scrollLeft);
+  }, [activeBuffer]);
 
   // Handle custom scrollbar requests (from drag/click)
   const handleVerticalScrollRequest = useCallback((position: number) => {

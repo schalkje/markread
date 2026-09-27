@@ -88,7 +88,9 @@ export interface ElectronAPI {
       filePath?: string;
       folderPath?: string;
       tabState?: any;
+      fragment?: string; // Issue #29: heading to align in the new window
     }) => Promise<any>;
+    getInitialState: () => Promise<any>; // Issue #29: pull the state a new window was created with
     setGlobalZoom: (payload: { zoomFactor: number }) => Promise<any>; // T051b
     getGlobalZoom: () => Promise<any>; // T051b
   };
@@ -146,6 +148,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
     toggleFullScreen: () => ipcRenderer.invoke('window:toggleFullScreen'),
     createNew: (payload: any) => ipcRenderer.invoke('window:createNew', payload),
+    getInitialState: () => ipcRenderer.invoke('window:getInitialState'), // Issue #29
     setGlobalZoom: (payload: any) => ipcRenderer.invoke('window:setGlobalZoom', payload), // T051b
     getGlobalZoom: () => ipcRenderer.invoke('window:getGlobalZoom'), // T051b
   },

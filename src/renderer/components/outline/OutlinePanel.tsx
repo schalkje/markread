@@ -26,11 +26,9 @@ import { useOutlineStore, OUTLINE_MIN_WIDTH, OUTLINE_MAX_WIDTH } from '../../sto
 import { useSettingsStore } from '../../stores/settings';
 import { useTabsStore } from '../../stores/tabs';
 import { useScrollSpy } from '../../hooks/useScrollSpy';
-import { elementTopInContainer, findHeadingElement } from '../../utils/heading-dom';
+import { findHeadingElement, headingScrollTop } from '../../utils/heading-dom';
 import './OutlinePanel.css';
 
-/** Gap between the container top and the heading after a click */
-const NAVIGATE_TOP_OFFSET_PX = 12;
 const INDENT_PER_LEVEL_PX = 20;
 const ROW_BASE_PADDING_PX = 8;
 
@@ -121,7 +119,8 @@ export const OutlinePanel: React.FC<OutlinePanelProps> = ({ variant, tabId, onCl
       const target = findHeadingElement(scrollContainer, id);
       if (!target) return;
 
-      const top = Math.max(0, scrollContainer.scrollTop + elementTopInContainer(target, scrollContainer) - NAVIGATE_TOP_OFFSET_PX);
+      // Issue #29: same arithmetic as anchor links and cross-file deep links
+      const top = headingScrollTop(target, scrollContainer);
 
       // History entry so Alt+Left returns to where the reader was
       if (tabId && filePath) {

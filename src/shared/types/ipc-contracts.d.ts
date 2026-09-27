@@ -479,6 +479,9 @@ export interface ElectronAPI {
     setBounds: (payload: WindowOperations.SetWindowBoundsRequest) => Promise<WindowOperations.SetWindowBoundsResponse>;
     setGlobalZoom: (payload: WindowOperations.SetGlobalZoomRequest) => Promise<WindowOperations.SetGlobalZoomResponse>;
     getGlobalZoom: (payload: WindowOperations.GetGlobalZoomRequest) => Promise<WindowOperations.GetGlobalZoomResponse>;
+    createNew: (payload?: { filePath?: string; folderPath?: string; tabState?: any; fragment?: string }) => Promise<{ success: boolean; windowId?: number; error?: string }>;
+    /** Issue #29: state a Shift+click new window was created with (pulled once on mount) */
+    getInitialState: () => Promise<{ success: boolean; state: { filePath?: string; folderPath?: string; tabState?: any; fragment?: string } | null }>;
   };
   uiState: {
     load: (payload: UIStateOperations.LoadUIStateRequest) => Promise<UIStateOperations.LoadUIStateResponse>;

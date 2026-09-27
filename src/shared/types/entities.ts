@@ -69,6 +69,7 @@ export interface Tab {
   icon?: string;                     // Tab icon identifier
   scrollPosition: number;            // Vertical scroll position in pixels (≥0)
   scrollLeft?: number;               // Horizontal scroll position in pixels (optional for backward compatibility)
+  pendingFragment?: string | null;   // Issue #29: heading to align to the top once the page renders (cleared when applied)
   zoomLevel: number;                 // Zoom percentage (10-2000)
   searchState: SearchState | null;   // Active search state
   modificationTimestamp: number;     // File's last modified time

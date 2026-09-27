@@ -627,6 +627,8 @@ const AppLayout: React.FC = () => {
               filePath: filePath,
               title: fileName,
               folderId: targetFolderId || freshTab.folderId,
+              // Issue #29: a page opened fresh into the tab starts at the top-left
+              ...(freshTab.filePath !== filePath ? { scrollPosition: 0, scrollLeft: 0, pendingFragment: null } : {}),
             };
             freshTabs.set(activeTabId, updatedTab);
             useTabsStore.setState({ tabs: new Map(freshTabs) });
@@ -1738,6 +1740,14 @@ const AppLayout: React.FC = () => {
     console.log('Markdown rendered successfully');
   }, []);
 
+  // Issue #29: the viewer aligned (or could not find) the deep-link heading of the active tab
+  const handlePendingFragmentApplied = useCallback(() => {
+    const { activeTabId, setPendingFragment } = useTabsStore.getState();
+    if (activeTabId) {
+      setPendingFragment(activeTabId, null);
+    }
+  }, []);
+
   // Menu command handlers
   useEffect(() => {
     // Handler for Open File menu command
@@ -2355,6 +2365,8 @@ const AppLayout: React.FC = () => {
             ...freshTab, // Use fresh tab with updated history!
             filePath: virtualPath,
             title: newTitle, // Add forward slash to indicate directory
+            // Issue #29: a listing opened fresh into the tab starts at the top-left
+            ...(freshTab.filePath !== virtualPath ? { scrollPosition: 0, scrollLeft: 0, pendingFragment: null } : {}),
           };
           freshTabs.set(activeTabId, updatedTab);
           useTabsStore.setState({ tabs: new Map(freshTabs) });
@@ -2491,25 +2503,26 @@ const AppLayout: React.FC = () => {
     window.addEventListener('show-directory-listing', handleShowDirectoryListing);
 
     // Handle Ctrl+Click to open file in new tab
+    // Issue #29: `fragment` (decoded `#heading`) travels with the navigation
     const handleOpenFileInNewTab = async (event: Event) => {
-      const customEvent = event as CustomEvent<{ filePath: string }>;
-      const { filePath } = customEvent.detail;
+      const customEvent = event as CustomEvent<{ filePath: string; fragment?: string | null }>;
+      const { filePath, fragment } = customEvent.detail;
       const { openFileInNewTab } = useTabsStore.getState();
       const { activeFolderId } = useFoldersStore.getState();
 
-      console.log('[AppLayout] Opening file in new tab:', filePath);
-      await openFileInNewTab(filePath, activeFolderId || undefined);
+      console.log('[AppLayout] Opening file in new tab:', filePath, fragment ? `#${fragment}` : '');
+      await openFileInNewTab(filePath, activeFolderId || undefined, fragment ?? null);
     };
 
     // Handle Shift+Click to open file in new window
     const handleOpenFileInNewWindow = async (event: Event) => {
-      const customEvent = event as CustomEvent<{ filePath: string }>;
-      const { filePath } = customEvent.detail;
+      const customEvent = event as CustomEvent<{ filePath: string; fragment?: string | null }>;
+      const { filePath, fragment } = customEvent.detail;
       const { openFileInNewWindow } = useTabsStore.getState();
       const { activeFolderId } = useFoldersStore.getState();
 
-      console.log('[AppLayout] Opening file in new window:', filePath);
-      await openFileInNewWindow(filePath, activeFolderId || undefined);
+      console.log('[AppLayout] Opening file in new window:', filePath, fragment ? `#${fragment}` : '');
+      await openFileInNewWindow(filePath, activeFolderId || undefined, fragment ?? null);
     };
 
     // Handle reveal in sidebar
@@ -2668,7 +2681,7 @@ const AppLayout: React.FC = () => {
    * @param content - File content
    * @param forceContext - Force a specific context ('direct' or 'folder'), useful when opening from home page
    */
-  const handleFileOpened = async (filePath: string, content: string, forceContext?: 'direct' | 'folder') => {
+  const handleFileOpened = async (filePath: string, content: string, forceContext?: 'direct' | 'folder', fragment?: string | null) => {
     setCurrentFile(filePath);
     contentCacheRef.current.set(filePath, content);
     setCurrentContent(content);
@@ -2690,6 +2703,10 @@ const AppLayout: React.FC = () => {
 
     if (existingTab) {
       // Tab already exists for this file in this context, just switch to it
+      // (Issue #29: it keeps its scroll position; a deep link still aligns its heading)
+      if (fragment) {
+        useTabsStore.getState().setPendingFragment(existingTab.id, fragment);
+      }
       setActiveTab(existingTab.id);
       setShowHome(false); // Hide home page and show file viewer
       return;
@@ -2723,6 +2740,7 @@ const AppLayout: React.FC = () => {
       createdAt: Date.now(),
       folderId: shouldUseFolderContext && activeFolderId ? activeFolderId : null,
       isDirectFile: !shouldUseFolderContext, // Mark as direct file based on context
+      pendingFragment: fragment ?? null, // Issue #29
     };
     addTab(newTab);
     setActiveTab(newTab.id); // Activate the newly created tab
@@ -2742,11 +2760,43 @@ const AppLayout: React.FC = () => {
     }
   };
 
+  // Issue #29: a window spawned by Shift+click opens the linked file (and aligns its heading)
+  // once mounted. The state is pulled on mount and also pushed by the main process after the
+  // page loads; whichever arrives first wins.
+  useEffect(() => {
+    let handled = false;
+    const openInitialFile = async (state: { filePath?: string; fragment?: string } | null | undefined) => {
+      if (handled || !state?.filePath) return;
+      handled = true;
+      try {
+        const result = await window.electronAPI?.file?.read({ filePath: state.filePath });
+        if (result?.success && result.content !== undefined) {
+          await handleFileOpened(state.filePath, result.content, undefined, state.fragment ?? null);
+        } else {
+          console.warn('[AppLayout] Cannot open the file this window was created for:', state.filePath, result?.error);
+        }
+      } catch (err) {
+        console.error('[AppLayout] Error opening the file this window was created for:', err);
+      }
+    };
+
+    const cleanup = window.electronAPI?.on?.('window:initialState', (_event: any, state: any) => {
+      void openInitialFile(state);
+    });
+    window.electronAPI?.window?.getInitialState?.()
+      .then((response: any) => openInitialFile(response?.state))
+      .catch((err: unknown) => console.warn('[AppLayout] getInitialState failed:', err));
+
+    return () => {
+      cleanup?.();
+    };
+  }, []);
+
   /**
    * Handle link clicks from markdown content (relative file links)
    * Updates the current tab to show the linked file
    */
-  const handleLinkClick = async (filePath: string) => {
+  const handleLinkClick = async (filePath: string, fragment?: string | null) => {
     try {
       const result = await window.electronAPI?.file?.read({ filePath });
       if (result?.success && result.content) {
@@ -2811,11 +2861,18 @@ const AppLayout: React.FC = () => {
           const freshTab = freshTabs.get(activeTabId);
           if (freshTab) {
             const fileName = filePath.split(/[/\\]/).pop() || 'Untitled';
+            const isNewFile = freshTab.filePath !== filePath;
             const updatedTab = {
               ...freshTab, // Use fresh tab with updated history!
               filePath: filePath,
               title: fileName,
-              modificationTimestamp: Date.now(),
+              // Issue #29: a fresh page starts at the top-left; a deep link aligns its heading after
+              // render. The timestamp bump (forces a re-render of the same file) is only needed when
+              // the file did not change - for a new file it would re-render the old page first.
+              ...(isNewFile
+                ? { scrollPosition: 0, scrollLeft: 0 }
+                : { modificationTimestamp: Date.now() }),
+              pendingFragment: fragment ?? null,
             };
             freshTabs.set(activeTabId, updatedTab);
             useTabsStore.setState({ tabs: new Map(freshTabs) });
@@ -3225,6 +3282,29 @@ const AppLayout: React.FC = () => {
 
   // Get content from cache for current file (prevents stale content from being passed to MarkdownViewer)
   const contentForCurrentFile = currentFile ? (contentCacheRef.current.get(currentFile) || currentContent) : currentContent;
+
+  // Issue #29: a tab store update renders synchronously, before React applies a pending
+  // `currentFile` change. In that one render the viewer still shows the previous file, so the
+  // tab's scroll position, modification timestamp and pending fragment (which belong to the new
+  // file) must not reach it - they would re-render or reset the page on screen and its scroll
+  // events would then be recorded against the new tab. The viewer keeps the props of the file it
+  // is showing until the tab and `currentFile` agree again.
+  const tabMatchesCurrentFile = !!activeTab && !!currentFile && activeTab.filePath === currentFile;
+  const viewerTabPropsRef = useRef<{
+    scrollTop?: number;
+    scrollLeft?: number;
+    modificationTimestamp?: number;
+    pendingFragment: string | null;
+  }>({ pendingFragment: null });
+  if (tabMatchesCurrentFile && activeTab) {
+    viewerTabPropsRef.current = {
+      scrollTop: activeTab.scrollPosition,
+      scrollLeft: activeTab.scrollLeft,
+      modificationTimestamp: activeTab.modificationTimestamp,
+      pendingFragment: activeTab.pendingFragment ?? null,
+    };
+  }
+  const viewerTabProps = viewerTabPropsRef.current;
   console.log('[AppLayout] Rendering with:', {
     currentFile,
     currentContentLength: currentContent.length,
@@ -3587,6 +3667,8 @@ const AppLayout: React.FC = () => {
                                 filePath: filePath,
                                 title: fileName,
                                 folderId: activeFolderId,
+                                // Issue #29: a page opened fresh into the tab starts at the top-left
+                                ...(freshTab.filePath !== filePath ? { scrollPosition: 0, scrollLeft: 0, pendingFragment: null } : {}),
                               };
                               freshTabs.set(activeTabId, updatedTab);
                               useTabsStore.setState({ tabs: new Map(freshTabs) });
@@ -4063,11 +4145,13 @@ const AppLayout: React.FC = () => {
               isLoading={isLoading}
               error={error}
               zoomLevel={activeTab?.zoomLevel || 100}
-              scrollTop={activeTab?.scrollPosition}
-              scrollLeft={activeTab?.scrollLeft}
-              modificationTimestamp={activeTab?.modificationTimestamp}
+              scrollTop={viewerTabProps.scrollTop}
+              scrollLeft={viewerTabProps.scrollLeft}
+              modificationTimestamp={viewerTabProps.modificationTimestamp}
               onRenderComplete={handleRenderComplete}
               onFileLink={handleLinkClick}
+              pendingFragment={viewerTabProps.pendingFragment}
+              onPendingFragmentApplied={handlePendingFragmentApplied}
               onScrollChange={(scrollTop, scrollLeft) => {
                 // Save scroll positions to BOTH tab state AND current history entry
                 console.log('[onScrollChange] Called with:', { scrollTop, scrollLeft, activeTabId });
