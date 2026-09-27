@@ -579,6 +579,11 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     }
   });
 
+  // Issue #29: initial state per new window, kept until the renderer pulls it
+  // (`window:getInitialState`). The push on `did-finish-load` can race the
+  // renderer's listener registration, so the renderer asks for it on mount too.
+  const pendingWindowInitialState = new Map<number, { filePath?: string; folderPath?: string; tabState?: any; fragment?: string }>();
+
   // T163b: window:createNew IPC handler for spawning new windows
   ipcMain.handle('window:createNew', async (_event, payload) => {
     try {
@@ -586,15 +591,31 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         filePath: z.string().optional(),
         folderPath: z.string().optional(),
         tabState: z.any().optional(), // Tab state to transfer
+        fragment: z.string().optional(), // Issue #29: heading to align in the new window
       });
 
-      const { filePath, folderPath, tabState } = validatePayload(
+      const { filePath, folderPath, tabState, fragment } = validatePayload(
         CreateNewWindowSchema,
         payload
       );
 
       // Create new window
       const newWindow = createWindow();
+      const windowId = newWindow.id;
+
+      // If initial state is provided, remember it and push it once the page has loaded
+      if (filePath || folderPath || tabState) {
+        const initialState = { filePath, folderPath, tabState, fragment };
+        pendingWindowInitialState.set(windowId, initialState);
+        newWindow.webContents.once('did-finish-load', () => {
+          if (!newWindow.isDestroyed()) {
+            newWindow.webContents.send('window:initialState', initialState);
+          }
+        });
+        newWindow.once('closed', () => {
+          pendingWindowInitialState.delete(windowId);
+        });
+      }
 
       // Wait for window to be ready
       await new Promise<void>((resolve) => {
@@ -603,18 +624,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         });
       });
 
-      // If initial state is provided, send it to the new window
-      if (filePath || folderPath || tabState) {
-        newWindow.webContents.send('window:initialState', {
-          filePath,
-          folderPath,
-          tabState,
-        });
-      }
-
       return {
         success: true,
-        windowId: newWindow.id,
+        windowId,
       };
     } catch (error: any) {
       return {
@@ -622,6 +634,16 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         error: error.message,
       };
     }
+  });
+
+  // Issue #29: renderer pulls the initial state of the window it runs in (once)
+  ipcMain.handle('window:getInitialState', async (event) => {
+    const senderWindow = BrowserWindow.fromWebContents(event.sender);
+    const state = senderWindow ? pendingWindowInitialState.get(senderWindow.id) : undefined;
+    if (senderWindow && state) {
+      pendingWindowInitialState.delete(senderWindow.id);
+    }
+    return { success: true, state: state ?? null };
   });
 
   // T051d: window:setGlobalZoom IPC handler

@@ -60,10 +60,14 @@ interface TabsState {
   moveTabToNewWindow: (tabId: string) => Promise<boolean>;
 
   // T163i: Open file in new tab
-  openFileInNewTab: (filePath: string, folderId?: string) => Promise<Tab | undefined>;
+  // Issue #29: `fragment` is the heading to align once the page renders; an existing tab is focused
+  openFileInNewTab: (filePath: string, folderId?: string, fragment?: string | null) => Promise<Tab | undefined>;
 
   // T163j: Open file in new window
-  openFileInNewWindow: (filePath: string, folderId?: string) => Promise<boolean>;
+  openFileInNewWindow: (filePath: string, folderId?: string, fragment?: string | null) => Promise<boolean>;
+
+  // Issue #29: set/clear the heading a tab should align to after its next render
+  setPendingFragment: (tabId: string, fragment: string | null) => void;
 
   // T063l: Convert direct file tab to folder-connected tab
   convertDirectFileToFolder: (tabId: string, folderPath: string) => void;
@@ -587,7 +591,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
   },
 
   // T163i: Open file in new tab
-  openFileInNewTab: async (filePath, folderId) => {
+  openFileInNewTab: async (filePath, folderId, fragment) => {
     const { addTab, tabs } = get();
 
     // Generate deterministic tab ID based on context
@@ -610,11 +614,24 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       tabId = generateDirectFileTabId(filePath);
     }
 
-    // Check if tab already exists
-    const existingTab = tabs.get(tabId);
+    // Issue #29: a tab is identified by the file it *currently* shows (in-tab navigation moves a
+    // tab away from the file its id was derived from), so look it up by path + context. Focus it
+    // and keep its scroll position; a deep link still aligns its heading once the tab is shown.
+    const existingTab = Array.from(tabs.values()).find(
+      (t) => t.filePath === filePath && (t.folderId ?? null) === (folderId ?? null)
+    );
     if (existingTab) {
-      // Tab already exists, just return it
-      return existingTab;
+      set((state) => {
+        const newTabs = new Map(state.tabs);
+        newTabs.set(existingTab.id, { ...existingTab, pendingFragment: fragment ?? null });
+        return { tabs: newTabs, activeTabId: existingTab.id };
+      });
+      return get().tabs.get(existingTab.id);
+    }
+
+    // The derived id may still belong to a tab that navigated elsewhere; keep ids unique
+    if (tabs.has(tabId)) {
+      tabId = `${tabId}-${Date.now()}`;
     }
 
     // Get file name from path
@@ -638,18 +655,20 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       createdAt: Date.now(),
       folderId: folderId || null,
       isDirectFile: !folderId,
+      pendingFragment: fragment ?? null, // Issue #29
     };
 
     return addTab(newTab);
   },
 
   // T163j: Open file in new window
-  openFileInNewWindow: async (filePath, folderId) => {
+  openFileInNewWindow: async (filePath, folderId, fragment) => {
     try {
       // Call IPC handler to create new window with file path
       const result = await window.electronAPI.window.createNew({
         filePath,
         folderPath: folderId,
+        fragment: fragment ?? undefined, // Issue #29
       });
 
       if (result.success) {
@@ -662,6 +681,17 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       console.error('Error opening file in new window:', error);
       return false;
     }
+  },
+
+  // Issue #29: heading to align after the tab's next render (null clears it)
+  setPendingFragment: (tabId, fragment) => {
+    set((state) => {
+      const tab = state.tabs.get(tabId);
+      if (!tab || (tab.pendingFragment ?? null) === fragment) return state;
+      const newTabs = new Map(state.tabs);
+      newTabs.set(tabId, { ...tab, pendingFragment: fragment });
+      return { tabs: newTabs };
+    });
   },
 
   // T063l: Convert direct file tab to folder-connected tab

@@ -147,6 +147,7 @@ Anchors are generated from the heading's plain text (inline formatting, code and
 - Remove special characters (letters, numbers, `-` and `_` are kept, including accented letters)
 - Remove emojis
 - Duplicate headings get a numeric suffix so every anchor is unique
+- Links are matched against these anchors exactly first, then case-insensitively (`#Installation-Guide` still finds `#installation-guide`)
 
 Examples:
 
